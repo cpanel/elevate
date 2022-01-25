@@ -1,0 +1,9 @@
+[Unit]
+Description=tailwatchd
+
+[Service]
+ExecStart=/usr/bin/perl -E 'sleep 10 while 1'
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
