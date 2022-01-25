@@ -2,7 +2,7 @@
 
 # HARNESS-NO-STREAM
 
-# cpanel - t/small/scripts-elevate_c7_disk_space.t Copyright 2021 cPanel, L.L.C.
+# cpanel - ./t/disk_space.t                        Copyright 2022 cPanel, L.L.C.
 #                                                           All rights reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited
