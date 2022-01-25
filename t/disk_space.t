@@ -18,7 +18,9 @@ use Test::MockModule qw/strict/;
 
 use Test::Cpanel::Policy;
 
-require '/usr/local/cpanel/scripts/elevate_c7';
+use FindBin;
+
+require $FindBin::Bin.'/../elevate-cpanel';
 
 my $saferun_output;
 
