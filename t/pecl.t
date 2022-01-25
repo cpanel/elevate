@@ -18,8 +18,6 @@ use Test::Trap;
 
 use Test::MockModule qw/strict/;
 
-use Test::Cpanel::Policy;
-
 use Test::MockFile;
 
 use FindBin;

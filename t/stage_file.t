@@ -16,8 +16,6 @@ use Test2::Tools::Exception;
 
 use Test::MockModule qw/strict/;
 
-use Test::Cpanel::Policy;
-
 use Test::MockFile;
 
 use FindBin;
