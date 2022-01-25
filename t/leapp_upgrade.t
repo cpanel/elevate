@@ -26,7 +26,7 @@ use cPstrict;
 
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
-my $mock_elevate = Test::MockModule->new('scripts::ElevateCpanel');
+my $mock_elevate = Test::MockModule->new('cpev');
 $mock_elevate->redefine(
     ssystem_and_die => sub(@args) {
         note "run: ", join( ' ', @args );
@@ -35,7 +35,7 @@ $mock_elevate->redefine(
     }
 );
 
-ok scripts::ElevateCpanel::_do_leapp_upgrade(), '_do_leapp_upgrade succeeds';
+ok cpev::_do_leapp_upgrade(), '_do_leapp_upgrade succeeds';
 
 $mock_elevate->redefine(
     ssystem_and_die => sub {
@@ -43,14 +43,14 @@ $mock_elevate->redefine(
     }
 );
 
-ok scripts::ElevateCpanel::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
-ok scripts::ElevateCpanel::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
+ok cpev::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
+ok cpev::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
 
-my $mock_leap_report_json = Test::MockFile->file( scripts::ElevateCpanel::LEAPP_REPORT_JSON() );
-my $mock_leap_report_txt  = Test::MockFile->file( scripts::ElevateCpanel::LEAPP_REPORT_TXT() );
+my $mock_leap_report_json = Test::MockFile->file( cpev::LEAPP_REPORT_JSON() );
+my $mock_leap_report_txt  = Test::MockFile->file( cpev::LEAPP_REPORT_TXT() );
 
 like(
-    dies { scripts::ElevateCpanel::_do_leapp_upgrade() },
+    dies { cpev::_do_leapp_upgrade() },
     qr{The 'leapp upgrade' process failed},
     '_do_leapp_upgrade failed'
 );
@@ -128,7 +128,7 @@ $mock_leap_report_json->contents( <<'EOS' );
 }
 EOS
 
-my $error = dies { scripts::ElevateCpanel::_do_leapp_upgrade() };
+my $error = dies { cpev::_do_leapp_upgrade() };
 
 note $error;
 
@@ -159,7 +159,7 @@ unlike(
 );
 
 $mock_leap_report_txt->contents('full report');
-$error = dies { scripts::ElevateCpanel::_do_leapp_upgrade() };
+$error = dies { cpev::_do_leapp_upgrade() };
 
 note $error;
 

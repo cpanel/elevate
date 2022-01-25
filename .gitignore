@@ -3,3 +3,4 @@
 *.rej
 *.ERR
 *.bak
+/cover_db

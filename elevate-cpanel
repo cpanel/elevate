@@ -7,7 +7,8 @@
 
 #
 
-package scripts::ElevateCpanel;
+package cpev;
+$INC{'cpev.pm'} = 'FAKE';    # For test mocking.
 
 =encoding utf8
 
@@ -1458,40 +1459,40 @@ sub xspm_to_rpm () {
 sub blockers_check {
 
     unless ( $< == 0 ) {
-        say "This script can only be run by root";
+        ERROR("This script can only be run by root");
         return 666;
     }
 
     if ( !$Cpanel::Version::Tiny::major_version ) {
-        say qq[Invalid cPanel&WHM major_version];
+        ERROR('Invalid cPanel & WHM major_version');
         return 1;
     }
 
     if ( $Cpanel::Version::Tiny::major_version <= 100 ) {
-        say "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better";
+        ERROR("This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better.");
         return 2;
     }
 
     return 3 unless Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos';
 
     if ( Cpanel::OS::minor() < 4 ) {
-        say q[You need to run CentOS 7.4 and later to upgrade AlmaLinux 8. You are currently using ], Cpanel::OS::display_name();
+        ERROR( 'You need to run CentOS 7.4 and later to upgrade AlmaLinux 8. You are currently using ' . Cpanel::OS::display_name() );
         return 3;
     }
 
     if ( -e '/var/cpanel/caches/Cpanel-OS.custom' ) {
-        say "Experimental OS detected. This script only supports CentOS 7 upgrades";
+        ERROR('Experimental OS detected. This script only supports CentOS 7 upgrades');
         return 4;
     }
 
     if ( -e q[/var/cpanel/dev_sandbox] ) {
-        say q[Cannot elevate a sandbox...];
+        ERROR('Cannot elevate a sandbox...');
         return 5;
     }
 
     if ( Cpanel::Pkgr::is_installed('cpanel-ccs-calendarserver') ) {
-        say "You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.";
-        say "WARNING: removal of this server can lead to data loss.";
+        ERROR('You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.');
+        WARN('Removal of this server can lead to data loss.');
 
         return 7;
     }
@@ -1499,10 +1500,10 @@ sub blockers_check {
     if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
         my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql');
         my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
-        say "You have postgresql-server version $old_version installed.";
-        say "This is upgraded irreversably to version 10.0 when you switch to almalinux 8" if $old_version < 10;
-        say "We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.";
-        say "To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`" if $old_version < 10;
+        ERROR("You have postgresql-server version $old_version installed.");
+        ERROR("This is upgraded irreversably to version 10.0 when you switch to almalinux 8") if $old_version < 10;
+        ERROR("We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.");
+        ERROR("To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`") if $old_version < 10;
 
         return 8;
     }
@@ -1511,8 +1512,8 @@ sub blockers_check {
 
     my $nameserver = $cpconf->{'local_nameserver_type'};
     if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
-        say "AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns";
-        say "Before upgrading, we suggest you run: /scripts/setupnameserver powerdns";
+        ERROR('AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns');
+        ERROR('Before upgrading, we suggest you run: /scripts/setupnameserver powerdns');
         return 9;
     }
 
@@ -1533,7 +1534,7 @@ sub blockers_check {
         my $mysql_version = $cpconf->{'mysql-version'} // '';
 
         if ( $mysql_version eq '5.7' ) {
-            say <<~'EOS';
+            ERROR( <<~'EOS');
             You are using MySQL 5.7 community server.
             This version is not available for AlmaLinux 8.
             You first need to update your MySQL server to 8.0 or later.
@@ -1548,7 +1549,7 @@ sub blockers_check {
         }
 
         if ( $mysql_version eq '10.2' ) {
-            say <<~'EOS';
+            ERROR(<<~'EOS');
             You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
             You first need to update MariaDB server to 10.3 or later.
 
@@ -1574,7 +1575,7 @@ sub blockers_check {
         );
 
         if ( !$supported_mysql_versions{$mysql_version} ) {
-            say <<~'EOS';
+            ERROR(<<~'EOS');
             We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
             Please open a support ticket.
             EOS
@@ -1803,5 +1804,20 @@ sub ssystem_and_die (@args) {
     ssystem(@args) or return 0;
     die("command failed. Fix it and run command.");
 }
+
+sub _msg ( $level, $lines ) {
+    chomp $lines;
+    my @lines = split( "\n", $lines );
+    foreach my $line (@lines) {
+        print "$level $line\n";
+    }
+
+    return;
+}
+
+sub ERROR($msg) { _msg( 'ERROR: ', $msg ) }
+sub WARN($msg)  { _msg( ' WARN: ', $msg ) }
+sub INFO($msg)  { _msg( ' INFO: ', $msg ) }
+sub DEBUG($msg) { _msg( 'DEBUG: ', $msg ) }
 
 1;

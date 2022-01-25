@@ -30,7 +30,7 @@ $mock_saferun->redefine(
 );
 
 like(
-    dies { scripts::ElevateCpanel::_disk_space_check() },
+    dies { cpev::_disk_space_check() },
     qr{Cannot parse df output},
     "_disk_space_check"
 );
@@ -41,7 +41,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 EOS
 
 like(
-    dies { scripts::ElevateCpanel::_disk_space_check() },
+    dies { cpev::_disk_space_check() },
     qr{expected 3 lines ; got 1 lines},
     "_disk_space_check"
 );
@@ -53,7 +53,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/vda1       83874796 76307692   7567104  91% /
 EOS
 
-is scripts::ElevateCpanel::_disk_space_check(), 1, "_disk_space_check ok";
+is cpev::_disk_space_check(), 1, "_disk_space_check ok";
 
 my $boot = 121 * 1_024;
 
@@ -64,7 +64,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/vda1       83874796 76307692   7567104  91% /
 EOS
 
-is scripts::ElevateCpanel::_disk_space_check(), 1, "_disk_space_check ok - /boot 121 M";
+is cpev::_disk_space_check(), 1, "_disk_space_check ok - /boot 121 M";
 
 $boot = 119 * 1_024;
 
@@ -77,7 +77,7 @@ EOS
 
 my $check;
 like(
-    warnings { $check = scripts::ElevateCpanel::_disk_space_check() },
+    warnings { $check = cpev::_disk_space_check() },
     [qr{/boot needs 120 M => available 119 M}],
     q[Got expected warnings]
 );
@@ -93,7 +93,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/vda1       83874796 76307692   7567104  91% /
 EOS
 
-is scripts::ElevateCpanel::_disk_space_check(), 1, "_disk_space_check ok - /usr/local/cpanel 2 G";
+is cpev::_disk_space_check(), 1, "_disk_space_check ok - /usr/local/cpanel 2 G";
 
 $usr_local_cpanel = 1.4 * 1_024**2;     # 2 G in K
 
@@ -105,7 +105,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 EOS
 
 like(
-    warnings { $check = scripts::ElevateCpanel::_disk_space_check() },
+    warnings { $check = cpev::_disk_space_check() },
     [qr{/usr/local/cpanel needs 1.50 G => available 1.40 G}],
     q[Got expected warnings]
 );
