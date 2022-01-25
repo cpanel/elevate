@@ -24,9 +24,9 @@ use FindBin;
 
 require $FindBin::Bin.q[/../elevate-cpanel];
 
-$INC{'scripts/ElevateC7.pm'} = '__TEST__';
+$INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
-my $mock_elevate = Test::MockModule->new('scripts::ElevateC7');
+my $mock_elevate = Test::MockModule->new('scripts::ElevateCpanel');
 $mock_elevate->redefine(
     ssystem_and_die => sub(@args) {
         note "run: ", join( ' ', @args );
@@ -35,7 +35,7 @@ $mock_elevate->redefine(
     }
 );
 
-ok scripts::ElevateC7::_do_leapp_upgrade(), '_do_leapp_upgrade succeeds';
+ok scripts::ElevateCpanel::_do_leapp_upgrade(), '_do_leapp_upgrade succeeds';
 
 $mock_elevate->redefine(
     ssystem_and_die => sub {
@@ -43,14 +43,14 @@ $mock_elevate->redefine(
     }
 );
 
-ok scripts::ElevateC7::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
-ok scripts::ElevateC7::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
+ok scripts::ElevateCpanel::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
+ok scripts::ElevateCpanel::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
 
-my $mock_leap_report_json = Test::MockFile->file( scripts::ElevateC7::LEAPP_REPORT_JSON() );
-my $mock_leap_report_txt  = Test::MockFile->file( scripts::ElevateC7::LEAPP_REPORT_TXT() );
+my $mock_leap_report_json = Test::MockFile->file( scripts::ElevateCpanel::LEAPP_REPORT_JSON() );
+my $mock_leap_report_txt  = Test::MockFile->file( scripts::ElevateCpanel::LEAPP_REPORT_TXT() );
 
 like(
-    dies { scripts::ElevateC7::_do_leapp_upgrade() },
+    dies { scripts::ElevateCpanel::_do_leapp_upgrade() },
     qr{The 'leapp upgrade' process failed},
     '_do_leapp_upgrade failed'
 );
@@ -128,7 +128,7 @@ $mock_leap_report_json->contents( <<'EOS' );
 }
 EOS
 
-my $error = dies { scripts::ElevateC7::_do_leapp_upgrade() };
+my $error = dies { scripts::ElevateCpanel::_do_leapp_upgrade() };
 
 note $error;
 
@@ -159,7 +159,7 @@ unlike(
 );
 
 $mock_leap_report_txt->contents('full report');
-$error = dies { scripts::ElevateC7::_do_leapp_upgrade() };
+$error = dies { scripts::ElevateCpanel::_do_leapp_upgrade() };
 
 note $error;
 
