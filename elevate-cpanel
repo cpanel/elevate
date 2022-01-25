@@ -1,0 +1,1795 @@
+#!/usr/local/cpanel/3rdparty/bin/perl
+
+# cpanel - scripts/elevate_c7                      Copyright 2021 cPanel, L.L.C.
+#                                                           All rights reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited
+
+#
+
+package scripts::ElevateC7;
+
+=encoding utf8
+
+=head1 NAME
+
+/scripts/elevate_c7
+
+=head1 DESCRIPTION
+
+Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
+
+=head1 SYNOPSIS
+
+    /scripts/elevate_c7 [OPTIONS]
+
+    Optional:
+       --start                        Start the convertion process
+       --continue                     Continue the convertion: retry the last step
+       --status                       Check the current elevation status
+       --clean                        Cleanup scripts and files created by elevate_c7
+
+       --help                         Display this documentation.
+
+=head1 COMMON USAGE
+
+=over
+
+=item Start an installation
+
+You can start an elevation update by running:
+
+    /scripts/elevate_c7 --start
+
+=item Start an installation with manual reboot
+
+You can control the reboots by using the --manual-reboots flag when starting the process.
+This can be used for debugging purpose.
+
+    /scripts/elevate_c7 --start --manual-reboots
+
+=item Monitor an existing installation
+
+Once you have started an elevation process, you can check the current update by running:
+
+    /scripts/elevate_c7
+
+You can also check the current status by running
+
+    /scripts/elevate_c7 --status
+
+=item Resume an installation after an error
+
+If an error occurs during the elevation process, once you have fixed it, you can resume
+the update process by running:
+
+    /scripts/elevate_c7 --continue
+
+=back
+
+=head1 WARNINGS
+
+The elevation process from CentOS 7 to Almalinux 8 distribution is not a risk free update.
+Depending on the state of your current distribution multiple errors can occur.
+We recommend updating your system to the last upstream state before starting.
+
+The elevation process can take several long minutes and requires multiple reboots.
+Some reboots are expected to be longer than normal.
+
+Please do not interrupt the reboots and elevation process.
+
+=cut
+
+use cPstrict;
+
+use parent qw( Cpanel::HelpfulScript );
+
+use Config;
+use File::Find    ();
+use File::Temp    ();
+use File::Slurper ();
+use Hash::Merge   ();
+
+use Cpanel::Config::Httpd      ();
+use Cpanel::Config::LoadCpConf ();
+use Cpanel::HTTP::Client       ();
+use Cpanel::JSON               ();
+use Cpanel::OS                 ();
+use Cpanel::PID                ();
+use Cpanel::Pkgr               ();
+use Cpanel::SafeRun::Simple    ();
+use Cpanel::Version::Tiny      ();
+use Cpanel::Yum::Vars          ();
+
+use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
+use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
+use constant SERVICE_NAME         => 'cpanel-elevate.service';
+use constant SERVICE_FILE         => '/etc/systemd/system/' . SERVICE_NAME;
+use constant LOG_FILE             => q[/var/cpanel/logs/elevate-c7.log];
+use constant PID_FILE             => q[/var/run/cpanel-elevate.pid];
+
+use constant VALID_STAGES        => 5;
+use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
+
+use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
+use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
+
+use constant REBOOT_NEEDED => 4242;    # just one unique id
+
+sub _OPTIONS {
+    return qw( service start clean continue manual-reboots status );
+}
+
+exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
+
+sub run ($self) {
+
+    local $| = 1;
+
+    if ( $self->getopt('start') ) {
+        die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
+        return 1                                  if $self->start();
+    }
+    elsif ( $self->getopt('status') ) {
+        return $self->check_status();
+    }
+    return do_cleanup() if $self->getopt('clean');
+
+    my $stage = get_stage();
+
+    if ( $stage == 0 ) {
+        print_box("Please re-run this script with --start if you would like to begin the upgrade process");
+        my $out = $self->full_help();
+        my ( $short_help, $extra ) = split( qr{^.+STAGES}m, $out );
+        chomp $short_help for 1 .. 2;
+        say $short_help;
+        return 1;
+    }
+
+    if ( $self->getopt('start') ) {
+        1;    # these options are exclusive
+    }
+    elsif ( $self->getopt('continue') ) {
+        $self->continue_elevation();
+    }
+    elsif ( $self->getopt('service') ) {
+
+        # running from the systemct service
+        return $self->run_service_and_notify();
+    }
+
+    monitor_upgrade();
+
+    return 0;
+}
+
+sub monitor_upgrade {
+    my $stage = get_stage();
+
+    say "# Monitoring existing upgrade (stage=$stage) process via: tail -f ", LOG_FILE;
+
+    exec( qw{/usr/bin/tail -n40 -F }, LOG_FILE );
+}
+
+sub start($self) {
+    my $stage = get_stage();
+    if ( $stage != 0 ) {
+        warn <<"EOS";
+Your elevation update is already in progress (stage $stage).
+You can monitor the current update by running:
+
+    /scripts/elevate_c7
+
+EOS
+
+        return 0;
+    }
+
+    system touch => LOG_FILE;
+
+    bump_stage();    # init stage number to 1
+
+    # store the manual reboots flag
+    if ( $self->getopt('manual-reboots') ) {
+        say q[Manual Reboot would be required between each stages];
+        update_stage_file( { manual_reboots => 1 } );
+    }
+
+    # prefer over running step1: so status and notifications are enabled
+    return $self->run_service_and_notify();
+}
+
+sub continue_elevation($self) {
+
+    # check that no process is running and remove the pidfile for the other
+    $self->check_and_create_pidfile()->remove_pid_file;
+
+    say "Continuing install process";
+    ssystem( '/usr/bin/systemctl', 'restart', SERVICE_NAME );
+
+    return;
+}
+
+sub do_cleanup {
+    ssystem( '/usr/bin/systemctl', 'stop',    SERVICE_NAME );
+    ssystem( '/usr/bin/systemctl', 'disable', SERVICE_NAME );
+    unlink SERVICE_FILE;
+
+    ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+    unlink ELEVATE_STAGE_FILE;
+    unlink PID_FILE;
+
+    cleanup_motd();
+
+    return 0;
+}
+
+sub run_service_and_notify($self) {
+
+    # check it outside the eval block to avoid notification from the command line
+    $self->check_and_create_pidfile();
+
+    my $stage = get_stage();
+
+    update_stage_file( { status => q[running] } ) if $stage >= 2;
+
+    my $out;
+    my $ok = eval {
+        $out = $self->_run_service();
+        1;
+    };
+
+    if ($ok) {
+
+        # only notify a success when reaching the last stage
+        if ( $stage == VALID_STAGES ) {
+            update_stage_file( { status => q[success] } );
+            $self->_notify_success();
+        }
+
+        reboot() if $out == REBOOT_NEEDED;
+    }
+    else {
+        my $error = $@ // q[Unknown error];
+
+        update_stage_file( { status => q[failed] } );
+        $self->_notify_error($error);
+
+        die $error;
+    }
+
+    return $out;
+}
+
+sub check_and_create_pidfile($self) {
+    my $upid = Cpanel::PID->new( { pid_file => PID_FILE } );
+
+    if ( $upid->create_pid_file() != 1 ) {
+        die qq[Another process is already running. Please wait for it to finish.\n];
+    }
+
+    return $upid;
+}
+
+sub check_status($self) {
+    my $stage = get_stage();
+
+    if ( !$stage ) {
+        say q[Elevation process has not started yet.];
+        return;
+    }
+
+    my $stage_info = read_stage_file();
+
+    my $status = $stage_info->{status} // 'unknown';
+
+    if ( $status eq 'success' ) {
+        say q[success];
+    }
+    elsif ( $status eq 'running' ) {
+        say qq[Running stage $stage / ] . VALID_STAGES;
+    }
+    elsif ( $status eq 'failed' ) {
+        say qq[Failed during stage $stage];
+    }
+    else {
+        say q[Unknown status];
+        return 1;
+    }
+
+    return;
+}
+
+sub _notify_success($self) {
+
+    my $msg = <<'EOS';
+The cPanel&WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.
+EOS
+
+    send_notification( 'Successfully update to AlmaLinux 8' => $msg );
+
+    return;
+}
+
+sub _notify_error ( $self, $error = '' ) {
+
+    my $stage = get_stage();
+
+    my $msg = <<"EOS";
+The elevation process failed during stage $stage.
+
+You can continue the process after fixing the errors by running:
+
+    $0 --continue
+
+You can check the error log by running:
+
+    $0
+
+Last Error:
+
+$error
+
+EOS
+
+    send_notification( 'Fail to update to AlmaLinux 8' => $msg );
+
+    return;
+}
+
+sub send_notification ( $subject, $msg ) {
+
+    eval {
+        _send_notification( $subject, $msg );
+        1;
+    }
+      or warn "Fail to send notification: $@";
+
+    return;
+}
+
+sub _send_notification ( $subject, $msg ) {
+
+    # note: no need to use one iContact::Class this is a one shot message
+    require Cpanel::iContact;
+
+    say q[Sending notification: ], $subject;
+    say q[Error: ],                $msg;
+
+    Cpanel::iContact::icontact(
+        'application' => 'elevate',
+        'subject'     => $subject,
+        'message'     => $msg,
+    );
+
+    return;
+}
+
+sub _run_service($self) {
+
+    my $stage = get_stage();
+
+    print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
+
+    return
+        $stage == 1 ? run_stage_1()
+      : $stage == 2 ? run_stage_2()
+      : $stage == 3 ? run_stage_3()
+      : $stage == 4 ? run_stage_4()
+      : $stage == 5 ? run_stage_5()
+      :               die("Unknown stage '$stage'. I don't know how to proceed");
+
+}
+
+=head1 STAGES
+
+Description of the multiple stages used during the elevation process.
+Between each stage a reboot is performed before doing a final reboot at the very end.
+
+=head2 run_stage_1
+
+Start the elevation process by installing the cpanel-elevate service
+responsible of the multiple reboots.
+
+=cut
+
+sub run_stage_1 {
+
+    # do not leave cruft behing when aborting
+    my $abort = sub {
+        do_cleanup();
+        exit 42;
+    };
+
+    local $SIG{'INT'} = $abort;
+    local $SIG{'HUP'} = $abort;
+
+    if ( blockers_check() ) {
+
+        # we have not yet install the service yet, clear the stage file
+        unlink ELEVATE_STAGE_FILE;
+        return 1;
+    }
+
+    print_box(q[/!\ Warning: You are about to convert your cPanel&WHM CentOS 7 to Almalinux 8 server.]);
+
+    say <<'EOS';
+
+The elevation process can take several long minutes and requires multiple reboots.
+Some reboots can be longer than normal, please do not interrupt the process.
+
+Please *do not interrupt* the reboots and elevation process.
+
+You can check at any time the current status of the update by running:
+
+    /scripts/elevate_c7
+
+On failures after fixing them you can continue the elevation process by running:
+
+    /scripts/elevate_c7 --continue
+
+EOS
+
+    say <<EOS;
+This is your chance now to cancel the update process.
+You can hit CTRL-C to abort, otherwise the install starts in a few seconds.
+EOS
+
+    do { sleep 1; print '.' }
+      for 1 .. 6;
+    print "\n";
+
+    print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . SERVICE_NAME . " service" );
+    return install_cpanel_elevate_service();
+}
+
+=head2 run_stage_2
+
+Update the current distro packages then reboot.
+
+=cut
+
+sub run_stage_2 {
+
+    ssystem(qw{/usr/bin/yum clean all});
+    ssystem_and_die(qw{/scripts/update-packages});
+    ssystem_and_die(qw{/usr/bin/yum -y update});
+
+    disable_all_cpanel_services();
+
+    system touch => CHKSRVD_SUSPEND_FILE;
+
+    setup_motd();
+
+    return REBOOT_NEEDED;
+}
+
+=head2 run_stage_3
+
+Setup the Alamlinux elevate-release-latest-el7 repo and install leapp packages.
+Prepare the cPanel packages for the update.
+
+Remove some known conflicting packages. (Reinstall later).
+
+Provide answers to a few leapp questions.
+
+Attempt to perform the leapp upgrade itself.
+In case of failure you probably want to reply to a few extra questions or remove some conflictiong packages.
+
+=cut
+
+sub run_stage_3 {
+
+    unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
+        ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+    }
+
+    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
+        ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
+    }
+    if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
+        ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
+    }
+
+    ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
+    ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+
+    # We have to do this before removing the rpms.
+    remove_custom_stuff_for_later_reinstall();
+
+    # remove all arch cpanel packages
+    # This also potentially removes
+    ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
+
+    # remove all ea- packages
+    ssystem(q{/usr/bin/yum -y erase ea-*});
+
+    foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
+        next unless Cpanel::Pkgr::is_installed($rpm);
+        ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
+    }
+
+    # Avoids having to do preupgrade.
+    setup_answer_file();
+
+    _do_leapp_upgrade();
+
+    say <<'EOS';
+Rebooting for distro upgrade. This will take over 10 minutes to run.
+Do not interrupt power during this event or you will corrupt your system.
+EOS
+
+    return REBOOT_NEEDED;
+
+    # This takes a while because on reboot it's installing 800 packages
+}
+
+=head2 run_stage_4
+
+At this stage we should now run Alamalinux 8.
+Update cPanel product for the new distro.
+
+Restore removed packages during the previous stage.
+
+=cut
+
+sub run_stage_4 {
+    Cpanel::OS::flush_disk_caches();
+    Cpanel::OS::major() == 8 or die("Upgrade to AlmaLinux 8 did not succeed. Please restore from backup.");
+
+    my $stash = read_stage_file();
+
+    $stash->{stage4} //= {};    # run once each blocks
+
+    if ( !$stash->{stage4}->{sysup} ) {
+        Cpanel::Yum::Vars::install();
+        ssystem(qw{/usr/bin/dnf clean all});
+        ssystem(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
+        ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
+        {
+            local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
+            ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
+        }
+        ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+        ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
+
+        update_stage_file( { stage4 => { sysup => 1 } } );
+    }
+
+    if ( !$stash->{stage4}->{ea4} ) {
+
+        enable_all_cpanel_services();
+        stop_services_before_upcp();
+
+        clear_cpanel_caches();
+
+        # Need a better log file.
+        restore_ea4_profile();
+
+        update_stage_file( { stage4 => { ea4 => 1 } } );
+    }
+
+    if ( !$stash->{stage4}->{upcp} ) {
+
+        ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+
+        # cleanup the license: cpsanitycheck.so binary is compiled for a different distro
+        ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/cpsanitycheck.so});
+        ssystem(qw{/usr/local/cpanel/cpkeyclt});
+
+        update_stage_file( { stage4 => { upcp => 1 } } );
+    }
+
+    reinstall_custom_stuff();
+
+    my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
+      leapp leapp-data-almalinux leapp-upgrade-el7toel8 python2-leapp};
+    my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
+    ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
+
+    return REBOOT_NEEDED;
+}
+
+=head2 run_stage_5
+
+Final checks and cleanup.
+The cpanel-elevate service is now removed.
+
+=cut
+
+sub run_stage_5 {
+    return 1 if post_upgrade_check();
+
+    # we cannot stop the service ( ourself )
+    ssystem( '/usr/bin/systemctl', 'disable', SERVICE_NAME );
+    unlink SERVICE_FILE;
+    unlink PID_FILE;
+    unlink CHKSRVD_SUSPEND_FILE;
+    cleanup_motd();
+
+    my $postinstall_recommendations = read_stage_file()->{'a_postinstall_recommendation'} // [];
+    if (@$postinstall_recommendations) {
+
+        print_box("The following recommendations should now be reviewed for further action:");
+        foreach my $msg (@$postinstall_recommendations) {
+            print "$msg\n";
+        }
+    }
+
+    print_box("Great SUCCESS! Your upgrade to AlmaLinux 8 is complete.");
+
+    return REBOOT_NEEDED;
+}
+
+sub _motd_notice_message {
+    return <<~'EOS';
+    # -----------------------------------------------------------------------------
+    #
+    # /!\ ELEVATE IN PROGRESS /!\
+    #
+    # Do not make any changes until it's complete
+    # you can check the current process status by running:
+    #
+    #           /scripts/elevate_c7 --status
+    #
+    # -----------------------------------------------------------------------------
+    EOS
+}
+
+sub _motd_file {    # allow us to mock it, we cannot use Test::MockFile GH #77 - https://github.com/cpanel/Test-MockFile/issues/77
+    return q[/etc/motd];
+}
+
+sub setup_motd {
+
+    my $f = _motd_file();
+
+    my $notice = _motd_notice_message();
+
+    local $/;
+    my $fh;
+    my $content = '';
+
+    if ( open( $fh, '+<', $f ) ) {
+        $content = <$fh> // '';
+    }
+    elsif ( open( $fh, '>', $f ) ) {
+        1;
+    }
+
+    return 0 if $content =~ qr{elevate in progress}mi;
+
+    print {$fh} "\n" if length($content) && $content !~ qr{\n\z};
+
+    print {$fh} $notice;
+
+    return 1;
+}
+
+sub cleanup_motd {
+
+    my $f = _motd_file();
+
+    my $content;
+    open( my $fh, '+<', $f ) or return;
+    {
+        local $/;
+        $content = <$fh>;
+    }
+
+    return 0 unless $content && $content =~ qr{elevate in progress}mi;
+
+    my $notice = _motd_notice_message();
+
+    if ( $content =~ s{\Q$notice\E}{} ) {
+        seek( $fh, 0, 0 );
+        print {$fh} $content;
+        truncate( $fh, tell($fh) );
+        close($fh);
+
+        return 1;
+    }
+
+    return;
+}
+
+sub print_box ($message) {
+
+    say "*" x 90;
+    say "*";
+    say "* $message";
+    say "*";
+    say "*" x 90;
+
+    return;
+}
+
+sub enable_all_cpanel_services {
+    my $services = read_stage_file()->{'disabled_cpanel_services'} // [];
+    unless (@$services) {
+        say "WARNING: No cPanel services were disabled!";
+    }
+
+    foreach my $service (@$services) {
+        ssystem( '/usr/bin/systemctl', 'enable', $service );
+        ssystem( '/usr/bin/systemctl', 'stop',   $service );
+    }
+
+    return;
+}
+
+sub stop_services_before_upcp {
+
+    # make sure we stop some extra services before updating them
+
+    ssystem(qw{/scripts/restartsrv_tailwatchd --stop});
+    ssystem(qw{/scripts/restartsrv_dovecot    --stop});
+    ssystem(qw{/scripts/restartsrv_exim       --stop});
+
+    return;
+}
+
+sub disable_all_cpanel_services {
+
+    my @cpanel_services = qw/
+      cpanel cpdavd cpgreylistd cphulkd cpipv6
+      cpcleartaskqueue
+      dnsadmin dovecot exim ipaliases mailman
+      mysqld pdns proftpd queueprocd spamd
+      /;
+    my @disabled_services;
+    foreach my $service (@cpanel_services) {
+        Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
+        my $exit = $? >> 8;
+        next if $exit > 0;
+
+        ssystem( qw{/usr/bin/systemctl disable --now}, $service );
+        push @disabled_services, $service;
+    }
+    update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
+
+    return;
+}
+
+sub restore_ea4_profile () {
+
+    my $stash      = read_stage_file();
+    my $is_enabled = $stash->{'ea4'}->{'enable'};
+
+    unless ($is_enabled) {
+        say "WARN: Skipping EA4 restore. EA4 does not appear to be enabled on this system";
+        return;
+    }
+
+    my $json = $stash->{'ea4'}->{'profile'};
+    unless ( length $json && -f $json && -s _ ) {
+        say "WARN: Unable to restore EA4 profile. Is EA4 enabled?";
+        say "Profile was backed up as: $json" if length $json;
+        return;
+    }
+
+    ssystem( '/usr/local/bin/ea_install_profile', '--install', $json );
+
+    return;
+}
+
+sub backup_ea4_profile () {
+
+    my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
+    update_stage_file( { ea4 => { enable => $use_ea4 } } );
+
+    unless ($use_ea4) {
+        say "WARN: Skipping EA4 backup. EA4 does not appear to be enabled on this system";
+
+        return;
+    }
+
+    my $cmd = '/usr/local/bin/ea_current_to_profile';
+    say "Running: $cmd";
+    my $json = Cpanel::SafeRun::Simple::saferunnoerror($cmd) // '';
+    die qq[Failure from $cmd] if $?;
+
+    chomp $json;
+    die("Unable to backup EA4 profile to $json") unless length $json && -f $json && -s _;
+    say "Backed up EA4 profile to $json";
+
+    update_stage_file( { ea4 => { profile => $json } } );
+
+    return;
+}
+
+sub _do_leapp_upgrade {
+
+    my $ok = eval {
+        ssystem_and_die(qw{/usr/bin/leapp upgrade});
+        1;
+    };
+
+    return 1 if $ok;
+
+    my $msg = <<'EOS';
+The 'leapp upgrade' process failed.
+
+Please investigate, resolve then re-run the following command to continue the update:
+
+    /scripts/elevate_c7 --continue
+
+EOS
+
+    my $leapp_json_report = LEAPP_REPORT_JSON;
+    if ( -e $leapp_json_report ) {
+        my $report = eval { Cpanel::JSON::LoadFile($leapp_json_report) } // {};
+
+        my $entries = $report->{entries};
+        if ( ref $entries eq 'ARRAY' ) {
+            foreach my $e (@$entries) {
+                next unless ref $e && $e->{title} =~ qr{Missing.*answer}i;
+
+                $msg .= $e->{summary} if $e->{summary};
+
+                if ( ref $e->{detail} ) {
+                    my $d = $e->{detail};
+
+                    if ( ref $d->{remediations} ) {
+                        foreach my $remed ( $d->{remediations}->@* ) {
+                            next unless $remed->{type} && $remed->{type} eq 'command';
+                            next unless ref $remed->{context};
+                            my @hint = $remed->{context}->@*;
+                            next unless scalar @hint;
+                            $hint[0] = q[/usr/bin/leapp] if $hint[0] && $hint[0] eq 'leapp';
+                            my $cmd = join( ' ', @hint );
+
+                            $msg .= "\n\n";
+                            $msg .= <<"EOS";
+Consider running this command:
+
+    $cmd
+EOS
+                        }
+                    }
+
+                }
+
+            }
+        }
+    }
+
+    if ( -e LEAPP_REPORT_TXT ) {
+        $msg .= qq[\nYou can read the full leapp report at: ] . LEAPP_REPORT_TXT;
+    }
+
+    die qq[$msg\n];
+}
+
+# remove and store
+sub remove_custom_stuff_for_later_reinstall {
+
+    backup_ea4_profile();
+
+    backup_pecl_packages();
+
+    cleanup_mysql_packages();
+
+    # Backup arch rpms which we're going to remove and are provided by yum.
+    my @installed_arch_cpanel_plugins;
+
+    my $out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum list});
+    my @lines = split( /\n/, $out );
+
+    foreach my $package (@lines) {
+        chomp $package;
+        next unless $package =~ m{^(\S+)\.x86_64 .+ \@cpanel-\S+$};
+        push @installed_arch_cpanel_plugins, "$1";
+    }
+    update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } ) if @installed_arch_cpanel_plugins;
+
+    purge_perl_xs(DISTRO_PERL_XS_PATH);
+    purge_perl_xs( $Config{'installsitearch'} );
+
+    remove_imunify_360();
+
+    return;
+}
+
+sub cleanup_mysql_packages {
+
+    my $stash = read_stage_file();
+
+    my $mysql_version = $stash->{'mysql-version'};
+    return unless length $mysql_version;
+
+    say q[# Cleanup MySQL packages ; using version ], $mysql_version;
+
+    update_stage_file( { 'mysql-version' => $mysql_version } );
+
+    # make sure all packages from unsupported repo are removed
+    #
+    # we cannot only remove the packages for the current MySQL versions
+    # some packages can also installed from other repo
+
+    cleanup_mysql_57_packages();
+    cleanup_mysql_80_packages();
+    cleanup_mysql_102_packages();
+    cleanup_mysql_103_packages();
+    cleanup_mysql_105_packages();
+    cleanup_mysql_106_packages();
+
+    # remove all MySQL repos (we can use one version and )
+    my @repo_files = qw{
+      /etc/yum.repos.d/Mysql57.repo
+      /etc/yum.repos.d/Mysql80.repo
+
+      /etc/yum.repos.d/MariaDB102.repo
+      /etc/yum.repos.d/MariaDB103.repo
+      /etc/yum.repos.d/MariaDB105.repo
+      /etc/yum.repos.d/MariaDB106.repo
+
+    };
+
+    foreach my $f (@repo_files) {
+        unlink $f;
+    }
+
+    Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
+
+    return;
+}
+
+sub reinstall_mysql_packages {
+    my $stash = read_stage_file();
+
+    my $mysql_version = $stash->{'mysql-version'} or return;
+
+    say qq[Restoring MySQL $mysql_version];
+
+    my ( $major, $minor ) = split( /\./, $mysql_version );
+
+    # probably not needed
+    # my $repopkg = q[Cpanel::Mysql::Install];
+    # if ( $major >= 10 ) {
+    #     $repopkg = q[Cpanel::MariaDB::Install];
+    # }
+    # Cpanel::SafeRun::Simple::saferunnoerror( $^X, "-M$repopkg", '-E', "$repopkg->new->install_repo( q[$mysql_version] )";
+    # warn qq[Fail to install repo for $mysql_version using $repopkg] if $?;
+
+    # Cpanel/MariaDB/Install.pm:29:    $obj->install_repo('10.2');
+    # Cpanel/Mysql/Install.pm:28:    $obj->install_repo('5.7');
+
+    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade }, "version=$mysql_version" );
+    die qq[Fail to restore MySQL $mysql_version] if $?;
+
+    if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
+        my $id = $1;
+
+        say q[Restoring MySQL via upgrade_id ], $id;
+        say q[Waiting for MySQL installation];
+
+        my $status = '';
+
+        my $c = 0;
+
+        while (1) {
+            $c = ( $c + 1 ) % 10;
+            my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
+            die qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
+
+            if ( $out =~ m{\sstate:\s*inprogress} ) {
+                print ".";
+                print "\n" if $c == 0;
+                sleep 5;
+                next;
+            }
+
+            if ( $out =~ m{\sstate:\s*(\w+)} ) {
+                $status = $1;
+            }
+            last;
+        }
+
+        if ( $status eq 'success' ) {
+            say qq[MySQL $mysql_version restored];
+        }
+        else {
+            die qq[Fail to restore MySQL $mysql_version: upgrade $id status '$status'\n] . $out;
+        }
+    }
+    else {
+        die qq[Cannot find upgrade_id from start_background_mysql_upgrade:\n] . $out;
+    }
+
+    return;
+}
+
+sub cleanup_mysql_57_packages {
+    my @repos = qw{
+      Mysql-connectors-community
+      Mysql-tools-community
+      Mysql57-community
+      Mysql-tools-preview
+    };
+
+    _remove_packages_from_repos(@repos);
+
+    return;
+}
+
+sub cleanup_mysql_80_packages {
+
+    my @repos = qw{
+      Mysql-connectors-community
+      Mysql-tools-community
+      Mysql80-community
+      Mysql-tools-preview
+    };
+
+    _remove_packages_from_repos(@repos);
+
+    return;
+}
+
+sub cleanup_mysql_102_packages {
+
+    my @repos = qw{
+      MariaDB102
+    };
+
+    _remove_packages_from_repos(@repos);
+
+    return;
+}
+
+sub cleanup_mysql_103_packages {
+
+    my @repos = qw{
+      MariaDB103
+    };
+
+    _remove_packages_from_repos(@repos);
+
+    return;
+}
+
+sub cleanup_mysql_105_packages {
+
+    my @repos = qw{
+      MariaDB105
+    };
+
+    _remove_packages_from_repos(@repos);
+
+    return;
+}
+
+sub cleanup_mysql_106_packages {
+
+    my @repos = qw{
+      MariaDB106
+    };
+
+    _remove_packages_from_repos(@repos);
+
+    return;
+}
+
+sub _remove_packages_from_repos( @repos ) {
+    return unless scalar @repos;
+
+    my @to_remove;
+
+    my $from_repo = { map { $_ => 1 } @repos };
+
+    my @cmd   = ( qw{/usr/bin/repoquery -a --installed --qf }, q[%{ui_from_repo} %{name}] );
+    my $out   = Cpanel::SafeRun::Simple::saferunnoerror(@cmd);
+    my @lines = split( /\n/, $out );
+    foreach my $line (@lines) {
+        next unless $line =~ s{^\@}{};
+        my ( $repo, $pkg ) = split( ' ', $line, 2 );
+        next unless $from_repo->{$repo};
+        push @to_remove, $pkg;
+    }
+
+    return unless scalar @to_remove;
+
+    ssystem( '/usr/bin/rpm', '-e', '--nodeps', @to_remove );
+
+    return \@to_remove;
+}
+
+sub reinstall_custom_stuff {
+
+    say "Removing leapp from excludes in /etc/yum.conf";
+    my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
+    if ( length $txt ) {
+        $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
+        File::Slurper::write_text( "/etc/yum.conf", $txt );
+    }
+
+    restore_perl_xs(DISTRO_PERL_XS_PATH);
+    restore_perl_xs( $Config{'installsitearch'} );
+
+    # Restore YUM arch plugins.
+    my $stash            = read_stage_file();
+    my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
+    if (@$yum_arch_plugins) {
+        say "Restoring cPanel yum-based-plugins";
+        ssystem( qw{ /usr/bin/dnf -y install }, @$yum_arch_plugins );
+    }
+
+    reinstall_mysql_packages();
+
+    check_pecl_packages();
+
+    reinstall_imunify_360();
+
+    kernel_check();
+
+    return;
+}
+
+sub kernel_check {
+    my @kernel_rpms = `/usr/bin/rpm -qa`;
+    @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
+    return unless @kernel_rpms;
+    chomp @kernel_rpms;
+
+    my $msg = "The following kernels should probably be removed as they will not function on AlmaLinux 8:\n\n";
+    foreach my $kernel (@kernel_rpms) {
+        $msg .= "    $kernel\n";
+    }
+
+    $msg .= "\nYou can remove these by running: /usr/bin/rm -e " . join( " ", @kernel_rpms ) . "\n";
+
+    recommend_postinstall($msg);
+
+    return;
+}
+
+sub recommend_postinstall($msg) {
+    my $recommendations = read_stage_file()->{'a_postinstall_recommendation'} // [];
+    push @$recommendations, $msg;
+    update_stage_file( { 'a_postinstall_recommendation' => $recommendations } );
+
+    return;
+}
+
+sub backup_pecl_packages {
+    my @ea_versions = qw{ea-php70 ea-php71 ea-php72 ea-php73 ea-php74 ea-php80};
+
+    foreach my $v (@ea_versions) {
+        _store_pecl_for( qq[/opt/cpanel/$v/root/usr/bin/pecl], $v );
+    }
+
+    _store_pecl_for( q[/usr/local/cpanel/3rdparty/bin/pecl], 'cpanel' );
+
+    return;
+}
+
+sub check_pecl_packages {
+
+    my $stash = read_stage_file();
+
+    return unless ref $stash->{pecl} && scalar keys $stash->{pecl}->%*;
+
+    foreach my $v ( sort keys $stash->{pecl}->%* ) {
+        my $previously_installed = $stash->{pecl}->{$v};
+
+        return unless ref $previously_installed && scalar keys $previously_installed->%*;
+
+        my $bin;
+        if ( $v eq 'cpanel' ) {
+            $bin = q[/usr/local/cpanel/3rdparty/bin/pecl];
+        }
+        else {
+            $bin = qq[/opt/cpanel/$v/root/usr/bin/pecl];
+        }
+
+        my $currently_installed = _get_pecl_installed_for($bin) // {};
+
+        my $displayed_header = 0;
+        foreach my $pkg ( sort keys $previously_installed->%* ) {
+            next if $currently_installed->{$pkg};
+
+            # for now do not check the version
+
+            if ( !$displayed_header ) {
+                $displayed_header = 1;
+                say q[*] x 20;
+                say qq[WARNING: Missing pecl package(s) for $bin];
+                say qq[Please reinstall these packages];
+                say q[*] x 20;
+            }
+
+            say q[- ], $pkg;
+        }
+
+        say q[#] if $displayed_header;
+    }
+
+    return;
+}
+
+sub _store_pecl_for ( $bin, $name ) {
+    my $list = _get_pecl_installed_for($bin);
+
+    return unless ref $list && scalar keys $list->%*;
+
+    update_stage_file( { pecl => { $name => $list } } );
+
+    return;
+}
+
+sub _get_pecl_installed_for( $bin ) {
+
+    return unless -x $bin;
+
+    my $out = Cpanel::SafeRun::Simple::saferunnoerror( $bin, 'list' ) // '';
+    return if $?;
+
+    my @lines = split( /\n/, $out );
+    return unless scalar @lines >= 4;
+
+    shift @lines for 1 .. 3;    # remove the header
+
+    my $installed;
+
+    foreach my $l (@lines) {
+        my ( $package, $v, $state ) = split( /\s+/, $l, 3 );
+        $installed->{$package} = $v;
+    }
+
+    return $installed;
+}
+
+sub clear_cpanel_caches {
+
+    my @dirs = (
+
+        # note: all cpanel users also have a '.cpanel/datastore'
+        #       probably not necessary to cleanup
+        '/root/.cpanel/datastore',    # cleanup root CachedCommand
+    );
+
+    my @files = qw{
+      /var/cpanel/GetOS.cache
+    };
+
+    foreach my $d (@dirs) {
+        ssystem( qw{/usr/bin/rm -rf}, $d );
+    }
+
+    unlink $_ foreach @files;
+
+    return;
+}
+
+sub _fetch_imunify_installer ($product) {
+
+    $product =~ s/Plus/+/;
+    my %installer_scripts = (
+        'imunifyAV'  => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
+        'imunifyAV+' => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
+        'imunify360' => 'https://www.repo.imunify360.cloudlinux.com/defence360/i360deploy.sh',
+    );
+
+    my $installer_url = $installer_scripts{$product} or do {
+        say "ERROR: Unknown product type $product";
+        return;
+    };
+
+    my $response = eval {
+        my $http = Cpanel::HTTP::Client->new()->die_on_http_error();
+        $http->get($installer_url);
+    };
+    if ( my $exception = $@ ) {
+        say "ERROR: The system could not fetch the uninstall script for $product: $exception";
+        return;
+    }
+
+    my $fh = File::Temp->new( TEMPLATE => "imunify_installer_XXXX", SUFFIX => '.sh', UNLINK => 0, PERMS => 0600, TMPDIR => 1 );
+    print {$fh} $response->{'content'};
+    close $fh;
+
+    return "$fh";
+}
+
+sub remove_imunify_360 {
+
+    # One of these 2 rpms should be in place or imunify isn't really functioning.
+    my $im360 = Cpanel::Pkgr::is_installed('imunify360-firewall');
+    my $imav  = Cpanel::Pkgr::is_installed('imunify-antivirus');
+    return unless $im360 || $imav;
+
+    my $agent_bin = '/usr/bin/imunify360-agent';
+    return unless -x $agent_bin;
+    my $license_data = eval { Cpanel::JSON::Load(`$agent_bin version --json 2>&1`) } // {};
+    return unless $license_data->{'license'}->{'status'};    # Must be true.
+
+    my $product_type = $license_data->{'license'}->{'license_type'};
+
+    update_stage_file( { 'imunify' => $product_type } );
+    say "Product $product_type detected. Uninstalling before upgrade for later restore";
+
+    my $installer_script = _fetch_imunify_installer($product_type) or return;
+
+    ssystem( '/usr/bin/bash', $installer_script, '--uninstall' );
+    unlink $installer_script;
+
+    # Cleanup any lingering packages.
+    my @old_repo_packages = `/usr/bin/yum list`;
+    chomp @old_repo_packages;
+    @old_repo_packages = map { m/^(\S+)/ ? $1 : () } grep { m/ \@imunify\S+/i } @old_repo_packages;
+    ssystem( qw{/usr/bin/yum -y erase}, @old_repo_packages ) if @old_repo_packages;
+
+    return;
+}
+
+sub reinstall_imunify_360 {
+    my $product_type = read_stage_file()->{'imunify'} || return;
+
+    my $installer_script = _fetch_imunify_installer($product_type) or return;
+
+    ssystem( '/usr/bin/bash', $installer_script );
+    unlink $installer_script;
+
+    return;
+}
+
+sub post_upgrade_check {
+
+    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq 'almalinux' ) {
+        say q[Your distro does not looks like Almalinux 8.];
+        return 1;
+    }
+
+    # call a cpanel binary
+    ssystem_and_die(qw{/usr/local/cpanel/cpanel -V});
+
+    return 0;
+}
+
+sub purge_perl_xs($path) {
+
+    return unless length $path && -d $path;
+
+    my @perl_modules;
+
+    File::Find::find(
+        sub {
+            return unless substr( $_, -3 ) eq '.pm';
+            return if -l $_;
+            return unless -f $_;
+
+            push @perl_modules, $File::Find::name;
+
+        },
+        $path
+    );
+
+    my $path_len = length($path);
+    @perl_modules = map { substr( $_, $path_len + 1 ) } sort { $a cmp $b } @perl_modules;
+
+    my $xspm_to_rpm = xspm_to_rpm();
+
+    my %rpms_to_restore;
+    my @modules_to_restore;
+    foreach my $file (@perl_modules) {
+
+        # We can only convert distro perl arch perl modules to RPM.
+        if ( $path eq DISTRO_PERL_XS_PATH && length $xspm_to_rpm->{$file} ) {
+            $rpms_to_restore{$file} = $xspm_to_rpm->{$file};
+        }
+        else {
+            push @modules_to_restore, $file;
+        }
+    }
+
+    my $stash = {};
+    if (%rpms_to_restore) {
+        say "The following `cpan` installed perl Modules will be removed and replaced with a AlmaLinux 8 RPM after upgrade:\n";
+        foreach my $file ( sort { $rpms_to_restore{$a} cmp $rpms_to_restore{$b} || $a cmp $b } keys %rpms_to_restore ) {
+            printf( "  %20s => %s\n", $file, $rpms_to_restore{$file} );
+
+            my $files_in_rpm = $stash->{'restore'}->{$path}->{'rpm'}->{ $rpms_to_restore{$file} } //= [];
+            unless ( grep { $_ eq $file } @$files_in_rpm ) {    # Only if we've not stored this.
+                push @$files_in_rpm, $file;
+                unlink "$path/$file";
+            }
+        }
+        say '';
+    }
+
+    if (@modules_to_restore) {
+        print "The following modules will likely not be functional on AlmaLinux 8 and will be disabled. You will need to restore these manually:\n";
+        my $to_restore = $stash->{'restore'}->{$path}->{'cpan'} //= [];
+        foreach my $file (@modules_to_restore) {
+            print "    $path/$file\n";
+            next if grep { $_ eq $file } @$to_restore;    # We've already stashed this.
+            push @$to_restore, $file;
+            rename "$path/$file", "$path/$file.o";
+        }
+    }
+
+    update_stage_file($stash);
+
+    return;
+}
+
+sub restore_perl_xs ($path) {
+    my $stash = read_stage_file();
+
+    if ( $path eq DISTRO_PERL_XS_PATH ) {
+        my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
+
+        my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
+        ssystem(@cmd);
+    }
+
+    my $cpan_modules = $stash->{$path}->{'cpan'} // return;
+
+    # TODO: Let's restore this with /usr/bin/cpan!
+    my $msg = "The following XS modules will need to be re-installed:\n\n";
+    foreach my $module (@$cpan_modules) {
+        $msg .= "   $module\n";
+    }
+    recommend_postinstall($msg);
+
+    return;
+}
+
+sub xspm_to_rpm () {
+    return {
+        'IO/Pty.pm'           => 'perl-IO-Tty',
+        'IO/Tty.pm'           => 'perl-IO-Tty',
+        'IO/Tty/Constant.pm'  => 'perl-IO-Tty',
+        'JSON/Syck.pm'        => 'perl-YAML-Syck',
+        'JSON/XS.pm'          => 'perl-JSON-XS',
+        'JSON/XS/Boolean.pm'  => 'perl-JSON-XS',
+        'YAML/Dumper/Syck.pm' => 'perl-YAML-Syck',
+        'YAML/Loader/Syck.pm' => 'perl-YAML-Syck',
+        'YAML/Syck.pm'        => 'perl-YAML-Syck',
+        'common/sense.pm'     => 'perl-common-sense',
+        'version.pm'          => 'perl-version',
+        'version/regex.pm'    => 'perl-version',
+        'version/vpp.pm'      => 'perl-version',
+        'version/vxs.pm'      => 'perl-version',
+    };
+}
+
+sub blockers_check {
+
+    unless ( $< == 0 ) {
+        say "This script can only be run by root";
+        return 666;
+    }
+
+    if ( !$Cpanel::Version::Tiny::major_version ) {
+        say qq[Invalid cPanel&WHM major_version];
+        return 1;
+    }
+
+    if ( $Cpanel::Version::Tiny::major_version <= 100 ) {
+        say "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better";
+        return 2;
+    }
+
+    return 3 unless Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos';
+
+    if ( Cpanel::OS::minor() < 4 ) {
+        say q[You need to run CentOS 7.4 and later to upgrade AlmaLinux 8. You are currently using ], Cpanel::OS::display_name();
+        return 3;
+    }
+
+    if ( -e '/var/cpanel/caches/Cpanel-OS.custom' ) {
+        say "Experimental OS detected. This script only supports CentOS 7 upgrades";
+        return 4;
+    }
+
+    if ( -e q[/var/cpanel/dev_sandbox] ) {
+        say q[Cannot elevate a sandbox...];
+        return 5;
+    }
+
+    if ( Cpanel::Pkgr::is_installed('cpanel-ccs-calendarserver') ) {
+        say "You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.";
+        say "WARNING: removal of this server can lead to data loss.";
+
+        return 7;
+    }
+
+    if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
+        my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql');
+        my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
+        say "You have postgresql-server version $old_version installed.";
+        say "This is upgraded irreversably to version 10.0 when you switch to almalinux 8" if $old_version < 10;
+        say "We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.";
+        say "To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`" if $old_version < 10;
+
+        return 8;
+    }
+
+    my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
+
+    my $nameserver = $cpconf->{'local_nameserver_type'};
+    if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
+        say "AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns";
+        say "Before upgrading, we suggest you run: /scripts/setupnameserver powerdns";
+        return 9;
+    }
+
+    {
+        # checking MySQL version
+        my $mysql_version = $cpconf->{'mysql-version'} // '';
+
+        if ( $mysql_version eq '5.7' ) {
+            say <<~'EOS';
+            You are using MySQL 5.7 community server.
+            This version is not available for AlmaLinux 8.
+            You first need to update your MySQL server to 8.0 or later.
+
+            You can update to version 8.0 using the following command:
+
+                /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0
+
+            Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+            EOS
+            return 10;
+        }
+
+        if ( $mysql_version eq '10.2' ) {
+            say <<~'EOS';
+            You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
+            You first need to update MariaDB server to 10.3 or later.
+
+            You can update to version 10.3 using the following command:
+
+                /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
+
+            Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+            EOS
+            return 11;
+        }
+
+        my %supported_mysql_versions = (
+            map { $_ => 1 }
+              qw{
+              8.0
+              10.2
+              10.3
+              10.4
+              10.5
+              10.6
+              }
+        );
+
+        if ( !$supported_mysql_versions{$mysql_version} ) {
+            say <<~'EOS';
+            We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
+            Please open a support ticket.
+            EOS
+            return 12;
+        }
+
+        # store the MySQL version we started from
+        update_stage_file( { 'mysql-version' => $mysql_version } );
+    }
+
+    return 6 unless _disk_space_check();
+
+    return 0;
+}
+
+sub _disk_space_check() {
+
+    # base unit size is in K
+    my $K   = 1;
+    my $MEG = 1_024 * $K;
+    my $GIG = 1_024 * $MEG;
+
+    # minimum disk space for some mount points
+    # note we are not doing the sum per mount point
+    #   - /boot is small enough
+    #   - /usr/local/cpanel is not going to be used at the same time than /var/lib
+    my $need_space = {
+        '/boot'             => 120 * $MEG,
+        '/usr/local/cpanel' => 1.5 * $GIG,    #
+        '/var/lib'          => 3 * $GIG,
+    };
+
+    my @keys = ( sort keys %$need_space );
+
+    my @df_cmd = ( qw{/usr/bin/df -k}, @keys );
+    my $cmd    = join( ' ', @df_cmd );
+
+    my $result = Cpanel::SafeRun::Simple::saferunnoerror(@df_cmd) // '';
+    die qq[Fail checking disk space using: $cmd\n] if $?;
+
+    my ( $header, @out ) = split( "\n", $result );
+
+    if ( scalar @out != scalar @keys ) {
+        my $count_keys = scalar @keys;
+        my $count_out  = scalar @out;
+        die qq[Fail: Cannot parse df output from: $cmd\n] . "# expected $count_keys lines ; got $count_out lines\n" . join( "\n", @out ) . "\n";
+    }
+
+    my @errors;
+
+    my $ix = 0;
+    foreach my $line (@out) {
+        my $key = $keys[ $ix++ ];
+        my ( undef, undef, undef, $available ) = split( /\s+/, $line );
+
+        my $need = $need_space->{$key};
+
+        next if $available > $need;
+
+        my $str;
+        if ( $need / $GIG > 1 ) {
+            $str = sprintf( "- $key needs %2.2f G => available %2.2f G", $need / $GIG, $available / $GIG );
+        }
+        else {
+            $str = sprintf( "- $key needs %d M => available %d M", $need / $MEG, $available / $MEG );
+        }
+
+        push @errors, $str;
+    }
+
+    # everything is fine: check ok
+    return 1 unless @errors;
+
+    my $details = join( "\n", @errors );
+
+    my $error = <<"EOS";
+** Warning **: your system does not have enough disk space available to update to AlmaLinux 8
+
+$details
+EOS
+
+    warn $error . "\n";
+
+    return 0;    # error
+}
+
+sub setup_answer_file {
+    my $leapp_dir = '/var/log/leapp';
+
+    mkdir $leapp_dir unless -d $leapp_dir;
+
+    my $leapp_answers = $leapp_dir . '/answerfile.userchoices';
+
+    if ( -f $leapp_answers && -s _ ) {
+        warn "Preserve leap answers file: ", $leapp_answers;
+        return;
+    }
+
+    open( my $fh, '>', $leapp_answers ) or die qq[Fail to setup leapp anserfile.userchoices: $!];
+    print {$fh} <<~'EOF';
+        [remove_pam_pkcs11_module_check]
+        confirm = True
+        EOF
+    close $fh;
+
+    return;
+}
+
+sub install_cpanel_elevate_service {
+
+    say "Installing service " . SERVICE_NAME . " which will upgrade the server to AlmaLinux 8";
+    open( my $fh, '>', SERVICE_FILE ) or die;
+
+    # Works only in systemd v240 and newer!
+    # StandardOutput=append:/var/cpanel/logs/elevate-c7.log
+    # StandardError=inherit
+
+    my $log_file = LOG_FILE;
+
+    print {$fh} <<~"EOF";
+        [Unit]
+        Description=Upgrade process from CentOS 7 to AlmaLinux 8.
+        After=network.target network-online.target
+
+        [Service]
+        Type=oneshot
+        # want to run it once per boot time
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/bash -c 'exec /usr/local/cpanel/scripts/elevate_c7 --service 2>&1 | /usr/bin/tee -a $log_file'
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+    close $fh;
+
+    ssystem_and_die( '/usr/bin/systemctl', 'daemon-reload' );
+    ssystem_and_die( '/usr/bin/systemctl', 'enable', SERVICE_NAME );
+    bump_stage();
+
+    if ( my $pid = fork() ) {
+        say q[Starting service ] . SERVICE_NAME;
+        return 0;
+    }
+    else {
+        unlink(PID_FILE);    # release the pid so the service can use it
+        ssystem_and_die( '/usr/bin/systemctl', 'start', SERVICE_NAME );
+        exit(0);
+    }
+}
+
+# TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.
+
+sub read_stage_file {
+    return eval { Cpanel::JSON::LoadFile(ELEVATE_STAGE_FILE) } // {};
+}
+
+sub save_stage_file ($stash) {
+    open( my $fh, '>', ELEVATE_STAGE_FILE ) or die;
+    print {$fh} Cpanel::JSON::pretty_canonical_dump($stash);
+    close $fh;
+
+    return 1;
+}
+
+sub update_stage_file( $data ) {
+
+    die q[Need a hash] unless ref $data eq 'HASH';
+
+    my $current = read_stage_file();
+    my $merged  = Hash::Merge::merge( $data, $current );
+
+    return save_stage_file($merged);
+}
+
+sub get_stage {
+    my $stage_info = read_stage_file();
+    return $stage_info->{'stage_number'} // 0;
+}
+
+sub bump_stage ($by = 1) {
+
+    my $stage_id = get_stage() + $by;
+
+    update_stage_file( { stage_number => $stage_id } );
+
+    return $stage_id;
+}
+
+sub reboot {
+    bump_stage();
+
+    # protection
+    my $stage = get_stage();
+
+    if ( $stage > VALID_STAGES + 1 ) {
+        die qq[Cannot reboot reaching stage $stage];
+    }
+    elsif ( $stage <= VALID_STAGES ) {
+        print_box( "Rebooting into stage $stage of " . VALID_STAGES );
+    }
+    else {
+        print_box("Doing final reboot");
+    }
+
+    if ( request_manual_reboots() ) {
+        say qq[Manual Reboot Mode Enabled: please reboot the server to move to the next stage $stage];
+        return 0;
+    }
+
+    my $exit = ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
+    die("Failed to reboot system please correct this and reboot");
+}
+
+sub request_manual_reboots() {
+    my $content = read_stage_file();
+    return !!$content->{manual_reboots};
+}
+
+sub ssystem (@args) {
+    say "Running: " . join( " ", @args );
+    return system(@args);
+}
+
+sub ssystem_and_die (@args) {
+    ssystem(@args) or return 0;
+    die("command failed. Fix it and run command.");
+}
+
+1;
