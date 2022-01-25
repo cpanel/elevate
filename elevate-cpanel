@@ -1517,6 +1517,18 @@ sub blockers_check {
     }
 
     {
+        my $running_from = Cwd::abs_path($0) // '';
+        if (   $running_from ne '/scripts/elevate-cpanel'
+            && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
+            say <<~EOS;
+            The script is not installed to the correct directory.
+            Please install it to /scripts/elevate-cpanel and run it again.
+            EOS
+            return 10;
+        }
+    }
+
+    {
         # checking MySQL version
         my $mysql_version = $cpconf->{'mysql-version'} // '';
 
