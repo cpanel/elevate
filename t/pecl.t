@@ -24,7 +24,7 @@ use Test::MockFile;
 
 use FindBin;
 
-require $FindBin::Bin.q[/../elevate-cpanel];
+require $FindBin::Bin . q[/../elevate-cpanel];
 
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 

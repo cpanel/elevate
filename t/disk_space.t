@@ -20,7 +20,7 @@ use Test::Cpanel::Policy;
 
 use FindBin;
 
-require $FindBin::Bin.'/../elevate-cpanel';
+require $FindBin::Bin . '/../elevate-cpanel';
 
 my $saferun_output;
 
