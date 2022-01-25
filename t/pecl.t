@@ -26,9 +26,9 @@ require $FindBin::Bin . q[/../elevate-cpanel];
 
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
-my $mock_elevate = Test::MockModule->new('scripts::ElevateCpanel');
+my $mock_elevate = Test::MockModule->new('cpev');
 
-my $mock_stage_file = Test::MockFile->file( scripts::ElevateCpanel::ELEVATE_STAGE_FILE() );
+my $mock_stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
 
 my $list_output;
 
@@ -42,11 +42,11 @@ $mock_saferun->redefine(
 
 my $pecl_bin = Test::MockFile->file( '/my/pecl/bin', '', { mode => 0700 } );
 
-is scripts::ElevateCpanel::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - empty list';
+is cpev::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - empty list';
 
 $list_output = qq[(no packages installed from channel pecl.php.net)\n];
 
-is scripts::ElevateCpanel::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - no packages installed';
+is cpev::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - no packages installed';
 
 $list_output = <<'EOS';
 Installed packages, channel pecl.php.net:
@@ -55,7 +55,7 @@ Package Version State
 imagick 3.5.1   stable
 EOS
 
-is scripts::ElevateCpanel::_get_pecl_installed_for('/my/pecl/bin'), {
+is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
     imagick => q[3.5.1],
   },
   '_get_pecl_installed_for - imagick';
@@ -68,7 +68,7 @@ ds      1.4.0   stable
 imagick 3.5.1   stable
 EOS
 
-is scripts::ElevateCpanel::_get_pecl_installed_for('/my/pecl/bin'), {
+is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
     ds      => q[1.4.0],
     imagick => q[3.5.1],
   },
@@ -76,18 +76,18 @@ is scripts::ElevateCpanel::_get_pecl_installed_for('/my/pecl/bin'), {
 
 {
 
-    is scripts::ElevateCpanel::read_stage_file(), {}, "stage file is empty";
+    is cpev::read_stage_file(), {}, "stage file is empty";
 
     $mock_elevate->redefine( _get_pecl_installed_for => sub { { module_one => 1.2 } } );
 
-    scripts::ElevateCpanel::_store_pecl_for( '/whatever', 'cpanel' );
+    cpev::_store_pecl_for( '/whatever', 'cpanel' );
 
-    is scripts::ElevateCpanel::read_stage_file(), { pecl => { cpanel => { module_one => 1.2 } } }, "stage file: store pecl for cpanel";
+    is cpev::read_stage_file(), { pecl => { cpanel => { module_one => 1.2 } } }, "stage file: store pecl for cpanel";
 
     $mock_elevate->redefine( _get_pecl_installed_for => sub { { xyz => 5.6 } } );
-    scripts::ElevateCpanel::_store_pecl_for( '/whatever', 'ea-php80' );
+    cpev::_store_pecl_for( '/whatever', 'ea-php80' );
 
-    is scripts::ElevateCpanel::read_stage_file(), {
+    is cpev::read_stage_file(), {
         pecl => {
             cpanel     => { module_one => 1.2 },
             'ea-php80' => { xyz        => 5.6 }
@@ -114,7 +114,7 @@ is scripts::ElevateCpanel::_get_pecl_installed_for('/my/pecl/bin'), {
     );
 
     trap {
-        scripts::ElevateCpanel::check_pecl_packages();
+        cpev::check_pecl_packages();
     };
 
     is $trap->stdout, <<'EOS', 'Display the warning for two missing packages';
@@ -134,7 +134,7 @@ EOS
     );
 
     trap {
-        scripts::ElevateCpanel::check_pecl_packages();
+        cpev::check_pecl_packages();
     };
 
     is $trap->stdout, <<'EOS', 'Display the warning for one missing package';
