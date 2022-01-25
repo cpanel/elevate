@@ -13,7 +13,7 @@ package scripts::ElevateCpanel;
 
 =head1 NAME
 
-/scripts/elevate_c7
+/scripts/elevate-cpanel
 
 =head1 DESCRIPTION
 
@@ -21,7 +21,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
 
 =head1 SYNOPSIS
 
-    /scripts/elevate_c7 [OPTIONS]
+    /scripts/elevate-cpanel [OPTIONS]
 
     Optional:
        --start                        Start the convertion process
@@ -39,31 +39,31 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
 
 You can start an elevation update by running:
 
-    /scripts/elevate_c7 --start
+    /scripts/elevate-cpanel --start
 
 =item Start an installation with manual reboot
 
 You can control the reboots by using the --manual-reboots flag when starting the process.
 This can be used for debugging purpose.
 
-    /scripts/elevate_c7 --start --manual-reboots
+    /scripts/elevate-cpanel --start --manual-reboots
 
 =item Monitor an existing installation
 
 Once you have started an elevation process, you can check the current update by running:
 
-    /scripts/elevate_c7
+    /scripts/elevate-cpanel
 
 You can also check the current status by running
 
-    /scripts/elevate_c7 --status
+    /scripts/elevate-cpanel --status
 
 =item Resume an installation after an error
 
 If an error occurs during the elevation process, once you have fixed it, you can resume
 the update process by running:
 
-    /scripts/elevate_c7 --continue
+    /scripts/elevate-cpanel --continue
 
 =back
 
@@ -178,7 +178,7 @@ sub start($self) {
 Your elevation update is already in progress (stage $stage).
 You can monitor the current update by running:
 
-    /scripts/elevate_c7
+    /scripts/elevate-cpanel
 
 EOS
 
@@ -422,11 +422,11 @@ Please *do not interrupt* the reboots and elevation process.
 
 You can check at any time the current status of the update by running:
 
-    /scripts/elevate_c7
+    /scripts/elevate-cpanel
 
 On failures after fixing them you can continue the elevation process by running:
 
-    /scripts/elevate_c7 --continue
+    /scripts/elevate-cpanel --continue
 
 EOS
 
@@ -630,7 +630,7 @@ sub _motd_notice_message {
     # Do not make any changes until it's complete
     # you can check the current process status by running:
     #
-    #           /scripts/elevate_c7 --status
+    #           /scripts/elevate-cpanel --status
     #
     # -----------------------------------------------------------------------------
     EOS
@@ -812,7 +812,7 @@ The 'leapp upgrade' process failed.
 
 Please investigate, resolve then re-run the following command to continue the update:
 
-    /scripts/elevate_c7 --continue
+    /scripts/elevate-cpanel --continue
 
 EOS
 
@@ -1691,7 +1691,7 @@ sub install_cpanel_elevate_service {
         Type=oneshot
         # want to run it once per boot time
         RemainAfterExit=yes
-        ExecStart=/usr/bin/bash -c 'exec /usr/local/cpanel/scripts/elevate_c7 --service 2>&1 | /usr/bin/tee -a $log_file'
+        ExecStart=/usr/bin/bash -c 'exec /usr/local/cpanel/scripts/elevate-cpanel --service 2>&1 | /usr/bin/tee -a $log_file'
 
         [Install]
         WantedBy=multi-user.target
