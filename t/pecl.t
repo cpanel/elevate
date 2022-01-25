@@ -22,7 +22,9 @@ use Test::Cpanel::Policy;
 
 use Test::MockFile;
 
-require '/usr/local/cpanel/scripts/elevate_c7';
+use FindBin;
+
+require $FindBin::Bin.q[/../elevate-cpanel];
 
 $INC{'scripts/ElevateC7.pm'} = '__TEST__';
 
