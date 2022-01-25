@@ -16,13 +16,13 @@ use Test2::Tools::Exception;
 
 use Test::MockModule qw/strict/;
 
-use Test::Cpanel::Policy;
-
 use Test::MockFile;
 
 use FindBin;
 
 require $FindBin::Bin . q[/../elevate-cpanel];
+
+use cPstrict;
 
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
