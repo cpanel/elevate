@@ -22,6 +22,8 @@ my $cpev_mock = Test::MockModule->new('cpev');
 my @messages_seen;
 $cpev_mock->redefine( '_msg' => sub { my ( $type, $msg ) = @_; push @messages_seen, [ $type, $msg ]; return } );
 
+$cpev_mock->redefine( _use_unvetted_yum_repos => 0 );
+
 {
     no warnings 'once';
     local $Cpanel::Version::Tiny::major_version;
@@ -70,7 +72,10 @@ $cpev_mock->redefine( '_msg' => sub { my ( $type, $msg ) = @_; push @messages_se
 
 # Dev sandbox
 my $custom = Test::MockFile->file('/var/cpanel/caches/Cpanel-OS.custom');
-my $f      = Test::MockFile->file( '/var/cpanel/dev_sandbox', '' );
+my $f      = Test::MockFile->file( '/var/cpanel/dev_sandbox' => '' );
+
+my $elevate_file = Test::MockFile->file('/var/cpanel/elevate');
+
 is( cpev::blockers_check(), 6, "Dev sandbox is a blocker.." );
 message_seen( 'ERROR', 'Cannot elevate a sandbox...' );
 
@@ -133,18 +138,12 @@ $cpanel_conf{'mysql-version'} = '4.0';
 is( cpev::blockers_check(), 13, 'An Unknown MySQL is present so we block for now.' );
 message_seen( 'ERROR', "We do not know how to upgrade to AlmaLinux 8 with MySQL version 4.0.\nPlease open a support ticket.\n" );
 
-#my $mock_saferun = Test::MockModule->new('Cpanel::SafeRun::Simple');
-#$mock_saferun->redefine(
-#    saferunnoerror => sub {
-#        $saferun_output;
-#    }
-#);
+$cpanel_conf{'mysql-version'} = '10.3';
+$cpev_mock->redefine( _use_unvetted_yum_repos => 1 );
+is( cpev::blockers_check(), 14, 'An Unknown MySQL is present so we block for now.' );
+message_seen( 'ERROR', qr{unsupported YUM repo}i );
 
 done_testing();
-
-sub mock_distro ( $distro, $major, $minor ) {
-
-}
 
 sub message_seen ( $type, $msg ) {
     my $line = shift @messages_seen;
