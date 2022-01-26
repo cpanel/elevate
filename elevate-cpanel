@@ -115,6 +115,30 @@ use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
 use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
 use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
 
+use constant VETTED_YUM_REPO => qw{
+  CentOS-Base.repo
+  CentOS-CR.repo
+  CentOS-Debuginfo.repo
+  CentOS-fasttrack.repo
+  CentOS-Media.repo
+  CentOS-Sources.repo
+  CentOS-Vault.repo
+  CentOS-x86_64-kernel.repo
+  cPAddons.repo
+  cpanel-plugins.repo
+  cp-dev-tools.repo
+  EA4.repo
+  ELevate.repo
+  epel-testing.repo
+  epel.repo
+  imunify-rollout.repo
+  imunify360.repo
+  kernelcare.repo
+  MariaDB103.repo
+  Mysql80.repo
+  wp-toolkit-cpanel.repo
+};
+
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
@@ -740,6 +764,7 @@ sub disable_all_cpanel_services {
       crond tailwatchd
       /;
     my @disabled_services;
+
     foreach my $service (@cpanel_services) {
         Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
         my $exit = $? >> 8;
@@ -1570,7 +1595,6 @@ sub blockers_check {
             map { $_ => 1 }
               qw{
               8.0
-              10.2
               10.3
               10.4
               10.5
@@ -1590,9 +1614,79 @@ sub blockers_check {
         update_stage_file( { 'mysql-version' => $mysql_version } );
     }
 
+    if ( _use_unvetted_yum_repos() ) {
+        ERROR( <<~'EOS' );
+        One or more unsupported YUM repo are currently enabled.
+        You should disable these repositories and remove packages installed from them
+        befor continuing the update.
+
+        Consider reporting this limitation to https://github.com/cpanel/elevate/issues
+        EOS
+        return 14;
+    }
+
     return 99 unless _disk_space_check();
 
     return 0;
+}
+
+sub _use_unvetted_yum_repos() {
+
+    my %vetted = map { $_ => 1 } VETTED_YUM_REPO;
+
+    my $repo_dir = q[/etc/yum.repos.d];
+
+    my $use_unvetted_repo;
+
+    opendir( my $dh, $repo_dir ) or return ERROR("Cannot read directory $repo_dir - $!");
+    foreach my $f ( readdir($dh) ) {
+
+        next unless $f =~ m{\.repo$};
+        my $path = "${repo_dir}/$f";
+
+        next unless -f $path;
+
+        next if $vetted{$f};
+
+        my $txt = eval { File::Slurper::read_text($path) };
+
+        next unless length $txt;
+
+        my @lines = split( /\n/, $txt );
+
+        my $current_repo_name;
+        my $current_repo_enabled;
+
+        my $check_last_known_repo = sub {
+            return unless length $current_repo_name;
+            return unless $current_repo_enabled;
+
+            ERROR( sprintf( "Unsupported YUM repo enabled '%s' from %s", $current_repo_name, $path ) );
+
+            $use_unvetted_repo = 1;
+
+            return;
+        };
+
+        foreach my $line (@lines) {
+            if ( $line =~ qr{^\s*\[\s*(.+)\s*\]} ) {
+                $check_last_known_repo->();
+
+                $current_repo_name    = $1;
+                $current_repo_enabled = 1;    # assume enabled unless explicitely disabled
+
+                next;
+            }
+            next unless defined $current_repo_name;
+
+            $current_repo_enabled = 0 if $line =~ m{^\s*enabled\s*=\s*0};
+        }
+
+        # check the last repo found
+        $check_last_known_repo->();
+    }
+
+    return $use_unvetted_repo;
 }
 
 sub _disk_space_check() {
@@ -1819,9 +1913,9 @@ sub _msg ( $level, $lines ) {
     return;
 }
 
-sub ERROR($msg) { _msg( 'ERROR: ', $msg ) }
-sub WARN($msg)  { _msg( ' WARN: ', $msg ) }
-sub INFO($msg)  { _msg( ' INFO: ', $msg ) }
-sub DEBUG($msg) { _msg( 'DEBUG: ', $msg ) }
+sub ERROR($msg) { return _msg( 'ERROR: ', $msg ) }
+sub WARN($msg)  { return _msg( ' WARN: ', $msg ) }
+sub INFO($msg)  { return _msg( ' INFO: ', $msg ) }
+sub DEBUG($msg) { return _msg( 'DEBUG: ', $msg ) }
 
 1;
