@@ -101,6 +101,38 @@ my $cpconf_mock = Test::MockModule->new('Cpanel::Config::LoadCpConf');
 my %cpanel_conf = ( 'local_nameserver_type' => 'nsd', 'mysql-version' => '5.7' );
 $cpconf_mock->redefine( 'loadcpconf' => sub { return \%cpanel_conf } );
 
+is( cpev::blockers_check(), 9, "nsd blocks an upgrade to AlmaLinux 8" );
+message_seen( 'ERROR', 'AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns' );
+message_seen( 'ERROR', 'Before upgrading, we suggest you run: /scripts/setupnameserver powerdns' );
+
+$cpanel_conf{'local_nameserver_type'} = 'mydns';
+is( cpev::blockers_check(), 9, "mydns blocks an upgrade to AlmaLinux 8" );
+message_seen( 'ERROR', 'AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns' );
+message_seen( 'ERROR', 'Before upgrading, we suggest you run: /scripts/setupnameserver powerdns' );
+
+$cpanel_conf{'local_nameserver_type'} = 'powerdns';
+is( cpev::blockers_check(), 10, "the script location is incorrect." );
+message_seen( 'ERROR', "The script is not installed to the correct directory.\nPlease install it to /scripts/elevate-cpanel and run it again.\n" );
+
+$0 = '/scripts/elevate-cpanel';
+is( cpev::blockers_check(), 11, "the script location is correct but MySQL 5.7 is installed." );
+message_seen(
+    'ERROR',
+    "You are using MySQL 5.7 community server.\nThis version is not available for AlmaLinux 8.\nYou first need to update your MySQL server to 8.0 or later.\n\nYou can update to version 8.0 using the following command:\n\n    /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0\n\nOnce the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.\n"
+);
+
+$cpanel_conf{'mysql-version'} = '10.2';
+$0 = '/usr/local/cpanel/scripts/elevate-cpanel';
+is( cpev::blockers_check(), 12, "the script location is correct but MariaDB 10.2 is installed." );
+message_seen(
+    'ERROR',
+    "You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.\nYou first need to update MariaDB server to 10.3 or later.\n\nYou can update to version 10.3 using the following command:\n\n    /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3\n\nOnce the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.\n"
+);
+
+$cpanel_conf{'mysql-version'} = '4.0';
+is( cpev::blockers_check(), 13, 'An Unknown MySQL is present so we block for now.' );
+message_seen( 'ERROR', "We do not know how to upgrade to AlmaLinux 8 with MySQL version 4.0.\nPlease open a support ticket.\n" );
+
 #my $mock_saferun = Test::MockModule->new('Cpanel::SafeRun::Simple');
 #$mock_saferun->redefine(
 #    saferunnoerror => sub {
