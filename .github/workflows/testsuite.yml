@@ -34,8 +34,14 @@ jobs:
       - run: perl -V
       - name: which perl
         run: ls -l $(which perl)
+      - name: fixup for Test-MockFile
+        uses: perl-actions/install-with-cpm@stable
+        with:
+          sudo: false
+          install: |
+              http://httpupdate.cpanel.net/CPAN/authors/id/T/TO/TODDR/Test-MockFile-0.025.tar.gz
       - name: install Perl dependencies
-        uses: perl-actions/install-with-cpm@v1
+        uses: perl-actions/install-with-cpm@stable
         with:
           sudo: false
           cpanfile: "t/cpanfile"

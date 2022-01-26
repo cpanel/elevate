@@ -86,10 +86,11 @@ use cPstrict;
 use parent qw( Cpanel::HelpfulScript );
 
 use Config;
-use File::Find    ();
-use File::Temp    ();
-use File::Slurper ();
-use Hash::Merge   ();
+use File::Basename ();
+use File::Find     ();
+use File::Temp     ();
+use File::Slurper  ();
+use Hash::Merge    ();
 
 use Cpanel::Config::Httpd      ();
 use Cpanel::Config::LoadCpConf ();
@@ -111,6 +112,8 @@ use constant PID_FILE             => q[/var/run/cpanel-elevate.pid];
 
 use constant VALID_STAGES        => 5;
 use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
+
+use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
 
 use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
 use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
@@ -482,6 +485,8 @@ sub run_stage_2 {
 
     disable_all_cpanel_services();
 
+    setup_outdated_services();
+
     system touch => CHKSRVD_SUSPEND_FILE;
 
     setup_motd();
@@ -641,6 +646,8 @@ sub run_stage_5 {
         }
     }
 
+    restore_outdated_services();
+
     print_box("Great SUCCESS! Your upgrade to AlmaLinux 8 is complete.");
 
     return REBOOT_NEEDED;
@@ -725,6 +732,56 @@ sub print_box ($message) {
     say "* $message";
     say "*";
     say "*" x 90;
+
+    return;
+}
+
+sub setup_outdated_services {
+
+    my $content = '';
+
+    if ( -e IGNORE_OUTDATED_SERVICES_FILE ) {
+        $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
+    }
+
+    my $service_name = SERVICE_NAME;
+
+    return if $content =~ qr{^${service_name}$}m;
+
+    chomp($content);
+
+    $content .= "\n" if length $content;
+    $content .= $service_name . "\n";
+
+    my $dirname = File::Basename::dirname(IGNORE_OUTDATED_SERVICES_FILE);
+    if ( !-d $dirname ) {
+        mkdir($dirname) or die qq[Fail to create directory $dirname - $!];
+    }
+    File::Slurper::write_binary( IGNORE_OUTDATED_SERVICES_FILE, $content );
+
+    return 1;
+}
+
+sub restore_outdated_services {
+
+    return unless -e IGNORE_OUTDATED_SERVICES_FILE;
+
+    my $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
+
+    my $service_name = SERVICE_NAME;
+
+    if ( $content =~ s{^$service_name$}{}gm ) {
+        1 while chomp $content;
+        if ( $content =~ m{^\s*\z} ) {
+            unlink IGNORE_OUTDATED_SERVICES_FILE;
+            return 2;
+        }
+        else {
+            $content .= "\n";
+            File::Slurper::write_binary( IGNORE_OUTDATED_SERVICES_FILE, $content );
+            return 1;
+        }
+    }
 
     return;
 }
