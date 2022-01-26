@@ -1475,21 +1475,24 @@ sub blockers_check {
         return 2;
     }
 
-    return 3 unless Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos';
-
-    if ( Cpanel::OS::minor() < 4 ) {
-        ERROR( 'You need to run CentOS 7.4 and later to upgrade AlmaLinux 8. You are currently using ' . Cpanel::OS::display_name() );
+    unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
+        ERROR('This script is only designed to upgrade CentOS 7 to AlmaLinux 8');
         return 3;
+    }
+
+    if ( Cpanel::OS::minor() < 9 ) {
+        ERROR( 'You need to run CentOS 7.9 and later to upgrade AlmaLinux 8. You are currently using ' . Cpanel::OS::display_name() );
+        return 4;
     }
 
     if ( -e '/var/cpanel/caches/Cpanel-OS.custom' ) {
         ERROR('Experimental OS detected. This script only supports CentOS 7 upgrades');
-        return 4;
+        return 5;
     }
 
     if ( -e q[/var/cpanel/dev_sandbox] ) {
         ERROR('Cannot elevate a sandbox...');
-        return 5;
+        return 6;
     }
 
     if ( Cpanel::Pkgr::is_installed('cpanel-ccs-calendarserver') ) {
@@ -1500,7 +1503,7 @@ sub blockers_check {
     }
 
     if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
-        my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql');
+        my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
         my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
         ERROR("You have postgresql-server version $old_version installed.");
         ERROR("This is upgraded irreversably to version 10.0 when you switch to almalinux 8") if $old_version < 10;
@@ -1588,7 +1591,7 @@ sub blockers_check {
         update_stage_file( { 'mysql-version' => $mysql_version } );
     }
 
-    return 6 unless _disk_space_check();
+    return 99 unless _disk_space_check();
 
     return 0;
 }
