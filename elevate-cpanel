@@ -737,10 +737,9 @@ sub disable_all_cpanel_services {
       cpcleartaskqueue
       dnsadmin dovecot exim ipaliases mailman
       mysqld pdns proftpd queueprocd spamd
-      crond taiwatchd
+      crond tailwatchd
       /;
     my @disabled_services;
-
     foreach my $service (@cpanel_services) {
         Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
         my $exit = $? >> 8;
@@ -1526,7 +1525,7 @@ sub blockers_check {
         my $running_from = Cwd::abs_path($0) // '';
         if (   $running_from ne '/scripts/elevate-cpanel'
             && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
-            say <<~EOS;
+            ERROR(<<~EOS);
             The script is not installed to the correct directory.
             Please install it to /scripts/elevate-cpanel and run it again.
             EOS
@@ -1550,7 +1549,7 @@ sub blockers_check {
 
             Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
             EOS
-            return 10;
+            return 11;
         }
 
         if ( $mysql_version eq '10.2' ) {
@@ -1564,7 +1563,7 @@ sub blockers_check {
 
             Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
             EOS
-            return 11;
+            return 12;
         }
 
         my %supported_mysql_versions = (
@@ -1580,11 +1579,11 @@ sub blockers_check {
         );
 
         if ( !$supported_mysql_versions{$mysql_version} ) {
-            ERROR(<<~'EOS');
+            ERROR(<<~"EOS");
             We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
             Please open a support ticket.
             EOS
-            return 12;
+            return 13;
         }
 
         # store the MySQL version we started from
