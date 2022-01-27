@@ -152,7 +152,7 @@ use constant VETTED_YUM_REPO => qw{
   epel.repo
   imunify-rollout.repo
   imunify360.repo
-
+  kernelcare.repo
   }, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
@@ -521,6 +521,8 @@ sub run_stage_2 {
 
     setup_motd();
 
+    run_block_once( 'remove_kernelcare' => \&remove_kernelcare_if_needed );
+
     return REBOOT_NEEDED;
 }
 
@@ -731,6 +733,54 @@ sub run_block_once ( $label, $code ) {
 
     # successfully run that block
     update_stage_file( { $stage_name => { $label => 1 } } );
+
+    return;
+}
+
+sub remove_kernelcare_if_needed {
+
+    return unless -x q[/usr/bin/kcarectl];
+
+    _remove_packages_from_repos('kernelcare');
+
+    update_stage_file( { removed_kernelcare => 1 } );
+
+    return 1;
+}
+
+sub restore_kernel_care {
+
+    my $stash = read_stage_file();
+    return unless $stash->{'removed_kernelcare'};
+
+    INFO("Restoring kernelcare");
+
+    my $tmp = File::Temp->new(
+        TEMPLATE => "kernelcare_installer_XXXX",
+        SUFFIX   => '.sh',
+        UNLINK   => 0,
+        PERMS    => 0600,
+        TMPDIR   => 1
+    );
+
+    INFO("Retrieving kernelcare installer");
+    ssystem_and_die( qw{ /usr/bin/wget -qq -O }, $tmp, q[https://kernelcare.com/installer] );
+
+    my $conf_file = q[/etc/sysconfig/kcare/kcare.conf];
+    if ( -e $conf_file . q[.rpmsave] ) {
+        INFO("Restoring Configuration file: $conf_file");
+
+        # restore configuration file before installing it
+        File::Copy::copy( $conf_file . q[.rpmsave], $conf_file );
+    }
+
+    INFO("Running kernelcare installer");
+    ssystem_and_die( '/usr/bin/bash' => $tmp );
+
+    unlink $tmp;
+
+    INFO("Updating kernelcare");
+    ssystem(qw{ /usr/bin/kcarectl --update });
 
     return;
 }
@@ -1322,24 +1372,39 @@ sub reinstall_custom_stuff {
         File::Slurper::write_text( "/etc/yum.conf", $txt );
     }
 
-    restore_perl_xs(DISTRO_PERL_XS_PATH);
-    restore_perl_xs( $Config{'installsitearch'} );
+    run_block_once(
+        'restore_perl_xs' => sub {
+            restore_perl_xs(DISTRO_PERL_XS_PATH);
+            restore_perl_xs( $Config{'installsitearch'} );
 
-    # Restore YUM arch plugins.
-    my $stash            = read_stage_file();
-    my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
-    if (@$yum_arch_plugins) {
-        say "Restoring cPanel yum-based-plugins";
-        ssystem( qw{ /usr/bin/dnf -y install }, @$yum_arch_plugins );
-    }
+            return;
+        }
+    );
 
-    reinstall_mysql_packages();
+    run_block_once(
+        'restore_plugins' => sub {
 
-    check_pecl_packages();
+            # Restore YUM arch plugins.
+            my $stash            = read_stage_file();
+            my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
+            if (@$yum_arch_plugins) {
+                say "Restoring cPanel yum-based-plugins";
+                ssystem( qw{ /usr/bin/dnf -y install }, @$yum_arch_plugins );
+            }
 
-    reinstall_imunify_360();
+            return;
+        }
+    );
 
-    kernel_check();
+    run_block_once( 'reinstall_mysql_packages' => \&reinstall_mysql_packages );
+
+    run_block_once( 'check_pecl_packages' => \&check_pecl_packages );
+
+    run_block_once( 'reinstall_imunify_360' => \&reinstall_imunify_360 );
+
+    run_block_once( 'kernel_check' => \&kernel_check );
+
+    run_block_once( 'kernelcare' => \&restore_kernel_care );
 
     return;
 }
