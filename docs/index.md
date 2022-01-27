@@ -15,7 +15,7 @@ The Alma Linux Elevate project is very effective at upgrading the distro package
 * You can download a copy of the script to run on your cPanel server via:
 ```bash
 wget -O /scripts/elevate_cpanel \
-    https://raw.githubusercontent.com/cpanel/elevate/RELEASE/elevate_cpanel
+    https://raw.githubusercontent.com/cpanel/elevate/RELEASE/elevate_cpanel ;
 chmod 700 /scripts/elevate_cpanel
 
 # Read the help (and risks mentionned in this documentation)
