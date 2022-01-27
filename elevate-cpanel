@@ -1785,7 +1785,7 @@ sub blockers_check {
         ERROR( <<~'EOS' );
         One or more unsupported YUM repo are currently enabled.
         You should disable these repositories and remove packages installed from them
-        befor continuing the update.
+        before continuing the update.
 
         Consider reporting this limitation to https://github.com/cpanel/elevate/issues
         EOS
