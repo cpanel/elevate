@@ -93,17 +93,18 @@ use File::Temp     ();
 use File::Slurper  ();
 use Hash::Merge    ();
 
-use Cpanel::Config::Httpd      ();
-use Cpanel::Config::LoadCpConf ();
-use Cpanel::HTTP::Client       ();
-use Cpanel::JSON               ();
-use Cpanel::OS                 ();
-use Cpanel::PID                ();
-use Cpanel::Pkgr               ();
-use Cpanel::SafeRun::Simple    ();
-use Cpanel::SafeRun::Errors    ();
-use Cpanel::Version::Tiny      ();
-use Cpanel::Yum::Vars          ();
+use Cpanel::Config::Httpd       ();
+use Cpanel::Config::LoadCpConf  ();
+use Cpanel::HTTP::Client        ();
+use Cpanel::JSON                ();
+use Cpanel::OS                  ();
+use Cpanel::PID                 ();
+use Cpanel::Pkgr                ();
+use Cpanel::RestartSrv::Systemd ();
+use Cpanel::SafeRun::Simple     ();
+use Cpanel::SafeRun::Errors     ();
+use Cpanel::Version::Tiny       ();
+use Cpanel::Yum::Vars           ();
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
@@ -939,8 +940,18 @@ sub disable_known_yum_repositories {
 
 sub _is_service_active( $service ) {
 
-    Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
-    return 1 if $? == 0;
+    # cannot trust: `systemctl is-active` with a one-shot service
+    my $info = Cpanel::RestartSrv::Systemd::get_service_info_via_systemd();
+
+    $info->{'ActiveState'} //= '';
+    $info->{'LoadState'}   //= '';
+    $info->{'SubState'}    //= '';
+
+    if (   $info->{'LoadState'} eq 'loaded'
+        && $info->{'ActiveState'} eq 'active'
+        && $info->{'SubState'} ne 'exited' ) {
+        return 1;
+    }
 
     return 0;
 }
