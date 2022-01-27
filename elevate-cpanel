@@ -433,6 +433,8 @@ sub run_stage_1 {
     local $SIG{'INT'} = $abort;
     local $SIG{'HUP'} = $abort;
 
+    return 1 unless _sanity_check();
+
     if ( blockers_check() ) {
 
         # we have not yet install the service yet, clear the stage file
@@ -725,6 +727,18 @@ sub cleanup_motd {
 
         return 1;
     }
+
+    return;
+}
+
+sub _sanity_check {
+    return 1 if -x $0;
+
+    chmod 0700 => $0;
+
+    return 1 if -x $0;
+
+    ERROR("The script $0 is not executable, please fix it before running it again.");
 
     return;
 }
