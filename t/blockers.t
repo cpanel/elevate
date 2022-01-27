@@ -165,6 +165,10 @@ $cpev_mock->unmock('_yum_is_stable');
 
     my @stuff;
     push @stuff, Test::MockFile->dir('/var/lib/yum');
+
+    is( cpev::_yum_is_stable(), 0, "/var/lib/yum is missing." );
+    message_seen( 'ERROR' => q{Could not read directory '/var/lib/yum': No such file or directory} );
+
     mkdir '/var/lib/yum';
     push @stuff, Test::MockFile->file( '/var/lib/yum/transaction-all.12345', 'aa' );
     is( cpev::_yum_is_stable(), 0, "There is an outstanding transaction." );
