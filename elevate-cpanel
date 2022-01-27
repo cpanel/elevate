@@ -87,6 +87,7 @@ use parent qw( Cpanel::HelpfulScript );
 
 use Config;
 use File::Basename ();
+use File::Copy     ();
 use File::Find     ();
 use File::Temp     ();
 use File::Slurper  ();
