@@ -100,6 +100,7 @@ use Cpanel::OS                 ();
 use Cpanel::PID                ();
 use Cpanel::Pkgr               ();
 use Cpanel::SafeRun::Simple    ();
+use Cpanel::SafeRun::Errors    ();
 use Cpanel::Version::Tiny      ();
 use Cpanel::Yum::Vars          ();
 
@@ -1685,6 +1686,8 @@ sub blockers_check {
         return 14;
     }
 
+    return 15 unless _yum_is_stable();
+
     return 99 unless _disk_space_check();
 
     return 0;
@@ -1747,6 +1750,30 @@ sub _use_unvetted_yum_repos() {
     }
 
     return $use_unvetted_repo;
+}
+
+sub _yum_is_stable () {
+    my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+    if ( $errors =~ m/\S/ms ) {
+        ERROR('yum appears to be unstable. Please address this before upgrading');
+        ERROR($errors);
+
+        return 0;
+    }
+
+    if ( opendir( my $dfh, '/var/lib/yum' ) ) {
+        my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
+        if (@transactions) {
+            ERROR('There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.');
+            return 0;
+        }
+    }
+    else {
+        ERROR(qq{Could not read directory '/var/lib/yum': $!});
+        return 0;
+    }
+
+    return 1;
 }
 
 sub _disk_space_check() {
