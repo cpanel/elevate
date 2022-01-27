@@ -137,10 +137,8 @@ use constant VETTED_YUM_REPO => qw{
   epel.repo
   imunify-rollout.repo
   imunify360.repo
-  kernelcare.repo
   MariaDB103.repo
   Mysql80.repo
-  wp-toolkit-cpanel.repo
 };
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
