@@ -511,22 +511,34 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 sub run_stage_3 {
 
-    unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
-        ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
-    }
+    run_block_once(
+        install_pkgs => sub {
+            unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
+                ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+            }
 
-    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
-        ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
-    }
-    if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-        ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
-    }
+            unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
+                ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
+            }
+            if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
+                ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
+            }
 
-    ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
-    ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+            return;
+        }
+    );
+
+    run_block_once(
+        rmod_ln => sub {
+            ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
+            ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+
+            return;
+        }
+    );
 
     # We have to do this before removing the rpms.
-    remove_custom_stuff_for_later_reinstall();
+    run_block_once( remove_custom_stuff => \&remove_custom_stuff_for_later_reinstall );
 
     # remove all arch cpanel packages
     # This also potentially removes
@@ -541,7 +553,7 @@ sub run_stage_3 {
     }
 
     # Avoids having to do preupgrade.
-    setup_answer_file();
+    run_block_once( leapp_answers => \&setup_answer_file );
 
     _do_leapp_upgrade();
 
@@ -572,47 +584,52 @@ sub run_stage_4 {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    if ( !$stash->{stage4}->{sysup} ) {
-        Cpanel::Yum::Vars::install();
-        ssystem_and_die(qw{/usr/bin/dnf clean all});
+    run_block_once(
+        sysup => sub {
+            Cpanel::Yum::Vars::install();
+            ssystem_and_die(qw{/usr/bin/dnf clean all});
 
-        # no failures once already installed: no need to check for the epel-release version
-        ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
+            # no failures once already installed: no need to check for the epel-release version
+            ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
 
-        ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
-        {
-            local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
-            ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
+            ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
+            {
+                local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
+                ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
+            }
+            ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+            ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
+
+            return;
         }
-        ssystem(qw{/usr/bin/dnf -y --allowerasing update});
-        ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
+    );
 
-        update_stage_file( { stage4 => { sysup => 1 } } );
-    }
+    run_block_once(
+        ea4 => sub {
+            enable_all_cpanel_services();
+            stop_services_before_upcp();
 
-    if ( !$stash->{stage4}->{ea4} ) {
+            clear_cpanel_caches();
 
-        enable_all_cpanel_services();
-        stop_services_before_upcp();
+            # Need a better log file.
+            restore_ea4_profile();
 
-        clear_cpanel_caches();
+            return;
+        }
+    );
 
-        # Need a better log file.
-        restore_ea4_profile();
+    run_block_once(
+        upcp => sub {
 
-        update_stage_file( { stage4 => { ea4 => 1 } } );
-    }
+            ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
 
-    if ( !$stash->{stage4}->{upcp} ) {
+            # cleanup the license: cpsanitycheck.so binary is compiled for a different distro
+            ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/cpsanitycheck.so});
+            ssystem(qw{/usr/local/cpanel/cpkeyclt});
 
-        ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
-
-        # cleanup the license: cpsanitycheck.so binary is compiled for a different distro
-        ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/cpsanitycheck.so});
-        ssystem(qw{/usr/local/cpanel/cpkeyclt});
-
-        update_stage_file( { stage4 => { upcp => 1 } } );
-    }
+            return;
+        }
+    );
 
     reinstall_custom_stuff();
 
@@ -655,6 +672,31 @@ sub run_stage_5 {
     print_box("Great SUCCESS! Your upgrade to AlmaLinux 8 is complete.");
 
     return REBOOT_NEEDED;
+}
+
+sub run_block_once ( $label, $code ) {
+
+    die unless defined $label;
+    die unless ref $code eq 'CODE';
+
+    my $current_stage = get_stage() or die q[Unknown stage id];
+    my $stage_name    = 'stage' . $current_stage;
+
+    my $stash = read_stage_file();
+    $stash->{$stage_name} //= {};
+
+    # already run one time successfully
+    if ( $stash->{$stage_name}->{$label} ) {
+        INFO( sprintf( "Stage %d: skipping %s (already run)", $current_stage, $label ) );
+        return 1;
+    }
+
+    $code->();
+
+    # successfully run that block
+    update_stage_file( { $stage_name => { $label => 1 } } );
+
+    return;
 }
 
 sub _motd_notice_message {
@@ -964,29 +1006,35 @@ EOS
 # remove and store
 sub remove_custom_stuff_for_later_reinstall {
 
-    backup_ea4_profile();
+    run_block_once( backup_ea4 => \&backup_ea4_profile );
 
-    backup_pecl_packages();
+    run_block_once( backup_pecl => \&backup_pecl_packages );
 
-    cleanup_mysql_packages();
+    run_block_once( cleanup_mysql => \&cleanup_mysql_packages );
 
-    # Backup arch rpms which we're going to remove and are provided by yum.
-    my @installed_arch_cpanel_plugins;
+    run_block_once(
+        arch_rpms => sub {
 
-    my $out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum list});
-    my @lines = split( /\n/, $out );
+            # Backup arch rpms which we're going to remove and are provided by yum.
+            my @installed_arch_cpanel_plugins;
 
-    foreach my $package (@lines) {
-        chomp $package;
-        next unless $package =~ m{^(\S+)\.x86_64 .+ \@cpanel-\S+$};
-        push @installed_arch_cpanel_plugins, "$1";
-    }
-    update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } ) if @installed_arch_cpanel_plugins;
+            my $out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum list});
+            my @lines = split( /\n/, $out );
+
+            foreach my $package (@lines) {
+                chomp $package;
+                next unless $package =~ m{^(\S+)\.x86_64 .+ \@cpanel-\S+$};
+                push @installed_arch_cpanel_plugins, "$1";
+            }
+            update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } ) if @installed_arch_cpanel_plugins;
+            return;
+        }
+    );
 
     purge_perl_xs(DISTRO_PERL_XS_PATH);
     purge_perl_xs( $Config{'installsitearch'} );
 
-    remove_imunify_360();
+    run_block_once( remove_imunify => \&remove_imunify_360 );
 
     return;
 }
