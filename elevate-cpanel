@@ -947,6 +947,8 @@ sub backup_ea4_profile () {
 
 sub _do_leapp_upgrade {
 
+    INFO( "Running leapp upgrade" );
+
     my $ok = eval {
         ssystem_and_die(qw{/usr/bin/leapp upgrade});
         1;
