@@ -181,6 +181,51 @@ $cpev_mock->unmock('_yum_is_stable');
 
 }
 
+$cpev_mock->redefine( '_disk_space_check' => 1 );
+$cpev_mock->redefine( '_yum_is_stable'    => 1 );
+
+$cpev_mock->redefine( '_sshd_setup' => 0 );
+is( cpev::blockers_check(), 16, 'blocked if sshd is not set properly' );
+
+$cpev_mock->redefine( '_sshd_setup' => 1 );
+is( cpev::blockers_check(), 0, 'No More Blockers' );
+
+{
+    note "checking _sshd_setup";
+    $cpev_mock->unmock('_sshd_setup');
+
+    my $mock_sshd_cfg = Test::MockFile->file(q[/etc/ssh/sshd_config]);
+
+    is cpev::_sshd_setup() => 0, "sshd_config does not exist";
+
+    $mock_sshd_cfg->contents('');
+    is cpev::_sshd_setup() => 0, "sshd_config with empty content";
+
+    $mock_sshd_cfg->contents( <<~EOS );
+    Fruit=cherry
+    Veggy=carrot
+    EOS
+    is cpev::_sshd_setup() => 0, "sshd_config without PermitRootLogin option";
+
+    $mock_sshd_cfg->contents( <<~EOS );
+    Key=value
+    PermitRootLogin=yes
+    EOS
+    is cpev::_sshd_setup() => 1, "sshd_config with PermitRootLogin=yes - multilines";
+
+    $mock_sshd_cfg->contents(q[PermitRootLogin=no]);
+    is cpev::_sshd_setup() => 1, "sshd_config with PermitRootLogin=no";
+
+    $mock_sshd_cfg->contents(q[PermitRootLogin  =  no]);
+    is cpev::_sshd_setup() => 1, "sshd_config with PermitRootLogin  =  no";
+
+    $mock_sshd_cfg->contents(q[#PermitRootLogin=no]);
+    is cpev::_sshd_setup() => 0, "sshd_config with commented PermitRootLogin=no";
+
+    $mock_sshd_cfg->contents(q[#PermitRootLogin=yes]);
+    is cpev::_sshd_setup() => 0, "sshd_config with commented PermitRootLogin=yes";
+}
+
 done_testing();
 exit;
 
