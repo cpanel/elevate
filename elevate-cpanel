@@ -511,49 +511,54 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 sub run_stage_3 {
 
-    run_block_once(
-        install_pkgs => sub {
-            unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
-                ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
-            }
+    run_block_once( prep_for_leapp => sub {
 
-            unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
-                ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
-            }
-            if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-                ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
-            }
+        run_block_once(
+            install_pkgs => sub {
+                unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
+                    ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+                }
 
-            return;
+                unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
+                    ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
+                }
+                if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
+                    ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
+                }
+
+                return;
+            }
+        );
+
+        run_block_once(
+            rmod_ln => sub {
+                ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
+                ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+
+                return;
+            }
+        );
+
+        # We have to do this before removing the rpms.
+        run_block_once( remove_custom_stuff => \&remove_custom_stuff_for_later_reinstall );
+
+        # remove all arch cpanel packages
+        # This also potentially removes
+        ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
+
+        # remove all ea- packages
+        ssystem(q{/usr/bin/yum -y erase ea-*});
+
+        foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
+            next unless Cpanel::Pkgr::is_installed($rpm);
+            ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
         }
-    );
 
-    run_block_once(
-        rmod_ln => sub {
-            ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
-            ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+        # Avoids having to do preupgrade.
+        setup_answer_file;
 
-            return;
-        }
-    );
-
-    # We have to do this before removing the rpms.
-    run_block_once( remove_custom_stuff => \&remove_custom_stuff_for_later_reinstall );
-
-    # remove all arch cpanel packages
-    # This also potentially removes
-    ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
-
-    # remove all ea- packages
-    ssystem(q{/usr/bin/yum -y erase ea-*});
-
-    foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
-        next unless Cpanel::Pkgr::is_installed($rpm);
-        ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
-    }
-
-    # Avoids having to do preupgrade.
-    run_block_once( leapp_answers => \&setup_answer_file );
+        return;
+    } );
 
     _do_leapp_upgrade();
 
