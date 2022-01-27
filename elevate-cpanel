@@ -249,10 +249,18 @@ sub continue_elevation($self) {
     # check that no process is running and remove the pidfile for the other
     $self->check_and_create_pidfile()->remove_pid_file;
 
-    say "Restarting install process";
-    ssystem( qw{/usr/bin/systemctl restart}, SERVICE_NAME );
-
-    return 1;
+    my $pid = fork();
+    die qq[Failed to fork: $!] unless defined $pid;
+    if ($pid) {
+        say "Restarting install process";
+        return 1;
+    }
+    else {
+        # when restarting leapp process the restart process can hang for a long time
+        #   return earlier to let the user tail the service log
+        ssystem( qw{/usr/bin/systemctl restart}, SERVICE_NAME );
+        exit(0);
+    }
 }
 
 sub do_cleanup {
@@ -2041,7 +2049,9 @@ sub install_cpanel_elevate_service {
     ssystem_and_die( '/usr/bin/systemctl', 'enable', SERVICE_NAME );
     bump_stage();
 
-    if ( my $pid = fork() ) {
+    my $pid = fork();
+    die qq[Failed to fork: $!] unless defined $pid;
+    if ($pid) {
         say q[Starting service ] . SERVICE_NAME;
         return 0;
     }
