@@ -216,6 +216,9 @@ is( cpev::blockers_check(), 0, 'No More Blockers' );
     $mock_sshd_cfg->contents(q[PermitRootLogin=no]);
     is cpev::_sshd_setup() => 1, "sshd_config with PermitRootLogin=no";
 
+    $mock_sshd_cfg->contents(q[PermitRootLogin no]);
+    is cpev::_sshd_setup() => 1, "sshd_config with PermitRootLogin=no";
+
     $mock_sshd_cfg->contents(q[PermitRootLogin  =  no]);
     is cpev::_sshd_setup() => 1, "sshd_config with PermitRootLogin  =  no";
 
