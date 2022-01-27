@@ -941,7 +941,7 @@ sub disable_known_yum_repositories {
 sub _is_service_active( $service ) {
 
     # cannot trust: `systemctl is-active` with a one-shot service
-    my $info = Cpanel::RestartSrv::Systemd::get_service_info_via_systemd();
+    my $info = Cpanel::RestartSrv::Systemd::get_service_info_via_systemd($service);
 
     $info->{'ActiveState'} //= '';
     $info->{'LoadState'}   //= '';
