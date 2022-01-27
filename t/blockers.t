@@ -142,8 +142,43 @@ $cpanel_conf{'mysql-version'} = '10.3';
 $cpev_mock->redefine( _use_unvetted_yum_repos => 1 );
 is( cpev::blockers_check(), 14, 'An Unknown MySQL is present so we block for now.' );
 message_seen( 'ERROR', qr{unsupported YUM repo}i );
+$cpev_mock->redefine( _use_unvetted_yum_repos => 0 );
+
+$cpanel_conf{'mysql-version'} = '8.0';
+$cpev_mock->redefine( '_yum_is_stable' => 0 );
+my $stage_file_updated;
+$cpev_mock->redefine( 'save_stage_file' => sub { $stage_file_updated = shift } );
+is( cpev::blockers_check(), 15, 'blocked if yum is not stable.' );
+
+# Now we've tested the caller, let's test the code.
+$cpev_mock->unmock('_yum_is_stable');
+{
+    note "Testing _yum_is_stable";
+    my $errors_mock = Test::MockModule->new('Cpanel::SafeRun::Errors');
+    my $errors      = 'something is not right';
+    $errors_mock->redefine( 'saferunonlyerrors' => sub { return $errors } );
+
+    is( cpev::_yum_is_stable(), 0, "Yum is not stable and emits STDERR output (but does not exit non-zero)" );
+    message_seen( 'ERROR', 'yum appears to be unstable. Please address this before upgrading' );
+    message_seen( 'ERROR', 'something is not right' );
+    $errors = '';
+
+    my @stuff;
+    push @stuff, Test::MockFile->dir('/var/lib/yum');
+    mkdir '/var/lib/yum';
+    push @stuff, Test::MockFile->file( '/var/lib/yum/transaction-all.12345', 'aa' );
+    is( cpev::_yum_is_stable(), 0, "There is an outstanding transaction." );
+    message_seen( 'ERROR', 'There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.' );
+
+    unlink '/var/lib/yum/transaction-all.12345';
+    is( cpev::_yum_is_stable(), 1, "No outstanding yum transactions are found. we're good to go!" );
+
+    #TODO Test::MockFile isn't working here.
+
+}
 
 done_testing();
+exit;
 
 sub message_seen ( $type, $msg ) {
     my $line = shift @messages_seen;
