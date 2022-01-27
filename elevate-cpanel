@@ -27,6 +27,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
     Optional:
        --start                        Start the convertion process
        --continue                     Continue the convertion: retry the last step
+       --log                          Show the current elevation log
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate_c7
 
@@ -157,7 +158,7 @@ use constant VETTED_YUM_REPO => qw{
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status );
+    return qw( service start clean continue manual-reboots status log );
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
@@ -186,7 +187,7 @@ sub run ($self) {
         return 1;
     }
 
-    if ( $self->getopt('start') ) {
+    if ( $self->getopt('start') || $self->getopt('log') ) {
         1;    # these options are exclusive
     }
     elsif ( $self->getopt('continue') ) {
