@@ -228,13 +228,18 @@ EOS
 
 sub continue_elevation($self) {
 
+    if ( _is_service_active(SERVICE_NAME) ) {
+        WARN( "The service " . SERVICE_NAME . " is still running. Please wait for it to finish before restarting it." );
+        return;
+    }
+
     # check that no process is running and remove the pidfile for the other
     $self->check_and_create_pidfile()->remove_pid_file;
 
-    say "Continuing install process";
-    ssystem( '/usr/bin/systemctl', 'restart', SERVICE_NAME );
+    say "Restarting install process";
+    ssystem( qw{/usr/bin/systemctl restart}, SERVICE_NAME );
 
-    return;
+    return 1;
 }
 
 sub do_cleanup {
@@ -511,54 +516,56 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 sub run_stage_3 {
 
-    run_block_once( prep_for_leapp => sub {
+    run_block_once(
+        prep_for_leapp => sub {
 
-        run_block_once(
-            install_pkgs => sub {
-                unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
-                    ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
-                }
+            run_block_once(
+                install_pkgs => sub {
+                    unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
+                        ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+                    }
 
-                unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
-                    ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
-                }
-                if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-                    ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
-                }
+                    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
+                        ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
+                    }
+                    if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
+                        ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
+                    }
 
-                return;
+                    return;
+                }
+            );
+
+            run_block_once(
+                rmod_ln => sub {
+                    ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
+                    ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+
+                    return;
+                }
+            );
+
+            # We have to do this before removing the rpms.
+            run_block_once( remove_custom_stuff => \&remove_custom_stuff_for_later_reinstall );
+
+            # remove all arch cpanel packages
+            # This also potentially removes
+            ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
+
+            # remove all ea- packages
+            ssystem(q{/usr/bin/yum -y erase ea-*});
+
+            foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
+                next unless Cpanel::Pkgr::is_installed($rpm);
+                ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
             }
-        );
 
-        run_block_once(
-            rmod_ln => sub {
-                ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
-                ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+            # Avoids having to do preupgrade.
+            setup_answer_file();
 
-                return;
-            }
-        );
-
-        # We have to do this before removing the rpms.
-        run_block_once( remove_custom_stuff => \&remove_custom_stuff_for_later_reinstall );
-
-        # remove all arch cpanel packages
-        # This also potentially removes
-        ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
-
-        # remove all ea- packages
-        ssystem(q{/usr/bin/yum -y erase ea-*});
-
-        foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
-            next unless Cpanel::Pkgr::is_installed($rpm);
-            ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
+            return;
         }
-
-        # Avoids having to do preupgrade.
-        setup_answer_file;
-
-        return;
-    } );
+    );
 
     _do_leapp_upgrade();
 
@@ -886,9 +893,7 @@ sub disable_all_cpanel_services {
     my @disabled_services;
 
     foreach my $service (@cpanel_services) {
-        Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
-        my $exit = $? >> 8;
-        next if $exit > 0;
+        next unless _is_service_enabled($service);
 
         ssystem( qw{/usr/bin/systemctl disable --now}, $service );
         push @disabled_services, $service;
@@ -896,6 +901,25 @@ sub disable_all_cpanel_services {
     update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
 
     return;
+}
+
+sub _is_service_active( $service ) {
+
+    Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
+    return 1 if $? == 0;
+
+    return 0;
+}
+
+sub _is_service_enabled( $service ) {
+
+    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-enabled}, $service ) // '';
+
+    chomp $out;
+
+    return 1 if $out eq 'enabled';
+
+    return 0;
 }
 
 sub restore_ea4_profile () {
@@ -947,7 +971,7 @@ sub backup_ea4_profile () {
 
 sub _do_leapp_upgrade {
 
-    INFO( "Running leapp upgrade" );
+    INFO("Running leapp upgrade");
 
     my $ok = eval {
         ssystem_and_die(qw{/usr/bin/leapp upgrade});
