@@ -1738,6 +1738,9 @@ sub xspm_to_rpm () {
     };
 }
 
+use constant _CHECK_YUM_REPO_BITMASK_UNVETTED       => 1;
+use constant _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX => 2;
+
 sub blockers_check {
 
     unless ( $< == 0 ) {
@@ -1870,14 +1873,26 @@ sub blockers_check {
         update_stage_file( { 'mysql-version' => $mysql_version } );
     }
 
-    if ( _use_unvetted_yum_repos() ) {
-        ERROR( <<~'EOS' );
-        One or more unsupported YUM repo are currently enabled.
-        You should disable these repositories and remove packages installed from them
-        before continuing the update.
+    if ( my $status = _check_yum_repos() ) {
+        if ( $status | _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX == _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX ) {
+            ERROR( <<~'EOS' );
+            One or more enabled YUM repo are using invalid syntax.
+            '\$' variables behave differently in repo files between RedHat 7 and RedHat 8.
+            RedHat 7 interpolates '\$' variable whereas RedHat 8 does not.
 
-        Consider reporting this limitation to https://github.com/cpanel/elevate/issues
-        EOS
+            Please fix the files before continuing the update.
+            EOS
+        }
+        if ( $status | _CHECK_YUM_REPO_BITMASK_UNVETTED == _CHECK_YUM_REPO_BITMASK_UNVETTED ) {
+            ERROR( <<~'EOS' );
+            One or more enabled YUM repo are currently unsupported.
+            You should disable these repositories and remove packages installed from them
+            before continuing the update.
+
+            Consider reporting this limitation to https://github.com/cpanel/elevate/issues
+            EOS
+        }
+
         return 14;
     }
 
@@ -1890,13 +1905,18 @@ sub blockers_check {
     return 0;
 }
 
-sub _use_unvetted_yum_repos() {
+# $mask = _check_yum_repos()
+#   check current repos:
+#       _CHECK_YUM_REPO_BITMASK_UNVETTED is set when an unvetted repo is enabled
+#       _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX is set when one ore more repo use invalid syntax
+#
+sub _check_yum_repos() {
 
     my %vetted = map { $_ => 1 } VETTED_YUM_REPO;
 
     my $repo_dir = YUM_REPOS_D;
 
-    my $use_unvetted_repo;
+    my $status_mask = 0;
 
     opendir( my $dh, $repo_dir ) or return ERROR("Cannot read directory $repo_dir - $!");
     foreach my $f ( readdir($dh) ) {
@@ -1906,47 +1926,57 @@ sub _use_unvetted_yum_repos() {
 
         next unless -f $path;
 
-        next if $vetted{$f};
-
         my $txt = eval { File::Slurper::read_text($path) };
 
         next unless length $txt;
 
-        my @lines = split( /\n/, $txt );
+        my @lines = split( qr/\n/, $txt );
 
         my $current_repo_name;
         my $current_repo_enabled;
+        my $current_repo_use_valid_syntax;
 
         my $check_last_known_repo = sub {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
 
-            ERROR( sprintf( "Unsupported YUM repo enabled '%s' from %s", $current_repo_name, $path ) );
-
-            $use_unvetted_repo = 1;
+            if ( !$vetted{$f} ) {
+                ERROR( sprintf( "Unsupported YUM repo enabled '%s' from %s", $current_repo_name, $path ) );
+                $status_mask |= _CHECK_YUM_REPO_BITMASK_UNVETTED;
+            }
+            elsif ( !$current_repo_use_valid_syntax ) {
+                ERROR( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
+                $status_mask |= _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX;
+            }
 
             return;
         };
 
         foreach my $line (@lines) {
+            next if $line =~ qr{^\s*\#};       # skip comments
+            $line =~ s{\s*\#.+$}{};            # strip comments
             if ( $line =~ qr{^\s*\[\s*(.+)\s*\]} ) {
                 $check_last_known_repo->();
 
-                $current_repo_name    = $1;
-                $current_repo_enabled = 1;    # assume enabled unless explicitely disabled
+                $current_repo_name             = $1;
+                $current_repo_enabled          = 1;    # assume enabled unless explicitely disabled
+                $current_repo_use_valid_syntax = 1;
 
                 next;
             }
             next unless defined $current_repo_name;
 
             $current_repo_enabled = 0 if $line =~ m{^\s*enabled\s*=\s*0};
+
+            # the \$ syntax does not behave the same between 7 and 8
+            $current_repo_use_valid_syntax = 0 if $line =~ m{\\\$};
         }
 
         # check the last repo found
         $check_last_known_repo->();
     }
 
-    return $use_unvetted_repo;
+    return $status_mask;
 }
 
 sub _yum_is_stable () {

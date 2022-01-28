@@ -22,7 +22,7 @@ my $cpev_mock = Test::MockModule->new('cpev');
 my @messages_seen;
 $cpev_mock->redefine( '_msg' => sub { my ( $type, $msg ) = @_; push @messages_seen, [ $type, $msg ]; return } );
 
-$cpev_mock->redefine( _use_unvetted_yum_repos => 0 );
+$cpev_mock->redefine( _check_yum_repos => 0 );
 
 {
     no warnings 'once';
@@ -139,16 +139,17 @@ is( cpev::blockers_check(), 13, 'An Unknown MySQL is present so we block for now
 message_seen( 'ERROR', "We do not know how to upgrade to AlmaLinux 8 with MySQL version 4.0.\nPlease open a support ticket.\n" );
 
 $cpanel_conf{'mysql-version'} = '10.3';
-$cpev_mock->redefine( _use_unvetted_yum_repos => 1 );
+$cpev_mock->redefine( _check_yum_repos => 1 );
 is( cpev::blockers_check(), 14, 'An Unknown MySQL is present so we block for now.' );
-message_seen( 'ERROR', qr{unsupported YUM repo}i );
-$cpev_mock->redefine( _use_unvetted_yum_repos => 0 );
+message_seen( 'ERROR', qr{YUM repo}i );
+$cpev_mock->redefine( _check_yum_repos => 0 );
 
 $cpanel_conf{'mysql-version'} = '8.0';
 $cpev_mock->redefine( '_yum_is_stable' => 0 );
 my $stage_file_updated;
 $cpev_mock->redefine( 'save_stage_file' => sub { $stage_file_updated = shift } );
 is( cpev::blockers_check(), 15, 'blocked if yum is not stable.' );
+message_seen( 'ERROR', qr{YUM repo}i );
 
 # Now we've tested the caller, let's test the code.
 $cpev_mock->unmock('_yum_is_stable');
