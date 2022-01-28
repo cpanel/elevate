@@ -1592,14 +1592,15 @@ sub yum_list ($invalidate_cache = 0) {
         if ( !length $version ) {
             my $extra_line = shift @lines;
             chomp $extra_line;
+            $extra_line =~ s/^\s+//;
             ( $version, $repo ) = split( ' ', $extra_line );
         }
         if ( !length $repo ) {
             $repo = shift @lines;
             chomp $repo;
+            $repo =~ s/\s+//g;
         }
-
-        length $repo or next;    # We screwed up. move on.
+        length $repo or next; # We screwed up the parse. move on.
 
         $repo =~ s/^\@// or next;
         $repos{$repo} ||= [];
