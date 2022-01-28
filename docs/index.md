@@ -1,3 +1,5 @@
+[![testsuite](https://github.com/cpanel/elevate/actions/workflows/testsuite.yml/badge.svg?branch=main)](https://github.com/cpanel/elevate/actions/workflows/testsuite.yml)
+
 # Welcome to the cPanel ELEVATE project.
 
 ## Introduction
