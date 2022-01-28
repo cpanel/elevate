@@ -1,27 +1,27 @@
 #!perl
 
-requires "Algorithm::Dependency::Ordered" => 0;
-requires "File::Copy::Recursive"          => 0;
-requires "File::Slurper"                  => 0;
-requires "Hash::Merge"                    => 0;
-requires "HTTP::Tiny::UA::Response"       => 0;
-requires "Moo"                            => 0;
-requires "Params::Util"                   => 0;
-requires "Sub::Identify"                  => 0;
+requires "Algorithm::Dependency::Ordered";
+requires "File::Copy::Recursive";
+requires "File::Slurper";
+requires "Hash::Merge";
+requires "HTTP::Tiny::UA::Response";
+requires "Moo";
+requires "Params::Util";
+requires "Sub::Identify";
 
-#requires "Crypt::Cracklib" => 0;
+# test
+on 'test' => sub {
+    requires "File::Temp";
+    requires "Overload::FileCheck";
+    requires "Test2::Bundle::Extended";
+    requires "Test2::Plugin::NoWarnings";
+    requires "Test2::Tools::Explain";
+    requires "Test::MockFile";
+    requires "Test::MockModule";
+    requires "Test::More";
 
-#on "test" => sub {
-
-requires "Text::Glob"                => "0";
-
-requires "File::Temp"                => "0";
-requires "Overload::FileCheck"       => "0"; # 0.12
-requires "Test2::Bundle::Extended"   => "0";
-requires "Test2::Plugin::NoWarnings" => "0";
-requires "Test2::Tools::Explain"     => "0";
-requires "Test::MockFile"            => "0";
-requires "Test::MockModule"          => "0";
-requires "Test::More"                => "0";
-
-#};
+    # test coverage
+    recommends "Devel::Cover";
+    recommends "Template";
+    recommends "JSON::MaybeXS";
+};

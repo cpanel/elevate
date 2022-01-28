@@ -59,6 +59,9 @@ install ${REPO}/t/setup/tailwatchd.fake.service /etc/systemd/system/tailwatchd.s
 echo "# ............. scripts/sysup"
 /scripts/sysup ||:
 
+echo "# ............ enable extra target"
+/usr/local/cpanel/scripts/update_local_rpm_versions --edit target_settings.perl-enhanced installed ||:
+
 echo "# ............. scripts/check_cpanel_pkgs"
 /scripts/check_cpanel_pkgs --fix --no-digest ||:
 
