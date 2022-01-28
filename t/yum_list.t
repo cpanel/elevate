@@ -23,7 +23,16 @@ my $mock_output = do { local $/; <DATA> };
 $sr_mock->redefine( 'saferunnoerror' => sub { return $mock_output } );
 
 my $installed = cpev::yum_list();
-is( [ sort keys %$installed ], [qw/EA4 EA4-developer-feed Mysql57-community base cp-dev-tools cpanel-plugins epel extras google-chrome updates wp-toolkit-cpanel/], "repos are what we'd expect." );
+is(
+    [ sort keys %$installed ],
+    [
+        qw/EA4 EA4-developer-feed Mysql57-community
+          base cp-dev-tools cpanel-plugins epel extras
+          google-chrome updates wp-toolkit-cpanel
+          wp-toolkit-thirdparties/
+    ],
+    "repos are what we'd expect."
+);
 is(
     $installed->{'cpanel-plugins'},
     [
@@ -44,6 +53,93 @@ is(
         }
     ],
     "cpanel-plugins looks like we'd expect."
+);
+
+is(
+    $installed->{'wp-toolkit-thirdparties'},
+    [
+        {
+            'arch'    => 'x86_64',
+            'package' => 'libaps',
+            'version' => '1.0.10-1centos.7.191108.1550'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'log4cplus',
+            'version' => '1.2.0.1-1centos.7.191108.1550'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-date-time1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-filesystem1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-program-options1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-regex1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-serialization1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-system1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libboost-thread1.65',
+            'version' => '1.65.1-1centos.7.190116.1809'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libpoco-1.9.0',
+            'version' => '1.9.0-1centos.7.191202.1336'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-libstdc++6.3.0',
+            'version' => '6.3.0-1centos.7.190110.1553'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-lmlib',
+            'version' => '0.2.4-1centos.7.191108.1550'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-platform-runtime',
+            'version' => '1.0.2-1centos.7.191108.1550'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'plesk-rdbmspp',
+            'version' => '2.0.2-1centos.7.191108.1550'
+        },
+        {
+            'arch'    => 'x86_64',
+            'package' => 'sw-engine',
+            'version' => '2.27.2-1centos.7.191108.1550'
+        }
+    ],
+    "Parsing of long lines in wp-toolkit-thirdparties where yum wraps still produces expected columns"
 );
 
 done_testing();
