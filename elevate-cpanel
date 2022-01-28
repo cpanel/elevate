@@ -1156,14 +1156,12 @@ sub remove_custom_stuff_for_later_reinstall {
             # Backup arch rpms which we're going to remove and are provided by yum.
             my @installed_arch_cpanel_plugins;
 
-            my $out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum list});
-            my @lines = split( /\n/, $out );
-
-            foreach my $package (@lines) {
-                chomp $package;
-                next unless $package =~ m{^(\S+)\.x86_64 .+ \@cpanel-\S+$};
-                push @installed_arch_cpanel_plugins, "$1";
+            my $installed    = yum_list();
+            my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
+            foreach my $repo (@cpanel_repos) {
+                push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
             }
+
             update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } ) if @installed_arch_cpanel_plugins;
             return;
         }
@@ -1575,6 +1573,46 @@ sub _fetch_imunify_installer ($product) {
     return "$fh";
 }
 
+my $yum_list_cache;
+
+sub yum_list ($invalidate_cache = 0) {
+    return $yum_list_cache if !$invalidate_cache && $yum_list_cache;
+
+    my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror(qw{/usr/bin/yum list installed});
+    while ( my $line = shift @lines ) {
+        last if $line && $line =~ m/^Installed Packages/;
+    }
+    shift @lines;
+
+    my %repos;
+    while ( my $line = shift @lines ) {
+        chomp $line;
+        my ( $package, $version, $repo ) = split( qr{\s+}, $line );
+
+        if ( !length $version ) {
+            my $extra_line = shift @lines;
+            chomp $extra_line;
+            ( $version, $repo ) = split( ' ', $extra_line );
+        }
+        if ( !length $repo ) {
+            $repo = shift @lines;
+            chomp $repo;
+        }
+
+        length $repo or next;    # We screwed up. move on.
+
+        $repo =~ s/^\@// or next;
+        $repos{$repo} ||= [];
+        next if $repo eq 'installed';    # Not installed from a repo.
+
+        $package =~ s/\.(noarch|x86_64)$//;
+        my $arch = $1 // '?';
+        push $repos{$repo}->@*, { 'package' => $package, 'version' => $version, arch => $arch };
+    }
+
+    return $yum_list_cache = \%repos;
+}
+
 sub remove_imunify_360 {
 
     # One of these 2 rpms should be in place or imunify isn't really functioning.
@@ -1598,10 +1636,11 @@ sub remove_imunify_360 {
     unlink $installer_script;
 
     # Cleanup any lingering packages.
-    my @old_repo_packages = `/usr/bin/yum list`;
-    chomp @old_repo_packages;
-    @old_repo_packages = map { m/^(\S+)/ ? $1 : () } grep { m/ \@imunify\S+/i } @old_repo_packages;
-    ssystem( qw{/usr/bin/yum -y erase}, @old_repo_packages ) if @old_repo_packages;
+    my $installed = yum_list();
+    return unless ref $installed->{'imunify'} && scalar $installed->{'imunify'}->@*;
+    my @old_repo_packages = map { $_->{'package'} } $installed->{'imunify'}->@*;
+
+    ssystem( qw{/usr/bin/yum -y erase}, @old_repo_packages );
 
     return;
 }
