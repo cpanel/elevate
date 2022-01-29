@@ -766,7 +766,7 @@ sub restore_kernel_care {
     );
 
     INFO("Retrieving kernelcare installer");
-    ssystem_and_die( qw{ /usr/bin/wget -qq -O }, $tmp, q[https://kernelcare.com/installer] );
+    my $installer_script = _fetch_a_script( 'https://kernelcare.com/installer', 'kernelcare_installer' );
 
     my $conf_file = q[/etc/sysconfig/kcare/kcare.conf];
     if ( -e $conf_file . q[.rpmsave] ) {
@@ -777,9 +777,9 @@ sub restore_kernel_care {
     }
 
     INFO("Running kernelcare installer");
-    ssystem_and_die( '/usr/bin/bash' => $tmp );
+    ssystem_and_die( '/usr/bin/bash' => $installer_script );
 
-    unlink $tmp;
+    unlink $installer_script;
 
     INFO("Updating kernelcare");
     ssystem(qw{ /usr/bin/kcarectl --update });
