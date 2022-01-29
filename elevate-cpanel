@@ -1557,16 +1557,21 @@ sub _fetch_imunify_installer ($product) {
         return;
     };
 
+    return _fetch_a_script( $installer_url, 'imunify_installer' );
+}
+
+sub _fetch_a_script ( $url, $template ) {
     my $response = eval {
         my $http = Cpanel::HTTP::Client->new()->die_on_http_error();
-        $http->get($installer_url);
+        $http->get($url);
     };
+
     if ( my $exception = $@ ) {
-        say "ERROR: The system could not fetch the uninstall script for $product: $exception";
+        say "ERROR: The system could not fetch the uninstall script for $template: $exception";
         return;
     }
 
-    my $fh = File::Temp->new( TEMPLATE => "imunify_installer_XXXX", SUFFIX => '.sh', UNLINK => 0, PERMS => 0600, TMPDIR => 1 );
+    my $fh = File::Temp->new( TEMPLATE => "${template}_XXXX", SUFFIX => '.sh', UNLINK => 0, PERMS => 0600, TMPDIR => 1 );
     print {$fh} $response->{'content'};
     close $fh;
 
