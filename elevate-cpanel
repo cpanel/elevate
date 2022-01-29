@@ -1600,7 +1600,7 @@ sub yum_list ($invalidate_cache = 0) {
             chomp $repo;
             $repo =~ s/\s+//g;
         }
-        length $repo or next; # We screwed up the parse. move on.
+        length $repo or next;    # We screwed up the parse. move on.
 
         $repo =~ s/^\@// or next;
         $repos{$repo} ||= [];
@@ -1612,6 +1612,21 @@ sub yum_list ($invalidate_cache = 0) {
     }
 
     return $yum_list_cache = \%repos;
+}
+
+sub remove_rpms_from_repos (@repo_list) {
+
+    my @to_remove;
+    my $installed = yum_list();
+
+    foreach my $repo (@repo_list) {
+        next unless ref $installed->{$repo};
+        next unless scalar $installed->{$repo}->@*;
+        push @to_remove, map { $_->{'package'} } $installed->{$repo}->@*;
+    }
+
+    ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
+
 }
 
 sub remove_imunify_360 {
@@ -1637,11 +1652,7 @@ sub remove_imunify_360 {
     unlink $installer_script;
 
     # Cleanup any lingering packages.
-    my $installed = yum_list();
-    return unless ref $installed->{'imunify'} && scalar $installed->{'imunify'}->@*;
-    my @old_repo_packages = map { $_->{'package'} } $installed->{'imunify'}->@*;
-
-    ssystem( qw{/usr/bin/yum -y erase}, @old_repo_packages );
+    remove_rpms_from_repos('imunify');
 
     return;
 }
