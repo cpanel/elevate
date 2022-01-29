@@ -153,6 +153,8 @@ use constant VETTED_YUM_REPO => qw{
   imunify-rollout.repo
   imunify360.repo
   kernelcare.repo
+  wp-toolkit-cpanel.repo
+
   }, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
@@ -1170,7 +1172,8 @@ sub remove_custom_stuff_for_later_reinstall {
     purge_perl_xs(DISTRO_PERL_XS_PATH);
     purge_perl_xs( $Config{'installsitearch'} );
 
-    run_block_once( remove_imunify => \&remove_imunify_360 );
+    run_block_once( remove_imunify           => \&remove_imunify_360 );
+    run_block_once( remove_wordpress_toolkit => \&remove_wordpress_toolkit );
 
     return;
 }
@@ -1400,6 +1403,8 @@ sub reinstall_custom_stuff {
 
     run_block_once( 'reinstall_imunify_360' => \&reinstall_imunify_360 );
 
+    run_block_once( 'reinstall_wordpress_toolkit' => \&reinstall_wordpress_toolkit );
+
     run_block_once( 'kernel_check' => \&kernel_check );
 
     run_block_once( 'kernelcare' => \&restore_kernel_care );
@@ -1619,7 +1624,7 @@ sub yum_list ($invalidate_cache = 0) {
     return $yum_list_cache = \%repos;
 }
 
-sub remove_rpms_from_repos (@repo_list) {
+sub get_installed_rpms_in_repo (@repo_list) {
 
     my @to_remove;
     my $installed = yum_list();
@@ -1630,8 +1635,44 @@ sub remove_rpms_from_repos (@repo_list) {
         push @to_remove, map { $_->{'package'} } $installed->{$repo}->@*;
     }
 
+    return @to_remove;
+}
+
+sub remove_rpms_from_repos (@repo_list) {
+    my @to_remove = get_installed_rpms_in_repo(@repo_list);
+
+    return unless @to_remove;
+
+    INFO( "Removing packages for " . join( ", ", @repo_list ) );
+
     ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
 
+}
+
+sub remove_wordpress_toolkit {
+    return unless Cpanel::Pkgr::is_installed('wp-toolkit-cpanel');
+
+    INFO("Removing Wordpress Toolkit");
+
+    INFO("Removing the rpm wp-toolkit-cpanel (--noscripts)");
+    my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
+    DEBUG($output) if $output;
+
+    remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
+
+    update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
+}
+
+sub reinstall_wordpress_toolkit {
+    read_stage_file()->{'reinstall'}->{'wordpress_toolkit'} || return;
+
+    INFO("Restoring Wordpress Toolkit");
+    my $installer_script = _fetch_a_script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );
+
+    ssystem( '/usr/bin/bash', $installer_script );
+    unlink $installer_script;
+
+    return;
 }
 
 sub remove_imunify_360 {
@@ -1647,6 +1688,8 @@ sub remove_imunify_360 {
     return unless $license_data->{'license'}->{'status'};    # Must be true.
 
     my $product_type = $license_data->{'license'}->{'license_type'};
+
+    INFO("Removing $product_type prior to upgrade.");
 
     update_stage_file( { 'imunify' => $product_type } );
     say "Product $product_type detected. Uninstalling before upgrade for later restore";
@@ -2292,7 +2335,7 @@ sub ssystem_and_die (@args) {
     die("command failed. Fix it and run command.");
 }
 
-sub _msg ( $level, $lines ) {
+sub _msg ( $level, $lines = "" ) {
     chomp $lines;
     my @lines = split( "\n", $lines );
     foreach my $line (@lines) {
