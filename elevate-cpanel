@@ -745,15 +745,13 @@ sub remove_kernelcare_if_needed {
 
     _remove_packages_from_repos('kernelcare');
 
-    update_stage_file( { removed_kernelcare => 1 } );
+    update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
 
     return 1;
 }
 
 sub restore_kernel_care {
-
-    my $stash = read_stage_file();
-    return unless $stash->{'removed_kernelcare'};
+    return unless read_stage_file()->{'reinstall'}->{'kernelcare'};
 
     INFO("Restoring kernelcare");
 
@@ -1663,7 +1661,7 @@ sub remove_wordpress_toolkit {
 }
 
 sub reinstall_wordpress_toolkit {
-    read_stage_file()->{'reinstall'}->{'wordpress_toolkit'} || return;
+    return unless read_stage_file()->{'reinstall'}->{'wordpress_toolkit'};
 
     INFO("Restoring Wordpress Toolkit");
     my $installer_script = _fetch_a_script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );
