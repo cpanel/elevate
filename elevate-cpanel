@@ -2065,7 +2065,7 @@ sub _blockers_check($self) {
 
     $self->has_blocker( 16, q[Issue with sshd configuration] ) unless _sshd_setup();
 
-    $self->has_blocker( 17, q[AlmaLinux 8 needs JetBackup version 5 or later.] ) if _use_jetbackup4_or_earlier();
+    $self->has_blocker( 17, q[AlmaLinux 8 does not support JetBackup prior to version 5. Please upgrade JetBackup before elevate.] ) if _use_jetbackup4_or_earlier();
 
     $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
 
