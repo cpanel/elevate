@@ -757,14 +757,6 @@ sub restore_kernel_care {
 
     INFO("Restoring kernelcare");
 
-    my $tmp = File::Temp->new(
-        TEMPLATE => "kernelcare_installer_XXXX",
-        SUFFIX   => '.sh',
-        UNLINK   => 0,
-        PERMS    => 0600,
-        TMPDIR   => 1
-    );
-
     INFO("Retrieving kernelcare installer");
     my $installer_script = _fetch_a_script( 'https://kernelcare.com/installer', 'kernelcare_installer' );
 
