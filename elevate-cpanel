@@ -27,6 +27,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
     Optional:
        --start                        Start the convertion process
        --continue                     Continue the convertion: retry the last step
+       --check                        Check if your system has any known blockers to upgrade.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate_c7
@@ -42,6 +43,11 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
 You can start an elevation update by running:
 
     /scripts/elevate-cpanel --start
+
+=item Compatibility check with elevation
+
+You can check if your server is compatible with the upgrade process without
+starting an upgrade process.
 
 =item Start an installation with manual reboot
 
@@ -160,7 +166,7 @@ use constant VETTED_YUM_REPO => qw{
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log );
+    return qw( service start clean continue manual-reboots status log check );
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
@@ -176,7 +182,9 @@ sub run ($self) {
     elsif ( $self->getopt('status') ) {
         return $self->check_status();
     }
-    return do_cleanup() if $self->getopt('clean');
+
+    return do_cleanup()      if $self->getopt('clean');
+    return $self->do_check() if $self->getopt('check');
 
     my $stage = get_stage();
 
@@ -428,13 +436,41 @@ sub _run_service($self) {
     print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
 
     return
-        $stage == 1 ? run_stage_1()
-      : $stage == 2 ? run_stage_2()
-      : $stage == 3 ? run_stage_3()
-      : $stage == 4 ? run_stage_4()
-      : $stage == 5 ? run_stage_5()
+        $stage == 1 ? $self->run_stage_1()
+      : $stage == 2 ? $self->run_stage_2()
+      : $stage == 3 ? $self->run_stage_3()
+      : $stage == 4 ? $self->run_stage_4()
+      : $stage == 5 ? $self->run_stage_5()
       :               die("Unknown stage '$stage'. I don't know how to proceed");
 
+}
+
+sub do_check($self) {
+
+    if ( _is_service_active(SERVICE_NAME) ) {
+        WARN("An elevation process is already in progress.");
+        return 1;
+    }
+
+    my $has_blockers = $self->blockers_check(1);
+
+    # cleanup the stage file
+    unlink ELEVATE_STAGE_FILE;
+
+    if ($has_blockers) {
+        WARN( <<~'EOS' );
+        Please fix the detected issues before performing the elevation process.
+        EOS
+    }
+    else {
+        INFO( <<~'EOS' );
+        There is no known blockers to start the elevation process.
+        You can consider running:
+            /scripts/elevate-cpanel --start
+        EOS
+    }
+
+    return $has_blockers;
 }
 
 =head1 STAGES
@@ -449,7 +485,7 @@ responsible of the multiple reboots.
 
 =cut
 
-sub run_stage_1 {
+sub run_stage_1($self) {
 
     # do not leave cruft behing when aborting
     my $abort = sub {
@@ -462,7 +498,7 @@ sub run_stage_1 {
 
     return 1 unless _sanity_check();
 
-    if ( blockers_check() ) {
+    if ( $self->blockers_check() ) {
 
         # we have not yet install the service yet, clear the stage file
         unlink ELEVATE_STAGE_FILE;
@@ -507,7 +543,7 @@ Update the current distro packages then reboot.
 
 =cut
 
-sub run_stage_2 {
+sub run_stage_2($self) {
 
     ssystem(qw{/usr/bin/yum clean all});
     ssystem_and_die(qw{/scripts/update-packages});
@@ -542,7 +578,7 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 =cut
 
-sub run_stage_3 {
+sub run_stage_3($self) {
 
     run_once(
         prep_for_leapp => sub {
@@ -616,7 +652,7 @@ Restore removed packages during the previous stage.
 
 =cut
 
-sub run_stage_4 {
+sub run_stage_4($self) {
     Cpanel::OS::flush_disk_caches();
     Cpanel::OS::major() == 8 or die("Upgrade to AlmaLinux 8 did not succeed. Please restore from backup.");
 
@@ -688,7 +724,7 @@ The cpanel-elevate service is now removed.
 
 =cut
 
-sub run_stage_5 {
+sub run_stage_5($self) {
     return 1 if post_upgrade_check();
 
     # we cannot stop the service ( ourself )
@@ -1826,79 +1862,125 @@ sub xspm_to_rpm () {
 use constant _CHECK_YUM_REPO_BITMASK_UNVETTED       => 1;
 use constant _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX => 2;
 
-sub blockers_check {
+sub blockers_check ( $self, $all = 0 ) {
+
+    die unless ref $self;
 
     unless ( $< == 0 ) {
         ERROR("This script can only be run by root");
         return 666;
     }
 
+    $self->{blockers}                = [];
+    $self->{_abort_on_first_blocker} = !$all;
+
+    eval {
+        $self->_blockers_check();
+        1;
+    };
+
+    if ( my $error = $@ ) {
+        if ( ref $error eq 'cpev::Blocker' ) {
+            ERROR( $error->{msg} );
+            return $error->{id} // 401;
+        }
+        WARN("Unkown error while checking blockers: $error");
+        return 127;    # unknown error
+    }
+
+    return scalar $self->{blockers}->@*;
+}
+
+#
+# by default abort on the first failure,
+#   except in check mode where we want all failures
+#
+sub has_blocker ( $self, $id, $msg ) {
+
+    # FIXME: consider removing the id
+    my $blocker = bless { id => $id, msg => $msg }, 'cpev::Blocker';
+
+    die $blocker if $self->{_abort_on_first_blocker};
+
+    WARN( <<~"EOS");
+    *** Elevation Blocker detected: ***
+    $msg
+    EOS
+    WARN('.');
+
+    $self->{blockers} //= [];
+    push $self->{blockers}->@*, $blocker;
+
+    return $blocker;
+}
+
+sub _blockers_check($self) {
+
     if ( !$Cpanel::Version::Tiny::major_version ) {
-        ERROR('Invalid cPanel & WHM major_version');
-        return 1;
+        $self->has_blocker( 1, 'Invalid cPanel & WHM major_version' );
     }
 
     if ( $Cpanel::Version::Tiny::major_version <= 100 ) {
-        ERROR("This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better.");
-        return 2;
+        $self->has_blocker( 2, "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better." );
     }
 
     unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
-        ERROR('This script is only designed to upgrade CentOS 7 to AlmaLinux 8');
-        return 3;
+        $self->has_blocker( 3, 'This script is only designed to upgrade CentOS 7 to AlmaLinux 8' );
     }
 
     if ( Cpanel::OS::minor() < 9 ) {
-        ERROR( 'You need to run CentOS 7.9 and later to upgrade AlmaLinux 8. You are currently using ' . Cpanel::OS::display_name() );
-        return 4;
+        $self->has_blocker( 4, 'You need to run CentOS 7.9 and later to upgrade AlmaLinux 8. You are currently using ' . Cpanel::OS::display_name() );
     }
 
     if ( -e '/var/cpanel/caches/Cpanel-OS.custom' ) {
-        ERROR('Experimental OS detected. This script only supports CentOS 7 upgrades');
-        return 5;
+        $self->has_blocker( 5, 'Experimental OS detected. This script only supports CentOS 7 upgrades' );
     }
 
     if ( -e q[/var/cpanel/dev_sandbox] ) {
-        ERROR('Cannot elevate a sandbox...');
-        return 6;
+        $self->has_blocker( 6, 'Cannot elevate a sandbox...' );
     }
 
     if ( Cpanel::Pkgr::is_installed('cpanel-ccs-calendarserver') ) {
-        ERROR('You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.');
-        WARN('Removal of this server can lead to data loss.');
-
-        return 7;
+        $self->has_blocker( 7, <<~'EOS');
+        You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.
+        Removal of this server can lead to data loss.
+        EOS
     }
 
     if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
         my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
         my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
-        ERROR("You have postgresql-server version $old_version installed.");
-        ERROR("This is upgraded irreversably to version 10.0 when you switch to almalinux 8") if $old_version < 10;
-        ERROR("We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.");
-        ERROR("To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`") if $old_version < 10;
 
-        return 8;
+        my $msg = qq[You have postgresql-server version $old_version installed.\n];
+        if ( $old_version < 10 ) {
+            $msg .= qq[This is upgraded irreversably to version 10.0 when you switch to almalinux 8\n];
+        }
+        $msg .= qq[We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.\n];
+        if ( $old_version < 10 ) {
+            $msg .= qq[To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`\n];
+        }
+
+        $self->has_blocker( 8, $msg );
     }
 
     my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
 
     my $nameserver = $cpconf->{'local_nameserver_type'};
     if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
-        ERROR('AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns');
-        ERROR('Before upgrading, we suggest you run: /scripts/setupnameserver powerdns');
-        return 9;
+        $self->has_blocker( 9, <<~'EOS');
+        AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns.
+        Before upgrading, we suggest you run: /scripts/setupnameserver powerdns.
+        EOS
     }
 
     {
         my $running_from = Cwd::abs_path($0) // '';
         if (   $running_from ne '/scripts/elevate-cpanel'
             && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
-            ERROR(<<~EOS);
+            $self->has_blocker( 10, <<~'EOS');
             The script is not installed to the correct directory.
             Please install it to /scripts/elevate-cpanel and run it again.
             EOS
-            return 10;
         }
     }
 
@@ -1907,7 +1989,7 @@ sub blockers_check {
         my $mysql_version = $cpconf->{'mysql-version'} // '';
 
         if ( $mysql_version eq '5.7' ) {
-            ERROR( <<~'EOS');
+            $self->has_blocker( 11, <<~'EOS');
             You are using MySQL 5.7 community server.
             This version is not available for AlmaLinux 8.
             You first need to update your MySQL server to 8.0 or later.
@@ -1918,11 +2000,9 @@ sub blockers_check {
 
             Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
             EOS
-            return 11;
         }
-
-        if ( $mysql_version eq '10.2' ) {
-            ERROR(<<~'EOS');
+        elsif ( $mysql_version eq '10.2' ) {
+            $self->has_blocker( 12, <<~'EOS');
             You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
             You first need to update MariaDB server to 10.3 or later.
 
@@ -1932,35 +2012,35 @@ sub blockers_check {
 
             Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
             EOS
-            return 12;
         }
+        else {
+            my %supported_mysql_versions = (
+                map { $_ => 1 }
+                  qw{
+                  8.0
+                  10.3
+                  10.4
+                  10.5
+                  10.6
+                  }
+            );
 
-        my %supported_mysql_versions = (
-            map { $_ => 1 }
-              qw{
-              8.0
-              10.3
-              10.4
-              10.5
-              10.6
-              }
-        );
+            if ( !$supported_mysql_versions{$mysql_version} ) {
+                $self->has_blocker( 13, <<~"EOS");
+                We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
+                Please open a support ticket.
+                EOS
+            }
 
-        if ( !$supported_mysql_versions{$mysql_version} ) {
-            ERROR(<<~"EOS");
-            We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
-            Please open a support ticket.
-            EOS
-            return 13;
+            # store the MySQL version we started from
+            update_stage_file( { 'mysql-version' => $mysql_version } );
         }
-
-        # store the MySQL version we started from
-        update_stage_file( { 'mysql-version' => $mysql_version } );
     }
 
     if ( my $status = _check_yum_repos() ) {
+        my $msg = '';
         if ( $status | _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX == _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX ) {
-            ERROR( <<~'EOS' );
+            $msg .= <<~'EOS';
             One or more enabled YUM repo are using invalid syntax.
             '\$' variables behave differently in repo files between RedHat 7 and RedHat 8.
             RedHat 7 interpolates '\$' variable whereas RedHat 8 does not.
@@ -1969,7 +2049,7 @@ sub blockers_check {
             EOS
         }
         if ( $status | _CHECK_YUM_REPO_BITMASK_UNVETTED == _CHECK_YUM_REPO_BITMASK_UNVETTED ) {
-            ERROR( <<~'EOS' );
+            $msg .= <<~'EOS';
             One or more enabled YUM repo are currently unsupported.
             You should disable these repositories and remove packages installed from them
             before continuing the update.
@@ -1978,14 +2058,14 @@ sub blockers_check {
             EOS
         }
 
-        return 14;
+        $self->has_blocker( 14, $msg );
     }
 
-    return 15 unless _yum_is_stable();
+    $self->has_blocker( 15, q[yum is not stable] ) unless _yum_is_stable();
 
-    return 16 unless _sshd_setup();
+    $self->has_blocker( 16, q[Issue with sshd configuration] ) unless _sshd_setup();
 
-    return 99 unless _disk_space_check();
+    $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
 
     return 0;
 }
