@@ -2067,7 +2067,7 @@ sub _blockers_check($self) {
 
     if ( my $status = $self->_check_yum_repos() ) {
         my $msg = '';
-        if ( $status | _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX == _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX ) {
+        if ( $status | _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX ) {
             $msg .= <<~'EOS';
             One or more enabled YUM repo are using invalid syntax.
             '\$' variables behave differently in repo files between RedHat 7 and RedHat 8.
@@ -2076,7 +2076,7 @@ sub _blockers_check($self) {
             Please fix the files before continuing the update.
             EOS
         }
-        if ( $status | _CHECK_YUM_REPO_BITMASK_UNVETTED == _CHECK_YUM_REPO_BITMASK_UNVETTED ) {
+        if ( $status | _CHECK_YUM_REPO_BITMASK_UNVETTED ) {
             $msg .= <<~'EOS';
             One or more enabled YUM repo are currently unsupported.
             You should disable these repositories and remove packages installed from them
