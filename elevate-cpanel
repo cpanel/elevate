@@ -1167,6 +1167,7 @@ sub remove_custom_stuff_for_later_reinstall {
 
     run_once('remove_imunify_360');
     run_once('remove_wordpress_toolkit');
+    run_once('remove_influxdb');
 
     return;
 }
@@ -1370,6 +1371,7 @@ sub reinstall_custom_stuff {
     run_once('check_pecl_packages');
     run_once('reinstall_imunify_360');
     run_once('reinstall_wordpress_toolkit');
+    run_once('reinstall_influxdb');
     run_once('kernel_check');
     run_once('restore_kernel_care');
 
@@ -1616,6 +1618,19 @@ sub remove_rpms_from_repos (@repo_list) {
 sub backup_3rdparty_file ($file) {
     my $target = "$file.elevate_backup";
     return File::Copy::copy( $file, $target );
+}
+
+sub remove_influxdb {
+    return unless Cpanel::Pkgr::is_installed('telegraf');
+    INFO("Not removing influxdb. Will re-install it after elevate.");
+    update_stage_file( { 'reinstall' => { 'influxdb' => 1 } } );
+}
+
+sub reinstall_influxdb {
+    return unless read_stage_file()->{'reinstall'}->{'influxdb'};
+    INFO("Re-installing telegraf for influxdb");
+    ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
+
 }
 
 sub remove_wordpress_toolkit {
