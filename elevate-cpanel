@@ -748,7 +748,7 @@ sub remove_kernelcare_if_needed {
 
     return unless -x q[/usr/bin/kcarectl];
 
-    _remove_packages_from_repos('kernelcare');
+    remove_rpms_from_repos('kernelcare');
 
     update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
 
@@ -1270,7 +1270,7 @@ sub cleanup_mysql_57_packages {
       Mysql-tools-preview
     };
 
-    _remove_packages_from_repos(@repos);
+    remove_rpms_from_repos(@repos);
 
     return;
 }
@@ -1284,7 +1284,7 @@ sub cleanup_mysql_80_packages {
       Mysql-tools-preview
     };
 
-    _remove_packages_from_repos(@repos);
+    remove_rpms_from_repos(@repos);
 
     return;
 }
@@ -1295,7 +1295,7 @@ sub cleanup_mysql_102_packages {
       MariaDB102
     };
 
-    _remove_packages_from_repos(@repos);
+    remove_rpms_from_repos(@repos);
 
     return;
 }
@@ -1306,7 +1306,7 @@ sub cleanup_mysql_103_packages {
       MariaDB103
     };
 
-    _remove_packages_from_repos(@repos);
+    remove_rpms_from_repos(@repos);
 
     return;
 }
@@ -1317,7 +1317,7 @@ sub cleanup_mysql_105_packages {
       MariaDB105
     };
 
-    _remove_packages_from_repos(@repos);
+    remove_rpms_from_repos(@repos);
 
     return;
 }
@@ -1328,33 +1328,9 @@ sub cleanup_mysql_106_packages {
       MariaDB106
     };
 
-    _remove_packages_from_repos(@repos);
+    remove_rpms_from_repos(@repos);
 
     return;
-}
-
-sub _remove_packages_from_repos( @repos ) {
-    return unless scalar @repos;
-
-    my @to_remove;
-
-    my $from_repo = { map { $_ => 1 } @repos };
-
-    my @cmd   = ( qw{/usr/bin/repoquery -a --installed --qf }, q[%{ui_from_repo} %{name}] );
-    my $out   = Cpanel::SafeRun::Simple::saferunnoerror(@cmd);
-    my @lines = split( /\n/, $out );
-    foreach my $line (@lines) {
-        next unless $line =~ s{^\@}{};
-        my ( $repo, $pkg ) = split( ' ', $line, 2 );
-        next unless $from_repo->{$repo};
-        push @to_remove, $pkg;
-    }
-
-    return unless scalar @to_remove;
-
-    ssystem( '/usr/bin/rpm', '-e', '--nodeps', @to_remove );
-
-    return \@to_remove;
 }
 
 sub reinstall_custom_stuff {
