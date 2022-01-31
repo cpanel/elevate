@@ -158,6 +158,7 @@ use constant VETTED_YUM_REPO => qw{
   epel.repo
   imunify-rollout.repo
   imunify360.repo
+  influxdb.repo
   kernelcare.repo
   wp-toolkit-cpanel.repo
 
