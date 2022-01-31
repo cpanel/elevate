@@ -1204,6 +1204,7 @@ sub remove_custom_stuff_for_later_reinstall {
     run_once('remove_imunify_360');
     run_once('remove_wordpress_toolkit');
     run_once('remove_influxdb');
+    run_once('remove_jetbackup');
 
     return;
 }
@@ -1408,6 +1409,7 @@ sub reinstall_custom_stuff {
     run_once('reinstall_imunify_360');
     run_once('reinstall_wordpress_toolkit');
     run_once('reinstall_influxdb');
+    run_once('reinstall_jetbackup');
     run_once('kernel_check');
     run_once('restore_kernel_care');
 
@@ -1631,6 +1633,14 @@ sub get_installed_rpms_in_repo (@repo_list) {
     my @to_remove;
     my $installed = yum_list();
 
+    # Regex for repos.
+    if ( ref $repo_list[0] eq 'Regexp' ) {
+        scalar @repo_list == 0 or die("too many args");
+        my $regex = shift @repo_list;
+
+        @repo_list = grep { $_ =~ $regex } keys %$installed;
+    }
+
     foreach my $repo (@repo_list) {
         next unless ref $installed->{$repo};
         next unless scalar $installed->{$repo}->@*;
@@ -1654,6 +1664,21 @@ sub remove_rpms_from_repos (@repo_list) {
 sub backup_3rdparty_file ($file) {
     my $target = "$file.elevate_backup";
     return File::Copy::copy( $file, $target );
+}
+
+sub remove_jetbackup {
+    return unless Cpanel::Pkgr::is_installed('jb');
+    INFO("Not removing jetbackup. Will re-install it after elevate.");
+    my @reinstall = get_installed_rpms_in_repo(qr{^jetapps});
+
+    update_stage_file( { 'reinstall' => { 'jetbackup' => \@reinstall } } );
+}
+
+sub reinstall_jetbackup {
+    my $reinstall_array = read_stage_file()->{'reinstall'}->{'jetbackup'};
+    return unless ref $reinstall_array eq 'ARRAY';
+    INFO("Re-installing jetbackup.");
+    ssystem( qw{/usr/bin/yum -y reinstall}, @$reinstall_array );
 }
 
 sub remove_influxdb {
