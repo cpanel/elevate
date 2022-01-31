@@ -726,10 +726,12 @@ sub run_block_once ( $label, $code = undef ) {
     my $stage_name    = 'stage' . $current_stage;
 
     my $stash = read_stage_file();
-    $stash->{$stage_name} //= {};
+    $stash->{'_run_once'} //= {};
+
+    my $full_label = $current_stage . '_' . $label;
 
     # already run one time successfully
-    if ( $stash->{$stage_name}->{$label} ) {
+    if ( $stash->{'_run_once'}->{$full_label} ) {
         INFO( sprintf( "Stage %d: skipping %s (already run)", $current_stage, $label ) );
         return 1;
     }
@@ -737,7 +739,7 @@ sub run_block_once ( $label, $code = undef ) {
     $code->();
 
     # successfully run that block
-    update_stage_file( { $stage_name => { $label => 1 } } );
+    update_stage_file( { _run_once => { $full_label => 1 } } );
 
     return;
 }
