@@ -523,7 +523,7 @@ sub run_stage_2 {
 
     setup_motd();
 
-    run_block_once('remove_kernelcare_if_needed');
+    run_once('remove_kernelcare_if_needed');
 
     return REBOOT_NEEDED;
 }
@@ -544,10 +544,10 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 sub run_stage_3 {
 
-    run_block_once(
+    run_once(
         prep_for_leapp => sub {
 
-            run_block_once(
+            run_once(
                 install_pkgs => sub {
                     unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
                         ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
@@ -564,7 +564,7 @@ sub run_stage_3 {
                 }
             );
 
-            run_block_once(
+            run_once(
                 rmod_ln => sub {
                     ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
                     ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
@@ -574,7 +574,7 @@ sub run_stage_3 {
             );
 
             # We have to do this before removing the rpms.
-            run_block_once('remove_custom_stuff_for_later_reinstall');
+            run_once('remove_custom_stuff_for_later_reinstall');
 
             # remove all arch cpanel packages
             # This also potentially removes
@@ -624,7 +624,7 @@ sub run_stage_4 {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    run_block_once(
+    run_once(
         sysup => sub {
             Cpanel::Yum::Vars::install();
             ssystem_and_die(qw{/usr/bin/dnf clean all});
@@ -644,7 +644,7 @@ sub run_stage_4 {
         }
     );
 
-    run_block_once(
+    run_once(
         ea4 => sub {
             enable_all_cpanel_services();
             stop_services_before_upcp();
@@ -658,7 +658,7 @@ sub run_stage_4 {
         }
     );
 
-    run_block_once(
+    run_once(
         upcp => sub {
 
             ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
@@ -714,7 +714,7 @@ sub run_stage_5 {
     return REBOOT_NEEDED;
 }
 
-sub run_block_once ( $label, $code = undef ) {
+sub run_once ( $label, $code = undef ) {
 
     die unless defined $label;
 
@@ -1141,11 +1141,11 @@ EOS
 # remove and store
 sub remove_custom_stuff_for_later_reinstall {
 
-    run_block_once('backup_ea4_profile');
-    run_block_once('backup_pecl_packages');
-    run_block_once('cleanup_mysql_packages');
+    run_once('backup_ea4_profile');
+    run_once('backup_pecl_packages');
+    run_once('cleanup_mysql_packages');
 
-    run_block_once(
+    run_once(
         arch_rpms => sub {
 
             # Backup arch rpms which we're going to remove and are provided by yum.
@@ -1165,8 +1165,8 @@ sub remove_custom_stuff_for_later_reinstall {
     purge_perl_xs(DISTRO_PERL_XS_PATH);
     purge_perl_xs( $Config{'installsitearch'} );
 
-    run_block_once('remove_imunify_360');
-    run_block_once('remove_wordpress_toolkit');
+    run_once('remove_imunify_360');
+    run_once('remove_wordpress_toolkit');
 
     return;
 }
@@ -1366,7 +1366,7 @@ sub reinstall_custom_stuff {
         File::Slurper::write_text( "/etc/yum.conf", $txt );
     }
 
-    run_block_once(
+    run_once(
         'restore_perl_xs' => sub {
             restore_perl_xs(DISTRO_PERL_XS_PATH);
             restore_perl_xs( $Config{'installsitearch'} );
@@ -1375,7 +1375,7 @@ sub reinstall_custom_stuff {
         }
     );
 
-    run_block_once(
+    run_once(
         'restore_plugins' => sub {
 
             # Restore YUM arch plugins.
@@ -1390,12 +1390,12 @@ sub reinstall_custom_stuff {
         }
     );
 
-    run_block_once('reinstall_mysql_packages');
-    run_block_once('check_pecl_packages');
-    run_block_once('reinstall_imunify_360');
-    run_block_once('reinstall_wordpress_toolkit');
-    run_block_once('kernel_check');
-    run_block_once('restore_kernel_care');
+    run_once('reinstall_mysql_packages');
+    run_once('check_pecl_packages');
+    run_once('reinstall_imunify_360');
+    run_once('reinstall_wordpress_toolkit');
+    run_once('kernel_check');
+    run_once('restore_kernel_care');
 
     return;
 }
