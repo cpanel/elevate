@@ -1885,8 +1885,10 @@ sub xspm_to_rpm () {
     };
 }
 
-use constant _CHECK_YUM_REPO_BITMASK_UNVETTED       => 1;
-use constant _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX => 2;
+use constant _CHECK_YUM_REPO_BITMASK_UNVETTED                    => 1;
+use constant _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX              => 2;
+use constant _CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO => 4;
+use constant _CHECK_YUM_REPO_BITMASK_HAS_UNUSED_REPO_ENABLED     => 8;
 
 sub blockers_check ( $self, $all = 0 ) {
 
@@ -2063,7 +2065,7 @@ sub _blockers_check($self) {
         }
     }
 
-    if ( my $status = _check_yum_repos() ) {
+    if ( my $status = $self->_check_yum_repos() ) {
         my $msg = '';
         if ( $status | _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX == _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX ) {
             $msg .= <<~'EOS';
@@ -2110,12 +2112,16 @@ sub _use_jetbackup4_or_earlier() {
     return;
 }
 
-# $mask = _check_yum_repos()
+# $mask = $self->_check_yum_repos()
 #   check current repos:
-#       _CHECK_YUM_REPO_BITMASK_UNVETTED is set when an unvetted repo is enabled
+#       _CHECK_YUM_REPO_BITMASK_UNVETTED is set when using packages from unvetted repo
 #       _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX is set when one ore more repo use invalid syntax
 #
-sub _check_yum_repos() {
+sub _check_yum_repos($self) {
+
+    # (re)set the array to store the offending repo
+    $self->{_yum_repos_path_using_invalid_syntax} = [];
+    $self->{_yum_repos_to_disable}                = [];
 
     my %vetted = map { $_ => 1 } VETTED_YUM_REPO;
 
@@ -2138,22 +2144,38 @@ sub _check_yum_repos() {
         my @lines = split( qr/\n/, $txt );
 
         my $current_repo_name;
-        my $current_repo_enabled;
-        my $current_repo_use_valid_syntax;
+        my $current_repo_enabled          = 1;
+        my $current_repo_use_valid_syntax = 1;
 
         my $check_last_known_repo = sub {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
 
             if ( !$vetted{$f} ) {
-                ERROR( sprintf( "Unsupported YUM repo enabled '%s' from %s", $current_repo_name, $path ) );
                 $status_mask |= _CHECK_YUM_REPO_BITMASK_UNVETTED;
+                if ( my $total_pkg = scalar get_installed_rpms_in_repo($current_repo_name) ) {
+                    ERROR(
+                        sprintf(
+                            "%d package(s) installed from unsupported YUM repo '%s' from %s",
+                            $total_pkg,
+                            $current_repo_name, $path
+                        )
+                    );
+                    $status_mask |= _CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO;
+                }
+                else {
+                    WARN( sprintf( "Unsupported YUM repo enabled '%s' without packages installed from %s", $current_repo_name, $path ) );
+
+                    # no packages installed need to disable it
+                    push( $self->{_yum_repos_to_disable}->@*, $current_repo_name );
+                    $status_mask |= _CHECK_YUM_REPO_BITMASK_HAS_UNUSED_REPO_ENABLED;
+                }
             }
             elsif ( !$current_repo_use_valid_syntax ) {
-                ERROR( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
+                WARN( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
+                push( $self->{_yum_repos_path_using_invalid_syntax}->@*, $path );
                 $status_mask |= _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX;
             }
-
             return;
         };
 
