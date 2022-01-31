@@ -2065,9 +2065,23 @@ sub _blockers_check($self) {
 
     $self->has_blocker( 16, q[Issue with sshd configuration] ) unless _sshd_setup();
 
+    $self->has_blocker( 17, q[AlmaLinux 8 needs JetBackup version 5 or later.] ) if _use_jetbackup4_or_earlier();
+
     $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
 
     return 0;
+}
+
+sub _use_jetbackup4_or_earlier() {
+    return unless Cpanel::Pkgr::is_installed('jetbackup');
+    my $v = Cpanel::Pkgr::get_package_version("jetbackup");
+
+    if ( defined $v && $v =~ qr{^[1-4]\b} ) {
+        WARN("JetBackup version $v currently installed.");
+        return 1;
+    }
+
+    return;
 }
 
 # $mask = _check_yum_repos()
