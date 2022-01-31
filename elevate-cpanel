@@ -1649,12 +1649,19 @@ sub remove_rpms_from_repos (@repo_list) {
 
 }
 
+sub backup_3rdparty_file ($file) {
+    my $target = "$file.elevate_backup";
+    return File::Copy::copy( $file, $target );
+}
+
 sub remove_wordpress_toolkit {
     return unless Cpanel::Pkgr::is_installed('wp-toolkit-cpanel');
 
     INFO("Removing Wordpress Toolkit");
 
     INFO("Removing the rpm wp-toolkit-cpanel (--noscripts)");
+    backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
+    backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
     my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
     DEBUG($output) if $output;
 
