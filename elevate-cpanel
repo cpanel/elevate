@@ -8,7 +8,6 @@
 #
 
 package cpev;
-$INC{'cpev.pm'} = 'FAKE';    # For test mocking.
 
 =encoding utf8
 
@@ -89,6 +88,10 @@ Please do not interrupt the reboots and elevation process.
 =cut
 
 use cPstrict;
+
+BEGIN {
+    $INC{'cpev.pm'} = 'FAKE';    # For test mocking.
+}
 
 use parent qw( Cpanel::HelpfulScript );
 
@@ -492,7 +495,7 @@ sub run_stage_1($self) {
     # do not leave cruft behing when aborting
     my $abort = sub {
         do_cleanup();
-        exit 42;
+        exit 42;    ## no critic(Cpanel::NoExitsFromSubroutines) catching signals
     };
 
     local $SIG{'INT'} = $abort;
