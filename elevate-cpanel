@@ -1689,18 +1689,25 @@ sub remove_jetbackup {
     my @reinstall = get_installed_rpms_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
     unshift @reinstall, $jetbackup_tier;
 
-    update_stage_file( { 'reinstall' => { 'jetbackup' => \@reinstall } } );
+    my $data = {
+        tier     => $jetbackup_tier,
+        packages => \@reinstall,
+    };
+
+    update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
 
     return;
 }
 
 sub reinstall_jetbackup {
-    my $reinstall_array = read_stage_file()->{'reinstall'}->{'jetbackup'};
-    return unless ref $reinstall_array eq 'ARRAY';
+    my $data = read_stage_file()->{'reinstall'}->{'jetbackup'};
+    return unless ref $data && ref $data->{packages};
+
     INFO("Re-installing jetbackup.");
 
-    my $tier = shift @$reinstall_array;
-    ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @$reinstall_array );
+    my $tier     = $data->{tier};
+    my @packages = $data->{packages}->@*;
+    ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
 
     return;
 }
