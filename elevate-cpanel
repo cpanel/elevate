@@ -1711,6 +1711,7 @@ sub remove_wordpress_toolkit {
     my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
     DEBUG($output) if $output;
 
+    yum_list(1); # Invalidate the cache since we just ran an rpm -e by hand.
     remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
     update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
