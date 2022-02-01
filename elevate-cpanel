@@ -29,7 +29,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
        --check                        Check if your system has any known blockers to upgrade.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
-       --clean                        Cleanup scripts and files created by elevate_c7
+       --clean                        Cleanup scripts and files created by elevate-cpanel
 
        --help                         Display this documentation.
 
