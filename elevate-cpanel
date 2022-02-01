@@ -1637,7 +1637,7 @@ sub get_installed_rpms_in_repo (@repo_list) {
 
     # Regex for repos.
     if ( ref $repo_list[0] eq 'Regexp' ) {
-        scalar @repo_list == 0 or Carp::confess("too many args");
+        scalar @repo_list == 1 or Carp::confess("too many args");
         my $regex = shift @repo_list;
 
         @repo_list = grep { $_ =~ $regex } keys %$installed;
