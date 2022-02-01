@@ -1665,6 +1665,7 @@ sub remove_rpms_from_repos (@repo_list) {
 
     ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
 
+    return;
 }
 
 sub backup_3rdparty_file ($file) {
@@ -1686,20 +1687,27 @@ sub remove_jetbackup {
     unshift @reinstall, $jetbackup_tier;
 
     update_stage_file( { 'reinstall' => { 'jetbackup' => \@reinstall } } );
+
+    return;
 }
 
 sub reinstall_jetbackup {
     my $reinstall_array = read_stage_file()->{'reinstall'}->{'jetbackup'};
     return unless ref $reinstall_array eq 'ARRAY';
     INFO("Re-installing jetbackup.");
+
     my $tier = shift @$reinstall_array;
     ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @$reinstall_array );
+
+    return;
 }
 
 sub remove_influxdb {
     return unless Cpanel::Pkgr::is_installed('telegraf');
     INFO("Not removing influxdb. Will re-install it after elevate.");
     update_stage_file( { 'reinstall' => { 'influxdb' => 1 } } );
+
+    return;
 }
 
 sub reinstall_influxdb {
@@ -1707,6 +1715,7 @@ sub reinstall_influxdb {
     INFO("Re-installing telegraf for influxdb");
     ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
 
+    return;
 }
 
 sub remove_wordpress_toolkit {
@@ -1724,6 +1733,8 @@ sub remove_wordpress_toolkit {
     remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
     update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
+
+    return;
 }
 
 sub reinstall_wordpress_toolkit {
