@@ -2494,19 +2494,22 @@ sub ssystem_and_die (@args) {
     die("command failed. Fix it and run command.");
 }
 
-sub _msg ( $level, $lines = "" ) {
-    chomp $lines;
-    my @lines = split( "\n", $lines );
-    foreach my $line (@lines) {
-        print "$level $line\n";
+sub _msg ( $level, @message_lines ) {
+
+    foreach my $line (@message_lines) {
+        next unless defined $line;
+        my @lines = split( "\n", $lines );
+        foreach my $line (@lines) {
+            print "$level $line\n";
+        }
     }
 
     return;
 }
 
-sub ERROR($msg) { return _msg( 'ERROR: ', $msg ) }
-sub WARN($msg)  { return _msg( ' WARN: ', $msg ) }
-sub INFO($msg)  { return _msg( ' INFO: ', $msg ) }
-sub DEBUG($msg) { return _msg( 'DEBUG: ', $msg ) }
+sub ERROR(@msgs) { return _msg( 'ERROR: ', @msgs ) }
+sub WARN(@msgs)  { return _msg( ' WARN: ', @msgs ) }
+sub INFO(@msgs)  { return _msg( ' INFO: ', @msgs ) }
+sub DEBUG(@msgs) { return _msg( 'DEBUG: ', @msgs ) }
 
 1;
