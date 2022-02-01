@@ -1744,7 +1744,7 @@ sub remove_imunify_360 {
 
     INFO("Removing $product_type prior to upgrade.");
 
-    update_stage_file( { 'imunify' => $product_type } );
+    update_stage_file( { 'reinstall' => { 'imunify' => $product_type } } );
     say "Product $product_type detected. Uninstalling before upgrade for later restore";
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
@@ -1759,7 +1759,7 @@ sub remove_imunify_360 {
 }
 
 sub reinstall_imunify_360 {
-    my $product_type = read_stage_file()->{'imunify'} || return;
+    my $product_type = read_stage_file()->{'reinstall'}->{'imunify'} || return;
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
