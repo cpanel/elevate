@@ -1675,7 +1675,7 @@ sub backup_3rdparty_file ($file) {
 sub remove_jetbackup {
     return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
     INFO("Not removing jetbackup. Will re-install it after elevate.");
-    my @reinstall = get_installed_rpms_in_repo(qr{^jetapps});
+    my @reinstall = get_installed_rpms_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
 
     update_stage_file( { 'reinstall' => { 'jetbackup' => \@reinstall } } );
 }
