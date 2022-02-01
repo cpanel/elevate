@@ -165,6 +165,7 @@ use constant VETTED_YUM_REPO => qw{
   influxdb.repo
   kernelcare.repo
   wp-toolkit-cpanel.repo
+  imunify360-ea-php-hardened.repo
 
   }, DISABLE_MYSQL_YUM_REPOS;
 
@@ -785,6 +786,29 @@ sub run_once ( $label, $code = undef ) {
     return;
 }
 
+sub capture_imunify_features {
+    -x '/usr/bin/imunify360-agent' or return;
+
+    my $output   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/imunify360-agent features list});
+    my @features = map { s/\s+//g; $_ } grep { m/\S/ } split( "\n", $output );
+    update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
+
+    return;
+}
+
+sub restore_imunify_features {
+    return unless my $features = read_stage_file()->{'reinstall'}->{'imunify_features'};
+    return unless ref $features eq 'ARRAY';
+    return unless @$features;
+
+    INFO("Restoring imunify 360 features. NOTE: WARNINGs are good!");
+    foreach my $feature (@$features) {
+        ssystem( qw{/usr/bin/imunify360-agent features install }, $feature );
+    }
+
+    return;
+}
+
 sub remove_kernelcare_if_needed {
 
     return unless -x q[/usr/bin/kcarectl];
@@ -1186,6 +1210,7 @@ EOS
 # remove and store
 sub remove_custom_stuff_for_later_reinstall {
 
+    run_once('capture_imunify_features');
     run_once('backup_ea4_profile');
     run_once('backup_pecl_packages');
     run_once('cleanup_mysql_packages');
@@ -1421,6 +1446,7 @@ sub reinstall_custom_stuff {
     run_once('reinstall_jetbackup');
     run_once('kernel_check');
     run_once('restore_kernel_care');
+    run_once('restore_imunify_features');
 
     return;
 }
