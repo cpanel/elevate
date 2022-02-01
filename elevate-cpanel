@@ -2497,8 +2497,8 @@ sub ssystem_and_die (@args) {
 
 sub _msg ( $level, @message_lines ) {
 
-    foreach my $line (@message_lines) {
-        next unless defined $line;
+    foreach my $lines (@message_lines) {
+        next unless defined $lines;
         my @lines = split( "\n", $lines );
         foreach my $line (@lines) {
             print "$level $line\n";
