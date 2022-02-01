@@ -93,6 +93,7 @@ use cPstrict;
 use parent qw( Cpanel::HelpfulScript );
 
 use Config;
+use Carp           ();
 use File::Basename ();
 use File::Copy     ();
 use File::Find     ();
@@ -1636,7 +1637,7 @@ sub get_installed_rpms_in_repo (@repo_list) {
 
     # Regex for repos.
     if ( ref $repo_list[0] eq 'Regexp' ) {
-        scalar @repo_list == 0 or die("too many args");
+        scalar @repo_list == 0 or Carp::confess("too many args");
         my $regex = shift @repo_list;
 
         @repo_list = grep { $_ =~ $regex } keys %$installed;
