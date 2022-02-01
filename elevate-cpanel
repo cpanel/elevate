@@ -831,6 +831,10 @@ sub _motd_notice_message {
     #
     #           /scripts/elevate-cpanel --status
     #
+    # Or monitor the progress by running:
+    #
+    #           /scripts/elevate-cpanel --log
+    #
     # -----------------------------------------------------------------------------
     EOS
 }
