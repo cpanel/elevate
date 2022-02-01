@@ -1674,8 +1674,16 @@ sub backup_3rdparty_file ($file) {
 
 sub remove_jetbackup {
     return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
-    INFO("Not removing jetbackup. Will re-install it after elevate.");
+
+    my $repos = yum_list();
+    my $jetbackup_tier =
+        $repos->{'jetapps-stable'} ? 'jetapps-stable'
+      : $repos->{'jetapps-edge'}   ? 'jetapps-edge'
+      : $repos->{'jetapps-beta'}   ? 'jetapps-beta'
+      :                              'jetapps-stable';    # Just give up and choose stable if you can't guess.
+    INFO("Jetbackup tier '$jetbackup_tier' detected. Not removing jetbackup. Will re-install it after elevate.");
     my @reinstall = get_installed_rpms_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
+    unshift @reinstall, $jetbackup_tier;
 
     update_stage_file( { 'reinstall' => { 'jetbackup' => \@reinstall } } );
 }
@@ -1684,7 +1692,8 @@ sub reinstall_jetbackup {
     my $reinstall_array = read_stage_file()->{'reinstall'}->{'jetbackup'};
     return unless ref $reinstall_array eq 'ARRAY';
     INFO("Re-installing jetbackup.");
-    ssystem( qw{/usr/bin/yum -y reinstall}, @$reinstall_array );
+    my $tier = shift @$reinstall_array;
+    ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @$reinstall_array );
 }
 
 sub remove_influxdb {
@@ -1711,7 +1720,7 @@ sub remove_wordpress_toolkit {
     my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
     DEBUG($output) if $output;
 
-    yum_list(1); # Invalidate the cache since we just ran an rpm -e by hand.
+    yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
     remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
     update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
