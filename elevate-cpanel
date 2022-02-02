@@ -801,12 +801,43 @@ sub restore_imunify_features {
     return unless ref $features eq 'ARRAY';
     return unless @$features;
 
-    INFO("Restoring imunify 360 features. NOTE: WARNINGs are good!");
+    INFO("Restoring imunify 360 features.");
     foreach my $feature (@$features) {
-        ssystem( qw{/usr/bin/imunify360-agent features install }, $feature );
+        INFO("Restoring imunify360 $feature");
+        my $log_file = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/imunify360-agent features install }, $feature );
+        $log_file or next;
+        chomp $log_file;
+        next unless $log_file =~ m/\S/;
+
+        my ($pid) = $log_file =~ m/(\d+)$/;
+        tail_log_until_pid_completes( $pid, $log_file );
     }
 
     return;
+}
+
+# Wait 20 mins for the pid to finish.
+sub tail_log_until_pid_completes ( $pid, $log ) {
+    my $pid_file = "/proc/$pid";
+
+    my $fh;
+    for ( 1 .. 4 ) {
+        open( $fh, '<', $log ) and next;
+        sleep 3;
+    }
+    $fh or warn("Could not open $log for monitoring");
+
+    for ( 1 .. 12 * 20 ) {
+        if ($fh) {
+            my $line;
+            print while (<$fh>);
+        }
+        return 1 unless stat($pid_file);
+        sleep 5;
+    }
+
+    WARN("Pid $pid is still running. Continuing without completion.");
+    return 0;
 }
 
 sub remove_kernelcare_if_needed {
