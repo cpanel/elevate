@@ -20,13 +20,7 @@ use File::Slurper qw{read_text};
 use cPstrict;
 require $FindBin::Bin . '/../elevate-cpanel';
 
-my $cpev_mock = Test::MockModule->new('cpev');
 my @messages_seen;
-$cpev_mock->redefine(
-    _msg => sub ( $level, $msg ) {
-        note "mocked output $level", $msg;
-    }
-);
 
 ok cpev::IGNORE_OUTDATED_SERVICES_FILE(), 'IGNORE_OUTDATED_SERVICES_FILE';
 
