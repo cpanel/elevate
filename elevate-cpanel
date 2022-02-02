@@ -134,7 +134,8 @@ use Cpanel::Yum::Vars           ();
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
-use constant SERVICE_NAME         => 'cpanel-elevate.service';
+use constant SHORT_SERVICE_NAME   => 'cpanel-elevate';
+use constant SERVICE_NAME         => SHORT_SERVICE_NAME . '.service';
 use constant SERVICE_FILE         => '/etc/systemd/system/' . SERVICE_NAME;
 use constant LOG_FILE             => q[/var/log/elevate-cpanel.log];
 use constant PID_FILE             => q[/var/run/cpanel-elevate.pid];
@@ -1038,8 +1039,7 @@ sub setup_outdated_services {
         $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
     }
 
-    my $service_name = SERVICE_NAME;
-    $service_name =~ s{\.service}{};    # make sure to strip the .service part for outdated service
+    my $service_name = SHORT_SERVICE_NAME;
 
     return if $content =~ qr{^${service_name}$}m;
 
@@ -1063,7 +1063,7 @@ sub restore_outdated_services {
 
     my $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
 
-    my $service_name = SERVICE_NAME;
+    my $service_name = SHORT_SERVICE_NAME;
 
     if ( $content =~ s{^$service_name$}{}gm ) {
         1 while chomp $content;
@@ -1611,7 +1611,7 @@ sub check_pecl_packages {
                 WARN( q[*] x 20 );
             }
 
-            WARJ("- $pkg");
+            WARN("- $pkg");
         }
 
         WARN('#') if $displayed_header;
