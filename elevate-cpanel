@@ -134,11 +134,11 @@ use Cpanel::Yum::Vars           ();
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
-use constant SHORT_SERVICE_NAME   => 'cpanel-elevate';
+use constant SHORT_SERVICE_NAME   => 'elevate-cpanel';
 use constant SERVICE_NAME         => SHORT_SERVICE_NAME . '.service';
 use constant SERVICE_FILE         => '/etc/systemd/system/' . SERVICE_NAME;
 use constant LOG_FILE             => q[/var/log/elevate-cpanel.log];
-use constant PID_FILE             => q[/var/run/cpanel-elevate.pid];
+use constant PID_FILE             => q[/var/run/elevate-cpanel.pid];
 
 use constant VALID_STAGES        => 5;
 use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
@@ -506,7 +506,7 @@ Between each stage a reboot is performed before doing a final reboot at the very
 
 =head2 run_stage_1
 
-Start the elevation process by installing the cpanel-elevate service
+Start the elevation process by installing the elevate-cpanel service
 responsible of the multiple reboots.
 
 =cut
@@ -746,7 +746,7 @@ sub run_stage_4($self) {
 =head2 run_stage_5
 
 Final checks and cleanup.
-The cpanel-elevate service is now removed.
+The elevate-cpanel service is now removed.
 
 =cut
 
