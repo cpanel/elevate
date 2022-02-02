@@ -807,9 +807,9 @@ sub run_once ( $label, $code = undef ) {
 }
 
 sub capture_imunify_features {
-    -x '/usr/bin/imunify360-agent' or return;
+    -x IMUNIFY_AGENT or return;
 
-    my $output   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/imunify360-agent features list});
+    my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
     my @features = map { s/\s+//g; $_ } grep { m/\S/ } split( "\n", $output );
     update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
 
@@ -824,7 +824,7 @@ sub restore_imunify_features {
     INFO("Restoring imunify 360 features.");
     foreach my $feature (@$features) {
         INFO("Restoring imunify360 $feature");
-        my $log_file = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/imunify360-agent features install }, $feature );
+        my $log_file = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features install }, $feature );
         $log_file or next;
         chomp $log_file;
         next unless $log_file =~ m/\S/;
@@ -1882,7 +1882,7 @@ sub remove_imunify_360 {
     my $imav  = Cpanel::Pkgr::is_installed('imunify-antivirus');
     return unless $im360 || $imav;
 
-    my $agent_bin = '/usr/bin/imunify360-agent';
+    my $agent_bin = IMUNIFY_AGENT;
     return unless -x $agent_bin;
     my $license_data = eval { Cpanel::JSON::Load(`$agent_bin version --json 2>&1`) } // {};
     return unless $license_data->{'license'}->{'status'};    # Must be true.
