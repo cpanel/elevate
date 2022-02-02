@@ -147,6 +147,8 @@ use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdate
 use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
 use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
 
+use constant IMUNIFY_AGENT => '/usr/bin/imunify360-agent';
+
 use constant YUM_REPOS_D => q[/etc/yum.repos.d];
 
 use constant DISABLE_MYSQL_YUM_REPOS => qw{
@@ -826,37 +828,70 @@ sub restore_imunify_features {
         chomp $log_file;
         next unless $log_file =~ m/\S/;
 
-        my ($pid) = $log_file =~ m/(\d+)$/;
-        tail_log_until_pid_completes( $pid, $log_file );
-        INFO("Restore of $feature complete.");
+        monitor_imunify_feature_install( $feature, $log_file );
     }
 
     return;
 }
 
+sub imunify_feature_install_status ($feature) {
+    my $install_status = eval { Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features status}, $feature, '--json' ) } // {};
+
+    my $status = $install_status->{'items'}->{'status'} // '';
+
+    return $status if $status =~ m/^(installed|installing|not_installed)$/i;
+    return $install_status->{'items'}->{'message'} || "$feature is unknown";
+}
+
 # Wait 20 mins for the pid to finish.
-sub tail_log_until_pid_completes ( $pid, $log ) {
-    my $pid_file = "/proc/$pid";
+sub monitor_imunify_feature_install ( $feature, $log_file ) {
 
-    my $fh;
-    for ( 1 .. 4 ) {
-        open( $fh, '<', $log ) and next;
-        sleep 3;
+    my $start = time;
+    while ( time - $start < 30 ) {
+        my $status = imunify_feature_install_status($feature);
+        last if ( $status eq 'installed' || $status eq 'installing' && -e $log_file );
     }
-    $fh or warn("Could not open $log for monitoring");
 
-    DEBUG("Monitoring $log while $pid is running");
+    open( my $fh, '<', $log_file ) or undef $fh;
 
-    for ( 1 .. 12 * 20 ) {
-        if ($fh) {
-            my $line;
-            print while (<$fh>);
+    if ( !$fh ) {
+        my $status = imunify_feature_install_status($feature);
+        WARN("Could not open $log_file for monitoring. The install of $feature is in state: $status");
+        return;
+    }
+
+    DEBUG("Monitoring $log_file for completion");
+
+    # Tail the log file and monitor status of the install by making agent queries.
+    my $start        = time;
+    my $partial_line = '';
+    while ( time - $start < 60 * 20 ) {    # abort after 20 minutes.
+
+        # Tail the file for new information.
+        while ( my $read = <$fh> ) {
+            my $partial_line .= $read;
+            if ( length $read && substr( $partial_line, -1, 1 ) eq "\n" ) {
+                INFO($partial_line);
+                $partial_line = '';
+            }
         }
-        return 1 unless stat($pid_file);
+
+        # This takes 1.5 seconds to query every time.
+        my $status = imunify_feature_install_status($feature);
+        if ( $status eq 'installed' ) {
+            INFO("Restore of $feature complete.");
+            return 1;
+        }
+        if ( $status ne 'installing' ) {
+            FATAL("Failed to install immuinfy 360 feature $feature ($status)");
+            FATAL("See $log_file for more information");
+            return 0;
+        }
+
         sleep 5;
     }
 
-    WARN("Pid $pid is still running. Continuing without completion.");
+    WARN("Imunify failed to install feature $feature");
     return 0;
 }
 
