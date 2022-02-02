@@ -12,7 +12,7 @@ use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
-use Test::MockFile qw/strict/;
+use Test::MockFile 0.025 qw/strict/;
 use Test::MockModule qw/strict/;
 
 use cPstrict;
@@ -50,6 +50,8 @@ ok( grep( { 'MariaDB103.repo' } cpev::VETTED_YUM_REPO() ), 'MariaDB103.repo is a
 my $mock_vetted_repo = Test::MockFile->file( "$path_yum_repos_d/MariaDB103.repo" => q[Whatever] );
 
 note "Testing unvetted repo";
+
+mkdir $path_yum_repos_d;
 
 is $cpev->_check_yum_repos(), 0, "no blockers when directory is empty";
 
