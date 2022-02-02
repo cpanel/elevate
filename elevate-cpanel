@@ -95,6 +95,8 @@ BEGIN {
 
 use parent qw( Cpanel::HelpfulScript );
 
+use Log::Log4perl qw(:easy);
+
 use Config;
 use Carp           ();
 use File::Basename ();
@@ -180,6 +182,8 @@ exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
 sub run ($self) {
 
     local $| = 1;
+
+    my $logger = _init_logger();
 
     if ( $self->getopt('start') ) {
         die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
@@ -826,6 +830,8 @@ sub tail_log_until_pid_completes ( $pid, $log ) {
         sleep 3;
     }
     $fh or warn("Could not open $log for monitoring");
+
+    DEBUG("Monitoring $log while $pid is running");
 
     for ( 1 .. 12 * 20 ) {
         if ($fh) {
@@ -2587,22 +2593,17 @@ sub ssystem_and_die (@args) {
     die("command failed. Fix it and run command.");
 }
 
-sub _msg ( $level, @message_lines ) {
+sub _init_logger ( $debug_level = 'DEBUG') {
 
-    foreach my $lines (@message_lines) {
-        next unless defined $lines;
-        my @lines = split( "\n", $lines );
-        foreach my $line (@lines) {
-            print "$level $line\n";
-        }
-    }
+    # We have to sprinkle in the screen parts to the config but only when it's enabled.
+    my $config = qq{
+        log4perl.appender.Screen=Log::Dispatch::Screen
+        log4perl.appender.Screen.stderr=0
+        log4perl.appender.Screen.layout=Log::Log4perl::Layout::PatternLayout
+        log4perl.appender.Screen.layout.ConversionPattern=* %d{dd-HH:mm:ss} (%L) [%p] %m%n
+        log4perl.category = $debug_level, Screen
+    };
 
-    return;
+    return Log::Log4perl->init( \$config );
 }
-
-sub ERROR(@msgs) { return _msg( 'ERROR: ', @msgs ) }
-sub WARN(@msgs)  { return _msg( ' WARN: ', @msgs ) }
-sub INFO(@msgs)  { return _msg( ' INFO: ', @msgs ) }
-sub DEBUG(@msgs) { return _msg( 'DEBUG: ', @msgs ) }
-
 1;
