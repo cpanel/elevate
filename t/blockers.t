@@ -17,34 +17,15 @@ use Test2::Tools::Exception;
 use Test::MockFile qw/strict/;
 use Test::MockModule qw/strict/;
 
-use Log::Log4perl;
+use lib $FindBin::Bin. "/lib";
+use Test::Elevate;
 
 use cPstrict;
+
 require $FindBin::Bin . '/../elevate-cpanel';
 
 my $cpev_mock = Test::MockModule->new('cpev');
 $cpev_mock->redefine( _init_logger => sub { die "should not call init_logger" } );
-
-my $config = <<'EOS';
-log4perl.category = DEBUG, MyTest
-
-log4perl.appender.MyTest=Log::Log4perl::Appender::TestBuffer
-log4perl.appender.MyTest.name=mybuffer
-log4perl.appender.MyTest.layout=Log::Log4perl::Layout::SimpleLayout
-
-EOS
-Log::Log4perl->init( \$config );
-
-my @messages_seen;
-
-sub _msg ( $self, $msg, $level ) {
-    note "MockedLogger [$level] $msg";
-    push @messages_seen, [ $level, $msg ];
-    return;
-}
-
-my $log = Log::Log4perl::get_logger('cpev');
-$log->{$_} = \&_msg for qw{ALL DEBUG ERROR FATAL INFO OFF TRACE WARN};
 
 $cpev_mock->redefine( _check_yum_repos => 0 );
 
@@ -305,26 +286,3 @@ is( $cpev->blockers_check(), 0, 'No More Blockers' );
 
 done_testing();
 exit;
-
-sub message_seen ( $type, $msg ) {
-    my $line = shift @messages_seen;
-    if ( ref $line ne 'ARRAY' ) {
-        fail("    No message of type '$type' was emitted.");
-        fail("    With output: $msg");
-        return 0;
-    }
-
-    my $type_seen = $line->[0] // '';
-    $type_seen =~ s/^\s+//;
-    $type_seen =~ s/: //;
-
-    is( $type_seen, $type, "  |_  Message type is $type" );
-    if ( ref $msg eq 'Regexp' ) {
-        like( $line->[1], $msg, "  |_  Message string is expected." );
-    }
-    else {
-        is( $line->[1], $msg, "  |_  Message string is expected." );
-    }
-
-    return;
-}
