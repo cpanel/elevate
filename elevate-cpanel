@@ -836,7 +836,10 @@ sub restore_imunify_features {
 }
 
 sub imunify_feature_install_status ($feature) {
-    my $install_status = eval { Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features status}, $feature, '--json' ) } // {};
+    my $install_status = eval {
+        my $json = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features status}, $feature, '--json' ) // '{}';
+        Cpanel::JSON::Load($json);
+    } // {};
 
     my $status = $install_status->{'items'}->{'status'} // '';
 
