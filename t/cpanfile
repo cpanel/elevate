@@ -5,6 +5,7 @@ requires "File::Copy::Recursive";
 requires "File::Slurper";
 requires "Hash::Merge";
 requires "HTTP::Tiny::UA::Response";
+requires "Log::Log4perl";
 requires "Moo";
 requires "Params::Util";
 requires "Sub::Identify";
