@@ -2217,6 +2217,14 @@ sub _blockers_check($self) {
 
     $self->has_blocker( 17, q[AlmaLinux 8 does not support JetBackup prior to version 5. Please upgrade JetBackup before elevate.] ) if _use_jetbackup4_or_earlier();
 
+    if ( -d q[/usr/local/lsws] ) {
+        $self->has_blocker( 18, <<~'EOS' );
+        LiteSpeed installation detected.
+        The cPanel elevation process does not currently support LiteSpeed.
+        view https://github.com/cpanel/elevate/issues/10 for more details
+        EOS
+    }
+
     $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
 
     return 0;
