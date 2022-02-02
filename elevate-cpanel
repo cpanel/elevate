@@ -736,7 +736,7 @@ sub run_stage_4($self) {
     reinstall_custom_stuff();
 
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
-      leapp leapp-data-almalinux leapp-upgrade-el7toel8 python2-leapp};
+      leapp leapp-data-almalinux leapp-upgrade-el7toel8 python2-leapp alt-pcre802 alt-pcre802-devel};
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
     ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
 
