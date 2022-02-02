@@ -240,7 +240,7 @@ sub run ($self) {
 sub monitor_upgrade {
     my $stage = get_stage();
 
-    say "# Monitoring existing upgrade (stage=$stage) process via: tail -f ", LOG_FILE;
+    INFO( "# Monitoring existing upgrade (stage=$stage) process via: tail -f " . LOG_FILE );
 
     exec( qw{/usr/bin/tail -n40 -F }, LOG_FILE );
 }
@@ -265,7 +265,7 @@ EOS
 
     # store the manual reboots flag
     if ( $self->getopt('manual-reboots') ) {
-        say q[Manual Reboot would be required between each stages];
+        WARN('Manual Reboot would be required between each stages');
         update_stage_file( { manual_reboots => 1 } );
     }
 
@@ -286,7 +286,7 @@ sub continue_elevation($self) {
     my $pid = fork();
     die qq[Failed to fork: $!] unless defined $pid;
     if ($pid) {
-        say "Restarting install process";
+        INFO("Restarting install process");
         return 1;
     }
     else {
@@ -362,7 +362,7 @@ sub check_status($self) {
     my $stage = get_stage();
 
     if ( !$stage ) {
-        say q[Elevation process has not started yet.];
+        ERROR('Elevation process has not started yet.');
         return;
     }
 
@@ -440,8 +440,8 @@ sub _send_notification ( $subject, $msg ) {
     # note: no need to use one iContact::Class this is a one shot message
     require Cpanel::iContact;
 
-    say q[Sending notification: ], $subject;
-    say q[Error: ],                $msg;
+    ERROR("Sending notification: $subject");
+    ERROR($msg);
 
     Cpanel::iContact::icontact(
         'application' => 'elevate',
@@ -656,7 +656,7 @@ sub run_stage_3($self) {
 
     _do_leapp_upgrade();
 
-    say <<'EOS';
+    WARN(<<'EOS');
 Rebooting for distro upgrade. This will take over 10 minutes to run.
 Do not interrupt power during this event or you will corrupt your system.
 EOS
@@ -762,7 +762,7 @@ sub run_stage_5($self) {
 
         print_box("The following recommendations should now be reviewed for further action:");
         foreach my $msg (@$postinstall_recommendations) {
-            print "$msg\n";
+            WARN("$msg");
         }
     }
 
@@ -828,6 +828,7 @@ sub restore_imunify_features {
 
         my ($pid) = $log_file =~ m/(\d+)$/;
         tail_log_until_pid_completes( $pid, $log_file );
+        INFO("Restore of $feature complete.");
     }
 
     return;
@@ -987,11 +988,11 @@ sub _sanity_check {
 
 sub print_box ($message) {
 
-    say "*" x 90;
-    say "*";
-    say "* $message";
-    say "*";
-    say "*" x 90;
+    INFO( "*" x 90 );
+    INFO("*");
+    INFO("* $message");
+    INFO("*");
+    INFO( "*" x 90 );
 
     return;
 }
@@ -1049,7 +1050,7 @@ sub restore_outdated_services {
 sub enable_all_cpanel_services {
     my $services = read_stage_file()->{'disabled_cpanel_services'} // [];
     unless (@$services) {
-        say "WARNING: No cPanel services were disabled!";
+        WARN('No cPanel services were disabled!');
     }
 
     foreach my $service (@$services) {
@@ -1151,14 +1152,14 @@ sub restore_ea4_profile () {
     my $is_enabled = $stash->{'ea4'}->{'enable'};
 
     unless ($is_enabled) {
-        say "WARN: Skipping EA4 restore. EA4 does not appear to be enabled on this system";
+        WARN('Skipping EA4 restore. EA4 does not appear to be enabled on this system');
         return;
     }
 
     my $json = $stash->{'ea4'}->{'profile'};
     unless ( length $json && -f $json && -s _ ) {
-        say "WARN: Unable to restore EA4 profile. Is EA4 enabled?";
-        say "Profile was backed up as: $json" if length $json;
+        WARN('Unable to restore EA4 profile. Is EA4 enabled?');
+        INFO("Profile was backed up as: $json") if length $json;
         return;
     }
 
@@ -1173,19 +1174,19 @@ sub backup_ea4_profile () {
     update_stage_file( { ea4 => { enable => $use_ea4 } } );
 
     unless ($use_ea4) {
-        say "WARN: Skipping EA4 backup. EA4 does not appear to be enabled on this system";
+        WARN('Skipping EA4 backup. EA4 does not appear to be enabled on this system');
 
         return;
     }
 
     my $cmd = '/usr/local/bin/ea_current_to_profile';
-    say "Running: $cmd";
+    INFO("Running: $cmd");
     my $json = Cpanel::SafeRun::Simple::saferunnoerror($cmd) // '';
     die qq[Failure from $cmd] if $?;
 
     chomp $json;
     die("Unable to backup EA4 profile to $json") unless length $json && -f $json && -s _;
-    say "Backed up EA4 profile to $json";
+    INFO("Backed up EA4 profile to $json");
 
     update_stage_file( { ea4 => { profile => $json } } );
 
@@ -1300,7 +1301,7 @@ sub cleanup_mysql_packages {
     my $mysql_version = $stash->{'mysql-version'};
     return unless length $mysql_version;
 
-    say q[# Cleanup MySQL packages ; using version ], $mysql_version;
+    INFO("# Cleanup MySQL packages ; using version $mysql_version");
 
     update_stage_file( { 'mysql-version' => $mysql_version } );
 
@@ -1324,7 +1325,7 @@ sub reinstall_mysql_packages {
 
     my $mysql_version = $stash->{'mysql-version'} or return;
 
-    say qq[Restoring MySQL $mysql_version];
+    INFO("Restoring MySQL $mysql_version");
 
     my ( $major, $minor ) = split( /\./, $mysql_version );
 
@@ -1345,8 +1346,8 @@ sub reinstall_mysql_packages {
     if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
         my $id = $1;
 
-        say q[Restoring MySQL via upgrade_id ], $id;
-        say q[Waiting for MySQL installation];
+        INFO("Restoring MySQL via upgrade_id $id");
+        INFO('Waiting for MySQL installation');
 
         my $status = '';
 
@@ -1371,10 +1372,12 @@ sub reinstall_mysql_packages {
         }
 
         if ( $status eq 'success' ) {
-            say qq[MySQL $mysql_version restored];
+            INFO("MySQL $mysql_version restored");
         }
         else {
-            die qq[Fail to restore MySQL $mysql_version: upgrade $id status '$status'\n] . $out;
+            FATAL("Failed to restore MySQL $mysql_version: upgrade $id status '$status'");
+            FATAL("$out");
+            die('Failed to restore MySQL');
         }
     }
     else {
@@ -1457,7 +1460,7 @@ sub cleanup_mysql_106_packages {
 
 sub reinstall_custom_stuff {
 
-    say "Removing leapp from excludes in /etc/yum.conf";
+    INFO('Removing leapp from excludes in /etc/yum.conf');
     my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
     if ( length $txt ) {
         $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
@@ -1480,7 +1483,7 @@ sub reinstall_custom_stuff {
             my $stash            = read_stage_file();
             my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
             if (@$yum_arch_plugins) {
-                say "Restoring cPanel yum-based-plugins";
+                INFO('Restoring cPanel yum-based-plugins');
                 ssystem( qw{ /usr/bin/dnf -y install }, @$yum_arch_plugins );
             }
 
@@ -1568,16 +1571,16 @@ sub check_pecl_packages {
 
             if ( !$displayed_header ) {
                 $displayed_header = 1;
-                say q[*] x 20;
-                say qq[WARNING: Missing pecl package(s) for $bin];
-                say qq[Please reinstall these packages];
-                say q[*] x 20;
+                WARN( q[*] x 20 );
+                WARN("WARNING: Missing pecl package(s) for $bin");
+                WARN("Please reinstall these packages");
+                WARN( q[*] x 20 );
             }
 
-            say q[- ], $pkg;
+            WARJ("- $pkg");
         }
 
-        say q[#] if $displayed_header;
+        WARN('#') if $displayed_header;
     }
 
     return;
@@ -1647,7 +1650,7 @@ sub _fetch_imunify_installer ($product) {
     );
 
     my $installer_url = $installer_scripts{$product} or do {
-        say "ERROR: Unknown product type $product";
+        ERROR("Unknown product type $product");
         return;
     };
 
@@ -1661,7 +1664,7 @@ sub _fetch_a_script ( $url, $template ) {
     };
 
     if ( my $exception = $@ ) {
-        say "ERROR: The system could not fetch the uninstall script for $template: $exception";
+        ERROR("The system could not fetch the uninstall script for $template: $exception");
         return;
     }
 
@@ -1852,7 +1855,7 @@ sub remove_imunify_360 {
     INFO("Removing $product_type prior to upgrade.");
 
     update_stage_file( { 'reinstall' => { 'imunify' => $product_type } } );
-    say "Product $product_type detected. Uninstalling before upgrade for later restore";
+    INFO("Product $product_type detected. Uninstalling before upgrade for later restore");
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
@@ -1879,7 +1882,7 @@ sub reinstall_imunify_360 {
 sub post_upgrade_check {
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq 'almalinux' ) {
-        say q[Your distro does not looks like Almalinux 8.];
+        FATAL('Your distro does not looks like Almalinux 8.');
         return 1;
     }
 
@@ -1927,9 +1930,9 @@ sub purge_perl_xs($path) {
 
     my $stash = {};
     if (%rpms_to_restore) {
-        say "The following `cpan` installed perl Modules will be removed and replaced with a AlmaLinux 8 RPM after upgrade:\n";
+        INFO('The following `cpan` installed perl Modules will be removed and replaced with a AlmaLinux 8 RPM after upgrade:');
         foreach my $file ( sort { $rpms_to_restore{$a} cmp $rpms_to_restore{$b} || $a cmp $b } keys %rpms_to_restore ) {
-            printf( "  %20s => %s\n", $file, $rpms_to_restore{$file} );
+            INFO( sprintf( "  %20s => %s", $file, $rpms_to_restore{$file} ) );
 
             my $files_in_rpm = $stash->{'restore'}->{$path}->{'rpm'}->{ $rpms_to_restore{$file} } //= [];
             unless ( grep { $_ eq $file } @$files_in_rpm ) {    # Only if we've not stored this.
@@ -1937,14 +1940,14 @@ sub purge_perl_xs($path) {
                 unlink "$path/$file";
             }
         }
-        say '';
+        INFO(' ');
     }
 
     if (@modules_to_restore) {
-        print "The following modules will likely not be functional on AlmaLinux 8 and will be disabled. You will need to restore these manually:\n";
+        WARN("The following modules will likely not be functional on AlmaLinux 8 and will be disabled. You will need to restore these manually:");
         my $to_restore = $stash->{'restore'}->{$path}->{'cpan'} //= [];
         foreach my $file (@modules_to_restore) {
-            print "    $path/$file\n";
+            WARN("    $path/$file");
             next if grep { $_ eq $file } @$to_restore;    # We've already stashed this.
             push @$to_restore, $file;
             rename "$path/$file", "$path/$file.o";
@@ -2485,7 +2488,7 @@ sub setup_answer_file {
 
 sub install_cpanel_elevate_service {
 
-    say "Installing service " . SERVICE_NAME . " which will upgrade the server to AlmaLinux 8";
+    INFO( "Installing service " . SERVICE_NAME . " which will upgrade the server to AlmaLinux 8" );
     open( my $fh, '>', SERVICE_FILE ) or die;
 
     # Works only in systemd v240 and newer!
@@ -2518,7 +2521,7 @@ sub install_cpanel_elevate_service {
     my $pid = fork();
     die qq[Failed to fork: $!] unless defined $pid;
     if ($pid) {
-        say q[Starting service ] . SERVICE_NAME;
+        INFO( 'Starting service ' . SERVICE_NAME );
         return 0;
     }
     else {
@@ -2583,7 +2586,7 @@ sub reboot {
     }
 
     if ( request_manual_reboots() ) {
-        say qq[Manual Reboot Mode Enabled: please reboot the server to move to the next stage $stage];
+        WARN("Manual Reboot Mode Enabled: please reboot the server to move to the next stage $stage");
         return 0;
     }
 
@@ -2597,7 +2600,7 @@ sub request_manual_reboots() {
 }
 
 sub ssystem (@args) {
-    say "Running: " . join( " ", @args );
+    INFO( "Running: " . join( " ", @args ) );
     return system(@args);
 }
 
