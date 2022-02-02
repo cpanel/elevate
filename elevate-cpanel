@@ -91,6 +91,19 @@ use cPstrict;
 
 BEGIN {
     $INC{'cpev.pm'} = 'FAKE';    # For test mocking.
+
+    # sanity check before loading the script
+    eval { require Cpanel::Version::Tiny } or do {
+        warn(qq[This script is designed to only run on cPanel servers.\n]);
+        exit 1;
+    };
+
+    $Cpanel::Version::Tiny::major_version >= 102
+      or do {
+        warn qq[You need to upgrade your cPanel server to version 102 or later before running this script.\n];
+        exit 1;
+    }
+
 }
 
 use parent qw( Cpanel::HelpfulScript );
