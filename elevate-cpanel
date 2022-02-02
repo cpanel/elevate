@@ -393,7 +393,7 @@ sub check_status($self) {
 sub _notify_success($self) {
 
     my $msg = <<'EOS';
-The cPanel&WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.
+The cPanel & WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.
 EOS
 
     send_notification( 'Successfully update to AlmaLinux 8' => $msg );
@@ -531,7 +531,7 @@ sub run_stage_1($self) {
         return 1;
     }
 
-    print_box(q[/!\ Warning: You are about to convert your cPanel&WHM CentOS 7 to Almalinux 8 server.]);
+    print_box(q[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to Almalinux 8 server.]);
 
     say <<'EOS';
 
