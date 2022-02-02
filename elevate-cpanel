@@ -2647,7 +2647,9 @@ sub request_manual_reboots() {
 sub ssystem (@args) {
     INFO( "Running: " . join( " ", @args ) );
     print "\n";    # Buffer so they can more easily read the output.
-    return system(@args);
+    my $ret = system(@args);
+    print "\n";    # Buffer so they can more easily read the output.
+    return $ret;
 }
 
 sub ssystem_and_die (@args) {
