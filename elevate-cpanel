@@ -121,7 +121,7 @@ use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant SERVICE_NAME         => 'cpanel-elevate.service';
 use constant SERVICE_FILE         => '/etc/systemd/system/' . SERVICE_NAME;
-use constant LOG_FILE             => q[/var/cpanel/logs/elevate-c7.log];
+use constant LOG_FILE             => q[/var/log/elevate-cpanel.log];
 use constant PID_FILE             => q[/var/run/cpanel-elevate.pid];
 
 use constant VALID_STAGES        => 5;
@@ -2439,7 +2439,7 @@ sub install_cpanel_elevate_service {
     open( my $fh, '>', SERVICE_FILE ) or die;
 
     # Works only in systemd v240 and newer!
-    # StandardOutput=append:/var/cpanel/logs/elevate-c7.log
+    # StandardOutput=append:/var/log/elevate-cpanel.log
     # StandardError=inherit
 
     my $log_file = LOG_FILE;
