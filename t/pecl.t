@@ -21,32 +21,14 @@ use Log::Log4perl;
 
 use FindBin;
 
+use lib $FindBin::Bin. "/lib";
+use Test::Elevate;
+
 require $FindBin::Bin . q[/../elevate-cpanel];
 
 use cPstrict;
 
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
-
-my $config = <<'EOS';
-log4perl.category = DEBUG, MyTest
-
-log4perl.appender.MyTest=Log::Log4perl::Appender::TestBuffer
-log4perl.appender.MyTest.name=mybuffer
-log4perl.appender.MyTest.layout=Log::Log4perl::Layout::SimpleLayout
-
-EOS
-Log::Log4perl->init( \$config );
-
-my @messages_seen;
-
-sub _msg ( $self, $msg, $level ) {
-    note "MockedLogger [$level] $msg";
-    push @messages_seen, [ $level, $msg ];
-    return;
-}
-
-my $log = Log::Log4perl::get_logger('cpev');
-$log->{$_} = \&_msg for qw{ALL DEBUG ERROR FATAL INFO OFF TRACE WARN};
 
 my $mock_elevate = Test::MockModule->new('cpev');
 
@@ -135,7 +117,7 @@ is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
         }
     );
 
-    @messages_seen = ();
+    clear_messages_seen();
 
     cpev::check_pecl_packages();
 
@@ -155,7 +137,7 @@ EOS
         }
     );
 
-    @messages_seen = ();
+    clear_messages_seen();
     cpev::check_pecl_packages();
 
     message_seen_lines( 'WARN', <<'EOS' );
@@ -170,35 +152,3 @@ EOS
 }
 
 done_testing;
-
-sub message_seen_lines ( $type, $msg ) {
-    my @lines = split( /\n/, $msg );
-    foreach my $l (@lines) {
-        message_seen( $type, $l );
-    }
-
-    return;
-}
-
-sub message_seen ( $type, $msg ) {
-    my $line = shift @messages_seen;
-    if ( ref $line ne 'ARRAY' ) {
-        fail("    No message of type '$type' was emitted.");
-        fail("    With output: $msg");
-        return 0;
-    }
-
-    my $type_seen = $line->[0] // '';
-    $type_seen =~ s/^\s+//;
-    $type_seen =~ s/: //;
-
-    is( $type_seen, $type, "  |_  Message type is $type" );
-    if ( ref $msg eq 'Regexp' ) {
-        like( $line->[1], $msg, "  |_  Message string is expected." );
-    }
-    else {
-        is( $line->[1], $msg, "  |_  Message string is expected." );
-    }
-
-    return;
-}
