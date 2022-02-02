@@ -24,7 +24,9 @@ my @messages_seen;
 
 ok cpev::IGNORE_OUTDATED_SERVICES_FILE(), 'IGNORE_OUTDATED_SERVICES_FILE';
 
-my $service = cpev::SERVICE_NAME();
+my $service      = cpev::SHORT_SERVICE_NAME();
+my $shortservice = $service;
+$shortservice =~ s{\.service}{};
 
 my $outdated_file = cpev::IGNORE_OUTDATED_SERVICES_FILE();
 my $dirname       = File::Basename::dirname($outdated_file);
@@ -41,7 +43,7 @@ ok cpev::setup_outdated_services(), 'setup_outdated_services - set service';
 ok -d $dirname,       'dir created';
 ok -f $outdated_file, 'file created';
 
-is read_text($outdated_file), qq[$service\n], "content set to service";
+is read_text($outdated_file), qq[$shortservice\n], "content set to service";
 
 is cpev::restore_outdated_services(), 2, "restore_outdated_services - remove service and file";
 ok -d $dirname,        'dir preserved';
