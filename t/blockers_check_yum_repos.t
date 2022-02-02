@@ -21,9 +21,6 @@ require $FindBin::Bin . '/../elevate-cpanel';
 my $cpev_mock = Test::MockModule->new('cpev');
 my @messages_seen;
 $cpev_mock->redefine(
-    _msg => sub ( $level, $msg ) {
-        note "mocked output $level", $msg;
-    },
     get_installed_rpms_in_repo => 0,    # for now
 );
 
