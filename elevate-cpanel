@@ -1039,6 +1039,7 @@ sub setup_outdated_services {
     }
 
     my $service_name = SERVICE_NAME;
+    $service_name =~ s{\.service}{};    # make sure to strip the .service part for outdated service
 
     return if $content =~ qr{^${service_name}$}m;
 
