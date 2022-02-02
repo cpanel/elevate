@@ -852,18 +852,16 @@ sub monitor_imunify_feature_install ( $feature, $log_file ) {
         last if ( $status eq 'installed' || $status eq 'installing' && -e $log_file );
     }
 
-    open( my $fh, '<', $log_file ) or undef $fh;
-
-    if ( !$fh ) {
+    open( my $fh, '<', $log_file ) or do {
         my $status = imunify_feature_install_status($feature);
-        WARN("Could not open $log_file for monitoring. The install of $feature is in state: $status");
+        WARN("Could not open $log_file for monitoring ($!). The install of $feature is in state: $status");
         return;
-    }
+    };
 
     DEBUG("Monitoring $log_file for completion");
 
     # Tail the log file and monitor status of the install by making agent queries.
-    my $start        = time;
+    $start = time;
     my $partial_line = '';
     while ( time - $start < 60 * 20 ) {    # abort after 20 minutes.
 
