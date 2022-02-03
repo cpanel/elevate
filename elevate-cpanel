@@ -738,6 +738,8 @@ sub run_stage_4($self) {
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
       leapp leapp-data-almalinux leapp-upgrade-el7toel8 python2-leapp alt-pcre802 alt-pcre802-devel};
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
+
+    INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
     ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
 
     return REBOOT_NEEDED;
