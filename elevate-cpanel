@@ -571,6 +571,10 @@ Update the current distro packages then reboot.
 
 sub run_stage_2($self) {
 
+    my $sum = `/usr/bin/md5sum $0`;
+    chomp $sum;
+    DEBUG(sprintf("Running $0 (%s/%s)", -S $0, $sum));
+
     ssystem(qw{/usr/bin/yum clean all});
     ssystem_and_die(qw{/scripts/update-packages});
     ssystem_and_die(qw{/usr/bin/yum -y update});
@@ -1523,7 +1527,7 @@ sub reinstall_custom_stuff {
             my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
             if (@$yum_arch_plugins) {
                 INFO('Restoring cPanel yum-based-plugins');
-                ssystem( qw{ /usr/bin/dnf -y install }, @$yum_arch_plugins );
+                ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
             }
 
             return;
