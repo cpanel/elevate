@@ -208,12 +208,6 @@ $cpev_mock->redefine( '_use_jetbackup4_or_earlier' => 1 );
 is( $cpev->blockers_check(), 17, 'blocked when using jetbackup 4 or earlier' );
 $cpev_mock->redefine( '_use_jetbackup4_or_earlier' => 0 );
 
-my $mock_litespeed = Test::MockFile->dir("/usr/local/lsws");
-mkdir "/usr/local/lsws";
-is( $cpev->blockers_check(), 18, 'blocked when LiteSpeed is installed' );
-
-rmdir "/usr/local/lsws";
-
 is( $cpev->blockers_check(), 0, 'No More Blockers' );
 
 {
