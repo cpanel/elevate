@@ -46,22 +46,4 @@ jobs:
       - run: perl -cw elevate-cpanel
       - name: Run tests
         run: prove -l -It/lib t/*.t
-      - name: (Re)install Perl dependencies
-        uses: perl-actions/install-with-cpm@stable
-        with:
-          sudo: false
-          cpanfile: "t/cpanfile"
-          args: "--with-all"
-      - name: Code coverage
-        run: |
-          make cover
-          cp cover_db/elevate-cpanel.html cover_db/index.html
-          rm -rf cover_db/runs cover_db/structure cover_db/digests
-          tar cvzf cover_db.tar.gz cover_db
-      - name: Archive code coverage
-        uses: actions/upload-artifact@v2
-        with:
-          name: cover_db.tar.gz
-          path: cover_db.tar.gz
-          retention-days: 21
 
