@@ -573,7 +573,7 @@ sub run_stage_2($self) {
 
     my $sum = `/usr/bin/md5sum $0`;
     chomp $sum;
-    DEBUG(sprintf("Running $0 (%s/%s)", -S $0, $sum));
+    DEBUG( sprintf( "Running $0 (%s/%s)", -S $0, $sum ) );
 
     ssystem(qw{/usr/bin/yum clean all});
     ssystem_and_die(qw{/scripts/update-packages});
@@ -776,6 +776,9 @@ sub run_stage_5($self) {
     }
 
     restore_outdated_services();
+
+    INFO("Updating all packages before final reboot");
+    ssystem(qw{/usr/bin/dnf -y --allowerasing update});
 
     print_box("Great SUCCESS! Your upgrade to AlmaLinux 8 is complete.");
 
