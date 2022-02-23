@@ -2265,7 +2265,27 @@ sub _blockers_check($self) {
 
     $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
 
+    $self->has_blocker( 101, q[System is up to date] ) unless _system_update_check();
+
     return 0;
+}
+
+sub _system_update_check() {
+
+    INFO("Checking if your system is up to date: ");
+    ssystem(qw{/usr/bin/yum clean all});
+    if ( ssystem(qw{/usr/bin/yum check-update}) != 0 ) {
+        WARN("Your system is not up to date please run: /usr/bin/yum update.");
+        return;
+    }
+
+    INFO("Checking /scripts/sysup");
+    if ( ssystem("/scripts/sysup") != 0 ) {
+        WARN("/scripts/sysup failed, please fix it and rerun it before upgrading.");
+        return;
+    }
+
+    return 1;
 }
 
 sub _use_jetbackup4_or_earlier() {
