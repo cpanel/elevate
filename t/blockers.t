@@ -210,6 +210,11 @@ $cpev_mock->redefine( '_use_jetbackup4_or_earlier' => 1 );
 is( $cpev->blockers_check(), 17, 'blocked when using jetbackup 4 or earlier' );
 $cpev_mock->redefine( '_use_jetbackup4_or_earlier' => 0 );
 
+$cpev_mock->redefine( _system_update_check => 0 );
+is( $cpev->blockers_check(), 101, 'System is up to date' );
+
+$cpev_mock->redefine( _system_update_check => 1 );
+
 is( $cpev->blockers_check(), 0, 'No More Blockers' );
 
 {
@@ -277,6 +282,38 @@ is( $cpev->blockers_check(), 0, 'No More Blockers' );
 
     $mock_pkgr->redefine( 'get_package_version' => '44.1' );
     ok !cpev::_use_jetbackup4_or_earlier(), "JetBackup 44.1 is installed";
+
+}
+
+{
+    note "checking _system_update_check";
+    my $status = 0;
+    my @cmds;
+    $cpev_mock->unmock('_system_update_check');
+    $cpev_mock->redefine(
+        ssystem => sub {
+            push @cmds, [@_];
+            return $status;
+        }
+    );
+
+    ok cpev::_system_update_check(), '_system_update_check - success';
+    is \@cmds, [
+        [qw{/usr/bin/yum clean all}],
+        [qw{/usr/bin/yum check-update}],
+        ['/scripts/sysup']
+      ],
+      "check yum & sysup";
+
+    @cmds   = ();
+    $status = 1;
+
+    is cpev::_system_update_check(), undef, '_system_update_check - failure';
+    is \@cmds, [
+        [qw{/usr/bin/yum clean all}],
+        [qw{/usr/bin/yum check-update}],
+      ],
+      "check yum & abort";
 
 }
 
