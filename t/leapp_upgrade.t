@@ -16,9 +16,9 @@ use Test2::Tools::Exception;
 
 use Test::MockModule qw/strict/;
 
-use Test::MockFile;
-
 use FindBin;
+
+use Test::MockFile 0.030;
 
 require $FindBin::Bin . q[/../elevate-cpanel];
 

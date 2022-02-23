@@ -16,10 +16,10 @@ use Test2::Tools::Exception;
 
 use Test::MockModule qw/strict/;
 
-use Test::MockFile;
-use Log::Log4perl;
-
 use FindBin;
+
+use Test::MockFile 0.030;
+use Log::Log4perl;
 
 use lib $FindBin::Bin. "/lib";
 use Test::Elevate;
