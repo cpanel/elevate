@@ -17,7 +17,7 @@ on 'test' => sub {
     requires "Test2::Bundle::Extended";
     requires "Test2::Plugin::NoWarnings";
     requires "Test2::Tools::Explain";
-    requires "Test::MockFile";
+    requires "Test::MockFile" => "0.030";
     requires "Test::MockModule";
     requires "Test::More";
 

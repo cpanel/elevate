@@ -14,7 +14,7 @@ use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
-use Test::MockFile qw/strict/;
+use Test::MockFile 0.030;
 use Test::MockModule qw/strict/;
 
 use lib $FindBin::Bin. "/lib";
@@ -48,6 +48,8 @@ my $cpev = bless {}, 'cpev';
     my $osr = Test::MockFile->file( '/etc/os-release',     '', { mtime => time - 100000 } );
     my $rhr = Test::MockFile->file( '/etc/redhat-release', '', { mtime => time - 100000 } );
 
+    my $m_custom = Test::MockFile->file(q[/var/cpanel/caches/Cpanel-OS.custom]);
+
     is( $cpev->blockers_check(), 3, "C6 is not supported." );
     message_seen( 'ERROR', 'This script is only designed to upgrade CentOS 7 to AlmaLinux 8' );
 
@@ -72,7 +74,7 @@ my $cpev = bless {}, 'cpev';
     undef $f;
     Cpanel::OS::clear_cache_after_cloudlinux_update();
     $f = Test::MockFile->symlink( 'linux|centos|7|9|2009', '/var/cpanel/caches/Cpanel-OS' );
-    my $custom = Test::MockFile->file( '/var/cpanel/caches/Cpanel-OS.custom', '' );
+    $m_custom->contents('');
     is( $cpev->blockers_check(), 5, "Custom OS is not supported." );
     message_seen( 'ERROR', 'Experimental OS detected. This script only supports CentOS 7 upgrades' );
 }
