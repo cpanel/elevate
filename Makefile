@@ -1,6 +1,7 @@
 .PHONY: test cover
 
 test:
+	perl -cw elevate-cpanel
 	/usr/local/cpanel/3rdparty/bin/yath test -j8 t/*.t
 
 cover:
