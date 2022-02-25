@@ -18,7 +18,7 @@ use Test::MockModule qw/strict/;
 
 use FindBin;
 
-use Test::MockFile 0.030;
+use Test::MockFile 0.032;
 
 require $FindBin::Bin . q[/../elevate-cpanel];
 

@@ -14,7 +14,7 @@ use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
-use Test::MockFile 0.030;
+use Test::MockFile 0.032;
 use Test::MockModule qw/strict/;
 
 use lib $FindBin::Bin. "/lib";
