@@ -29,7 +29,21 @@ $cpev_mock->redefine( _init_logger => sub { die "should not call init_logger" } 
 
 $cpev_mock->redefine( _check_yum_repos => 0 );
 
+my $mock_cpanel = Test::MockFile->file('/usr/local/cpanel/cpanel');
+
 my $cpev = bless {}, 'cpev';
+
+{
+    is( $cpev->blockers_check(), 1, "no major_version means we're not cPanel?" );
+    message_seen( 'ERROR', 'This script is only designed to work with cPanel & WHM installs. cPanel & WHM do not appear to be present on your system.' );
+
+    $mock_cpanel->touch;
+
+    is( $cpev->blockers_check(), 1, "no major_version means we're not cPanel?" );
+    message_seen( 'ERROR', 'This script is only designed to work with cPanel & WHM installs. cPanel & WHM do not appear to be present on your system.' );
+
+    $mock_cpanel->chmod(0755);
+}
 
 {
     no warnings 'once';
