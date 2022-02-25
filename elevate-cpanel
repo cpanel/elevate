@@ -2105,6 +2105,10 @@ sub has_blocker ( $self, $id, $msg ) {
 
 sub _blockers_check($self) {
 
+    if ( !-x q[/usr/local/cpanel/cpanel] ) {
+        $self->has_blocker( 1, 'This script is only designed to work with cPanel & WHM installs. cPanel & WHM do not appear to be present on your system.' );
+    }
+
     if ( !$Cpanel::Version::Tiny::major_version ) {
         $self->has_blocker( 1, 'Invalid cPanel & WHM major_version' );
     }
@@ -2162,7 +2166,7 @@ sub _blockers_check($self) {
         EOS
     }
 
-    {
+    {    # ensure the script is install at the correct location
         my $running_from = Cwd::abs_path($0) // '';
         if (   $running_from ne '/scripts/elevate-cpanel'
             && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
