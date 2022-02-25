@@ -727,7 +727,11 @@ sub run_stage_4($self) {
     run_once(
         upcp => sub {
 
-            ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+            {
+                # MySQL server is not upgraded at this point - treat the upcp like a fresh install
+                local $ENV{'CPANEL_BASE_INSTALL'} = 1;
+                ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+            }
 
             # cleanup the license: cpsanitycheck.so binary is compiled for a different distro
             ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/cpsanitycheck.so});
@@ -745,6 +749,13 @@ sub run_stage_4($self) {
 
     INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
     ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
+
+    # run upcp a second time as we had to run it before with CPANEL_BASE_INSTALL=1
+    run_once(
+        upcp_second_run => sub {
+            ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+        }
+    );
 
     return REBOOT_NEEDED;
 }
@@ -1375,18 +1386,12 @@ sub reinstall_mysql_packages {
 
     my ( $major, $minor ) = split( /\./, $mysql_version );
 
-    # probably not needed
-    # my $repopkg = q[Cpanel::Mysql::Install];
-    # if ( $major >= 10 ) {
-    #     $repopkg = q[Cpanel::MariaDB::Install];
-    # }
-    # Cpanel::SafeRun::Simple::saferunnoerror( $^X, "-M$repopkg", '-E', "$repopkg->new->install_repo( q[$mysql_version] )";
-    # warn qq[Fail to install repo for $mysql_version using $repopkg] if $?;
+    # ensure the repo package is available for MySQL / MariaDB
+    # my $repopkg = $major >= 10 ? q[Cpanel::MariaDB::Install] : q[Cpanel::Mysql::Install];
+    # Cpanel::SafeRun::Simple::saferunnoerror( $^X, "-M$repopkg", '-E', "$repopkg->new->install_repo( q[$mysql_version] )" );
+    # WARN(qq[Fail to install repo for $mysql_version using $repopkg]) if $?;
 
-    # Cpanel/MariaDB/Install.pm:29:    $obj->install_repo('10.2');
-    # Cpanel/Mysql/Install.pm:28:    $obj->install_repo('5.7');
-
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade }, "version=$mysql_version" );
+    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
     LOGDIE(qq[Fail to restore MySQL $mysql_version]) if $?;
 
     if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
@@ -1416,6 +1421,8 @@ sub reinstall_mysql_packages {
             }
             last;
         }
+
+        print "\n" if $c;    # clear the last "." from above
 
         if ( $status eq 'success' ) {
             INFO("MySQL $mysql_version restored");
@@ -1462,44 +1469,28 @@ sub cleanup_mysql_80_packages {
 
 sub cleanup_mysql_102_packages {
 
-    my @repos = qw{
-      MariaDB102
-    };
-
-    remove_rpms_from_repos(@repos);
+    remove_rpms_from_repos('MariaDB102');
 
     return;
 }
 
 sub cleanup_mysql_103_packages {
 
-    my @repos = qw{
-      MariaDB103
-    };
-
-    remove_rpms_from_repos(@repos);
+    remove_rpms_from_repos('MariaDB103');
 
     return;
 }
 
 sub cleanup_mysql_105_packages {
 
-    my @repos = qw{
-      MariaDB105
-    };
-
-    remove_rpms_from_repos(@repos);
+    remove_rpms_from_repos('MariaDB105');
 
     return;
 }
 
 sub cleanup_mysql_106_packages {
 
-    my @repos = qw{
-      MariaDB106
-    };
-
-    remove_rpms_from_repos(@repos);
+    remove_rpms_from_repos('MariaDB106');
 
     return;
 }
@@ -1512,6 +1503,9 @@ sub reinstall_custom_stuff {
         $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
         File::Slurper::write_text( "/etc/yum.conf", $txt );
     }
+
+    # plugins can use MySQL - restore database earlier
+    run_once('reinstall_mysql_packages');
 
     run_once(
         'restore_perl_xs' => sub {
@@ -1537,7 +1531,6 @@ sub reinstall_custom_stuff {
         }
     );
 
-    run_once('reinstall_mysql_packages');
     run_once('check_pecl_packages');
     run_once('reinstall_imunify_360');
     run_once('reinstall_wordpress_toolkit');
@@ -2279,7 +2272,7 @@ sub _system_update_check() {
     INFO("Checking if your system is up to date: ");
     ssystem(qw{/usr/bin/yum clean all});
     if ( ssystem(qw{/usr/bin/yum check-update}) != 0 ) {
-        WARN("Your system is not up to date please run: /usr/bin/yum update.");
+        WARN("Your system is not up to date please run: /usr/bin/yum update");
         return;
     }
 
