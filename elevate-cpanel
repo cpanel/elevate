@@ -711,18 +711,17 @@ sub run_stage_4($self) {
     );
 
     run_once(
-        ea4 => sub {
+        restore_cpanel_services => sub {
             enable_all_cpanel_services();
             stop_services_before_upcp();
-
             clear_cpanel_caches();
-
-            # Need a better log file.
-            restore_ea4_profile();
 
             return;
         }
     );
+
+    run_once('restore_ea4_profile');
+    run_once('restore_ea_addons');
 
     run_once(
         upcp => sub {
@@ -1225,6 +1224,22 @@ sub restore_ea4_profile () {
     return;
 }
 
+sub restore_ea_addons () {
+
+    my $stash       = read_stage_file();
+    my $needs_nginx = $stash->{'ea4'}->{'nginx'};
+
+    if ($needs_nginx) {
+        INFO("Restoring ea-nginx");
+
+        # ea profile restore it in a broken state - remove & reinstall
+        ssystem(qw{/usr/bin/rpm -e --nodeps ea-nginx});
+        ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
+    }
+
+    return;
+}
+
 sub backup_ea4_profile () {
 
     my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
@@ -1246,6 +1261,15 @@ sub backup_ea4_profile () {
     INFO("Backed up EA4 profile to $json");
 
     update_stage_file( { ea4 => { profile => $json } } );
+
+    return;
+}
+
+sub backup_ea_addons() {
+
+    if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
+        update_stage_file( { ea4 => { nginx => 1 } } );
+    }
 
     return;
 }
@@ -1320,6 +1344,7 @@ sub remove_custom_stuff_for_later_reinstall {
 
     run_once('capture_imunify_features');
     run_once('backup_ea4_profile');
+    run_once('backup_ea_addons');
     run_once('backup_pecl_packages');
     run_once('cleanup_mysql_packages');
 
