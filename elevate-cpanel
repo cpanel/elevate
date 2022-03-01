@@ -2260,6 +2260,10 @@ sub _blockers_check($self) {
 
     $self->has_blocker( 17, q[AlmaLinux 8 does not support JetBackup prior to version 5. Please upgrade JetBackup before elevate.] ) if _use_jetbackup4_or_earlier();
 
+    if ( -e q[/var/cpanel/mysql_upgrade_in_progress] ) {
+        $self->has_blocker( 18, q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.] );
+    }
+
     $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
 
     $self->has_blocker( 101, q[System is up to date] ) unless _system_update_check();

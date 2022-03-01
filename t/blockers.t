@@ -224,6 +224,10 @@ $cpev_mock->redefine( '_use_jetbackup4_or_earlier' => 1 );
 is( $cpev->blockers_check(), 17, 'blocked when using jetbackup 4 or earlier' );
 $cpev_mock->redefine( '_use_jetbackup4_or_earlier' => 0 );
 
+my $mf_mysql_upgrade = Test::MockFile->file( q[/var/cpanel/mysql_upgrade_in_progress] => 1 );
+is( $cpev->blockers_check(), 18, q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.] );
+$mf_mysql_upgrade->unlink;
+
 $cpev_mock->redefine( _system_update_check => 0 );
 is( $cpev->blockers_check(), 101, 'System is up to date' );
 
