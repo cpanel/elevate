@@ -1139,6 +1139,7 @@ sub disable_all_cpanel_services {
       dnsadmin dovecot exim ipaliases mailman
       mysqld pdns proftpd queueprocd spamd
       crond tailwatchd
+      lsws
       /;
     my @disabled_services;
 
