@@ -927,6 +927,8 @@ sub remove_kernelcare_if_needed {
 
     return unless -x q[/usr/bin/kcarectl];
 
+    # This environment variable signals to the KernelCare RPM scriptlets not to deregister on package removal.
+    local $ENV{KCARE_KEEP_REGISTRATION} = '1';
     remove_rpms_from_repos('kernelcare');
 
     update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
