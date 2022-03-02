@@ -1377,6 +1377,7 @@ sub remove_custom_stuff_for_later_reinstall {
     run_once('remove_influxdb');
     run_once('remove_jetbackup');
     run_once('remove_nixstats');
+    run_once('pre_install_check_litespeed');
 
     return;
 }
@@ -1570,6 +1571,7 @@ sub reinstall_custom_stuff {
     run_once('restore_kernel_care');
     run_once('restore_imunify_features');
     run_once('restore_nixstats');
+    run_once('post_install_check_litespeed');
 
     return;
 }
@@ -2006,6 +2008,43 @@ sub reinstall_wordpress_toolkit {
 
     ssystem( '/usr/bin/bash', $installer_script );
     unlink $installer_script;
+
+    return;
+}
+
+sub pre_install_check_litespeed {
+
+    my $ls_cfg_dir = q[/usr/local/lsws/conf];
+    return unless -d $ls_cfg_dir;
+
+    INFO("LiteSpeed is installed");
+
+    # check if the license is valid before updating
+    ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
+    my $has_valid_license = $? == 0 ? 1 : 0;
+
+    my $data = {
+        has_valid_license => $has_valid_license,
+    };
+
+    update_stage_file( { 'reinstall' => { 'litespeed' => $data } } );
+
+    return;
+}
+
+sub post_install_check_litespeed {
+    my $data = read_stage_file()->{'reinstall'}->{'litespeed'};
+    return unless ref $data;
+
+    INFO("Checking LiteSpeed");
+
+    # check the current license
+    if ( $data->{has_valid_license} ) {
+        ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
+        ERROR("LiteSpeed license is not valid. Check /usr/local/lsws/conf/serial.no") if $? != 0;
+    }
+
+    ssystem(qw{/usr/bin/systemctl restart lsws});
 
     return;
 }
