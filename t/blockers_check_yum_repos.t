@@ -16,7 +16,9 @@ use Test::MockFile 0.025 qw/strict/;
 use Test::MockModule qw/strict/;
 
 use cPstrict;
-require $FindBin::Bin . '/../elevate-cpanel';
+
+use lib $FindBin::Bin . "/lib";
+use Test::Elevate;
 
 my $cpev_mock = Test::MockModule->new('cpev');
 my @messages_seen;

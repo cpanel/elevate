@@ -96,8 +96,6 @@ Please do not interrupt the reboots and elevation process.
 use cPstrict;
 
 BEGIN {
-    $INC{'cpev.pm'} = 'FAKE';    # For test mocking.
-
     # sanity check before loading the script
     eval { require Cpanel::Version::Tiny } or do {
         warn(qq[This script is designed to only run on cPanel servers.\n]);
