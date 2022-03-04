@@ -48,6 +48,8 @@ You can start an elevation update by running:
 You can check if your server is compatible with the upgrade process without
 starting an upgrade process.
 
+    /scripts/elevate-cpanel --check
+
 =item Start an installation with manual reboot
 
 You can control the reboots by using the --manual-reboots flag when starting the process.
@@ -64,6 +66,10 @@ Once you have started an elevation process, you can check the current update by 
 You can also check the current status by running
 
     /scripts/elevate-cpanel --status
+
+You can check and monitor the elevation log
+
+    /scripts/elevate-cpanel --log
 
 =item Resume an installation after an error
 
