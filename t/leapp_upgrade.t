@@ -20,7 +20,8 @@ use FindBin;
 
 use Test::MockFile 0.032;
 
-require $FindBin::Bin . q[/../elevate-cpanel];
+use lib $FindBin::Bin . "/lib";
+use Test::Elevate;
 
 use cPstrict;
 

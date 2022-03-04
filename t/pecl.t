@@ -21,7 +21,7 @@ use FindBin;
 use Test::MockFile 0.032;
 use Log::Log4perl;
 
-use lib $FindBin::Bin. "/lib";
+use lib $FindBin::Bin . "/lib";
 use Test::Elevate;
 
 require $FindBin::Bin . q[/../elevate-cpanel];

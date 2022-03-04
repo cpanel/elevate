@@ -17,7 +17,7 @@ use Test2::Tools::Exception;
 use Test::MockFile 0.032;
 use Test::MockModule qw/strict/;
 
-use lib $FindBin::Bin. "/lib";
+use lib $FindBin::Bin . "/lib";
 use Test::Elevate;
 
 use cPstrict;

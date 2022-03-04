@@ -18,6 +18,11 @@ use Log::Log4perl;
 
 my @MESSAGES_SEEN;
 
+BEGIN {
+    require $FindBin::Bin . q[/../elevate-cpanel];
+    $INC{'cpev.pm'} = '__TEST__';
+}
+
 sub _msg ( $self, $msg, $level ) {
     note "MockedLogger [$level] $msg";
     push @MESSAGES_SEEN, [ $level, $msg ];
