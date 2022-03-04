@@ -20,7 +20,7 @@ use FindBin;
 
 use Test::MockFile 0.032;
 
-use lib $FindBin::Bin . "/lib";
+use lib $FindBin::Bin. "/lib";
 use Test::Elevate;
 
 my $mock_elevate = Test::MockModule->new('cpev');
