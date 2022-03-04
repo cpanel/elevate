@@ -11,10 +11,17 @@ This project builds on the [Alma Linux Elevate](https://wiki.almalinux.org/eleva
 
 The Alma Linux Elevate project is very effective at upgrading the distro packages from [CentOS 7](https://www.centos.org/) to [AlmaLinux 8](https://almalinux.org/). However if you attempt to do this on a CentOS 7 based [cPanel install](https://www.cpanel.net/), you will end up with a broken system.
 
+## What you need to use it
+
+* You will need to have console access available to your machine
+* You should back up your server before attempting this
+
+**The cPanel ELEVATE program does not back up before upgrading**
 
 ## How to use it
 
 * You can download a copy of the script to run on your cPanel server via:
+
 ```bash
 wget -O /scripts/elevate_cpanel \
     https://raw.githubusercontent.com/cpanel/elevate/RELEASE/elevate_cpanel ;
@@ -36,6 +43,7 @@ chmod 700 /scripts/elevate_cpanel
 ```
 
 ## Some of the problems you might find include:
+
 * x86_64 RPMs not in the primary CentOS repos are upgraded.
   * `rpm -qa|grep el7`
 * EA4 RPMs are incorrect
@@ -44,12 +52,12 @@ chmod 700 /scripts/elevate_cpanel
 * 3rdparty repo packages are not upgraded (imunify 360, epel, ...).
 * Manually installed Perl XS (arch) CPAN installs invalid.
 * Manually installed PECL need re-build.
-* Cpanel::CachedCommand is wrong/
+* Cpanel::CachedCommand is wrong.
 * Cpanel::OS distro setting is wrong.
 * MySQL might now not be upgradable (MySQL versions < 8.0 are not normally present on A8)
 
-
 ## Our current approach can be summarized as:
+
 1. [Check for blockers](Known-blockers)
 2. `yum update && reboot`
 3. Analyze and remove software (not data) commonly installed on a cPanel system
