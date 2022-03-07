@@ -469,7 +469,7 @@ sub _run_service($self) {
       : $stage == 3 ? $self->run_stage_3()
       : $stage == 4 ? $self->run_stage_4()
       : $stage == 5 ? $self->run_stage_5()
-      :               LOGDIE("Unknown stage '$stage'. I don't know how to proceed");
+      :               die "Unknown stage '$stage'. I don't know how to proceed";
 
 }
 
@@ -1075,7 +1075,7 @@ sub setup_outdated_services {
 
     my $dirname = File::Basename::dirname(IGNORE_OUTDATED_SERVICES_FILE);
     if ( !-d $dirname ) {
-        mkdir($dirname) or LOGDIE(qq[Fail to create directory $dirname - $!]);
+        mkdir($dirname) or die qq[Fail to create directory $dirname - $!];
     }
     File::Slurper::write_binary( IGNORE_OUTDATED_SERVICES_FILE, $content );
 
@@ -1166,7 +1166,7 @@ sub disable_known_yum_repositories {
             next;
         }
 
-        File::Copy::move( $f, "$f.off" ) or LOGDIE(qq[Fail to disable repo $f]);
+        File::Copy::move( $f, "$f.off" ) or die qq[Fail to disable repo $f];
     }
 
     Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
@@ -1258,10 +1258,10 @@ sub backup_ea4_profile () {
     my $cmd = '/usr/local/bin/ea_current_to_profile';
     INFO("Running: $cmd");
     my $json = Cpanel::SafeRun::Simple::saferunnoerror($cmd) // '';
-    LOGDIE(qq[Failure from $cmd]) if $?;
+    die qq[Failure from $cmd] if $?;
 
     chomp $json;
-    LOGDIE("Unable to backup EA4 profile to $json") unless length $json && -f $json && -s _;
+    die "Unable to backup EA4 profile to $json" unless length $json && -f $json && -s _;
     INFO("Backed up EA4 profile to $json");
 
     update_stage_file( { ea4 => { profile => $json } } );
@@ -1340,7 +1340,7 @@ EOS
         $msg .= qq[\nYou can read the full leapp report at: ] . LEAPP_REPORT_TXT;
     }
 
-    LOGDIE(qq[$msg\n]);
+    die qq[$msg\n];
 }
 
 # remove and store
@@ -1423,7 +1423,7 @@ sub reinstall_mysql_packages {
     # WARN(qq[Fail to install repo for $mysql_version using $repopkg]) if $?;
 
     my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
-    LOGDIE(qq[Fail to restore MySQL $mysql_version]) if $?;
+    die qq[Fail to restore MySQL $mysql_version] if $?;
 
     if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
         my $id = $1;
@@ -1438,7 +1438,7 @@ sub reinstall_mysql_packages {
         while (1) {
             $c = ( $c + 1 ) % 10;
             my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-            LOGDIE(qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id]) if $?;
+            die qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
 
             if ( $out =~ m{\sstate:\s*inprogress} ) {
                 print ".";
@@ -1461,11 +1461,11 @@ sub reinstall_mysql_packages {
         else {
             FATAL("Failed to restore MySQL $mysql_version: upgrade $id status '$status'");
             FATAL("$out");
-            LOGDIE('Failed to restore MySQL');
+            die 'Failed to restore MySQL';
         }
     }
     else {
-        LOGDIE(qq[Cannot find upgrade_id from start_background_mysql_upgrade:\n$out]);
+        die qq[Cannot find upgrade_id from start_background_mysql_upgrade:\n$out];
     }
 
     return;
@@ -1892,7 +1892,7 @@ sub remove_nixstats {
     my $backup_dir = ELEVATE_BACKUP_DIR . "/nixstats";
 
     File::Path::make_path($backup_dir);
-    LOGDIE("Fail to create backup directory: $backup_dir") unless -d $backup_dir;
+    die "Fail to create backup directory: $backup_dir" unless -d $backup_dir;
 
     my @to_backup = qw{ /etc/nixstats-token.ini /etc/nixstats.ini };
 
@@ -2715,7 +2715,7 @@ sub setup_answer_file {
         return;
     }
 
-    open( my $fh, '>', $leapp_answers ) or LOGDIE(qq[Fail to setup leapp anserfile.userchoices: $!]);
+    open( my $fh, '>', $leapp_answers ) or die qq[Fail to setup leapp anserfile.userchoices: $!];
     print {$fh} <<~'EOF';
         [remove_pam_pkcs11_module_check]
         confirm = True
@@ -2758,7 +2758,7 @@ sub install_cpanel_elevate_service {
     bump_stage();
 
     my $pid = fork();
-    LOGDIE(qq[Failed to fork: $!]) unless defined $pid;
+    die qq[Failed to fork: $!] unless defined $pid;
     if ($pid) {
         INFO( 'Starting service ' . SERVICE_NAME );
         return 0;
@@ -2848,7 +2848,7 @@ sub ssystem (@args) {
 
 sub ssystem_and_die (@args) {
     ssystem(@args) or return 0;
-    LOGDIE("command failed. Fix it and run command.");
+    die "command failed. Fix it and run command.";
 }
 
 sub _init_logger ( $debug_level = 'DEBUG') {
