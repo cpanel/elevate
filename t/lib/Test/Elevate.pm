@@ -4,9 +4,10 @@ package Test::Elevate;
 
 use cPstrict;
 use Test::More;
+use Test::Deep;
 
 our @ISA       = qw(Exporter);
-our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen );
+our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen );
 our @EXPORT_OK = @EXPORT;
 
 use Log::Log4perl;
@@ -35,13 +36,13 @@ sub init {
     $once = 1;
 
     my $config = <<~'EOS';
-	log4perl.category = DEBUG, MyTest
+    log4perl.category = DEBUG, MyTest
 
-	log4perl.appender.MyTest=Log::Log4perl::Appender::TestBuffer
-	log4perl.appender.MyTest.name=mybuffer
-	log4perl.appender.MyTest.layout=Log::Log4perl::Layout::SimpleLayout
+    log4perl.appender.MyTest=Log::Log4perl::Appender::TestBuffer
+    log4perl.appender.MyTest.name=mybuffer
+    log4perl.appender.MyTest.layout=Log::Log4perl::Layout::SimpleLayout
 
-	EOS
+    EOS
     Log::Log4perl->init( \$config );
 
     my $log = Log::Log4perl::get_logger('cpev');
@@ -83,5 +84,16 @@ sub message_seen ( $type, $msg ) {
 
     return;
 }
+
+sub no_messages_seen {
+    is_deeply( \@MESSAGES_SEEN, [], 'No messages are remaining.' ) || diag explain \@MESSAGES_SEEN;
+
+    clear_messages_seen();
+
+    return;
+}
+
+# convenience
+sub no_message_seen { goto &no_messages_seen; }
 
 1;
