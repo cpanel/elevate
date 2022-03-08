@@ -49,6 +49,9 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
 
+       --skip-cpanel-version-check    Skip the check for whether cPanel is up to date.
+                                      This option is intended only for testing!
+
        --help                         Display this documentation.
 
 =head1 COMMON USAGE
@@ -152,7 +155,9 @@ use Cpanel::Pkgr                ();
 use Cpanel::RestartSrv::Systemd ();
 use Cpanel::SafeRun::Simple     ();
 use Cpanel::SafeRun::Errors     ();
+use Cpanel::Update::Tiers       ();
 use Cpanel::Version::Tiny       ();
+use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
@@ -216,8 +221,10 @@ use constant VETTED_YUM_REPO => qw{
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log check );
+    return qw( service start clean continue manual-reboots status log check skip-cpanel-version-check );
 }
+
+my $logger;
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
 
@@ -225,7 +232,7 @@ sub run ($self) {
 
     local $| = 1;
 
-    my $logger = _init_logger();
+    $logger = _init_logger();
 
     if ( $self->getopt('start') ) {
         die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
@@ -582,6 +589,8 @@ On failures after fixing them you can continue the elevation process by running:
     /scripts/elevate-cpanel --continue
 
 EOS
+
+    _do_warn_skip_version_check() if $self->getopt('skip-cpanel-version-check');    # give one last reminder
 
     say <<EOS;
 This is your chance now to cancel the update process.
@@ -2319,6 +2328,12 @@ sub has_blocker ( $self, $id, $msg ) {
     return $blocker;
 }
 
+# separate sub, so that it can be silenced during tests:
+sub _do_warn_skip_version_check {
+    WARN("The --skip-cpanel-version-check option was specified! This option is provided for testing purposes only! cPanel may not be able to support the resulting conversion. Please consider whether this is what you want.");
+    return;
+}
+
 sub _blocker_is_missing_cpanel_whm ($self) {
     if ( !-x q[/usr/local/cpanel/cpanel] ) {
         $self->has_blocker( 1, 'This script is only designed to work with cPanel & WHM installs. cPanel & WHM do not appear to be present on your system.' );
@@ -2338,6 +2353,20 @@ sub _blocker_is_invalid_cpanel_whm ($self) {
 sub _blocker_is_old_cpanel ($self) {
     if ( $Cpanel::Version::Tiny::major_version <= 100 ) {
         $self->has_blocker( 2, "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better." );
+    }
+
+    return 0;
+}
+
+sub _blocker_cpanel_needs_update ($self) {
+    if ( !$self->getopt('skip-cpanel-version-check') ) {
+        my $tiers_obj = Cpanel::Update::Tiers->new( logger => $logger );
+        if ( !grep { Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $_ ) } $tiers_obj->get_flattened_hash()->@{qw/edge current release stable lts/} ) {
+            $self->has_blocker( 2, "This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date. Please upgrade cPanel to a most recent version." );
+        }
+    }
+    else {
+        _do_warn_skip_version_check();
     }
 
     return 0;
@@ -2554,7 +2583,7 @@ sub _blocker_disk_space ($self) {
 }
 
 sub _blocker_system_update ($self) {
-    $self->has_blocker( 101, q[System is up to date] ) unless _system_update_check();
+    $self->has_blocker( 101, q[System is not up to date] ) unless _system_update_check();
 
     return 0;
 }
@@ -2581,6 +2610,7 @@ sub _blockers_check ($self) {
     $self->_blocker_is_missing_cpanel_whm();
     $self->_blocker_is_invalid_cpanel_whm();
     $self->_blocker_is_old_cpanel();
+    $self->_blocker_cpanel_needs_update();
     $self->_blocker_is_non_centos7();
     $self->_blocker_is_old_centos7();
     $self->_blocker_is_experimental_os();
