@@ -82,6 +82,8 @@ We recommend you back up (and ideally snapshot) your system so it can be easily 
 
 This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.
 
+**DISCLAIMER:** We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
+
 Good Luck!
 
 * [Report bugs here](https://github.com/cpanel/elevate/issues)
