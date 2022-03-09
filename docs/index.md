@@ -6,7 +6,7 @@
 
 - [Issues can be reported here](https://github.com/cpanel/elevate/issues)
 - [Pull requests are welcome](https://github.com/cpanel/elevate/pulls)
-    - Code contributions are subject to our [Contributor License Agreement](cPanel-CLA.pdf)
+    - Code contributions are subject to our [Contributor License Agreement](docs/cPanel-CLA.pdf)
 
 This project builds on the [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of RedHat based systems.
 
