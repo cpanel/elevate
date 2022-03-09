@@ -59,7 +59,7 @@ chmod 700 /scripts/elevate_cpanel
 
 ## Our current approach can be summarized as:
 
-1. [Check for blockers](Known-blockers)
+1. [Check for blockers](docs/Known-blockers)
 2. `yum update && reboot`
 3. Analyze and remove software (not data) commonly installed on a cPanel system
 4. [Execute AlmaLinux upgrade](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html)
@@ -85,6 +85,8 @@ This upgrade will potentially take 30-90 minutes to upgrade all of the software.
 
 **DISCLAIMER:** We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
 
+Good Luck!
+
 ## Copyright
 
 Copyright 2022 cPanel L.L.C.
@@ -96,7 +98,3 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Good Luck!
-
-* [Report bugs here](https://github.com/cpanel/elevate/issues)
-* [Code contribtions](https://github.com/cpanel/elevate/pulls) are also welcome!
