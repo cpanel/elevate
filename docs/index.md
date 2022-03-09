@@ -59,7 +59,7 @@ chmod 700 /scripts/elevate_cpanel
 
 ## Our current approach can be summarized as:
 
-1. [Check for blockers](docs/Known-blockers)
+1. [Check for blockers](docs/Known-blockers.md)
 2. `yum update && reboot`
 3. Analyze and remove software (not data) commonly installed on a cPanel system
 4. [Execute AlmaLinux upgrade](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html)
