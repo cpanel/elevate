@@ -1,10 +1,5 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
-# cpanel - ./t/blockers.t                          Copyright 2022 cPanel, L.L.C.
-#                                                           All rights reserved.
-# copyright@cpanel.net                                         http://cpanel.net
-# This code is subject to the cPanel license. Unauthorized copying is prohibited
-
 use FindBin;
 
 use Test2::V0;
