@@ -4,8 +4,9 @@
 
 ## Introduction
 
-- Issues can be reported here: [https://github.com/cpanel/elevate/issues](https://github.com/cpanel/elevate/issues)
-- Pull requests are welcome: [https://github.com/cpanel/elevate/pulls](https://github.com/cpanel/elevate/pulls)
+- [Issues can be reported here](https://github.com/cpanel/elevate/issues)
+- [Pull requests are welcome](https://github.com/cpanel/elevate/pulls)
+    - Code contributions are subject to our [Contributor License Agreement](cPanel-CLA.pdf)
 
 This project builds on the [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of RedHat based systems.
 
@@ -83,6 +84,17 @@ We recommend you back up (and ideally snapshot) your system so it can be easily 
 This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.
 
 **DISCLAIMER:** We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
+
+## Copyright
+
+Copyright 2022 cPanel L.L.C.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Good Luck!
 
