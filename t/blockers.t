@@ -275,35 +275,6 @@ is( $cpev->blockers_check(), 0, 'No More Blockers' );
 }
 
 {
-    note "checking _use_jetbackup4_or_earlier";
-
-    $cpev_mock->unmock('_use_jetbackup4_or_earlier');
-
-    my $mock_pkgr = Test::MockModule->new('Cpanel::Pkgr');
-    $mock_pkgr->redefine( 'is_installed' => 0 );
-
-    ok !cpev::_use_jetbackup4_or_earlier(), "JetBackup is not installed";
-
-    $mock_pkgr->redefine( 'is_installed' => 1 );
-
-    $mock_pkgr->redefine( 'get_package_version' => '3.2' );
-    ok cpev::_use_jetbackup4_or_earlier(), "JetBackup 3.2 is installed";
-
-    $mock_pkgr->redefine( 'get_package_version' => '4.0' );
-    ok cpev::_use_jetbackup4_or_earlier(), "JetBackup 4.0 is installed";
-
-    $mock_pkgr->redefine( 'get_package_version' => '5.1' );
-    ok !cpev::_use_jetbackup4_or_earlier(), "JetBackup 5.1 is installed";
-
-    $mock_pkgr->redefine( 'get_package_version' => '10' );
-    ok !cpev::_use_jetbackup4_or_earlier(), "JetBackup 10 is installed";
-
-    $mock_pkgr->redefine( 'get_package_version' => '44.1' );
-    ok !cpev::_use_jetbackup4_or_earlier(), "JetBackup 44.1 is installed";
-
-}
-
-{
     note "checking _system_update_check";
     my $status = 0;
     my @cmds;
