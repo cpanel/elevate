@@ -26,6 +26,31 @@ $cpev_mock->redefine( _check_yum_repos => 0 );
 
 my $mock_cpanel = Test::MockFile->file('/usr/local/cpanel/cpanel');
 
+# Make sure we have NICs that would fail
+my $mock_ip_addr = q{1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether fa:16:3e:98:ea:8d brd ff:ff:ff:ff:ff:ff
+    inet 10.2.67.134/19 brd 10.2.95.255 scope global dynamic eth0
+       valid_lft 28733sec preferred_lft 28733sec
+    inet6 2620:0:28a4:4140:f816:3eff:fe98:ea8d/64 scope global mngtmpaddr dynamic
+       valid_lft 2591978sec preferred_lft 604778sec
+    inet6 fe80::f816:3eff:fe98:ea8d/64 scope link
+       valid_lft forever preferred_lft forever
+3: eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether fa:16:3e:98:ea:8d brd ff:ff:ff:ff:ff:ff
+    inet 10.2.67.135/19 brd 10.2.95.255 scope global dynamic eth0
+       valid_lft 28733sec preferred_lft 28733sec
+    inet6 2620:0:28a4:4140:f816:3eff:fe98:ea8d/64 scope global mngtmpaddr dynamic
+       valid_lft 2591978sec preferred_lft 604778sec
+    inet6 fe80::f816:3eff:fe98:ea8d/64 scope link
+       valid_lft forever preferred_lft forever
+};
+
 my $cpev = bless {}, 'cpev';
 
 {
@@ -178,10 +203,11 @@ message_seen( 'ERROR', qr{yum is not stable}i );
 
 # Now we've tested the caller, let's test the code.
 $cpev_mock->unmock('_yum_is_stable');
+my $errors_mock = Test::MockModule->new('Cpanel::SafeRun::Errors');
+
 {
     note "Testing _yum_is_stable";
-    my $errors_mock = Test::MockModule->new('Cpanel::SafeRun::Errors');
-    my $errors      = 'something is not right';
+    my $errors = 'something is not right';
     $errors_mock->redefine( 'saferunonlyerrors' => sub { return $errors } );
 
     is( cpev::_yum_is_stable(), 0, "Yum is not stable and emits STDERR output (but does not exit non-zero)" );
@@ -227,6 +253,36 @@ $cpev_mock->redefine( _system_update_check => 0 );
 is( $cpev->blockers_check(), 101, 'System is up to date' );
 
 $cpev_mock->redefine( _system_update_check => 1 );
+
+# The NICs blocker runs /sbin/ip which breaks because Cpanel::SafeRun::Simple
+# opens /dev/null which Test::MockFile does not mock and is annoyed by it
+
+my $sbin_ip = Test::MockFile->file('/sbin/ip');
+{
+    note "checking kernel-named NICs";
+
+    {
+        # what happens if /sbin/ip is not available
+        is( $cpev->blockers_check(), 102, 'What happens when /sbin/ip is not available' );
+    }
+
+    # Mock all necessary file access
+    $errors_mock->redefine( 'saferunnoerror' => '' );
+    $sbin_ip->contents('');
+    chmod 755, $sbin_ip->path();
+
+    $cpev_mock->redefine( '_get_nics' => sub { qw< eth0 eth1 > } );
+    is( $cpev->blockers_check(), 103, 'What happens when ip addr returns eth0 and eth1' );
+
+    $cpev_mock->redefine( '_get_nics' => sub { qw< w0p1lan > } );
+    is( $cpev->blockers_check(), 0, 'No blocks when there are no kernel-named NICs' );
+}
+
+$errors_mock->redefine(
+    'saferunnoerror' => sub {
+        $_[0] eq '/sbin/ip' ? '' : $errors_mock->original('saferunnoerror');
+    }
+);
 
 is( $cpev->blockers_check(), 0, 'No More Blockers' );
 
