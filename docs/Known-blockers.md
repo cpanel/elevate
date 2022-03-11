@@ -10,6 +10,10 @@ The following conditions are assumed to be in place any time you run this script
   * We DO NOT support alternative RHEL 7 (including CloudLinux) variants.
 * You are logged in as **root**.
 
+## cPanel version
+
+The upgrade process will not be allowed to proceed if the major version of cPanel installed on the system is below 102. Additionally, cPanel must have been upgraded to the latest build specified by one of the named release tiers listed in Update Preferences in WHM.
+
 ## Disk space
 
 At any given time, the upgrade process may use at or more than 3 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:
