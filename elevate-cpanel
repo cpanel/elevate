@@ -213,6 +213,8 @@ use constant VETTED_YUM_REPO => qw{
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
+our $BLOCKER_GUARD;
+
 sub _OPTIONS {
     return qw( service start clean continue manual-reboots status log check );
 }
@@ -2274,6 +2276,7 @@ sub blockers_check ( $self, $all = 0 ) {
 #   except in check mode where we want all failures
 #
 sub has_blocker ( $self, $id, $msg ) {
+    die 'has_blocker() called outside _blockers_check() context' unless $BLOCKER_GUARD;
 
     # FIXME: consider removing the id
     my $blocker = bless { id => $id, msg => $msg }, 'cpev::Blocker';
@@ -2293,6 +2296,7 @@ sub has_blocker ( $self, $id, $msg ) {
 }
 
 sub _blockers_check($self) {
+    local $BLOCKER_GUARD = 1;
 
     if ( !-x q[/usr/local/cpanel/cpanel] ) {
         $self->has_blocker( 1, 'This script is only designed to work with cPanel & WHM installs. cPanel & WHM do not appear to be present on your system.' );
