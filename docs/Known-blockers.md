@@ -25,11 +25,20 @@ The following software is known to lead to a corrupt install if this script is u
 * cPanel CCS Calendar Server - Requires Postgresql < 10.0
 * Postgresql - Elevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.
 
-## Things you need to upgrade first.
+## Things you need to upgrade first
 
 * **nameserver**: cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8, it is preferred that you always be on PowerDNS.
   * Mitigation: `/scripts/setupnameserver powerdns`
 * **MySQL**: 99% of existing AlmaLinux 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.
   * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.
 
+## Network configuration
+
+If you have multiple kernel-named Network Interface Cards (NICs) such as "eth0", "eth1", etc. which are not virtual devices, you need to rename them before running elevate.
+
+The following code will tell you if you're affected:
+
+```bash
+[ $(ip link | egrep '^[0-9]+: eth[0-9]+:' | wc -l) -ge 1 ] && [ $(readlink /sys/class/net/* | grep -v '/virtual/' | wc -l) -ge 2 ] && echo 'Upgrade your NIC configuration'
+```
 
