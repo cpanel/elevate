@@ -2294,36 +2294,63 @@ sub has_blocker ( $self, $id, $msg ) {
     return $blocker;
 }
 
-sub _blockers_check($self) {
-
+sub _blocker_is_missing_cpanel_whm ($self) {
     if ( !-x q[/usr/local/cpanel/cpanel] ) {
         $self->has_blocker( 1, 'This script is only designed to work with cPanel & WHM installs. cPanel & WHM do not appear to be present on your system.' );
     }
 
+    return 0;
+}
+
+sub _blocker_is_invalid_cpanel_whm ($self) {
     if ( !$Cpanel::Version::Tiny::major_version ) {
         $self->has_blocker( 1, 'Invalid cPanel & WHM major_version' );
     }
 
+    return 0;
+}
+
+sub _blocker_is_old_cpanel ($self) {
     if ( $Cpanel::Version::Tiny::major_version <= 100 ) {
         $self->has_blocker( 2, "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better." );
     }
 
+    return 0;
+}
+
+sub _blocker_is_non_centos7 ($self) {
     unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
         $self->has_blocker( 3, 'This script is only designed to upgrade CentOS 7 to AlmaLinux 8' );
     }
 
+    return 0;
+}
+
+sub _blocker_is_old_centos7 ($self) {
     if ( Cpanel::OS::minor() < 9 ) {
         $self->has_blocker( 4, 'You need to run CentOS 7.9 and later to upgrade AlmaLinux 8. You are currently using ' . Cpanel::OS::display_name() );
     }
 
+    return 0;
+}
+
+sub _blocker_is_experimental_os ($self) {
     if ( -e '/var/cpanel/caches/Cpanel-OS.custom' ) {
         $self->has_blocker( 5, 'Experimental OS detected. This script only supports CentOS 7 upgrades' );
     }
 
+    return 0;
+}
+
+sub _blocker_is_sandbox ($self) {
     if ( -e q[/var/cpanel/dev_sandbox] ) {
         $self->has_blocker( 6, 'Cannot elevate a sandbox...' );
     }
 
+    return 0;
+}
+
+sub _blocker_is_calendar_installed ($self) {
     if ( Cpanel::Pkgr::is_installed('cpanel-ccs-calendarserver') ) {
         $self->has_blocker( 7, <<~'EOS');
         You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.
@@ -2331,6 +2358,10 @@ sub _blockers_check($self) {
         EOS
     }
 
+    return 0;
+}
+
+sub _blocker_is_postgresql_installed ($self) {
     if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
         my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
         my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
@@ -2347,9 +2378,10 @@ sub _blockers_check($self) {
         $self->has_blocker( 8, $msg );
     }
 
-    my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
+    return 0;
+}
 
-    my $nameserver = $cpconf->{'local_nameserver_type'};
+sub _blocker_non_bind_powerdns ( $self, $nameserver ) {
     if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
         $self->has_blocker( 9, <<~'EOS');
         AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns.
@@ -2357,70 +2389,79 @@ sub _blockers_check($self) {
         EOS
     }
 
-    {    # ensure the script is install at the correct location
-        my $running_from = Cwd::abs_path($0) // '';
-        if (   $running_from ne '/scripts/elevate-cpanel'
-            && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
-            $self->has_blocker( 10, <<~'EOS');
-            The script is not installed to the correct directory.
-            Please install it to /scripts/elevate-cpanel and run it again.
-            EOS
-        }
+    return 0;
+}
+
+sub _blocker_wrong_location ($self) {
+
+    # ensure the script is install at the correct location
+    my $running_from = Cwd::abs_path($0) // '';
+    if (   $running_from ne '/scripts/elevate-cpanel'
+        && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
+        $self->has_blocker( 10, <<~'EOS');
+        The script is not installed to the correct directory.
+        Please install it to /scripts/elevate-cpanel and run it again.
+        EOS
     }
 
-    {
-        # checking MySQL version
-        my $mysql_version = $cpconf->{'mysql-version'} // '';
+    return 0;
+}
 
-        if ( $mysql_version eq '5.7' ) {
-            $self->has_blocker( 11, <<~'EOS');
-            You are using MySQL 5.7 community server.
-            This version is not available for AlmaLinux 8.
-            You first need to update your MySQL server to 8.0 or later.
+sub _blocker_old_mysql ( $self, $mysql_version = '' ) {
 
-            You can update to version 8.0 using the following command:
+    # checking MySQL version
+    if ( $mysql_version eq '5.7' ) {
+        $self->has_blocker( 11, <<~'EOS');
+        You are using MySQL 5.7 community server.
+        This version is not available for AlmaLinux 8.
+        You first need to update your MySQL server to 8.0 or later.
 
-                /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0
+        You can update to version 8.0 using the following command:
 
-            Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+            /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0
+
+        Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+        EOS
+    }
+    elsif ( $mysql_version eq '10.2' ) {
+        $self->has_blocker( 12, <<~'EOS');
+        You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
+        You first need to update MariaDB server to 10.3 or later.
+
+        You can update to version 10.3 using the following command:
+
+            /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
+
+        Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+        EOS
+    }
+    else {
+        my %supported_mysql_versions = (
+            map { $_ => 1 }
+              qw{
+              8.0
+              10.3
+              10.4
+              10.5
+              10.6
+              }
+        );
+
+        if ( !$supported_mysql_versions{$mysql_version} ) {
+            $self->has_blocker( 13, <<~"EOS");
+            We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
+            Please open a support ticket.
             EOS
         }
-        elsif ( $mysql_version eq '10.2' ) {
-            $self->has_blocker( 12, <<~'EOS');
-            You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
-            You first need to update MariaDB server to 10.3 or later.
 
-            You can update to version 10.3 using the following command:
-
-                /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
-
-            Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
-            EOS
-        }
-        else {
-            my %supported_mysql_versions = (
-                map { $_ => 1 }
-                  qw{
-                  8.0
-                  10.3
-                  10.4
-                  10.5
-                  10.6
-                  }
-            );
-
-            if ( !$supported_mysql_versions{$mysql_version} ) {
-                $self->has_blocker( 13, <<~"EOS");
-                We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
-                Please open a support ticket.
-                EOS
-            }
-
-            # store the MySQL version we started from
-            update_stage_file( { 'mysql-version' => $mysql_version } );
-        }
+        # store the MySQL version we started from
+        update_stage_file( { 'mysql-version' => $mysql_version } );
     }
 
+    return 0;
+}
+
+sub _blocker_invalid_yum_repos ($self) {
     if ( my $status = $self->_check_yum_repos() ) {
         my $msg = '';
         if ( $status & _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX ) {
@@ -2452,32 +2493,86 @@ sub _blockers_check($self) {
         $self->has_blocker( 14, $msg ) if $status;
     }
 
+    return 0;
+}
+
+sub _blocker_unstable_yum ($self) {
     $self->has_blocker( 15, q[yum is not stable] ) unless _yum_is_stable();
 
+    return 0;
+}
+
+sub _blocker_invalid_ssh_config ($self) {
     $self->has_blocker( 16, q[Issue with sshd configuration] ) unless _sshd_setup();
 
+    return 0;
+}
+
+sub _blocker_old_jetbackup ($self) {
     $self->has_blocker( 17, q[AlmaLinux 8 does not support JetBackup prior to version 5. Please upgrade JetBackup before elevate.] ) if _use_jetbackup4_or_earlier();
 
+    return 0;
+}
+
+sub _blocker_mysql_upgrade_in_progress ($self) {
     if ( -e q[/var/cpanel/mysql_upgrade_in_progress] ) {
         $self->has_blocker( 18, q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.] );
     }
 
+    return 0;
+}
+
+sub _blocker_disk_space ($self) {
     $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
 
+    return 0;
+}
+
+sub _blocker_system_update ($self) {
     $self->has_blocker( 101, q[System is up to date] ) unless _system_update_check();
 
-    {
-        $self->has_blocker( 102, q[Missing ] . SBIN_IP . ' binary' ) unless -x SBIN_IP;
-        my @eths = _get_nics();
-        if ( @eths >= 2 ) {
-            $self->has_blocker( 103, <<~'EOS');
-            Your machine has multiple network interface cards (NICs) using kernel-names (ethX).
-            Since the upgrade process cannot guarantee their stability after upgrade, you cannot upgrade.
+    return 0;
+}
 
-            Please provide those interfaces new names before continuing the update.
-            EOS
-        }
+sub _blocker_bad_nics_naming ($self) {
+    $self->has_blocker( 102, q[Missing ] . SBIN_IP . ' binary' ) unless -x SBIN_IP;
+    my @eths = _get_nics();
+    if ( @eths >= 2 ) {
+        $self->has_blocker( 103, <<~'EOS');
+        Your machine has multiple network interface cards (NICs) using kernel-names (ethX).
+        Since the upgrade process cannot guarantee their stability after upgrade, you cannot upgrade.
+
+        Please provide those interfaces new names before continuing the update.
+        EOS
     }
+
+    return 0;
+}
+
+sub _blockers_check ($self) {
+
+    my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
+
+    $self->_blocker_is_missing_cpanel_whm();
+    $self->_blocker_is_invalid_cpanel_whm();
+    $self->_blocker_is_old_cpanel();
+    $self->_blocker_is_non_centos7();
+    $self->_blocker_is_old_centos7();
+    $self->_blocker_is_experimental_os();
+    $self->_blocker_is_sandbox();
+    $self->_blocker_is_calendar_installed();
+    $self->_blocker_is_postgresql_installed();
+    $self->_blocker_non_bind_powerdns( $cpconf->{'local_nameserver_type'} );
+    $self->_blocker_wrong_location();
+    $self->_blocker_old_mysql( $cpconf->{'mysql-version'} );
+    $self->_blocker_invalid_yum_repos();
+    $self->_blocker_unstable_yum();
+    $self->_blocker_invalid_ssh_config();
+    $self->_blocker_old_jetbackup();
+    $self->_blocker_mysql_upgrade_in_progress();
+    $self->_blocker_disk_space();
+    $self->_blocker_system_update();
+    $self->_blocker_bad_nics_naming();
 
     return 0;
 }

@@ -51,6 +51,10 @@ my $mock_ip_addr = q{1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state
        valid_lft forever preferred_lft forever
 };
 
+my $cpconf_mock = Test::MockModule->new('Cpanel::Config::LoadCpConf');
+my %cpanel_conf = ( 'local_nameserver_type' => 'nsd', 'mysql-version' => '5.7' );
+$cpconf_mock->redefine( 'loadcpconf' => sub { return \%cpanel_conf } );
+
 my $cpev = bless {}, 'cpev';
 
 {
@@ -147,10 +151,6 @@ You have postgresql-server version 10.0 installed.
 We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.
 EOS
 %installed = ();
-
-my $cpconf_mock = Test::MockModule->new('Cpanel::Config::LoadCpConf');
-my %cpanel_conf = ( 'local_nameserver_type' => 'nsd', 'mysql-version' => '5.7' );
-$cpconf_mock->redefine( 'loadcpconf' => sub { return \%cpanel_conf } );
 
 is( $cpev->blockers_check(), 9, "nsd blocks an upgrade to AlmaLinux 8" );
 message_seen( 'ERROR', <<'EOS' );
