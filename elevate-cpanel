@@ -1941,7 +1941,21 @@ sub remove_nixstats {
     ssystem( qw{/usr/bin/systemctl disable}, $service ) if $is_enabled;
     ssystem( qw{/usr/bin/systemctl stop},    $service );
 
-    ssystem(qw{/usr/bin/rm -f /usr/local/bin/nixstatsagent});
+    my $pip;
+
+    if ( -x q[/usr/bin/pip3] ) {
+        $pip = q[/usr/bin/pip3];
+    }
+    elsif ( -x q[/usr/bin/pip] ) {
+        $pip = q[/usr/bin/pip];
+    }
+
+    if ($pip) {
+        ssystem( $pip, qw{uninstall -y nixstatsagent} );
+    }
+    else {
+        ERROR("Cannot remove nixstatsagent: cannot find pip binary");
+    }
 
     my $data = {
         service_enabled => $is_enabled,
@@ -1970,6 +1984,10 @@ sub restore_nixstats {
     ssystem( '/usr/bin/bash', $installer_script, $user );
 
     unlink $installer_script;
+
+    if ( !-x q[/usr/local/bin/nixstatsagent] ) {
+        ERROR("Missing nixstatsagent binary: /usr/local/bin/nixstatsagent");
+    }
 
     my $service = q[nixstatsagent];
 
