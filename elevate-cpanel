@@ -277,15 +277,22 @@ sub monitor_upgrade {
 sub start($self) {
     my $stage = get_stage();
     if ( $stage != 0 ) {
-        warn <<"EOS";
-Your elevation update is already in progress (stage $stage).
-You can monitor the current update by running:
+        my $header;
+        if ( $stage > VALID_STAGES ) {
+            $header = q[The 'elevate-cpanel' script has already been executed on this server.];
+        }
+        else {
+            $header = qq[An elevation process is currently in progress: running stage $stage];
+        }
 
-    /scripts/elevate-cpanel
+        die <<~"EOS";
+        $header
+        You can check the log by running:
+            /scripts/elevate-cpanel --log
+        or check the elevation status:
+            /scripts/elevate-cpanel --check
+        EOS
 
-EOS
-
-        return 0;
     }
 
     system touch => LOG_FILE;
