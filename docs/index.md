@@ -1,6 +1,10 @@
 [![testsuite](https://github.com/cpanel/elevate/actions/workflows/testsuite.yml/badge.svg?branch=main)](https://github.com/cpanel/elevate/actions/workflows/testsuite.yml)
 
-# Welcome to the cPanel ELEVATE project.
+# Welcome to the cPanel Elevate project.
+
+## Goal
+
+This project provides a script to upgrade an existing `cPanel & WHM` CentOS 7 server installation to AlmaLinux 8.
 
 ## Introduction
 
@@ -12,35 +16,50 @@ This project builds on the [Alma Linux Elevate](https://wiki.almalinux.org/eleva
 
 The Alma Linux Elevate project is very effective at upgrading the distro packages from [CentOS 7](https://www.centos.org/) to [AlmaLinux 8](https://almalinux.org/). However if you attempt to do this on a CentOS 7 based [cPanel install](https://www.cpanel.net/), you will end up with a broken system.
 
-## What you need to use it
+## Before updating
+
+Before updating, please check that you met all the pre requirements:
 
 * You will need to have console access available to your machine
-* You should back up your server before attempting this
+* You should back up your server before attempting this upgrade
+* Ensure your server is up to date: `yum update`
+* Ensure you are using the last stable version of cPanel & WHM
+* Use a version of MySQL/MariaDB compliant with Alamlinux 8.
 
-**The cPanel ELEVATE program does not back up before upgrading**
+**The cPanel elevate script does not back up before upgrading**
 
-## How to use it
+## Download the elevate-script
 
 * You can download a copy of the script to run on your cPanel server via:
 
 ```bash
-wget -O /scripts/elevate_cpanel \
-    https://raw.githubusercontent.com/cpanel/elevate/RELEASE/elevate_cpanel ;
-chmod 700 /scripts/elevate_cpanel
+wget -O /scripts/elevate-cpanel \
+    https://raw.githubusercontent.com/cpanel/elevate/stable/elevate-script ;
+chmod 700 /scripts/elevate-cpanel
+```
 
+## Usage
+
+```bash
 # Read the help (and risks mentionned in this documentation)
-/scripts/elevate_cpanel --help
+/scripts/elevate-cpanel --help
+
+# Check if your server is ready for elevation (dry run mode)
+/scripts/elevate-cpanel --check
 
 # Start the migration
-/scripts/elevate_cpanel --start
+/scripts/elevate-cpanel --start
 
 ... # expect multiple reboots (~30 min)
 
 # Check the current status
-/scripts/elevate_cpanel --status
+/scripts/elevate-cpanel --status
+
+# Monitor the elevation log
+/scripts/elevate-cpanel --log
 
 # In case of errors, once fixed you can continue the migration process
-/scripts/elevate_cpanel --continue
+/scripts/elevate-cpanel --continue
 ```
 
 ## Some of the problems you might find include:
