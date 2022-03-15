@@ -1,0 +1,50 @@
+# References:
+#
+# https://github.com/marketplace/actions/hugo-static-site-generator
+# https://retrolog.io/blog/creating-a-hugo-theme-from-scratch/
+
+baseURL = 'https://cpanel.github.io/ev-theme'
+languageCode = 'en-us'
+title = 'cPanel elevate documentation'
+theme = "cptheme"
+
+sectionPagesMenu = "main"
+
+[menu]
+  [[menu.main]]
+    name = "Report an issue"
+    url = "https://github.com/cpanel/elevate/issues"
+    weight = 1
+
+  [[menu.main]]
+    name = "Contribute"
+    url = "https://github.com/cpanel/elevate"
+    weight = 2
+
+##
+## left menu
+##
+  [[menu.left]]
+    name = "Introduction"
+    url = "/#introduction"
+    weight = 1
+
+  [[menu.left]]
+    name = "Download"
+    url = "/#download-the-elevate-script"
+    weight = 2
+
+  [[menu.left]]
+    name = "Usage"
+    url = "/#usage"
+    weight = 3
+
+  [[menu.left]]
+    name = "Risks"
+    url = "/#risks"
+    weight = 4
+
+  [[menu.left]]
+    name = "Copyright"
+    url = "/#copyright"
+    weight = 5

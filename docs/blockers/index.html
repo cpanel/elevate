@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+    <title>cPanel elevate documentation | Known cPanel Elevate Blockers</title>
+    <link rel=icon href="https://cpanel.github.io/ev-theme/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="https://cpanel.github.io/ev-theme/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/ev-theme/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/ev-theme/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/ev-theme/css/style.css">
+</head><body><nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="https://cpanel.github.io/ev-theme">
+            <img src="https://cpanel.github.io/ev-theme/images/elevate-logo.svg" alt="cPanel elevate">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+            aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+
+
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate/issues">
+
+                    Report an issue
+                </a>
+                </li>
+
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate">
+
+                    Contribute
+                </a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</nav>
+<div id="content">
+    <div class="container">
+        <ol class="d-none d-md-flex breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="https://cpanel.github.io/ev-theme">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                Known cPanel Elevate Blockers
+            </li>
+        </ol>
+    </div>
+</div>
+<br><div id="content">
+<div id="content">
+    <div class="container">
+
+        <div class="row"><div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button"
+                        href="https://github.com/cpanel/elevate/issues">Report an issue</a></li>
+                <li><a class="btn btn-primary" role="button" href="#">Documentation</a></li>
+
+                <a href="/ev-theme/#introduction">
+
+                    <li>Introduction</li>
+                </a>
+
+                <a href="/ev-theme/#download-the-elevate-script">
+
+                    <li>Download</li>
+                </a>
+
+                <a href="/ev-theme/#usage">
+
+                    <li>Usage</li>
+                </a>
+
+                <a href="/ev-theme/#risks">
+
+                    <li>Risks</li>
+                </a>
+
+                <a href="/ev-theme/#copyright">
+
+                    <li>Copyright</li>
+                </a>
+
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/ev-theme/blockers">Known Blockers</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div><div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
+                    <h1 id="known-blockers">Known Blockers</h1>
+<p>The following is a list of install states which the script will intentionally prevent you from upgrading with. This is because the script cannot garantuee a successful upgrade with these conditions in place.</p>
+<h2 id="basic-checks">Basic checks</h2>
+<p>The following conditions are assumed to be in place any time you run this script:</p>
+<ul>
+<li>You have <strong>CentOS 7.9</strong> or greater installed.
+<ul>
+<li>We DO NOT support alternative RHEL 7 (including CloudLinux) variants.</li>
+</ul>
+</li>
+<li>You are logged in as <strong>root</strong>.</li>
+</ul>
+<h2 id="disk-space">Disk space</h2>
+<p>At any given time, the upgrade process may use at or more than 3 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:</p>
+<ul>
+<li><strong>/boot</strong>: 120 MB</li>
+<li><strong>/usr/local/cpanel</strong>: 1.5 GB</li>
+<li><strong>/var/lib</strong>: 3 GB</li>
+</ul>
+<h2 id="unsupported-software">Unsupported software</h2>
+<p>The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:</p>
+<ul>
+<li>cPanel CCS Calendar Server - Requires Postgresql &lt; 10.0</li>
+<li>Postgresql - Elevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.</li>
+</ul>
+<h2 id="things-you-need-to-upgrade-first">Things you need to upgrade first.</h2>
+<ul>
+<li><strong>nameserver</strong>: cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8, it is preferred that you always be on PowerDNS.
+<ul>
+<li>Mitigation: <code>/scripts/setupnameserver powerdns</code></li>
+</ul>
+</li>
+<li><strong>MySQL</strong>: 99% of existing AlmaLinux 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.
+<ul>
+<li><strong>MariaDB</strong>: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.</li>
+</ul>
+</li>
+</ul>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div><script type="text/javascript" src="https://cpanel.github.io/ev-theme/js/copy-code.js"></script>
+<footer class="text-center mt-0">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-1">
+    <a href="//cpanel.com" title="cPanel, L.L.C." class="center-block cPanel-logo">
+    <img src="https://docs.cpanel.net/img/cpanel-logo.min.svg" title="cPanel, L.L.C." />
+    </a>
+    </div>
+    <div class="col-md-11 legal">
+    <p class="small">
+    &copy; 2022 cPanel L.L.C.
+    </p>
+    </div>
+    </div>
+    </div>
+    <div class="container-fluid trademark">
+    <div class="row">
+    <div class="col-sm-12 text-center">
+    <small>
+        cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
+        <br><i>page generated at Mar 15, 2022 at 23:26 (UTC)</i>
+    </small>
+    </div>
+    </div>
+    </div>
+</footer></body>
+</html>

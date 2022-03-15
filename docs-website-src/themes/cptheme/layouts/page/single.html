@@ -1,0 +1,21 @@
+{{ define "header" }}{{ partial "page-header.html" . }}{{ end }}
+{{ define "main" }}
+<div id="content">
+    <div class="container">
+
+        <div class="row">
+
+            {{- partial "left_menu.html" . -}}
+
+            <div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy {{ $.Param "text_color" | default "mid-gray" }}">
+                    {{ .Content }}
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

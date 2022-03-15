@@ -1,1 +1,1 @@
-docs/index.md
+docs-website-src/content/_index.md

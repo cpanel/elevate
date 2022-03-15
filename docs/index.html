@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html><head>
+	<meta name="generator" content="Hugo 0.91.2" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+    <title>cPanel elevate documentation</title>
+    <link rel=icon href="https://cpanel.github.io/ev-theme/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="https://cpanel.github.io/ev-theme/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/ev-theme/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/ev-theme/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/ev-theme/css/style.css">
+</head><body><nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="https://cpanel.github.io/ev-theme">
+            <img src="https://cpanel.github.io/ev-theme/images/elevate-logo.svg" alt="cPanel elevate">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+            aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+
+
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate/issues">
+
+                    Report an issue
+                </a>
+                </li>
+
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate">
+
+                    Contribute
+                </a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</nav>
+<div id="content">
+    <div class="container">
+        <ol class="d-none d-md-flex breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="https://cpanel.github.io/ev-theme">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                cPanel Elevate CentOS 7 to AlmaLinux 8
+            </li>
+        </ol>
+    </div>
+</div>
+<br><div id="content">
+<div id="content">
+    <div class="container">
+
+        <div class="row"><div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button"
+                        href="https://github.com/cpanel/elevate/issues">Report an issue</a></li>
+                <li><a class="btn btn-primary" role="button" href="#">Documentation</a></li>
+
+                <a href="/ev-theme/#introduction">
+
+                    <li>Introduction</li>
+                </a>
+
+                <a href="/ev-theme/#download-the-elevate-script">
+
+                    <li>Download</li>
+                </a>
+
+                <a href="/ev-theme/#usage">
+
+                    <li>Usage</li>
+                </a>
+
+                <a href="/ev-theme/#risks">
+
+                    <li>Risks</li>
+                </a>
+
+                <a href="/ev-theme/#copyright">
+
+                    <li>Copyright</li>
+                </a>
+
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/ev-theme/blockers">Known Blockers</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div><div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
+                    <h1 id="welcome-to-the-cpanel-elevate-project">Welcome to the cPanel Elevate project.</h1>
+<h2 id="goal">Goal</h2>
+<p>This project provides a script to upgrade an existing <code>cPanel &amp; WHM</code> CentOS 7 server installation to AlmaLinux 8.</p>
+<h2 id="introduction">Introduction</h2>
+<ul>
+<li><a href="https://github.com/cpanel/elevate/issues">Issues can be reported here</a></li>
+<li><a href="https://github.com/cpanel/elevate/pulls">Pull requests are welcome</a>
+<ul>
+<li>Code contributions are subject to our <a href="docs/cPanel-CLA.pdf">Contributor License Agreement</a></li>
+</ul>
+</li>
+</ul>
+<p>This project builds on the <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux Elevate</a> project, which leans heavily on the <a href="https://leapp.readthedocs.io/en/latest/">LEAPP Project</a> created for in-place upgrades of RedHat based systems.</p>
+<p>The Alma Linux Elevate project is very effective at upgrading the distro packages from <a href="https://www.centos.org/">CentOS 7</a> to <a href="https://almalinux.org/">AlmaLinux 8</a>. However if you attempt to do this on a CentOS 7 based <a href="https://www.cpanel.net/">cPanel install</a>, you will end up with a broken system.</p>
+<h2 id="before-updating">Before updating</h2>
+<p>Before updating, please check that you met all the pre requirements:</p>
+<ul>
+<li>You will need to have console access available to your machine</li>
+<li>You should back up your server before attempting this upgrade</li>
+<li>Ensure your server is up to date: <code>yum update</code></li>
+<li>Ensure you are using the last stable version of cPanel &amp; WHM</li>
+<li>Use a version of MySQL/MariaDB compliant with Alamlinux 8.</li>
+</ul>
+<p><strong>The cPanel elevate script does not back up before upgrading</strong></p>
+<h2 id="download-the-elevate-script">Download the elevate-script</h2>
+<ul>
+<li>You can download a copy of the script to run on your cPanel server via:</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">wget -O /scripts/elevate-cpanel <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    https://raw.githubusercontent.com/cpanel/elevate/stable/elevate-script ;
+chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
+</code></pre></div><h2 id="usage">Usage</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Read the help (and risks mentionned in this documentation)</span>
+/scripts/elevate-cpanel --help
+
+<span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
+/scripts/elevate-cpanel --check
+
+<span style="color:#75715e"># Start the migration</span>
+/scripts/elevate-cpanel --start
+
+... <span style="color:#75715e"># expect multiple reboots (~30 min)</span>
+
+<span style="color:#75715e"># Check the current status</span>
+/scripts/elevate-cpanel --status
+
+<span style="color:#75715e"># Monitor the elevation log</span>
+/scripts/elevate-cpanel --log
+
+<span style="color:#75715e"># In case of errors, once fixed you can continue the migration process</span>
+/scripts/elevate-cpanel --continue
+</code></pre></div><h2 id="some-of-the-problems-you-might-find-include">Some of the problems you might find include:</h2>
+<ul>
+<li>x86_64 RPMs not in the primary CentOS repos are upgraded.
+<ul>
+<li><code>rpm -qa|grep el7</code></li>
+</ul>
+</li>
+<li>EA4 RPMs are incorrect
+<ul>
+<li>EA4 provides different dependencies and linkage on C7/A8</li>
+</ul>
+</li>
+<li>cPanel binaries (cpanelsync) are invalid.</li>
+<li>3rdparty repo packages are not upgraded (imunify 360, epel, &hellip;).</li>
+<li>Manually installed Perl XS (arch) CPAN installs invalid.</li>
+<li>Manually installed PECL need re-build.</li>
+<li>Cpanel::CachedCommand is wrong.</li>
+<li>Cpanel::OS distro setting is wrong.</li>
+<li>MySQL might now not be upgradable (MySQL versions &lt; 8.0 are not normally present on A8)</li>
+</ul>
+<h2 id="our-current-approach-can-be-summarized-as">Our current approach can be summarized as:</h2>
+<ol>
+<li><a href="docs/Known-blockers.md">Check for blockers</a></li>
+<li><code>yum update &amp;&amp; reboot</code></li>
+<li>Analyze and remove software (not data) commonly installed on a cPanel system</li>
+<li><a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Execute AlmaLinux upgrade</a></li>
+<li>Re-install previoulsy removed software detected prior to upgrade. This might include:</li>
+</ol>
+<ul>
+<li>cPanel (upcp)</li>
+<li>EA4</li>
+<li>MySQL variants</li>
+<li>Distro Perl/PECL binary re-installs</li>
+</ul>
+<ol start="6">
+<li>Final reboot (assure all services are running on new binaries)</li>
+</ol>
+<h2 id="risks">RISKS</h2>
+<p>As always, upgrades can lead to data loss or behavior changes that may leave you with a broken system.</p>
+<p>Failure states include but are not limited to:</p>
+<ul>
+<li>Failure to upgrade the kernel due to custom drivers</li>
+<li>Incomplete upgrade of software because this code base is not aware of it.</li>
+</ul>
+<p>We recommend you back up (and ideally snapshot) your system so it can be easily restored before continuing.</p>
+<p>This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.</p>
+<p><strong>DISCLAIMER:</strong> We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
+<p>Good Luck!</p>
+<h2 id="copyright">Copyright</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">Copyright <span style="color:#ae81ff">2022</span> cPanel L.L.C.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+<span style="color:#ae81ff">1.</span> Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+<span style="color:#ae81ff">2.</span> Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and<span style="color:#f92672">/</span>or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS <span style="color:#e6db74">&#34;AS IS&#34;</span>
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</code></pre></div>
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div><script type="text/javascript" src="https://cpanel.github.io/ev-theme/js/copy-code.js"></script>
+<footer class="text-center mt-0">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-1">
+    <a href="//cpanel.com" title="cPanel, L.L.C." class="center-block cPanel-logo">
+    <img src="https://docs.cpanel.net/img/cpanel-logo.min.svg" title="cPanel, L.L.C." />
+    </a>
+    </div>
+    <div class="col-md-11 legal">
+    <p class="small">
+    &copy; 2022 cPanel L.L.C.
+    </p>
+    </div>
+    </div>
+    </div>
+    <div class="container-fluid trademark">
+    <div class="row">
+    <div class="col-sm-12 text-center">
+    <small>
+        cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
+        <br><i>page generated at Mar 15, 2022 at 23:26 (UTC)</i>
+    </small>
+    </div>
+    </div>
+    </div>
+</footer></body>
+</html>
