@@ -1,0 +1,23 @@
+<div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button"
+                        href="https://github.com/cpanel/elevate/issues">Report an issue</a></li>
+                <li><a class="btn btn-primary" role="button" href="#">Documentation</a></li>
+                {{ range .Site.Menus.left }}
+                <a href="{{ .URL }}">
+                    {{ $text := print .Name | safeHTML }}
+                    <li>{{ $text }}</li>
+                </a>
+                {{ end }}
+                <li><a class="btn btn-primary" role="button" href="{{ .Site.BaseURL }}/blockers">Known Blockers</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div>
