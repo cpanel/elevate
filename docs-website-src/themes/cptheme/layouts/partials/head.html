@@ -1,0 +1,13 @@
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{ $title := print .Site.Title " | " .Title }}
+    {{ if .IsHome }}{{ $title = .Site.Title }}{{ end }}
+    <title>{{ $title }}</title>
+    <link rel=icon href="{{ .Site.BaseURL }}/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="{{ .Site.BaseURL }}/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ .Site.BaseURL }}/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ .Site.BaseURL }}/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ .Site.BaseURL }}/css/style.css">
+</head>
