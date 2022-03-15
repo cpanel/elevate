@@ -3,7 +3,7 @@
 # https://github.com/marketplace/actions/hugo-static-site-generator
 # https://retrolog.io/blog/creating-a-hugo-theme-from-scratch/
 
-baseURL = 'https://cpanel.github.io/ev-theme'
+baseURL = 'https://cpanel.github.io/elevate'
 languageCode = 'en-us'
 title = 'cPanel elevate documentation'
 theme = "cptheme"
