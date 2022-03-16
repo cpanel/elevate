@@ -79,7 +79,8 @@ chmod 700 /scripts/elevate-cpanel
 * Manually installed PECL need re-build.
 * Cpanel::CachedCommand is wrong.
 * Cpanel::OS distro setting is wrong.
-* MySQL might now not be upgradable (MySQL versions < 8.0 are not normally present on A8)
+* MySQL might now not be upgradable (MySQL versions < 8.0 are not normally present on A8).
+* The `nobody` user does not switch from UID 99 to UID 65534 even after upgrading to A8.
 
 ## Our current approach can be summarized as:
 
