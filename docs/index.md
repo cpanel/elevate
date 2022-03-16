@@ -82,7 +82,7 @@ chmod 700 /scripts/elevate-cpanel
 2. `yum update && reboot`
 3. Analyze and remove software (not data) commonly installed on a cPanel system
 4. [Execute AlmaLinux upgrade](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html)
-5. Re-install previoulsy removed software detected prior to upgrade. This might include:
+5. Re-install previously removed software detected prior to upgrade. This might include:
   * cPanel (upcp)
   * EA4
   * MySQL variants
