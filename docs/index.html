@@ -174,7 +174,8 @@ chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
 <li>Manually installed PECL need re-build.</li>
 <li>Cpanel::CachedCommand is wrong.</li>
 <li>Cpanel::OS distro setting is wrong.</li>
-<li>MySQL might now not be upgradable (MySQL versions &lt; 8.0 are not normally present on A8)</li>
+<li>MySQL might now not be upgradable (MySQL versions &lt; 8.0 are not normally present on A8).</li>
+<li>The <code>nobody</code> user does not switch from UID 99 to UID 65534 even after upgrading to A8.</li>
 </ul>
 <h2 id="our-current-approach-can-be-summarized-as">Our current approach can be summarized as:</h2>
 <ol>
@@ -255,7 +256,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Mar 16, 2022 at 17:08 (UTC)</i>
+        <br><i>page generated at Mar 16, 2022 at 17:14 (UTC)</i>
     </small>
     </div>
     </div>
