@@ -849,9 +849,10 @@ sub elevation_startup_marker ( $self, $sum = 'unknown' ) {
     update_stage_file(
         {
             '_elevate_process' => {
-                script_md5   => $sum,
-                cpanel_build => $Cpanel::Version::Tiny::VERSION_BUILD,
-                started_at   => scalar gmtime(),
+                script_md5         => $sum,
+                cpanel_build       => $Cpanel::Version::Tiny::VERSION_BUILD,
+                started_at         => scalar gmtime(),
+                redhat_release_pre => read_redhat_release(),
             }
         }
     );
@@ -861,7 +862,14 @@ sub elevation_startup_marker ( $self, $sum = 'unknown' ) {
 
 sub elevation_success_marker($self) {
 
-    update_stage_file( { '_elevate_process' => { finished_at => scalar gmtime() } } );
+    update_stage_file(
+        {
+            '_elevate_process' => {
+                finished_at         => scalar gmtime(),
+                redhat_release_post => read_redhat_release(),
+            }
+        }
+    );
 
     File::Copy::copy( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
 
@@ -3076,6 +3084,12 @@ sub reboot {
 sub request_manual_reboots() {
     my $content = read_stage_file();
     return !!$content->{manual_reboots};
+}
+
+sub read_redhat_release() {
+    my ($first_line) = split( "\n", Cpanel::LoadFile::loadfile('/etc/redhat-release') // '' );
+
+    return $first_line;
 }
 
 sub ssystem (@args) {
