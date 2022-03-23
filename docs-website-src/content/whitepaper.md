@@ -18,7 +18,8 @@ who may be considering upgrading their cPanel & WHM servers to a different RHEL-
 
 # Introduction
 
-“ELevate is a project aimed to provide the ability to upgrade between major versions of RHEL-based distributions from 7.x to 8.x. It combines Red Hat’s Leapp framework with a community-created library and service for the migration metadata set required for it.” [1]
+> “ELevate is a project aimed to provide the ability to upgrade between major versions of RHEL-based distributions from 7.x to 8.x. It combines Red Hat’s Leapp framework with a community-created library and service for the migration metadata set required for it.” [1]
+
 Upgrading from one distribution to another is challenging. To do so usually involves wiping a server and rebuilding it from the ground up or purchasing another server and migrating the data at additional cost. This forces a company to choose between living with an OS distribution that may no longer be the best choice for their business needs or going through a laborious upgrade process that may involve lengthy outages.
 The ELevate project is designed to facilitate this process, enabling in-place upgrades between major versions of RHEL-based distributions. This provides a best-of-both-worlds scenario for sysadmins and infrastructure decision- makers. cPanel, L.L.C. has added custom tools to the ELevate tool chest that cover the cPanel & WHM aspects of the server upgrade process.
 
