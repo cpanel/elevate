@@ -45,6 +45,14 @@ wget -O /scripts/elevate-cpanel \
 chmod 700 /scripts/elevate-cpanel
 ```
 
+## Before you upgrade
+
+We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system. You can do this by running:
+```bash
+# Check if your server is ready for elevation (dry run mode)
+/scripts/elevate-cpanel --check
+```
+
 ## Usage
 
 ```bash
