@@ -30,26 +30,21 @@ sectionPagesMenu = "main"
     weight = 1
 
   [[menu.left]]
-    name = "Download"
-    url = "/#download-the-elevate-cpanel-script"
+    name = "Before Updating"
+    url = "/#before-updating"
     weight = 2
 
   [[menu.left]]
-    name = "Upgrade Check"
-    url = "/#before-you-upgrade"
+    name = "Using the script"
+    url = "/#using-the-script"
     weight = 3
-
-  [[menu.left]]
-    name = "Usage"
-    url = "/#usage"
-    weight = 4
 
   [[menu.left]]
     name = "Risks"
     url = "/#risks"
-    weight = 5
+    weight = 4
 
   [[menu.left]]
     name = "Copyright"
     url = "/#copyright"
-    weight = 6
+    weight = 5

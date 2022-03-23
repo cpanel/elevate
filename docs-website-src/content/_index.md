@@ -23,6 +23,19 @@ The [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-g
 
 This project was designed to be a wrapper around the [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://www.cpanel.net/) with an aim to minimize outages.
 
+### Our current approach can be summarized as:
+
+1. [Check for blockers](docs/Known-blockers.md)
+2. `yum update && reboot`
+3. Analyze and remove software (not data) commonly installed on a cPanel system
+4. [Execute AlmaLinux upgrade](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html)
+5. Re-install previously removed software detected prior to upgrade. This might include:
+  * cPanel (upcp)
+  * EA4
+  * MySQL variants
+  * Distro Perl/PECL binary re-installs
+6. Final reboot (assure all services are running on new binaries)
+
 ## Before updating
 
 Before updating, please check that you met all the pre requirements:
@@ -33,9 +46,30 @@ Before updating, please check that you met all the pre requirements:
 * Ensure you are using the last stable version of cPanel & WHM
 * Use a version of MySQL/MariaDB compliant with Alamlinux 8.
 
+Additional checks can be performed by [downloading the script](/#download-the-elevate-cpanel-script)
+and then [running pre-checks](/#pre-upgrade-checks).
+
+
 **The cPanel elevate script does not back up before upgrading**
 
-## Download the elevate-cpanel script
+### Some of the problems you might find include:
+
+* x86_64 RPMs not in the primary CentOS repos are upgraded.
+  * `rpm -qa|grep el7`
+* EA4 RPMs are incorrect
+  * EA4 provides different dependencies and linkage on C7/A8
+* cPanel binaries (cpanelsync) are invalid.
+* 3rdparty repo packages are not upgraded (imunify 360, epel, ...).
+* Manually installed Perl XS (arch) CPAN installs invalid.
+* Manually installed PECL need re-build.
+* Cpanel::CachedCommand is wrong.
+* Cpanel::OS distro setting is wrong.
+* MySQL might now not be upgradable (MySQL versions < 8.0 are not normally present on A8).
+* The `nobody` user does not switch from UID 99 to UID 65534 even after upgrading to A8.
+
+## Using the script
+
+### Download the elevate-cpanel script
 
 * You can download a copy of the script to run on your cPanel server via:
 
@@ -45,7 +79,7 @@ wget -O /scripts/elevate-cpanel \
 chmod 700 /scripts/elevate-cpanel
 ```
 
-## Before you upgrade
+### Pre-upgrade checks
 
 We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system. You can do this by running:
 ```bash
@@ -53,7 +87,19 @@ We recommend you check for known blockers before you upgrade. The check is desig
 /scripts/elevate-cpanel --check
 ```
 
-## Usage
+### To upgrade
+
+Once you have a backup of your server, and have cleared upgrade blockers with Pre-upgrade checks, you can begin the migration.
+
+**NOTE** This upgrade could take over 30 minutes. Be sure your users are aware that your server may be down and
+unreachable during this time.
+
+```bash
+# Start the migration
+/scripts/elevate-cpanel --start
+```
+
+### Command line options
 
 ```bash
 # Read the help (and risks mentionned in this documentation)
@@ -77,35 +123,7 @@ We recommend you check for known blockers before you upgrade. The check is desig
 /scripts/elevate-cpanel --continue
 ```
 
-## Some of the problems you might find include:
-
-* x86_64 RPMs not in the primary CentOS repos are upgraded.
-  * `rpm -qa|grep el7`
-* EA4 RPMs are incorrect
-  * EA4 provides different dependencies and linkage on C7/A8
-* cPanel binaries (cpanelsync) are invalid.
-* 3rdparty repo packages are not upgraded (imunify 360, epel, ...).
-* Manually installed Perl XS (arch) CPAN installs invalid.
-* Manually installed PECL need re-build.
-* Cpanel::CachedCommand is wrong.
-* Cpanel::OS distro setting is wrong.
-* MySQL might now not be upgradable (MySQL versions < 8.0 are not normally present on A8).
-* The `nobody` user does not switch from UID 99 to UID 65534 even after upgrading to A8.
-
-## Our current approach can be summarized as:
-
-1. [Check for blockers](docs/Known-blockers.md)
-2. `yum update && reboot`
-3. Analyze and remove software (not data) commonly installed on a cPanel system
-4. [Execute AlmaLinux upgrade](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html)
-5. Re-install previously removed software detected prior to upgrade. This might include:
-  * cPanel (upcp)
-  * EA4
-  * MySQL variants
-  * Distro Perl/PECL binary re-installs
-6. Final reboot (assure all services are running on new binaries)
-
-## RISKS
+## Risks
 
 As always, upgrades can lead to data loss or behavior changes that may leave you with a broken system.
 
@@ -119,8 +137,6 @@ We recommend you back up (and ideally snapshot) your system so it can be easily 
 This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.
 
 **DISCLAIMER:** We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
-
-Good Luck!
 
 ## Copyright
 
