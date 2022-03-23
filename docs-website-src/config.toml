@@ -31,7 +31,7 @@ sectionPagesMenu = "main"
 
   [[menu.left]]
     name = "Download"
-    url = "/#download-the-elevate-script"
+    url = "/#download-the-elevate-cpanel-script"
     weight = 2
 
   [[menu.left]]

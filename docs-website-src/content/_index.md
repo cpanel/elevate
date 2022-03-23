@@ -33,7 +33,7 @@ Before updating, please check that you met all the pre requirements:
 
 **The cPanel elevate script does not back up before upgrading**
 
-## Download the elevate-script
+## Download the elevate-cpanel script
 
 * You can download a copy of the script to run on your cPanel server via:
 
