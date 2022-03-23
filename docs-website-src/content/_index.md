@@ -5,11 +5,11 @@ draft: false
 layout: single
 ---
 
-# Welcome to the cPanel Elevate project.
+# Welcome to the cPanel Elevate Project.
 
 ## Goal
 
-The cPanel Elevate project provides a script to upgrade an existing `cPanel & WHM` CentOS 7 server installation to AlmaLinux 8.
+The cPanel Elevate Project provides a script to upgrade an existing `cPanel & WHM` CentOS 7 server installation to AlmaLinux 8.
 
 ## Introduction
 
