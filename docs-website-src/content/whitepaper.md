@@ -27,7 +27,7 @@ The ELevate project is designed to facilitate this process, enabling in-place up
 Servers are core business infrastructure in today’s e-commerce economy. Server security, stability, and availability are critical for operational success in business today. As new operating systems are brought to market, and established OSs add new features, the landscape for server-based business operation changes. Being able to upgrade from one RHEL-derived OS to another without disrupting business operations lets a company optimize this critical infrastructure to stay competitive in an ever-changing technosphere.
 
 ## A. How is cPanel, L.L.C. leveraging the AlmaLinux ELevate project?
-Changing the operating system that underlies a cPanel & WHM installation is not for the faint of heart. cPanel, L.L.C. supports the installation of cPanel & WHM on multiple RHEL-derived operating systems in order to support our customers’ ability to choose the operating system that best meets their business needs. Given the dynamic nature of this OS technosphere, cPanel, L.L.C. has leveraged the Elevate project’s tools for upgrading between RHEL-derived operating systems.
+Changing the operating system that underlies a cPanel & WHM installation is not for the faint of heart. cPanel, L.L.C. supports the installation of cPanel & WHM on multiple RHEL-derived operating systems in order to support our customers’ ability to choose the operating system that best meets their business needs. Given the dynamic nature of this OS technosphere, cPanel, L.L.C. has leveraged the ELevate project’s tools for upgrading between RHEL-derived operating systems.
 
 ## B. Benefits and challenges of ELevating your cPanel & WHM servers
 1. Benefits
