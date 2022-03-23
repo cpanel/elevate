@@ -46,8 +46,8 @@ Before updating, please check that you met all the pre requirements:
 * Ensure you are using the last stable version of cPanel & WHM
 * Use a version of MySQL/MariaDB compliant with Alamlinux 8.
 
-Additional checks can be performed by [downloading the script](/#download-the-elevate-cpanel-script)
-and then [running pre-checks](/#pre-upgrade-checks).
+Additional checks can be performed by [downloading the script](#download-the-elevate-cpanel-script)
+and then [running pre-checks](#pre-upgrade-checks).
 
 
 **The cPanel elevate script does not back up before upgrading**
