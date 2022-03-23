@@ -8,7 +8,7 @@
                         Repository</a></li>
                 <li><a class="btn btn-primary" role="button"
                         href="https://github.com/cpanel/elevate/issues">Report an issue</a></li>
-                <li><a class="btn btn-primary" role="button" href="#">Documentation</a></li>
+                <li><a class="btn btn-primary" role="button" href="{{ .Site.BaseURL }}">Documentation</a></li>
                 {{ range .Site.Menus.left }}
                 <a href="{{ .URL }}">
                     {{ $text := print .Name | safeHTML }}
