@@ -1,5 +1,5 @@
 ---
-title: "Known cPanel Elevate Blockers"
+title: "Known cPanel ELevate Blockers"
 date: 2022-03-23T16:13:47-05:00
 draft: false
 layout: single
@@ -30,7 +30,7 @@ At any given time, the upgrade process may use at or more than 3 GB. If you have
 The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:
 
 * cPanel CCS Calendar Server - Requires Postgresql < 10.0
-* Postgresql - Elevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.
+* Postgresql - ELevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.
 
 ## Things you need to upgrade first.
 
