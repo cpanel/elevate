@@ -49,9 +49,6 @@ Before updating, please check that you met all the pre requirements:
 Additional checks can be performed by [downloading the script](#download-the-elevate-cpanel-script)
 and then [running pre-checks](#pre-upgrade-checks).
 
-
-**The cPanel elevate script does not back up before upgrading**
-
 ### Some of the problems you might find include:
 
 * x86_64 RPMs not in the primary CentOS repos are upgraded.
@@ -89,10 +86,11 @@ We recommend you check for known blockers before you upgrade. The check is desig
 
 ### To upgrade
 
-Once you have a backup of your server, and have cleared upgrade blockers with Pre-upgrade checks, you can begin the migration.
+Once you have a backup of your server (**The cPanel elevate script does not back up before upgrading**), and have cleared upgrade blockers with Pre-upgrade checks, you can begin the migration.
 
 **NOTE** This upgrade could take over 30 minutes. Be sure your users are aware that your server may be down and
 unreachable during this time.
+
 
 ```bash
 # Start the migration
