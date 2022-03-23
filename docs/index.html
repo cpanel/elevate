@@ -81,6 +81,11 @@
                     <li>Download</li>
                 </a>
                 
+                <a href="/elevate/#before-you-upgrade">
+                    
+                    <li>Upgrade Check</li>
+                </a>
+                
                 <a href="/elevate/#usage">
                     
                     <li>Usage</li>
@@ -137,6 +142,10 @@
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">wget -O /scripts/elevate-cpanel <span style="color:#ae81ff">\
 </span><span style="color:#ae81ff"></span>    https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel ;
 chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
+</code></pre></div><h2 id="before-you-upgrade">Before you upgrade</h2>
+<p>We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system. You can do this by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
+/scripts/elevate-cpanel --check
 </code></pre></div><h2 id="usage">Usage</h2>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Read the help (and risks mentionned in this documentation)</span>
 /scripts/elevate-cpanel --help
@@ -257,7 +266,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Mar 23, 2022 at 20:36 (UTC)</i>
+        <br><i>page generated at Mar 23, 2022 at 20:43 (UTC)</i>
     </small>
     </div>
     </div>
