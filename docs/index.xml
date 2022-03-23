@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>cPanel Elevate CentOS 7 to AlmaLinux 8 on cPanel elevate documentation</title>
+    <title>cPanel ELevate CentOS 7 to AlmaLinux 8 on cPanel elevate documentation</title>
     <link>https://cpanel.github.io/elevate/</link>
-    <description>Recent content in cPanel Elevate CentOS 7 to AlmaLinux 8 on cPanel elevate documentation</description>
+    <description>Recent content in cPanel ELevate CentOS 7 to AlmaLinux 8 on cPanel elevate documentation</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Tue, 15 Mar 2022 08:53:47 -0500</lastBuildDate><atom:link href="https://cpanel.github.io/elevate/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Known cPanel Elevate Blockers</title>
+      <title>Known cPanel ELevate Blockers</title>
       <link>https://cpanel.github.io/elevate/blockers/</link>
       <pubDate>Wed, 23 Mar 2022 16:13:47 -0500</pubDate>
       
