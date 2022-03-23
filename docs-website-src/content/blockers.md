@@ -1,6 +1,6 @@
 ---
 title: "Known cPanel Elevate Blockers"
-date: 2022-03-15T08:53:47-05:00
+date: 2022-03-23T16:13:47-05:00
 draft: false
 layout: single
 ---
@@ -38,7 +38,6 @@ The following software is known to lead to a corrupt install if this script is u
   * Mitigation: `/scripts/setupnameserver powerdns`
 * **MySQL**: 99% of existing AlmaLinux 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.
   * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.
-
 
 
 &nbsp;
