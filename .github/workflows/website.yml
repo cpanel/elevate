@@ -35,8 +35,6 @@ jobs:
         git status
         git diff
 
-    - run: sleep 120
-
     - name: push
       uses: github-actions-x/commit@v2.8
       with:
