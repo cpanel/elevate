@@ -39,7 +39,7 @@ Before updating, please check that you met all the pre requirements:
 
 ```bash
 wget -O /scripts/elevate-cpanel \
-    https://raw.githubusercontent.com/cpanel/elevate/stable/elevate-script ;
+    https://raw.githubusercontent.com/cpanel/elevate/release/elevate-script ;
 chmod 700 /scripts/elevate-cpanel
 ```
 
