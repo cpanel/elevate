@@ -76,19 +76,14 @@
                     <li>Introduction</li>
                 </a>
                 
-                <a href="/elevate/#download-the-elevate-cpanel-script">
+                <a href="/elevate/#before-updating">
                     
-                    <li>Download</li>
+                    <li>Before Updating</li>
                 </a>
                 
-                <a href="/elevate/#before-you-upgrade">
+                <a href="/elevate/#using-the-script">
                     
-                    <li>Upgrade Check</li>
-                </a>
-                
-                <a href="/elevate/#usage">
-                    
-                    <li>Usage</li>
+                    <li>Using the script</li>
                 </a>
                 
                 <a href="/elevate/#risks">
@@ -125,6 +120,23 @@
 <p>This project builds on the <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux Elevate</a> project, which leans heavily on the <a href="https://leapp.readthedocs.io/en/latest/">LEAPP Project</a> created for in-place upgrades of RedHat based systems.</p>
 <p>The <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux Elevate</a> project is very effective at upgrading the distro packages from <a href="https://www.centos.org/">CentOS 7</a> to <a href="https://almalinux.org/">AlmaLinux 8</a>. However if you attempt use it directly on a CentOS 7 based <a href="https://www.cpanel.net/">cPanel install</a>, you will end up with a broken system.</p>
 <p>This project was designed to be a wrapper around the <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux Elevate</a> project to allow you to successfully upgrade a <a href="https://www.cpanel.net/">cPanel install</a> with an aim to minimize outages.</p>
+<h3 id="our-current-approach-can-be-summarized-as">Our current approach can be summarized as:</h3>
+<ol>
+<li><a href="docs/Known-blockers.md">Check for blockers</a></li>
+<li><code>yum update &amp;&amp; reboot</code></li>
+<li>Analyze and remove software (not data) commonly installed on a cPanel system</li>
+<li><a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Execute AlmaLinux upgrade</a></li>
+<li>Re-install previously removed software detected prior to upgrade. This might include:</li>
+</ol>
+<ul>
+<li>cPanel (upcp)</li>
+<li>EA4</li>
+<li>MySQL variants</li>
+<li>Distro Perl/PECL binary re-installs</li>
+</ul>
+<ol start="6">
+<li>Final reboot (assure all services are running on new binaries)</li>
+</ol>
 <h2 id="before-updating">Before updating</h2>
 <p>Before updating, please check that you met all the pre requirements:</p>
 <ul>
@@ -134,39 +146,10 @@
 <li>Ensure you are using the last stable version of cPanel &amp; WHM</li>
 <li>Use a version of MySQL/MariaDB compliant with Alamlinux 8.</li>
 </ul>
+<p>Additional checks can be performed by <a href="/#download-the-elevate-cpanel-script">downloading the script</a>
+and then <a href="/#pre-upgrade-checks">running pre-checks</a>.</p>
 <p><strong>The cPanel elevate script does not back up before upgrading</strong></p>
-<h2 id="download-the-elevate-cpanel-script">Download the elevate-cpanel script</h2>
-<ul>
-<li>You can download a copy of the script to run on your cPanel server via:</li>
-</ul>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">wget -O /scripts/elevate-cpanel <span style="color:#ae81ff">\
-</span><span style="color:#ae81ff"></span>    https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel ;
-chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
-</code></pre></div><h2 id="before-you-upgrade">Before you upgrade</h2>
-<p>We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system. You can do this by running:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
-/scripts/elevate-cpanel --check
-</code></pre></div><h2 id="usage">Usage</h2>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Read the help (and risks mentionned in this documentation)</span>
-/scripts/elevate-cpanel --help
-
-<span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
-/scripts/elevate-cpanel --check
-
-<span style="color:#75715e"># Start the migration</span>
-/scripts/elevate-cpanel --start
-
-... <span style="color:#75715e"># expect multiple reboots (~30 min)</span>
-
-<span style="color:#75715e"># Check the current status</span>
-/scripts/elevate-cpanel --status
-
-<span style="color:#75715e"># Monitor the elevation log</span>
-/scripts/elevate-cpanel --log
-
-<span style="color:#75715e"># In case of errors, once fixed you can continue the migration process</span>
-/scripts/elevate-cpanel --continue
-</code></pre></div><h2 id="some-of-the-problems-you-might-find-include">Some of the problems you might find include:</h2>
+<h3 id="some-of-the-problems-you-might-find-include">Some of the problems you might find include:</h3>
 <ul>
 <li>x86_64 RPMs not in the primary CentOS repos are upgraded.
 <ul>
@@ -187,24 +170,45 @@ chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
 <li>MySQL might now not be upgradable (MySQL versions &lt; 8.0 are not normally present on A8).</li>
 <li>The <code>nobody</code> user does not switch from UID 99 to UID 65534 even after upgrading to A8.</li>
 </ul>
-<h2 id="our-current-approach-can-be-summarized-as">Our current approach can be summarized as:</h2>
-<ol>
-<li><a href="docs/Known-blockers.md">Check for blockers</a></li>
-<li><code>yum update &amp;&amp; reboot</code></li>
-<li>Analyze and remove software (not data) commonly installed on a cPanel system</li>
-<li><a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Execute AlmaLinux upgrade</a></li>
-<li>Re-install previously removed software detected prior to upgrade. This might include:</li>
-</ol>
+<h2 id="using-the-script">Using the script</h2>
+<h3 id="download-the-elevate-cpanel-script">Download the elevate-cpanel script</h3>
 <ul>
-<li>cPanel (upcp)</li>
-<li>EA4</li>
-<li>MySQL variants</li>
-<li>Distro Perl/PECL binary re-installs</li>
+<li>You can download a copy of the script to run on your cPanel server via:</li>
 </ul>
-<ol start="6">
-<li>Final reboot (assure all services are running on new binaries)</li>
-</ol>
-<h2 id="risks">RISKS</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">wget -O /scripts/elevate-cpanel <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel ;
+chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
+</code></pre></div><h3 id="pre-upgrade-checks">Pre-upgrade checks</h3>
+<p>We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system. You can do this by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
+/scripts/elevate-cpanel --check
+</code></pre></div><h3 id="to-upgrade">To upgrade</h3>
+<p>Once you have a backup of your server, and have cleared upgrade blockers with Pre-upgrade checks, you can begin the migration.</p>
+<p><strong>NOTE</strong> This upgrade could take over 30 minutes. Be sure your users are aware that your server may be down and
+unreachable during this time.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Start the migration</span>
+/scripts/elevate-cpanel --start
+</code></pre></div><h3 id="command-line-options">Command line options</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Read the help (and risks mentionned in this documentation)</span>
+/scripts/elevate-cpanel --help
+
+<span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
+/scripts/elevate-cpanel --check
+
+<span style="color:#75715e"># Start the migration</span>
+/scripts/elevate-cpanel --start
+
+... <span style="color:#75715e"># expect multiple reboots (~30 min)</span>
+
+<span style="color:#75715e"># Check the current status</span>
+/scripts/elevate-cpanel --status
+
+<span style="color:#75715e"># Monitor the elevation log</span>
+/scripts/elevate-cpanel --log
+
+<span style="color:#75715e"># In case of errors, once fixed you can continue the migration process</span>
+/scripts/elevate-cpanel --continue
+</code></pre></div><h2 id="risks">Risks</h2>
 <p>As always, upgrades can lead to data loss or behavior changes that may leave you with a broken system.</p>
 <p>Failure states include but are not limited to:</p>
 <ul>
@@ -214,7 +218,6 @@ chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
 <p>We recommend you back up (and ideally snapshot) your system so it can be easily restored before continuing.</p>
 <p>This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.</p>
 <p><strong>DISCLAIMER:</strong> We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
-<p>Good Luck!</p>
 <h2 id="copyright">Copyright</h2>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">Copyright <span style="color:#ae81ff">2022</span> cPanel L.L.C.
 
@@ -266,7 +269,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Mar 23, 2022 at 21:06 (UTC)</i>
+        <br><i>page generated at Mar 23, 2022 at 21:09 (UTC)</i>
     </small>
     </div>
     </div>
