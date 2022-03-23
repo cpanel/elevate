@@ -19,7 +19,9 @@ This project provides a script to upgrade an existing `cPanel & WHM` CentOS 7 se
 
 This project builds on the [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of RedHat based systems.
 
-The [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://www.centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/). However if you attempt to do this on a CentOS 7 based [cPanel install](https://www.cpanel.net/), you will end up with a broken system.
+The [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://www.centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/). However if you attempt use it directly on a CentOS 7 based [cPanel install](https://www.cpanel.net/), you will end up with a broken system.
+
+This project was designed to be a wrapper around the [Alma Linux Elevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://www.cpanel.net/) with an aim to minimize outages.
 
 ## Before updating
 
