@@ -1335,10 +1335,11 @@ sub backup_ea4_profile () {
         return;
     }
 
-    my $cmd = '/usr/local/bin/ea_current_to_profile';
-    INFO("Running: $cmd");
-    my $json = Cpanel::SafeRun::Simple::saferunnoerror($cmd) // '';
-    die qq[Failure from $cmd] if $?;
+    my @cmd     = qw{ /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8};
+    my $cmd_str = join( ' ', @cmd );
+    INFO("Running: $cmd_str");
+    my $json = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
+    die qq[Failure from $cmd_str] if $?;
 
     chomp $json;
     die "Unable to backup EA4 profile to $json" unless length $json && -f $json && -s _;
