@@ -2976,7 +2976,9 @@ sub setup_answer_file {
 
 sub install_cpanel_elevate_service {
 
-    INFO( "Installing service " . SERVICE_NAME . " which will upgrade the server to AlmaLinux 8" );
+    my $name = SERVICE_NAME;
+
+    INFO("Installing service $name which will upgrade the server to AlmaLinux 8");
     open( my $fh, '>', SERVICE_FILE ) or die;
 
     # Works only in systemd v240 and newer!
@@ -2994,7 +2996,7 @@ sub install_cpanel_elevate_service {
         Type=oneshot
         # want to run it once per boot time
         RemainAfterExit=yes
-        ExecStart=/usr/bin/bash -c 'exec /usr/local/cpanel/scripts/elevate-cpanel --service 2>&1 | /usr/bin/tee -a $log_file'
+        ExecStart=/usr/bin/bash -c 'exec /usr/local/cpanel/scripts/elevate-cpanel --service 2>&1 | /usr/bin/egrep -v "^Job for $name" | /usr/bin/tee -a $log_file'
 
         [Install]
         WantedBy=multi-user.target
@@ -3003,18 +3005,18 @@ sub install_cpanel_elevate_service {
     close $fh;
 
     ssystem_and_die( '/usr/bin/systemctl', 'daemon-reload' );
-    ssystem_and_die( '/usr/bin/systemctl', 'enable', SERVICE_NAME );
+    ssystem_and_die( '/usr/bin/systemctl', 'enable', $name );
     bump_stage();
 
     my $pid = fork();
     die qq[Failed to fork: $!] unless defined $pid;
     if ($pid) {
-        INFO( 'Starting service ' . SERVICE_NAME );
+        INFO("Starting service $name");
         return 0;
     }
     else {
         unlink(PID_FILE);    # release the pid so the service can use it
-        ssystem_and_die( '/usr/bin/systemctl', 'start', SERVICE_NAME );
+        ssystem_and_die( '/usr/bin/systemctl', 'start', $name );
         exit(0);
     }
 }
