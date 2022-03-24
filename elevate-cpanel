@@ -685,7 +685,7 @@ sub run_stage_3($self) {
             );
 
             # We have to do this before removing the rpms.
-            run_once('remove_custom_stuff_for_later_reinstall');
+            run_once('pre_leapp_update_backup_and_cleanup');
 
             # remove all arch cpanel packages
             # This also potentially removes
@@ -785,7 +785,7 @@ sub run_stage_4($self) {
         }
     );
 
-    reinstall_custom_stuff();
+    post_leapp_update_restore();
 
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
       leapp leapp-data-almalinux leapp-upgrade-el7toel8 python2-leapp alt-pcre802 alt-pcre802-devel};
@@ -1424,7 +1424,7 @@ EOS
 }
 
 # remove and store
-sub remove_custom_stuff_for_later_reinstall {
+sub pre_leapp_update_backup_and_cleanup {
 
     run_once('capture_imunify_features');
     run_once('backup_ea4_profile');
@@ -1606,7 +1606,7 @@ sub cleanup_mysql_106_packages {
     return;
 }
 
-sub reinstall_custom_stuff {
+sub post_leapp_update_restore {
 
     INFO('Removing leapp from excludes in /etc/yum.conf');
     my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
