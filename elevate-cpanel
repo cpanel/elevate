@@ -178,7 +178,9 @@ use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdate
 use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
 use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
 
-use constant IMUNIFY_AGENT => '/usr/bin/imunify360-agent';
+use constant IMUNIFY_AGENT          => '/usr/bin/imunify360-agent';
+use constant IMUNIFY_LICENSE_FILE   => '/var/imunify360/license.json';
+use constant IMUNIFY_LICENSE_BACKUP => ELEVATE_BACKUP_DIR . '/imunify-backup-license.json';
 
 use constant SBIN_IP => q[/sbin/ip];
 
@@ -911,12 +913,19 @@ sub capture_imunify_features {
 
     my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
     my @features = map { s/\s+//g; $_ } grep { m/\S/ } split( "\n", $output );
+
+    if ( -f IMUNIFY_LICENSE_FILE ) {
+        File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
+    }
+
     update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
 
     return;
 }
 
 sub restore_imunify_features {
+    File::Copy::move( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
+
     return unless my $features = read_stage_file()->{'reinstall'}->{'imunify_features'};
     return unless ref $features eq 'ARRAY';
     return unless @$features;
