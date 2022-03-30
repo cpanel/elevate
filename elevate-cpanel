@@ -216,7 +216,7 @@ use constant VETTED_YUM_REPO => qw{
   kernelcare.repo
   wp-toolkit-cpanel.repo
   imunify360-ea-php-hardened.repo
-
+  droplet-agent.repo
   }, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
@@ -1653,6 +1653,7 @@ sub post_leapp_update_restore {
     run_once('restore_imunify_features');
     run_once('restore_nixstats');
     run_once('post_install_check_litespeed');
+    run_once('reinstall_digital_ocean_droplet_agent');
 
     return;
 }
@@ -2146,6 +2147,13 @@ sub post_install_check_litespeed {
     ssystem(qw{/usr/bin/systemctl restart lsws});
 
     return;
+}
+
+sub reinstall_digital_ocean_droplet_agent {
+    return unless Cpanel::Pkgr::is_installed('droplet-agent');
+    return unless -f '/etc/yum.repos.d/droplet-agent.repo';
+
+    ssystem(qw{/usr/bin/yum -y reinstall droplet-agent});
 }
 
 sub remove_imunify_360 {
