@@ -36,8 +36,8 @@ Changing the operating system that underlies a cPanel & WHM installation is not 
     - All of the historical design decisions that led to the current system that supports your  business model are preserved in the upgrade process. This removes the complexities of   configuring an upgraded server to match the original server.
     - The option of easily moving away from an operating system that is out dated or near its   end-of-life means there’s no interruption in support and security updates from both cPanel,   L.L.C and upstream software providers.
 2. Challenges
-    - A cPanel&WHM server is a complex system that is highly customizable with 3rd-partypackages  and features that can be enabled/disabled. This rich environment complicates the upgrade  process to the point that, historically, it required starting from a fresh install of the new OS and rebuilding the cPanel & WHM server.
-    - Treating a server OS upgrade as a task separate from maintaining a cPanel&WHS system  configuration complicates the upgrade process and risks loss of functionality.
+    - A cPanel & WHM server is a complex system that is highly customizable with 3rd-partypackages  and features that can be enabled/disabled. This rich environment complicates the upgrade  process to the point that, historically, it required starting from a fresh install of the new OS and rebuilding the cPanel & WHM server.
+    - Treating a server OS upgrade as a task separate from maintaining a cPanel & WHM system  configuration complicates the upgrade process and risks loss of functionality.
 3. The Solution
     - We built cPanel ELevate to meet these challenges, enabling an integrated, in-place upgrade  process. It manages the ELevate process end-to-end so that systems administrators can safely  and efficiently upgrade a cPanel & WHM server.
 
