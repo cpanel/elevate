@@ -3008,7 +3008,7 @@ sub install_cpanel_elevate_service {
         After=network.target network-online.target
 
         [Service]
-        Type=oneshot
+        Type=simple
         # want to run it once per boot time
         RemainAfterExit=yes
         ExecStart=/usr/bin/bash -c 'exec /usr/local/cpanel/scripts/elevate-cpanel --service 2>&1 | /usr/bin/tee -a $log_file'
