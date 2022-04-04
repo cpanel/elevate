@@ -1322,7 +1322,7 @@ sub restore_ea4_profile () {
     my $is_enabled = $stash->{'ea4'}->{'enable'};
 
     unless ($is_enabled) {
-        WARN('Skipping EA4 restore. EA4 does not appear to be enabled on this system');
+        WARN('Skipping EA4 restore. EA4 does not appear to be enabled on this system.');
         return;
     }
 
@@ -1336,11 +1336,14 @@ sub restore_ea4_profile () {
     ssystem( '/usr/local/bin/ea_install_profile', '--install', $json );
 
     if ( my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} ) {
-        foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
-            my $type = $dropped_pkgs->{$pkg} // '';
-            my $msg  = sprintf( "Cannot restore deprecated EasyApache 4 package '%s'%s", $pkg, $type eq 'exp' ? ' - package was Experimental in CentOS 7' : '' );
+        if ( scalar keys $dropped_pkgs->%* ) {
+            my $msg = qq[One or more EasyApache 4 package(s) cannot be restored from your previous profile:\n];
+            foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
+                my $type = $dropped_pkgs->{$pkg} // '';
+                $msg .= sprintf( "- '%s'%s\n", $pkg, $type eq 'exp' ? ' ( package was Experimental in CentOS 7 )' : '' );
+            }
+            chomp $msg;
             WARN($msg);
-
             add_final_notification($msg);
         }
     }

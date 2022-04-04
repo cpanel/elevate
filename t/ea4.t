@@ -140,8 +140,13 @@ clear_messages_seen();
 is cpev::restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
 is $ssystem, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it" or diag explain $ssystem;
 
-message_seen( 'WARN' => q[Cannot restore deprecated EasyApache 4 package 'ea-bar'] );
-message_seen( 'WARN' => q[Cannot restore deprecated EasyApache 4 package 'ea-baz' - package was Experimental in CentOS 7] );
+my $expect = <<'EOS';
+One or more EasyApache 4 package(s) cannot be restored from your previous profile:
+- 'ea-bar'
+- 'ea-baz' ( package was Experimental in CentOS 7 )
+EOS
+chomp $expect;
+message_seen( 'WARN' => $expect );
 
 no_messages_seen();
 
