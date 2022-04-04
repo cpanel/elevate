@@ -433,11 +433,32 @@ sub check_status($self) {
     return;
 }
 
+sub add_final_notification($msg) {
+    my $stage_info = read_stage_file();
+
+    return unless defined $msg && length $msg;
+
+    update_stage_file( { final_notification => [$msg] } );    # stacked to the previously stored
+
+    return 1;
+}
+
 sub _notify_success($self) {
 
     my $msg = <<'EOS';
 The cPanel & WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.
 EOS
+
+    my $stage_info = read_stage_file();
+    if ( my $warnings = $stage_info->{final_notification} ) {
+        if ( ref $warnings && scalar @$warnings ) {
+            $msg .= "\nThe update to AlmaLinux 8 was successful but please note that one ore more notifications require your attention:\n";
+
+            foreach my $w ( reverse @$warnings ) {    # restore insert order
+                $msg .= "\n* $w\n";
+            }
+        }
+    }
 
     send_notification( 'Successfully update to AlmaLinux 8' => $msg );
 
@@ -1319,6 +1340,8 @@ sub restore_ea4_profile () {
             my $type = $dropped_pkgs->{$pkg} // '';
             my $msg  = sprintf( "Cannot restore deprecated EasyApache 4 package '%s'%s", $pkg, $type eq 'exp' ? ' - package was Experimental in CentOS 7' : '' );
             WARN($msg);
+
+            add_final_notification($msg);
         }
     }
 
