@@ -45,17 +45,17 @@ $notification = {};
 
 ok cpev::add_final_notification("My First Notification");
 
-is cpev::read_stage_file(), { final_notification => ['My First Notification'] }, "stage file - notifications";
+is cpev::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
 ok !cpev::add_final_notification(undef);
 ok !cpev::add_final_notification('');
 
-is cpev::read_stage_file(), { final_notification => ['My First Notification'] }, "stage file - notifications";
+is cpev::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
 cpev::add_final_notification("My Second Notification\nwith two lines.");
 
 is cpev::read_stage_file(), {
-    final_notification => [
+    final_notifications => [
         "My Second Notification\nwith two lines.",
         'My First Notification',
     ]
