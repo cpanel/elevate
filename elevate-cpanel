@@ -1314,7 +1314,15 @@ sub restore_ea4_profile () {
 
     ssystem( '/usr/local/bin/ea_install_profile', '--install', $json );
 
-    return;
+    if ( my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} ) {
+        foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
+            my $type = $dropped_pkgs->{$pkg} // '';
+            my $msg  = sprintf( "Cannot restore deprecated EasyApache 4 package '%s'%s", $pkg, $type eq 'exp' ? ' - package was Experimental in CentOS 7' : '' );
+            WARN($msg);
+        }
+    }
+
+    return 1;
 }
 
 sub restore_ea_addons () {
@@ -1348,15 +1356,23 @@ sub backup_ea4_profile () {
     my $cmd_str = join( ' ', @cmd );
     INFO("Running: $cmd_str");
     my $json = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
-    die qq[Failure from $cmd_str] if $?;
+    die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
 
-    chomp $json;
-    die "Unable to backup EA4 profile to $json" unless length $json && -f $json && -s _;
+    chomp $json if defined $json;
+    die "Unable to backup EA4 profile running: $cmd_str" unless length $json && -f $json && -s _;
     INFO("Backed up EA4 profile to $json");
 
-    update_stage_file( { ea4 => { profile => $json } } );
+    my $data = { profile => $json };
 
-    return;
+    # store dropped packages
+    my $profile = eval { Cpanel::JSON::LoadFile($json) } // {};
+    if ( ref $profile->{os_upgrade} && ref $profile->{os_upgrade}->{dropped_pkgs} ) {
+        $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
+    }
+
+    update_stage_file( { ea4 => $data } );
+
+    return 1;
 }
 
 sub backup_ea_addons() {
