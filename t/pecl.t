@@ -119,7 +119,7 @@ is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
     message_seen_lines( 'WARN', <<'EOS' );
 ********************
 WARNING: Missing pecl package(s) for /usr/local/cpanel/3rdparty/bin/pecl
-Please reinstall these packages
+Please reinstall these packages:
 ********************
 - module_one
 - module_two
@@ -138,7 +138,7 @@ EOS
     message_seen_lines( 'WARN', <<'EOS' );
 ********************
 WARNING: Missing pecl package(s) for /usr/local/cpanel/3rdparty/bin/pecl
-Please reinstall these packages
+Please reinstall these packages:
 ********************
 - module_two
 #

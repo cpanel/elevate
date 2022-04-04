@@ -433,12 +433,19 @@ sub check_status($self) {
     return;
 }
 
-sub add_final_notification($msg) {
+sub add_final_notification ( $msg, $warn_now = 0 ) {
     my $stage_info = read_stage_file();
 
     return unless defined $msg && length $msg;
 
-    update_stage_file( { final_notification => [$msg] } );    # stacked to the previously stored
+    update_stage_file( { final_notifications => [$msg] } );    # stacked to the previously stored
+
+    if ($warn_now) {
+        foreach my $l ( split( "\n", $msg ) ) {
+            next unless length $l;
+            WARN($l);
+        }
+    }
 
     return 1;
 }
@@ -450,7 +457,7 @@ The cPanel & WHM server has completed the elevation process from CentOS 7 to Alm
 EOS
 
     my $stage_info = read_stage_file();
-    if ( my $warnings = $stage_info->{final_notification} ) {
+    if ( my $warnings = $stage_info->{final_notifications} ) {
         if ( ref $warnings && scalar @$warnings ) {
             $msg .= "\nThe update to AlmaLinux 8 was successful but please note that one ore more notifications require your attention:\n";
 
@@ -845,13 +852,17 @@ sub run_stage_5($self) {
     File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
     cleanup_motd();
 
-    my $postinstall_recommendations = read_stage_file()->{'a_postinstall_recommendation'} // [];
-    if (@$postinstall_recommendations) {
+    my $final_notifications = read_stage_file()->{'final_notifications'} // [];
+    if (@$final_notifications) {
 
-        print_box("The following recommendations should now be reviewed for further action:");
-        foreach my $msg (@$postinstall_recommendations) {
-            WARN("$msg");
+        print_box("Final Notifications");
+
+        my $final_notice = "The following recommendations should now be reviewed for further action:";
+
+        foreach my $msg ( reverse @$final_notifications ) {
+            $final_notice .= "\n$msg\n";
         }
+        add_final_notification( $final_notice, 1 );
     }
 
     $self->elevation_success_marker();
@@ -1023,7 +1034,10 @@ sub monitor_imunify_feature_install ( $feature, $log_file ) {
         sleep 5;
     }
 
-    WARN("Imunify failed to install feature $feature");
+    my $msg = "Imunify failed to install feature $feature";
+    WARN($msg);
+    add_final_notification($msg);
+
     return 0;
 }
 
@@ -1722,15 +1736,7 @@ sub kernel_check {
 
     $msg .= "\nYou can remove these by running: /usr/bin/rm -e " . join( " ", @kernel_rpms ) . "\n";
 
-    recommend_postinstall($msg);
-
-    return;
-}
-
-sub recommend_postinstall($msg) {
-    my $recommendations = read_stage_file()->{'a_postinstall_recommendation'} // [];
-    push @$recommendations, $msg;
-    update_stage_file( { 'a_postinstall_recommendation' => $recommendations } );
+    add_final_notification($msg);
 
     return;
 }
@@ -1768,6 +1774,8 @@ sub check_pecl_packages {
 
         my $currently_installed = _get_pecl_installed_for($bin) // {};
 
+        my $final_notification;
+
         my $displayed_header = 0;
         foreach my $pkg ( sort keys $previously_installed->%* ) {
             next if $currently_installed->{$pkg};
@@ -1777,13 +1785,25 @@ sub check_pecl_packages {
             if ( !$displayed_header ) {
                 $displayed_header = 1;
                 WARN( q[*] x 20 );
-                WARN("WARNING: Missing pecl package(s) for $bin");
-                WARN("Please reinstall these packages");
+
+                $final_notification = <<~"EOS";
+                WARNING: Missing pecl package(s) for $bin
+                Please reinstall these packages:
+                EOS
+
+                foreach my $l ( split( "\n", $final_notification ) ) {
+                    next unless length $l;
+                    WARN($l);
+                }
+
                 WARN( q[*] x 20 );
             }
 
             WARN("- $pkg");
+            $final_notification .= qq[- $pkg\n];
         }
+
+        add_final_notification($final_notification);
 
         WARN('#') if $displayed_header;
     }
@@ -2126,7 +2146,9 @@ sub restore_nixstats {
         INFO("nixstatsagent restored");
     }
     else {
-        WARN("Failed to start nixstatsagent.service");
+        my $msg = "Failed to start nixstatsagent.service";
+        WARN($msg);
+        final_notification($msg);
     }
 
     return;
@@ -2345,7 +2367,7 @@ sub restore_perl_xs ($path) {
     foreach my $module (@$cpan_modules) {
         $msg .= "   $module\n";
     }
-    recommend_postinstall($msg);
+    add_final_notification($msg);
 
     return;
 }
