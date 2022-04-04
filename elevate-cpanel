@@ -1034,9 +1034,7 @@ sub monitor_imunify_feature_install ( $feature, $log_file ) {
         sleep 5;
     }
 
-    my $msg = "Imunify failed to install feature $feature";
-    WARN($msg);
-    add_final_notification($msg);
+    add_final_notification( "Imunify failed to install feature $feature", 1 );
 
     return 0;
 }
@@ -1357,8 +1355,7 @@ sub restore_ea4_profile () {
                 $msg .= sprintf( "- '%s'%s\n", $pkg, $type eq 'exp' ? ' ( package was Experimental in CentOS 7 )' : '' );
             }
             chomp $msg;
-            WARN($msg);
-            add_final_notification($msg);
+            add_final_notification( $msg, 1 );
         }
     }
 
@@ -2146,9 +2143,7 @@ sub restore_nixstats {
         INFO("nixstatsagent restored");
     }
     else {
-        my $msg = "Failed to start nixstatsagent.service";
-        WARN($msg);
-        final_notification($msg);
+        add_final_notification( "Failed to start nixstatsagent.service", 1 );
     }
 
     return;
