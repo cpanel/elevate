@@ -146,8 +146,9 @@ One or more EasyApache 4 package(s) cannot be restored from your previous profil
 - 'ea-baz' ( package was Experimental in CentOS 7 )
 EOS
 chomp $expect;
-message_seen( 'WARN' => $expect );
-
+foreach my $l ( split( "\n", $expect ) ) {
+    message_seen( 'WARN' => $l );
+}
 no_messages_seen();
 
 done_testing();
