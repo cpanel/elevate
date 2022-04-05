@@ -109,6 +109,9 @@
                     <h1 id="welcome-to-the-cpanel-elevate-project">Welcome to the cPanel ELevate Project.</h1>
 <h2 id="goal">Goal</h2>
 <p>The cPanel ELevate Project provides a script to upgrade an existing <code>cPanel &amp; WHM</code> CentOS 7 server installation to AlmaLinux 8.</p>
+<h2 id="disclaimer">Disclaimer</h2>
+<p>We do not guarantee the functionality of software in this repository.  We provide it on an experimental basis only. You assume all risk for use of any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
+<p>cPanel Technical Support is limited in their ability to support experimental software. You should instead utilize the <a href="https://github.com/cpanel/elevate/issues">Github Issues page</a></p>
 <h2 id="introduction">Introduction</h2>
 <ul>
 <li><a href="https://github.com/cpanel/elevate/issues">Issues can be reported here</a></li>
@@ -138,6 +141,15 @@
 <ol start="6">
 <li>Final reboot (assure all services are running on new binaries)</li>
 </ol>
+<h2 id="risks">Risks</h2>
+<p>As always, upgrades can lead to data loss or behavior changes that may leave you with a broken system.</p>
+<p>Failure states include but are not limited to:</p>
+<ul>
+<li>Failure to upgrade the kernel due to custom drivers</li>
+<li>Incomplete upgrade of software because this code base is not aware of it.</li>
+</ul>
+<p>We recommend you back up (and ideally snapshot) your system so it can be easily restored before continuing.</p>
+<p>This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.</p>
 <h2 id="before-updating">Before updating</h2>
 <p>Before updating, please check that you met all the pre requirements:</p>
 <ul>
@@ -208,17 +220,7 @@ unreachable during this time.</p>
 
 <span style="color:#75715e"># In case of errors, once fixed you can continue the migration process</span>
 /scripts/elevate-cpanel --continue
-</code></pre></div><h2 id="risks">Risks</h2>
-<p>As always, upgrades can lead to data loss or behavior changes that may leave you with a broken system.</p>
-<p>Failure states include but are not limited to:</p>
-<ul>
-<li>Failure to upgrade the kernel due to custom drivers</li>
-<li>Incomplete upgrade of software because this code base is not aware of it.</li>
-</ul>
-<p>We recommend you back up (and ideally snapshot) your system so it can be easily restored before continuing.</p>
-<p>This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.</p>
-<p><strong>DISCLAIMER:</strong> We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
-<h2 id="copyright">Copyright</h2>
+</code></pre></div><h2 id="copyright">Copyright</h2>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">Copyright <span style="color:#ae81ff">2022</span> cPanel L.L.C.
 
 Redistribution and use in source and binary forms, with or without modification, 
@@ -269,7 +271,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Apr 4, 2022 at 23:12 (UTC)</i>
+        <br><i>page generated at Apr 5, 2022 at 17:03 (UTC)</i>
     </small>
     </div>
     </div>
