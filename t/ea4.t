@@ -9,6 +9,8 @@ use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
+use base qw(Test::Class);
+
 use Test::MockFile 0.032;
 
 use lib $FindBin::Bin . "/lib";
@@ -20,135 +22,263 @@ use Cpanel::JSON;
 
 use cPstrict;
 
-my $ssystem;
-my $mock_cpev = Test::MockModule->new('cpev');
-$mock_cpev->redefine(
-    ssystem => sub ( @cmd ) {
-        note "mocked ssystem: ", join( ' ', @cmd );
-        $ssystem = [@cmd];
-        return;
-    }
-);
+use constant PROFILE_FILE => q[/var/my.profile];
 
-my $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
+__PACKAGE__->new()->runtests() if !caller;
 
-my $mock_httpd = Test::MockModule->new('Cpanel::Config::Httpd');
-$mock_httpd->redefine( is_ea4 => 0 );
+my $stage_file;
 
-is cpev::backup_ea4_profile(), undef, "backup_ea4_profile - not using ea4";
-is cpev::read_stage_file(), { ea4 => { enable => 0 } }, "stage file - ea4 is disabled";
+sub startup : Test(startup) ($self) {
 
-is cpev::restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
-
-$mock_httpd->redefine( is_ea4 => 1 );
-
-my $mock_saferun = Test::MockModule->new('Cpanel::SafeRun::Simple');
-$mock_saferun->redefine(
-    saferunnoerror => sub (@cmd) {
-        note "mocked: ", join( ' ', @cmd );
-
-        return;
-    }
-);
-
-like(
-    dies { cpev::backup_ea4_profile() },
-    qr/Unable to backup EA4 profile/,
-    "Unable to backup EA4 profile - no profile file"
-);
-
-my $profile_file = q[/var/my.profile];
-my $mock_profile = Test::MockFile->file($profile_file);
-
-$mock_saferun->redefine(
-    saferunnoerror => sub (@cmd) {
-        note "mocked: ", join( ' ', @cmd );
-
-        return $profile_file;
-    }
-);
-
-like(
-    dies { cpev::backup_ea4_profile() },
-    qr/Unable to backup EA4 profile/,
-    "Unable to backup EA4 profile - non existing profile file"
-);
-
-$mock_profile->contents('');
-
-like(
-    dies { cpev::backup_ea4_profile() },
-    qr/Unable to backup EA4 profile/,
-    "Unable to backup EA4 profile - empty profile file"
-);
-
-is cpev::read_stage_file(), { ea4 => { enable => 1 } }, "stage file - ea4 is enabled but we failed";
-is cpev::restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
-
-## Backup and restore EA4 profile
-
-my $profile = { my_profile => ['...'] };
-
-my $content = Cpanel::JSON::pretty_canonical_dump($profile);
-$mock_profile->contents($content);
-
-is cpev::backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
-is cpev::read_stage_file(), { ea4 => { enable => 1, profile => $profile_file } }, "stage file - ea4 is enabled / profile is backup";
-
-is cpev::restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
-is $ssystem, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it" or diag explain $ssystem;
-
-## Backup and restore EA4 profile with dropped_pkgs
-
-$profile = {
-    "os_upgrade" => {
-        "source_os"          => "<the source OS’s display name>",
-        "target_os"          => "<the --target-os=value value>",
-        "target_obs_project" => "<the target os’s OBS project>",
-        "dropped_pkgs"       => {
-            "ea-bar" => "reg",
-            "ea-baz" => "exp"
+    $self->{mock_cpev} = Test::MockModule->new('cpev');
+    $self->{mock_cpev}->redefine(
+        ssystem => sub ( @cmd ) {
+            note "mocked ssystem: ", join( ' ', @cmd );
+            $self->{last_ssystem_call} = [@cmd];
+            return;
         }
-    }
-};
-$content = Cpanel::JSON::pretty_canonical_dump($profile);
-$mock_profile->contents($content);
+    );
 
-$stage_file->contents('');
+    $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
 
-clear_messages_seen();
+    $self->{mock_profile} = Test::MockFile->file(PROFILE_FILE);
 
-is cpev::backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    $self->{mock_httpd} = Test::MockModule->new('Cpanel::Config::Httpd');
 
-message_seen( 'INFO' => q[Running: /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8] );
-message_seen( 'INFO' => q[Backed up EA4 profile to /var/my.profile] );
+    return;
+}
 
-no_messages_seen();
+sub setup : Test(setup) ($self) {
 
-is cpev::read_stage_file(), {
-    ea4 => {
-        enable       => 1,                                        #
-        profile      => $profile_file,                            #
-        dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
-    }
-  },
-  "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
+    $self->{mock_httpd}->redefine( is_ea4 => 1 );    # by default
+    $stage_file->unlink;
 
-no_messages_seen();
-clear_messages_seen();
+    $self->{mock_profile}->unlink;
 
-is cpev::restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
-is $ssystem, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it" or diag explain $ssystem;
+    # some tests redefine saferunnoerror
+    $self->{mock_saferun} = Test::MockModule->new('Cpanel::SafeRun::Simple');
+    $self->{mock_saferun}->redefine(
+        saferunnoerror => sub (@cmd) {
+            note "mocked: ", join( ' ', @cmd );
 
-my $expect = <<'EOS';
+            return PROFILE_FILE;
+        }
+    );
+
+    return;
+}
+
+sub teardown : Test( teardown => 1 ) ($self) {
+
+    no_messages_seen();
+
+    return;
+}
+
+sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
+
+    $self->{mock_httpd}->redefine( is_ea4 => 0 );
+
+    is cpev::backup_ea4_profile(), undef, "backup_ea4_profile - not using ea4";
+    message_seen( 'WARN' => q[Skipping EA4 backup. EA4 does not appear to be enabled on this system] );
+
+    is cpev::read_stage_file(), { ea4 => { enable => 0 } }, "stage file - ea4 is disabled";
+
+    is cpev::restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
+    message_seen( 'WARN' => q[Skipping EA4 restore. EA4 does not appear to be enabled on this system.] );
+
+    return;
+}
+
+sub test_missing_ea4_profile : Test(3) ($self) {
+
+    $self->{mock_saferun}->redefine(
+        saferunnoerror => sub {
+            note "saferunnoerror: no output";
+            return;
+        },
+    );
+
+    like(
+        dies { cpev::backup_ea4_profile() },
+        qr/Unable to backup EA4 profile/,
+        "Unable to backup EA4 profile - no profile file"
+    );
+
+    _message_run_ea_current_to_profile();
+
+    return;
+}
+
+sub backup_non_existing_profile : Test(10) ($self) {
+
+    like(
+        dies { cpev::backup_ea4_profile() },
+        qr/Unable to backup EA4 profile/,
+        "Unable to backup EA4 profile - non existing profile file"
+    );
+
+    _message_run_ea_current_to_profile();
+
+    $self->{mock_profile}->contents('');
+
+    like(
+        dies { cpev::backup_ea4_profile() },
+        qr/Unable to backup EA4 profile/,
+        "Unable to backup EA4 profile - empty profile file"
+    );
+
+    _message_run_ea_current_to_profile();
+
+    is cpev::read_stage_file(), { ea4 => { enable => 1 } }, "stage file - ea4 is enabled but we failed";
+    is cpev::restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
+
+    message_seen( 'WARN' => q[Unable to restore EA4 profile. Is EA4 enabled?] );
+
+    return;
+}
+
+sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
+
+    my $profile = { my_profile => ['...'] };
+
+    $self->_update_profile_file($profile);
+
+    is cpev::backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    _message_run_ea_current_to_profile(1);
+
+    is cpev::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
+
+    is cpev::restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
+    is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
+      or diag explain $self->{last_ssystem_call};
+
+    return;
+}
+
+sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
+
+    my $profile = {
+        "os_upgrade" => {
+            "source_os"          => "<the source OS’s display name>",
+            "target_os"          => "<the --target-os=value value>",
+            "target_obs_project" => "<the target os’s OBS project>",
+            "dropped_pkgs"       => {
+                "ea-bar" => "reg",
+                "ea-baz" => "exp"
+            }
+        }
+    };
+    $self->_update_profile_file($profile);
+
+    is cpev::backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    _message_run_ea_current_to_profile(1);
+
+    is cpev::read_stage_file(), {
+        ea4 => {
+            enable       => 1,                                        #
+            profile      => PROFILE_FILE,                             #
+            dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
+        }
+      },
+      "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
+
+    is cpev::restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
+    is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
+      or diag explain $self->{last_ssystem_call};
+
+    my $expect = <<'EOS';
 One or more EasyApache 4 package(s) cannot be restored from your previous profile:
 - 'ea-bar'
 - 'ea-baz' ( package was Experimental in CentOS 7 )
 EOS
-chomp $expect;
-foreach my $l ( split( "\n", $expect ) ) {
-    message_seen( 'WARN' => $l );
-}
-no_messages_seen();
+    chomp $expect;
+    foreach my $l ( split( "\n", $expect ) ) {
+        message_seen( 'WARN' => $l );
+    }
 
-done_testing();
+    return;
+}
+
+sub test_blocker_ea4_profile : Test(16) ($self) {
+
+    $self->{mock_cpev}->redefine( backup_ea4_profile => 0 );
+
+    my $ea_info_check = sub {
+        message_seen( 'INFO' => "Checking EasyApache profile compatibility with Almalinux 8." );
+    };
+
+    my $cpev = bless {}, 'cpev';
+    $cpev->{_abort_on_first_blocker} = 1;    # enforce a die
+
+    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
+    $ea_info_check->();
+
+    $self->{mock_cpev}->redefine( backup_ea4_profile => 1 );
+
+    my $stage_ea4 = {
+        profile => '/some/file.not.used.there',
+    };
+    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
+    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs";
+    $ea_info_check->();
+
+    $stage_ea4->{'dropped_pkgs'} = {
+        "ea-bar" => "exp",
+        "ea-baz" => "exp",
+    };
+    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
+    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only";
+    $ea_info_check->();
+
+    $stage_ea4->{'dropped_pkgs'} = {
+        "pkg1"   => "reg",
+        "ea-baz" => "exp",
+        "pkg3"   => "reg",
+        "pkg4"   => "whatever",
+    };
+    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
+
+    ok my $error = dies { $cpev->_blocker_ea4_profile() }, "_blocker_ea4_profile dies";
+    $ea_info_check->();
+
+    like $error, object {
+        prop blessed => 'cpev::Blocker';
+
+        field id  => 104;
+        field msg => 'One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
+Please remove these packages before continuing the update.
+- pkg1
+- pkg3
+- pkg4
+';
+
+        end();
+    }, "blocker dies with expected error" or diag explain $error;
+
+    # make sure to restore context
+    $self->{mock_cpev}->unmock('backup_ea4_profile');
+
+    return;
+}
+
+## helpers
+
+sub _message_run_ea_current_to_profile($success=0) {
+
+    message_seen( 'INFO' => q[Running: /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8] );
+    return unless $success;
+
+    message_seen( 'INFO' => q[Backed up EA4 profile to ] . PROFILE_FILE );
+
+    return;
+}
+
+sub _update_profile_file ( $self, $profile ) {
+    my $content = Cpanel::JSON::pretty_canonical_dump($profile);
+    $self->{mock_profile}->contents($content);
+
+    return;
+}
+
+1;
