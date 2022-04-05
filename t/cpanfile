@@ -20,6 +20,7 @@ on 'test' => sub {
     requires "Test::MockFile" => "0.032";
     requires "Test::MockModule";
     requires "Test::More";
+    requires "Test::Class";
 
     # test coverage
     recommends "Devel::Cover";
