@@ -319,6 +319,16 @@ message_seen( 'ERROR', 'System is not up to date' );
 no_messages_seen();
 $cpev_mock->redefine( _system_update_check => 1 );
 
+$cpev_mock->redefine( _system_update_check => 1 );
+
+my $_blocker_ea4_profile_called = 0;
+$cpev_mock->redefine(
+    _blocker_ea4_profile => sub {
+        ++$_blocker_ea4_profile_called;
+        return;
+    }
+);
+
 # The NICs blocker runs /sbin/ip which breaks because Cpanel::SafeRun::Simple
 # opens /dev/null which Test::MockFile does not mock and is annoyed by it
 
@@ -347,6 +357,8 @@ my $sbin_ip = Test::MockFile->file('/sbin/ip');
     is( $cpev->blockers_check(), 0, 'No blocks when there are no kernel-named NICs' );
     no_messages_seen();
 }
+
+ok $_blocker_ea4_profile_called, "_blocker_ea4_profile was called";
 
 $errors_mock->redefine(
     'saferunnoerror' => sub {
