@@ -30,16 +30,14 @@ my $stage_file;
 
 sub startup : Test(startup) ($self) {
 
-    my $mock_cpev = Test::MockModule->new('cpev');
-    $mock_cpev->redefine(
+    $self->{mock_cpev} = Test::MockModule->new('cpev');
+    $self->{mock_cpev}->redefine(
         ssystem => sub ( @cmd ) {
             note "mocked ssystem: ", join( ' ', @cmd );
             $self->{last_ssystem_call} = [@cmd];
             return;
         }
     );
-
-    $self->{mock_cpev} = $mock_cpev;
 
     $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
 
@@ -173,8 +171,6 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
     };
     $self->_update_profile_file($profile);
 
-    #$stage_file->contents('');
-
     is cpev::backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
     _message_run_ea_current_to_profile(1);
 
@@ -202,7 +198,68 @@ EOS
     }
 
     return;
+}
 
+sub test_blocker_ea4_profile : Test(16) ($self) {
+
+    $self->{mock_cpev}->redefine( backup_ea4_profile => 0 );
+
+    my $ea_info_check = sub {
+        message_seen( 'INFO' => "Checking EasyApache profile compatibility with Almalinux 8." );
+    };
+
+    my $cpev = bless {}, 'cpev';
+    $cpev->{_abort_on_first_blocker} = 1;    # enforce a die
+
+    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
+    $ea_info_check->();
+
+    $self->{mock_cpev}->redefine( backup_ea4_profile => 1 );
+
+    my $stage_ea4 = {
+        profile => '/some/file.not.used.there',
+    };
+    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
+    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs";
+    $ea_info_check->();
+
+    $stage_ea4->{'dropped_pkgs'} = {
+        "ea-bar" => "exp",
+        "ea-baz" => "exp",
+    };
+    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
+    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only";
+    $ea_info_check->();
+
+    $stage_ea4->{'dropped_pkgs'} = {
+        "pkg1"   => "reg",
+        "ea-baz" => "exp",
+        "pkg3"   => "reg",
+        "pkg4"   => "whatever",
+    };
+    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
+
+    ok my $error = dies { $cpev->_blocker_ea4_profile() }, "_blocker_ea4_profile dies";
+    $ea_info_check->();
+
+    like $error, object {
+        prop blessed => 'cpev::Blocker';
+
+        field id  => 104;
+        field msg => 'One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
+Please remove these packages before continuing the update.
+- pkg1
+- pkg3
+- pkg4
+';
+
+        end();
+    }, "blocker dies with expected error" or diag explain $error;
+
+    # make sure to restore context
+    $self->{mock_cpev}->unmock('backup_ea4_profile');
+
+    return;
 }
 
 ## helpers

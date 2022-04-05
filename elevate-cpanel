@@ -1378,6 +1378,10 @@ sub restore_ea_addons () {
     return;
 }
 
+##
+## Call early so we can use a blocker based on existing ea4 profile
+##
+
 sub backup_ea4_profile () {
 
     my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
@@ -1490,7 +1494,6 @@ EOS
 sub pre_leapp_update_backup_and_cleanup {
 
     run_once('capture_imunify_features');
-    run_once('backup_ea4_profile');
     run_once('backup_ea_addons');
     run_once('backup_pecl_packages');
     run_once('cleanup_mysql_packages');
@@ -2718,6 +2721,41 @@ sub _blocker_bad_nics_naming ($self) {
     return 0;
 }
 
+#
+# _blocker_ea4_profile: perform an early ea4 profile backup
+#   and check for incompatible packages.
+#
+sub _blocker_ea4_profile( $self ) {
+
+    # perform an early backup so we can check the list of dropped packages
+
+    INFO("Checking EasyApache profile compatibility with Almalinux 8.");
+
+    return unless backup_ea4_profile();
+
+    my $stash        = read_stage_file();
+    my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
+
+    return unless scalar keys $dropped_pkgs->%*;
+
+    my @incompatible_packages;
+    foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
+        my $type = $dropped_pkgs->{$pkg} // '';
+        next if $type eq 'exp';    # use of experimental packages is a non blocker
+        push @incompatible_packages, $pkg;
+    }
+
+    return unless @incompatible_packages;
+
+    my $list = join( "\n", map { "- $_" } @incompatible_packages );
+
+    return $self->has_blocker( 104, <<~"EOS" );
+    One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
+    Please remove these packages before continuing the update.
+    $list
+    EOS
+}
+
 sub _blockers_check ($self) {
 
     my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
@@ -2743,6 +2781,7 @@ sub _blockers_check ($self) {
     $self->_blocker_disk_space();
     $self->_blocker_system_update();
     $self->_blocker_bad_nics_naming();
+    $self->_blocker_ea4_profile();
 
     return 0;
 }
