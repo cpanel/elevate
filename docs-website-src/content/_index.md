@@ -11,6 +11,12 @@ layout: single
 
 The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` CentOS 7 server installation to AlmaLinux 8.
 
+## Disclaimer
+
+We do not guarantee the functionality of software in this repository.  We provide it on an experimental basis only. You assume all risk for use of any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
+
+cPanel Technical Support is limited in their ability to support experimental software. You should instead utilize the [Github Issues page](https://github.com/cpanel/elevate/issues)
+
 ## Introduction
 
 - [Issues can be reported here](https://github.com/cpanel/elevate/issues)
@@ -35,6 +41,19 @@ This project was designed to be a wrapper around the [Alma Linux ELevate](https:
   * MySQL variants
   * Distro Perl/PECL binary re-installs
 6. Final reboot (assure all services are running on new binaries)
+
+## Risks
+
+As always, upgrades can lead to data loss or behavior changes that may leave you with a broken system.
+
+Failure states include but are not limited to:
+
+* Failure to upgrade the kernel due to custom drivers
+* Incomplete upgrade of software because this code base is not aware of it.
+
+We recommend you back up (and ideally snapshot) your system so it can be easily restored before continuing.
+
+This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.
 
 ## Before updating
 
@@ -120,21 +139,6 @@ unreachable during this time.
 # In case of errors, once fixed you can continue the migration process
 /scripts/elevate-cpanel --continue
 ```
-
-## Risks
-
-As always, upgrades can lead to data loss or behavior changes that may leave you with a broken system.
-
-Failure states include but are not limited to:
-
-* Failure to upgrade the kernel due to custom drivers
-* Incomplete upgrade of software because this code base is not aware of it.
-
-We recommend you back up (and ideally snapshot) your system so it can be easily restored before continuing.
-
-This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.
-
-**DISCLAIMER:** We do not guarantee the functionality of software in this repository, and we provide it on an experimental basis only. You assume all risk for any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
 
 ## Copyright
 
