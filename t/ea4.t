@@ -110,6 +110,62 @@ sub test_missing_ea4_profile : Test(3) ($self) {
     return;
 }
 
+sub test_get_ea4_profile : Test(10) ($self) {
+
+    my $profile = PROFILE_FILE;
+    my $output  = qq[$profile\n];
+
+    $self->{mock_profile}->contents('{}');
+
+    $self->{mock_saferun}->redefine(
+        saferunnoerror => sub {
+            note "saferunnoerror: ", $output;
+            return $output;
+        },
+    );
+
+    is( cpev::_get_ea4_profile(), PROFILE_FILE, "_get_ea4_profile" );
+    _message_run_ea_current_to_profile(1);
+
+    $output = <<'EOS';
+The following packages are not available on AlmaLinux_8 and have been removed from the profile
+    ea-php71
+    ea-php71-libc-client
+    ea-php71-pear
+    ea-php71-php-bcmath
+    ea-php71-php-calendar
+    ea-php71-php-cli
+    ea-php71-php-common
+    ea-php71-php-curl
+    ea-php71-php-devel
+    ea-php71-php-fpm
+    ea-php71-php-ftp
+    ea-php71-php-gd
+    ea-php71-php-iconv
+    ea-php71-php-imap
+    ea-php71-php-litespeed
+    ea-php71-php-mbstring
+    ea-php71-php-mysqlnd
+    ea-php71-php-pdo
+    ea-php71-php-posix
+    ea-php71-php-sockets
+    ea-php71-php-xml
+    ea-php71-php-zip
+    ea-php71-runtime
+
+/etc/cpanel/ea4/profiles/custom/current_state_at_2022-04-05_20:41:25_modified_for_AlmaLinux_8.json
+EOS
+
+    my $f      = q[/etc/cpanel/ea4/profiles/custom/current_state_at_2022-04-05_20:41:25_modified_for_AlmaLinux_8.json];
+    my $mock_f = Test::MockFile->file( $f, '{}' );
+
+    is( cpev::_get_ea4_profile(), $f, "_get_ea4_profile with noise..." );
+
+    _message_run_ea_current_to_profile($f);
+
+    return;
+}
+
 sub backup_non_existing_profile : Test(10) ($self) {
 
     like(
@@ -269,7 +325,9 @@ sub _message_run_ea_current_to_profile($success=0) {
     message_seen( 'INFO' => q[Running: /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8] );
     return unless $success;
 
-    message_seen( 'INFO' => q[Backed up EA4 profile to ] . PROFILE_FILE );
+    my $f = $success eq 1 ? PROFILE_FILE : $success;
+
+    message_seen( 'INFO' => q[Backed up EA4 profile to ] . $f );
 
     return;
 }
