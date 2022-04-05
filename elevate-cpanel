@@ -1393,15 +1393,7 @@ sub backup_ea4_profile () {
         return;
     }
 
-    my @cmd     = qw{ /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8};
-    my $cmd_str = join( ' ', @cmd );
-    INFO("Running: $cmd_str");
-    my $json = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
-    die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
-
-    chomp $json if defined $json;
-    die "Unable to backup EA4 profile running: $cmd_str" unless length $json && -f $json && -s _;
-    INFO("Backed up EA4 profile to $json");
+    my $json = _get_ea4_profile();
 
     my $data = { profile => $json };
 
@@ -1414,6 +1406,35 @@ sub backup_ea4_profile () {
     update_stage_file( { ea4 => $data } );
 
     return 1;
+}
+
+sub _get_ea4_profile {
+    my @cmd     = qw{ /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8};
+    my $cmd_str = join( ' ', @cmd );
+    INFO("Running: $cmd_str");
+    my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
+    die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
+
+    my @lines = split( "\n", $output );
+
+    my $json;
+    if ( scalar @lines == 1 ) {
+        $json = $lines[0];
+    }
+    else {
+        foreach my $l ( reverse @lines ) {
+            next unless $l =~ m{^/.*\.json};
+            if ( -f $l ) {
+                $json = $l;
+                last;
+            }
+        }
+    }
+
+    die "Unable to backup EA4 profile running: $cmd_str" unless length $json && -f $json && -s _;
+    INFO("Backed up EA4 profile to $json");
+
+    return $json;
 }
 
 sub backup_ea_addons() {
