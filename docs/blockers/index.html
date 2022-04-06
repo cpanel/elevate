@@ -115,6 +115,7 @@
 <li>We DO NOT support alternative RHEL 7 (including CloudLinux) variants.</li>
 </ul>
 </li>
+<li>You have cPanel version 102 or greater installed.</li>
 <li>You are logged in as <strong>root</strong>.</li>
 </ul>
 <h2 id="disk-space">Disk space</h2>
@@ -127,11 +128,22 @@
 <h2 id="unsupported-software">Unsupported software</h2>
 <p>The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:</p>
 <ul>
-<li>cPanel CCS Calendar Server - Requires Postgresql &lt; 10.0</li>
-<li>Postgresql - ELevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.</li>
+<li><strong>cPanel CCS Calendar Server</strong> - Requires Postgresql &lt; 10.0</li>
+<li><strong>Postgresql</strong> - ELevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.</li>
 </ul>
 <h2 id="things-you-need-to-upgrade-first">Things you need to upgrade first.</h2>
+<p>You can discover many of these issues by downloading <code>elevate-cpanel</code> and running <code>/scripts/elevate-cpanel --check</code>. Below is a summary of the major blockers people might encounter.</p>
 <ul>
+<li><strong>distro is up to date</strong>: We expect yum update to indicate there is nothing to do.
+<ul>
+<li>Mitigation: <code>yum update</code></li>
+</ul>
+</li>
+<li><strong>cPanel is up to date</strong>: You will need to be on a version mentioned in the section <strong>Latest cPanel &amp; WHM Builds (All Architectures)</strong> at <a href="http://httpupdate.cpanel.net/">http://httpupdate.cpanel.net/</a>
+<ul>
+<li>Mitigation: <code>/usr/local/cpanel/scripts/upcp</code></li>
+</ul>
+</li>
 <li><strong>nameserver</strong>: cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8, it is preferred that you always be on PowerDNS.
 <ul>
 <li>Mitigation: <code>/scripts/setupnameserver powerdns</code></li>
@@ -142,23 +154,12 @@
 <li><strong>MariaDB</strong>: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.</li>
 </ul>
 </li>
+<li>
+<ul>
+<li></li>
 </ul>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
-<p> </p>
+</li>
+</ul>
 
                 </article>
 
@@ -188,7 +189,7 @@
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Apr 5, 2022 at 21:09 (UTC)</i>
+        <br><i>page generated at Apr 6, 2022 at 20:07 (UTC)</i>
     </small>
     </div>
     </div>
