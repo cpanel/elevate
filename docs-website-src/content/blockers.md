@@ -15,6 +15,7 @@ The following conditions are assumed to be in place any time you run this script
 
 * You have **CentOS 7.9** or greater installed.
   * We DO NOT support alternative RHEL 7 (including CloudLinux) variants.
+* You have cPanel version 102 or greater installed.
 * You are logged in as **root**.
 
 ## Disk space
@@ -29,46 +30,19 @@ At any given time, the upgrade process may use at or more than 3 GB. If you have
 
 The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:
 
-* cPanel CCS Calendar Server - Requires Postgresql < 10.0
-* Postgresql - ELevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.
+* **cPanel CCS Calendar Server** - Requires Postgresql < 10.0
+* **Postgresql** - ELevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.
 
 ## Things you need to upgrade first.
 
+You can discover many of these issues by downloading `elevate-cpanel` and running `/scripts/elevate-cpanel --check`. Below is a summary of the major blockers people might encounter.
+
+* **distro is up to date**: We expect yum update to indicate there is nothing to do.
+  * Mitigation: `yum update`
+* **cPanel is up to date**: You will need to be on a version mentioned in the section **Latest cPanel & WHM Builds (All Architectures)** at http://httpupdate.cpanel.net/
+  * Mitigation: `/usr/local/cpanel/scripts/upcp`
 * **nameserver**: cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8, it is preferred that you always be on PowerDNS.
   * Mitigation: `/scripts/setupnameserver powerdns`
 * **MySQL**: 99% of existing AlmaLinux 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.
   * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.
-
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
+* * 
