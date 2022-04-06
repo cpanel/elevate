@@ -49,6 +49,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
 
+       --skip-elevate-version-check   Skip the check for whether this script is up to date.
        --skip-cpanel-version-check    Skip the check for whether cPanel is up to date.
                                       This option is intended only for testing!
 
@@ -137,6 +138,7 @@ use Log::Log4perl qw(:easy);
 
 use Config;
 use Carp           ();
+use Digest::SHA    ();
 use File::Basename ();
 use File::Copy     ();
 use File::Find     ();
@@ -144,6 +146,7 @@ use File::Path     ();
 use File::Slurper  ();
 use File::Temp     ();
 use Hash::Merge    ();
+use LWP::Simple    ();
 
 use Cpanel::Config::Httpd       ();
 use Cpanel::Config::LoadCpConf  ();
@@ -224,7 +227,7 @@ use constant VETTED_YUM_REPO => qw{
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log check skip-cpanel-version-check );
+    return qw( service start clean continue manual-reboots status log check skip-cpanel-version-check skip-elevate-version-check );
 }
 
 my $logger;
@@ -2777,6 +2780,66 @@ sub _blocker_ea4_profile( $self ) {
     EOS
 }
 
+sub _blocker_script_updated ($self) {
+
+    my ( $should_block, $blocker_text ) = ( undef, undef );
+
+    if ( !$self->getopt('skip-elevate-version-check') ) {
+
+        my ( $latest_checksum, $self_checksum ) = ( _latest_checksum(), _self_checksum() );
+        if ( !defined $latest_checksum ) {
+            $should_block = 1;
+            $blocker_text = "The latest version of elevate-cpanel could not be fetched for comparison.";
+        }
+        elsif ( !defined $self_checksum ) {
+            $should_block = 1;
+            $blocker_text = "This script is not installed at the expected location /scripts/elevate-cpanel.";
+        }
+        else {
+            $should_block = $latest_checksum eq $self_checksum ? 0 : 1;
+            $blocker_text = <<~EOS if $should_block;
+            This script does not appear to be the newest available release.
+            Please download the latest version from the following URL and try again:
+
+            wget -O /scripts/elevate-cpanel \
+                https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel ;
+            chmod 700 /scripts/elevate-cpanel
+            EOS
+        }
+    }
+
+    return unless $should_block;
+
+    return $self->has_blocker( 105, $blocker_text . <<~EOS);
+
+
+    Pass the --skip-elevate-version-check flag to skip this check.
+    EOS
+
+}
+
+sub _self_checksum () {
+    my $script_path = '/scripts/elevate-cpanel';
+    my $rv          = undef;
+    if ( -e $script_path ) {
+        my $digest = Digest::SHA->new('512');
+        $digest->addfile($script_path);
+        $rv = $digest->hexdigest;
+    }
+    return $rv;
+}
+
+sub _latest_checksum () {
+    my $latest = LWP::Simple::get('https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel');
+    my $rv     = undef;
+    if ( defined $latest ) {
+        my $digest = Digest::SHA->new('512');
+        $digest->add($latest);
+        $rv = $digest->hexdigest;
+    }
+    return $rv;
+}
+
 sub _blockers_check ($self) {
 
     my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
@@ -2803,6 +2866,7 @@ sub _blockers_check ($self) {
     $self->_blocker_system_update();
     $self->_blocker_bad_nics_naming();
     $self->_blocker_ea4_profile();
+    $self->_blocker_script_updated();
 
     return 0;
 }
