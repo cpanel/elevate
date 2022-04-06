@@ -24,6 +24,8 @@ $cpev_mock->redefine( _init_logger => sub { die "should not call init_logger" } 
 
 $cpev_mock->redefine( _check_yum_repos => 0 );
 
+$cpev_mock->redefine( '_latest_checksum' => 'HEX', '_self_checksum' => 'HEX' );
+
 my $mock_tiers = Test::MockModule->new('Cpanel::Update::Tiers');
 $mock_tiers->redefine(
     sync_tiers_file => 1,
@@ -366,7 +368,29 @@ $errors_mock->redefine(
     }
 );
 
+{
+    note "checking script update check";
+
+    $cpev_mock->redefine( '_latest_checksum' => sub { undef }, '_self_checksum' => sub { undef } );
+    is( $cpev->blockers_check(), 105, "blocks when copy of latest script can't be fetched" );
+    message_seen( 'ERROR', qr/latest version of elevate-cpanel could not be fetched for comparison/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( '_latest_checksum' => 'HEX' );
+    is( $cpev->blockers_check(), 105, "blocks when the script can't be found at expected location in /scripts" );
+    message_seen( 'ERROR', qr/script is not installed at the expected location/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( '_self_checksum' => 'DIFFERENT HEX' );
+    is( $cpev->blockers_check(), 105, "blocks when the installed script isn't the latest release" );
+    message_seen( 'ERROR', qr/does not appear to be the newest available release/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( '_latest_checksum' => 'HEX', '_self_checksum' => 'HEX' );
+}
+
 is( $cpev->blockers_check(), 0, 'No More Blockers' );
+no_messages_seen();
 
 {
     no warnings 'once';
