@@ -49,5 +49,5 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
 * **MySQL**
   * 99% of existing AlmaLinux 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.
   * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.
-* * **EA4 packages** are not supported on AlmaLinux 8.
+* **EA4 packages** are not supported on AlmaLinux 8.
   * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8. You would need to remove these packages before the upgrading to AlmaLinux 8. Doing so might impact your system users. Proceed with caution.
