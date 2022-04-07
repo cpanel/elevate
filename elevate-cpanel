@@ -336,7 +336,13 @@ sub continue_elevation($self) {
     my $pid = fork();
     LOGDIE(qq[Failed to fork: $!]) unless defined $pid;
     if ($pid) {
-        INFO("Restarting install process");
+        my $msg = "Restarting install process";
+        INFO($msg);
+        eval {    # there was an attempt
+            open( my $log_fd, '>>', LOG_FILE ) or die;
+            print {$log_fd} "$msg\n";
+            close $log_fd;
+        };
         return 1;
     }
     else {
