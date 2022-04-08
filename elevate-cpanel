@@ -213,6 +213,7 @@ use constant VETTED_YUM_REPO => qw{
   cp-dev-tools.repo
   EA4.repo
   ELevate.repo
+  elasticsearch.repo
   epel-testing.repo
   epel.repo
   imunify-rollout.repo
