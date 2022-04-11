@@ -231,15 +231,13 @@ sub _OPTIONS {
     return qw( service start clean continue manual-reboots status log check skip-cpanel-version-check skip-elevate-version-check );
 }
 
-my $logger;
-
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
 
 sub run ($self) {
 
     local $| = 1;
 
-    $logger = _init_logger();
+    _init_logger();
 
     if ( $self->getopt('start') ) {
         die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
@@ -2463,7 +2461,6 @@ sub has_blocker ( $self, $id, $msg ) {
     *** Elevation Blocker detected: ***
     $msg
     EOS
-    WARN('.');
 
     $self->{blockers} //= [];
     push $self->{blockers}->@*, $blocker;
@@ -2503,7 +2500,7 @@ sub _blocker_is_old_cpanel ($self) {
 
 sub _blocker_cpanel_needs_update ($self) {
     if ( !$self->getopt('skip-cpanel-version-check') ) {
-        my $tiers_obj = Cpanel::Update::Tiers->new( logger => $logger );
+        my $tiers_obj = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
         if ( !grep { Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $_ ) } $tiers_obj->get_flattened_hash()->@{qw/edge current release stable lts/} ) {
             $self->has_blocker( 2, "This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date. Please upgrade cPanel to a most recent version." );
         }
@@ -3195,7 +3192,7 @@ sub install_cpanel_elevate_service {
         Type=simple
         # want to run it once per boot time
         RemainAfterExit=yes
-        ExecStart=/usr/bin/bash -c 'exec /usr/local/cpanel/scripts/elevate-cpanel --service 2>&1 | /usr/bin/tee -a $log_file'
+        ExecStart=/usr/local/cpanel/scripts/elevate-cpanel --service
 
         [Install]
         WantedBy=multi-user.target
@@ -3296,10 +3293,29 @@ sub read_redhat_release() {
 
 sub ssystem (@args) {
     INFO( "Running: " . join( " ", @args ) );
-    print "\n";    # Buffer so they can more easily read the output.
-    my $ret = system(@args);
-    print "\n";    # Buffer so they can more easily read the output.
-    return $ret;
+    INFO();    # Buffer so they can more easily read the output.
+
+    # emulate shell behavior of system()
+    if ( scalar @args == 1 && $args[0] =~ m/[\$&*(){}\[\]'";\\|?<>~`\n]/ ) {
+        unshift @args, qw(/usr/bin/bash -c);
+    }
+
+    my $program = shift @args;
+    my ( $callback_out, $callback_err ) = map {
+        my $label = $_;
+        Cpanel::IOCallbackWriteLine->new( sub ($line) { chomp $line; INFO("{$label} $line"); } )
+    } qw(stdout stderr);
+    my $sr = Cpanel::SafeRun::Object->new(
+        program      => $program,
+        args         => [@args],
+        stdout       => $callback_out,
+        stderr       => $callback_err,
+        timeout      => 0,
+        read_timeout => 0,
+    );
+    INFO();    # Buffer so they can more easily read the output.
+
+    return $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
 }
 
 sub ssystem_and_die (@args) {
@@ -3308,19 +3324,23 @@ sub ssystem_and_die (@args) {
 }
 
 sub _init_logger ( $debug_level = 'DEBUG') {
+    my $log_file = LOG_FILE;
 
-    # We have to sprinkle in the screen parts to the config but only when it's enabled.
-    my $config = qq{
-        log4perl.appender.Screen=Log::Log4perl::Appender::ScreenColoredLevels
-        log4perl.appender.Screen.color.TRACE=cyan
-        log4perl.appender.Screen.color.DEBUG=bold white
-        log4perl.appender.Screen.color.WARN=yellow
+    my $config = <<~"EOF";
+        log4perl.logger = DEBUG, Screen, File
+        log4perl.appender.Screen=Log::Log4perl::Appender::Screen
         log4perl.appender.Screen.stderr=0
         log4perl.appender.Screen.layout=Log::Log4perl::Layout::PatternLayout
         log4perl.appender.Screen.layout.ConversionPattern=* %d{dd-HH:mm:ss} (%L) [%p] %m%n
-        log4perl.category = $debug_level, Screen
-    };
+        log4perl.appender.File=Log::Log4perl::Appender::File
+        log4perl.appender.File.filename=$log_file
+        log4perl.appender.File.syswrite=1
+        log4perl.appender.File.layout=Log::Log4perl::Layout::PatternLayout
+        log4perl.appender.File.layout.ConversionPattern=* %d{dd-HH:mm:ss} (%L) [%p] %m%n
+    EOF
 
-    return Log::Log4perl->init( \$config );
+    Log::Log4perl->init( \$config );
+
+    return;
 }
 1;
