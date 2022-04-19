@@ -1604,8 +1604,8 @@ sub reinstall_mysql_packages {
         my $c = 0;
 
         while (1) {
-            $c = ( $c + 1 ) % 10;
-            my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
+            $c   = ( $c + 1 ) % 10;
+            $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
             die qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
 
             if ( $out =~ m{\sstate:\s*inprogress} ) {
