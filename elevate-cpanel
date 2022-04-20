@@ -3302,7 +3302,7 @@ sub ssystem (@args) {
     my $program = shift @args;
     my ( $callback_out, $callback_err ) = map {
         my $label = $_;
-        Cpanel::IOCallbackWriteLine->new( sub ($line) { chomp $line; INFO("{$label} $line"); } )
+        Cpanel::IOCallbackWriteLine->new( sub ($line) { chomp $line; INFO($line); } )
     } qw(stdout stderr);
     my $sr = Cpanel::SafeRun::Object->new(
         program      => $program,
