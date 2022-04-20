@@ -137,16 +137,17 @@ use parent qw( Cpanel::HelpfulScript );
 use Log::Log4perl qw(:easy);
 
 use Config;
-use Carp           ();
-use Digest::SHA    ();
-use File::Basename ();
-use File::Copy     ();
-use File::Find     ();
-use File::Path     ();
-use File::Slurper  ();
-use File::Temp     ();
-use Hash::Merge    ();
-use LWP::Simple    ();
+use Carp            ();
+use Digest::SHA     ();
+use File::Basename  ();
+use File::Copy      ();
+use File::Find      ();
+use File::Path      ();
+use File::Slurper   ();
+use File::Temp      ();
+use Hash::Merge     ();
+use LWP::Simple     ();
+use Term::ANSIColor ();
 
 use Cpanel::Config::Httpd       ();
 use Cpanel::Config::LoadCpConf  ();
@@ -3335,7 +3336,7 @@ sub _init_logger ( $self, $debug_level = 'DEBUG' ) {
         log4perl.appender.File.filename=$log_file
         log4perl.appender.File.syswrite=1
         log4perl.appender.File.layout=Log::Log4perl::Layout::PatternLayout
-        log4perl.appender.File.layout.ConversionPattern=* %d{dd-HH:mm:ss} (%L) [%p] %m%n
+        log4perl.appender.File.layout.ConversionPattern=%s* %d{dd-HH:mm:ss} (%L) [%p] %m%u%n
     EOF
 
     if ( $self->getopt('service') ) {
@@ -3348,10 +3349,21 @@ sub _init_logger ( $self, $debug_level = 'DEBUG' ) {
         log4perl.appender.Screen=Log::Log4perl::Appender::Screen
         log4perl.appender.Screen.stderr=0
         log4perl.appender.Screen.layout=Log::Log4perl::Layout::PatternLayout
-        log4perl.appender.Screen.layout.ConversionPattern=* %d{dd-HH:mm:ss} (%L) [%p] %m%n
+        log4perl.appender.Screen.layout.ConversionPattern=%s* %d{dd-HH:mm:ss} (%L) [%p] %m%u%n
         log4perl.logger = $debug_level, Screen, File
         EOF
     }
+
+    my %colors = (
+        TRACE => 'cyan',
+        DEBUG => 'bold white',
+        INFO  => 'green',
+        WARN  => 'yellow',
+        ERROR => 'magenta',
+        FATAL => 'red',
+    );
+    Log::Log4perl::Layout::PatternLayout::add_global_cspec( 's' => sub { Term::ANSIColor::color( $colors{ $_[3] } ) } );
+    Log::Log4perl::Layout::PatternLayout::add_global_cspec( 'u' => sub { Term::ANSIColor::color('reset') } );
 
     Log::Log4perl->init( \$config );
 
