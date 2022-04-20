@@ -57,9 +57,9 @@ my $data = eval { Cpanel::JSON::LoadFile( $marker_file->path ) } // {};
 is $data, {
     '_elevate_process' => {
         'cpanel_build'        => match qr{^[\d.]+$}a,
-        'finished_at'         => D(),
+        'finished_at'         => match qr/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}:\d{1,2}$/a,
         'script_md5'          => 'deadbeef',
-        'started_at'          => D(),
+        'started_at'          => match qr/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}:\d{1,2}$/a,
         'redhat_release_pre'  => 'RHEL Before C7',
         'redhat_release_post' => 'RHEL After A8',
     }
