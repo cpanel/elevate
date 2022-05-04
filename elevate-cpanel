@@ -1762,7 +1762,7 @@ sub kernel_check {
         $msg .= "    $kernel\n";
     }
 
-    $msg .= "\nYou can remove these by running: /usr/bin/rm -e " . join( " ", @kernel_rpms ) . "\n";
+    $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
 
     add_final_notification($msg);
 
