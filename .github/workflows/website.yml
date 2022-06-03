@@ -20,9 +20,6 @@ jobs:
         submodules: true  # Fetch Hugo themes (true OR recursive)
         fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
 
-    - name: setup git repo
-      run: git config --global --add safe.directory /github/workspace
-
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
       with:
@@ -39,7 +36,7 @@ jobs:
         git diff
 
     - name: push
-      uses: github-actions-x/commit@v2.8
+      uses: github-actions-x/commit@v2.9
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         push-branch: 'main'
