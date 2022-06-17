@@ -229,7 +229,7 @@ use constant VETTED_YUM_REPO => qw{
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log check skip-cpanel-version-check skip-elevate-version-check );
+    return qw( service start clean continue manual-reboots status log check check-json skip-cpanel-version-check skip-elevate-version-check );
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
@@ -238,7 +238,7 @@ sub run ($self) {
 
     local $| = 1;
 
-    $self->_init_logger();
+    $self->_init_logger($self->getopt('check-json') ? 'ERROR' : 'DEBUG' );
 
     if ( $self->getopt('start') ) {
         die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
@@ -249,7 +249,7 @@ sub run ($self) {
     }
 
     return do_cleanup()      if $self->getopt('clean');
-    return $self->do_check() if $self->getopt('check');
+    return $self->do_check() if $self->getopt('check') || $self->getopt('check-json');
 
     my $stage = get_stage();
 
@@ -546,9 +546,13 @@ sub _run_service($self) {
 }
 
 sub do_check($self) {
+    if ($self->getopt('check') && $self->getopt('check-json')) {
+        ERROR("--check and --check-json are mutually exclusive.");
+        return 1;
+    }
 
     if ( _is_service_active(SERVICE_NAME) ) {
-        WARN("An elevation process is already in progress.");
+        ERROR("An elevation process is already in progress.");
         return 1;
     }
 
@@ -557,17 +561,26 @@ sub do_check($self) {
     # cleanup the stage file
     unlink ELEVATE_STAGE_FILE;
 
-    if ($has_blockers) {
-        WARN( <<~'EOS' );
-        Please fix the detected issues before performing the elevation process.
-        EOS
+    if ($self->getopt('check')) {
+        if ($has_blockers) {
+            WARN( <<~'EOS' );
+            Please fix the detected issues before performing the elevation process.
+            EOS
+        }
+        else {
+            INFO( <<~'EOS' );
+            There is no known blockers to start the elevation process.
+            You can consider running:
+                /scripts/elevate-cpanel --start
+            EOS
+        }
+    }
+    elsif ($self->getopt('check-json')) {
+        print eval { Cpanel::JSON::Dump($self->{'blockers'}) };
+        ERROR($@) if $@;
     }
     else {
-        INFO( <<~'EOS' );
-        There is no known blockers to start the elevation process.
-        You can consider running:
-            /scripts/elevate-cpanel --start
-        EOS
+        LOGDIE('BUG: Neither --check nor --check-json given in do_check()');
     }
 
     return $has_blockers;
@@ -2451,6 +2464,16 @@ sub blockers_check ( $self, $all = 0 ) {
     return scalar $self->{blockers}->@*;
 }
 
+# Needed to convert these with Cpanel::JSON::Dump:
+{
+    package cpev::Blocker;
+
+    sub TO_JSON ($self) {
+        my %hash = $self->%*;
+        return \%hash;
+    }
+}
+
 #
 # by default abort on the first failure,
 #   except in check mode where we want all failures
@@ -3052,7 +3075,7 @@ sub _sshd_setup () {
     my $setup = eval { File::Slurper::read_binary($sshd_config) } // '';
 
     if ( $setup !~ m{^\s*PermitRootLogin\b}m ) {
-        ERROR( <<~"EOS" );
+        WARN( <<~"EOS" );
         OpenSSH configuration file does not explicitly state the option PermitRootLogin in sshd_config file, which will default in RHEL8 to "prohibit-password".
         Please set the 'PermitRootLogin' value in $sshd_config before upgrading.
         EOS
