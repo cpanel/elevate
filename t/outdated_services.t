@@ -12,6 +12,9 @@ use Test::MockModule qw/strict/;
 
 use File::Slurper qw{read_text};
 
+use lib $FindBin::Bin . "/lib";
+use Test::Elevate;
+
 use cPstrict;
 require $FindBin::Bin . '/../elevate-cpanel';
 
