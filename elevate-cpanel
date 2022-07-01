@@ -44,7 +44,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
     Optional:
        --start                        Start the convertion process
        --continue                     Continue the convertion: retry the last step
-       --check                        Check if your system has any known blockers to upgrade.
+       --check[=BLOCKER_FILE]         Check if your system has any known blockers to upgrade.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
@@ -71,6 +71,11 @@ You can check if your server is compatible with the upgrade process without
 starting an upgrade process.
 
     /scripts/elevate-cpanel --check
+
+This will also save a JSON representation of the blockers to a file, C</var/cpanel/elevate-blockers> by default,
+but passing an optional argument will use the file given instead:
+
+    /scripts/elevate-cpanel --check /root/blockers.json
 
 =item Start an installation with manual reboot
 
@@ -165,6 +170,7 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
+use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 use constant ELEVATE_BACKUP_DIR   => "/root/.elevate.backup";
@@ -229,7 +235,7 @@ use constant VETTED_YUM_REPO => qw{
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log check skip-cpanel-version-check skip-elevate-version-check );
+    return qw( service start clean continue manual-reboots status log check:s skip-cpanel-version-check skip-elevate-version-check );
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
@@ -249,7 +255,7 @@ sub run ($self) {
     }
 
     return do_cleanup()      if $self->getopt('clean');
-    return $self->do_check() if $self->getopt('check');
+    return $self->do_check() if defined $self->getopt('check');
 
     my $stage = get_stage();
 
@@ -552,10 +558,12 @@ sub do_check($self) {
         return 1;
     }
 
+    # If no argument passed to --check, use default path:
+    my $blocker_file = $self->getopt('check') || ELEVATE_BLOCKER_FILE;
+
     my $has_blockers = $self->blockers_check(1);
 
-    # cleanup the stage file
-    unlink ELEVATE_STAGE_FILE;
+    save_blocker_file( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
     if ($has_blockers) {
         WARN( <<~'EOS' );
@@ -571,6 +579,14 @@ sub do_check($self) {
     }
 
     return $has_blockers;
+}
+
+sub save_blocker_file ( $path, $stash ) {
+    open( my $fh, '>', $path ) or LOGDIE( "Fail to open " . $path . ": $!" );
+    print {$fh} Cpanel::JSON::pretty_canonical_dump($stash);
+    close $fh;
+
+    return 1;
 }
 
 =head1 STAGES
@@ -2449,6 +2465,17 @@ sub blockers_check ( $self, $all = 0 ) {
     }
 
     return scalar $self->{blockers}->@*;
+}
+
+# Needed to convert these with Cpanel::JSON::Dump:
+{
+
+    package cpev::Blocker;
+
+    sub TO_JSON ($self) {
+        my %hash = $self->%*;
+        return \%hash;
+    }
 }
 
 #
