@@ -133,8 +133,7 @@ BEGIN {
       or do {
         warn qq[You need to upgrade your cPanel server to version 102 or later before running this script.\n];
         exit 1;
-    }
-
+      };
 }
 
 use parent qw( Cpanel::HelpfulScript );
@@ -293,7 +292,8 @@ sub monitor_upgrade {
     exec( qw{/usr/bin/tail -n40 -F }, LOG_FILE );
 }
 
-sub start($self) {
+sub start ($self) {
+    bail_out_on_inappropriate_distro();
     my $stage = get_stage();
     if ( $stage != 0 ) {
         my $header;
@@ -558,6 +558,8 @@ sub do_check($self) {
         return 1;
     }
 
+    bail_out_on_inappropriate_distro();
+
     # If no argument passed to --check, use default path:
     my $blocker_file = $self->getopt('check') || ELEVATE_BLOCKER_FILE;
 
@@ -587,6 +589,16 @@ sub save_blocker_file ( $path, $stash ) {
     close $fh;
 
     return 1;
+}
+
+# We are OK if can_be_elevated or if
+sub bail_out_on_inappropriate_distro () {
+    if ( !( eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() eq 'Centos' && Cpanel::OS::major() == 7 ) ) ) {
+        FATAL qq[This script is designed to only run on CentOS 7 servers.\n];
+        exit 1;
+    }
+
+    return;
 }
 
 =head1 STAGES
