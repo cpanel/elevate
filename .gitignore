@@ -5,3 +5,4 @@
 *.bak
 /cover_db
 .DS_Store
+.tdy
