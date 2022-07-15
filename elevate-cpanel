@@ -2482,10 +2482,10 @@ sub blockers_check ( $self, $all = 0 ) {
 # by default abort on the first failure,
 #   except in check mode where we want all failures
 #
-sub has_blocker ( $self, $id, $msg ) {
+sub has_blocker ( $self, $id, $msg, %others ) {
 
     # FIXME: consider removing the id
-    my $blocker = bless { id => $id, msg => $msg }, 'cpev::Blocker';
+    my $blocker = bless { id => $id, msg => $msg, %others }, 'cpev::Blocker';
 
     die $blocker if $self->{_abort_on_first_blocker};
 
@@ -2716,7 +2716,7 @@ sub _blocker_invalid_yum_repos ($self) {
             $status = $self->_check_yum_repos();
         }
 
-        $self->has_blocker( 14, $msg ) if $status;
+        $self->has_blocker( 14, $msg, repos => $self->{_yum_repos_unsupported_with_packages} ) if $status;
     }
 
     return 0;
@@ -2970,6 +2970,7 @@ sub _check_yum_repos($self) {
     # (re)set the array to store the offending repo
     $self->{_yum_repos_path_using_invalid_syntax} = [];
     $self->{_yum_repos_to_disable}                = [];
+    $self->{_yum_repos_unsupported_with_packages} = [];
 
     my %vetted = map { $_ => 1 } VETTED_YUM_REPO;
 
@@ -3009,6 +3010,7 @@ sub _check_yum_repos($self) {
                             $current_repo_name, $path
                         )
                     );
+                    push( $self->{_yum_repos_unsupported_with_packages}->@*, $current_repo_name );
                     $status_mask |= _CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO;
                 }
                 else {
