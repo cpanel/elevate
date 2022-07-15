@@ -23,8 +23,8 @@ $cpev_mock->redefine(
 
 my $mask_unvetted            = cpev::_CHECK_YUM_REPO_BITMASK_UNVETTED();
 my $mask_invalid_syntax      = cpev::_CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX();
+my $mask_rpms_from_unvetted  = cpev::_CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO();
 my $mask_unused_repo_enabled = cpev::_CHECK_YUM_REPO_BITMASK_HAS_UNUSED_REPO_ENABLED();
-my $mask_all_issues          = $mask_unvetted | $mask_invalid_syntax | $mask_unused_repo_enabled;
 
 my $mask_unvetted_with_unused_repo = $mask_unvetted | $mask_unused_repo_enabled;
 
@@ -58,6 +58,12 @@ enabled=1
 EOS
 
 is $cpev->_check_yum_repos() => $mask_unvetted_with_unused_repo, "Using an unknown enabled repo detected";
+
+$cpev_mock->redefine( get_installed_rpms_in_repo => 1 );
+is $cpev->_check_yum_repos() => $mask_unvetted | $mask_rpms_from_unvetted, "Using an unknown enabled repo with installed packages detected";
+is $cpev->{_yum_repos_unsupported_with_packages}, [ 'MyRepo' ], "Names of repos are recorded in object";
+
+$cpev_mock->redefine( get_installed_rpms_in_repo => 0 );
 
 $mock_unknown_repo->contents('# whatever');
 ok !$cpev->_check_yum_repos(), "no repo set";
@@ -147,6 +153,6 @@ is $cpev->_check_yum_repos() => $mask_unvetted_with_unused_repo, "syntax errors 
 
 $mock_vetted_repo->contents($invalid_synax);
 $mock_unknown_repo->contents($invalid_synax);
-is $cpev->_check_yum_repos() => $mask_all_issues, "syntax errors and unvetted repos are both reported";
+is $cpev->_check_yum_repos() => $mask_unvetted | $mask_invalid_syntax | $mask_unused_repo_enabled, "syntax errors and unvetted repos are both reported";
 
 done_testing;
