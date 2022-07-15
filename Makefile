@@ -1,4 +1,4 @@
-.PHONY: test cover
+.PHONY: test cover tags clean
 
 test:
 	perl -cw elevate-cpanel
@@ -11,3 +11,9 @@ cover:
 	cover -silent
 	find cover_db -type f -exec chmod 644 {} \;
 	find cover_db -type d -exec chmod 755 {} \;
+
+tags:
+	/usr/bin/ctags -R --languages=perl elevate-cpanel t
+
+clean:
+	rm -f tags
