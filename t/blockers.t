@@ -315,6 +315,12 @@ message_seen( 'ERROR', q[MySQL upgrade in progress. Please wait for the MySQL up
 no_messages_seen();
 $mf_mysql_upgrade->unlink;
 
+$cpev_mock->redefine( '_is_container_envtype' => 1 );
+is( $cpev->blockers_check(), 90, "Blocks when envtype indicates a container" );
+message_seen( 'ERROR', q[cPanel thinks that this is a container-like environment, which this script cannot support at this time.] );
+no_messages_seen();
+$cpev_mock->redefine( '_is_container_envtype' => 0 );
+
 $cpev_mock->redefine( _system_update_check => 0 );
 is( $cpev->blockers_check(), 101, 'System is not up to date' );
 message_seen( 'ERROR', 'System is not up to date' );
