@@ -133,8 +133,7 @@ BEGIN {
       or do {
         warn qq[You need to upgrade your cPanel server to version 102 or later before running this script.\n];
         exit 1;
-    }
-
+      };
 }
 
 use parent qw( Cpanel::HelpfulScript );
@@ -230,7 +229,7 @@ use constant VETTED_YUM_REPO => qw{
   wp-toolkit-cpanel.repo
   imunify360-ea-php-hardened.repo
   droplet-agent.repo
-  }, DISABLE_MYSQL_YUM_REPOS;
+}, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
@@ -293,7 +292,8 @@ sub monitor_upgrade {
     exec( qw{/usr/bin/tail -n40 -F }, LOG_FILE );
 }
 
-sub start($self) {
+sub start ($self) {
+    bail_out_on_inappropriate_distro();
     my $stage = get_stage();
     if ( $stage != 0 ) {
         my $header;
@@ -328,7 +328,7 @@ sub start($self) {
     return $self->run_service_and_notify();
 }
 
-sub continue_elevation($self) {
+sub continue_elevation ($self) {
 
     if ( _is_service_active(SERVICE_NAME) ) {
         WARN( "The service " . SERVICE_NAME . " is still running. Please wait for it to finish before restarting it." );
@@ -366,7 +366,7 @@ sub do_cleanup {
     return 0;
 }
 
-sub run_service_and_notify($self) {
+sub run_service_and_notify ($self) {
 
     # check it outside the eval block to avoid notification from the command line
     $self->check_and_create_pidfile();
@@ -403,7 +403,7 @@ sub run_service_and_notify($self) {
     return $out;
 }
 
-sub check_and_create_pidfile($self) {
+sub check_and_create_pidfile ($self) {
     my $upid = Cpanel::PID->new( { pid_file => PID_FILE } );
 
     if ( $upid->create_pid_file() != 1 ) {
@@ -413,7 +413,7 @@ sub check_and_create_pidfile($self) {
     return $upid;
 }
 
-sub check_status($self) {
+sub check_status ($self) {
     my $stage = get_stage();
 
     if ( !$stage ) {
@@ -459,7 +459,7 @@ sub add_final_notification ( $msg, $warn_now = 0 ) {
     return 1;
 }
 
-sub _notify_success($self) {
+sub _notify_success ($self) {
 
     my $msg = <<'EOS';
 The cPanel & WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.
@@ -535,7 +535,7 @@ sub _send_notification ( $subject, $msg ) {
     return;
 }
 
-sub _run_service($self) {
+sub _run_service ($self) {
 
     my $stage = get_stage();
 
@@ -551,12 +551,14 @@ sub _run_service($self) {
 
 }
 
-sub do_check($self) {
+sub do_check ($self) {
 
     if ( _is_service_active(SERVICE_NAME) ) {
         WARN("An elevation process is already in progress.");
         return 1;
     }
+
+    bail_out_on_inappropriate_distro();
 
     # If no argument passed to --check, use default path:
     my $blocker_file = $self->getopt('check') || ELEVATE_BLOCKER_FILE;
@@ -589,6 +591,16 @@ sub save_blocker_file ( $path, $stash ) {
     return 1;
 }
 
+# We are OK if can_be_elevated or if
+sub bail_out_on_inappropriate_distro () {
+    if ( !( eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() eq 'Centos' && Cpanel::OS::major() == 7 ) ) ) {
+        FATAL qq[This script is designed to only run on CentOS 7 servers.\n];
+        exit 1;
+    }
+
+    return;
+}
+
 =head1 STAGES
 
 Description of the multiple stages used during the elevation process.
@@ -601,7 +613,7 @@ responsible of the multiple reboots.
 
 =cut
 
-sub run_stage_1($self) {
+sub run_stage_1 ($self) {
 
     # do not leave cruft behing when aborting
     my $abort = sub {
@@ -661,7 +673,7 @@ Update the current distro packages then reboot.
 
 =cut
 
-sub run_stage_2($self) {
+sub run_stage_2 ($self) {
 
     my $sum = `/usr/bin/md5sum $0`;
     chomp $sum;
@@ -700,7 +712,7 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 =cut
 
-sub run_stage_3($self) {
+sub run_stage_3 ($self) {
 
     run_once(
         prep_for_leapp => sub {
@@ -774,7 +786,7 @@ Restore removed packages during the previous stage.
 
 =cut
 
-sub run_stage_4($self) {
+sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
     Cpanel::OS::major() == 8 or die("Upgrade to AlmaLinux 8 did not succeed. Please restore from backup.");
 
@@ -858,7 +870,7 @@ The elevate-cpanel service is now removed.
 
 =cut
 
-sub run_stage_5($self) {
+sub run_stage_5 ($self) {
     return 1 if post_upgrade_check();
 
     # we cannot stop the service ( ourself )
@@ -916,7 +928,7 @@ sub elevation_startup_marker ( $self, $sum = 'unknown' ) {
     return;
 }
 
-sub elevation_success_marker($self) {
+sub elevation_success_marker ($self) {
 
     update_stage_file(
         {
@@ -1318,7 +1330,7 @@ sub disable_known_yum_repositories {
     return;
 }
 
-sub _is_service_active( $service ) {
+sub _is_service_active ($service) {
 
     # cannot trust: `systemctl is-active` with a one-shot service
 
@@ -1339,7 +1351,7 @@ sub _is_service_active( $service ) {
     return 0;
 }
 
-sub _is_service_enabled( $service ) {
+sub _is_service_enabled ($service) {
 
     my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-enabled}, $service ) // '';
 
@@ -1865,7 +1877,7 @@ sub _store_pecl_for ( $bin, $name ) {
     return;
 }
 
-sub _get_pecl_installed_for( $bin ) {
+sub _get_pecl_installed_for ($bin) {
 
     return unless -x $bin;
 
@@ -1946,7 +1958,7 @@ sub _fetch_a_script ( $url, $template ) {
 
 my $yum_list_cache;
 
-sub yum_list ($invalidate_cache = 0) {
+sub yum_list ( $invalidate_cache = 0 ) {
     return $yum_list_cache if !$invalidate_cache && $yum_list_cache;
 
     my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror(qw{/usr/bin/yum list installed});
@@ -2325,7 +2337,7 @@ sub post_upgrade_check {
     return 0;
 }
 
-sub purge_perl_xs($path) {
+sub purge_perl_xs ($path) {
 
     return unless length $path && -d $path;
 
@@ -2785,7 +2797,7 @@ sub _blocker_bad_nics_naming ($self) {
 # _blocker_ea4_profile: perform an early ea4 profile backup
 #   and check for incompatible packages.
 #
-sub _blocker_ea4_profile( $self ) {
+sub _blocker_ea4_profile ($self) {
 
     # perform an early backup so we can check the list of dropped packages
 
@@ -2938,7 +2950,7 @@ sub _use_jetbackup4_or_earlier() {
     return;
 }
 
-sub _autofix_yum_repos($self) {
+sub _autofix_yum_repos ($self) {
 
     if ( ref $self->{_yum_repos_path_using_invalid_syntax} ) {
         my @files_with_invalid_syntax = $self->{_yum_repos_path_using_invalid_syntax}->@*;
@@ -2965,7 +2977,7 @@ sub _autofix_yum_repos($self) {
 #       _CHECK_YUM_REPO_BITMASK_UNVETTED is set when using packages from unvetted repo
 #       _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX is set when one ore more repo use invalid syntax
 #
-sub _check_yum_repos($self) {
+sub _check_yum_repos ($self) {
 
     # (re)set the array to store the offending repo
     $self->{_yum_repos_path_using_invalid_syntax} = [];
@@ -3285,7 +3297,7 @@ sub save_stage_file ($stash) {
     return 1;
 }
 
-sub update_stage_file( $data ) {
+sub update_stage_file ($data) {
 
     die q[Need a hash] unless ref $data eq 'HASH';
 
@@ -3300,7 +3312,7 @@ sub get_stage {
     return $stage_info->{'stage_number'} // 0;
 }
 
-sub bump_stage ($by = 1) {
+sub bump_stage ( $by = 1 ) {
 
     my $stage_id = get_stage() + $by;
 
