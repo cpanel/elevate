@@ -49,6 +49,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
 
+       --skip-disable-blscfg          Skip the check for BLS configuration of the boot loader being disabled.
        --skip-elevate-version-check   Skip the check for whether this script is up to date.
        --skip-cpanel-version-check    Skip the check for whether cPanel is up to date.
                                       This option is intended only for testing!
@@ -153,20 +154,21 @@ use Hash::Merge     ();
 use LWP::Simple     ();
 use Term::ANSIColor ();
 
-use Cpanel::Config::Httpd       ();
-use Cpanel::Config::LoadCpConf  ();
-use Cpanel::HTTP::Client        ();
-use Cpanel::JSON                ();
-use Cpanel::OS                  ();
-use Cpanel::PID                 ();
-use Cpanel::Pkgr                ();
-use Cpanel::RestartSrv::Systemd ();
-use Cpanel::SafeRun::Simple     ();
-use Cpanel::SafeRun::Errors     ();
-use Cpanel::Update::Tiers       ();
-use Cpanel::Version::Tiny       ();
-use Cpanel::Version::Compare    ();
-use Cpanel::Yum::Vars           ();
+use Cpanel::Config::Httpd                       ();
+use Cpanel::Config::LoadCpConf                  ();
+use Cpanel::HTTP::Client                        ();
+use Cpanel::JSON                                ();
+use Cpanel::OS                                  ();
+use Cpanel::PID                                 ();
+use Cpanel::Pkgr                                ();
+use Cpanel::RestartSrv::Systemd                 ();
+use Cpanel::SafeRun::Simple                     ();
+use Cpanel::SafeRun::Errors                     ();
+use Cpanel::Transaction::File::LoadConfigReader ();
+use Cpanel::Update::Tiers                       ();
+use Cpanel::Version::Tiny                       ();
+use Cpanel::Version::Compare                    ();
+use Cpanel::Yum::Vars                           ();
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
@@ -194,6 +196,9 @@ use constant IMUNIFY_LICENSE_BACKUP => ELEVATE_BACKUP_DIR . '/imunify-backup-lic
 use constant SBIN_IP => q[/sbin/ip];
 
 use constant YUM_REPOS_D => q[/etc/yum.repos.d];
+
+# Test::MockModule doesn't like redefining constants
+sub DEFAULT_GRUB_FILE () { return '/etc/default/grub' }
 
 use constant DISABLE_MYSQL_YUM_REPOS => qw{
   Mysql57.repo
@@ -234,7 +239,7 @@ use constant VETTED_YUM_REPO => qw{
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log check:s skip-cpanel-version-check skip-elevate-version-check );
+    return qw( service start clean continue manual-reboots status log check:s skip-cpanel-version-check skip-elevate-version-check skip-disable-blscfg );
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
@@ -2888,6 +2893,42 @@ sub _latest_checksum () {
     return $rv;
 }
 
+sub _blocker_blscfg ($self) {
+
+    if ( !$self->getopt('skip-disable-blscfg') ) {
+        my $etc_default_grub = Cpanel::Transaction::File::LoadConfigReader->new(
+            path      => DEFAULT_GRUB_FILE,
+            delimiter => '=',
+            comment   => '^\s*#',
+        );
+
+        my $grub_enable_blscfg = $etc_default_grub->get_entry('GRUB_ENABLE_BLSCFG');
+        return $self->has_blocker( 106, <<~EOS ) if !$grub_enable_blscfg || $grub_enable_blscfg ne 'false';
+        This system is currently configured so that the entries for the boot loader
+        will be stored in BLS format upon upgrade. This is ordinarily fine, but some
+        providers boot into their own copy of GRUB2, and theirs may not understand the
+        BLS format. If this is the case, the system will not be able to boot through
+        normal means in the middle of the upgrade process.
+
+        The safe option is to add or change the following line in /etc/default/grub so
+        that it reads:
+
+        GRUB_ENABLE_BLSCFG=false
+
+        You can switch to BLS format at your own risk at a later time after the upgrade
+        by running the /usr/sbin/grub2-switch-to-blscfg command.
+
+        Alternatively, if you know that your provider properly works with BLS boot
+        entries, you may bypass this blocker by invoking this script with the
+        --skip-disable-blscfg flag. If you do encounter this particular issue while
+        using this flag, please consider reporting the problem and the name of your
+        server provider to: https://github.com/cpanel/elevate/issues/101
+        EOS
+    }
+
+    return 0;
+}
+
 sub _blockers_check ($self) {
 
     my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
@@ -2916,6 +2957,7 @@ sub _blockers_check ($self) {
     $self->_blocker_bad_nics_naming();
     $self->_blocker_ea4_profile();
     $self->_blocker_script_updated();
+    $self->_blocker_blscfg();
 
     return 0;
 }

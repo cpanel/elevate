@@ -51,3 +51,9 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
   * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.
 * Some **EA4 packages** are not supported on AlmaLinux 8.
   * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8. You would need to remove these packages before the upgrading to AlmaLinux 8. Doing so might impact your system users. Proceed with caution.
+
+## Workarounds
+
+* Some providers of virtualized environments boot into a version of the GRUB2 boot loader which does not understand (or does not properly parse) the [Boot Loader Specification (BLS)](https://fedoraproject.org/wiki/Changes/BootLoaderSpecByDefault) files which AlmaLinux 8 prefers to use to instruct the boot loader how to load the kernel and start the operating system. This can cause the system to fail to boot correctly in the middle of the upgrade process. To work around this issue, you must perform one of the following to proceed with the upgrade:
+  * Disable the use of BLS when rebuilding boot loader entries by modifying the file `/etc/default/grub` to contain the line `GRUB_ENABLE_BLSCFG=false`.
+  * Run the script with the `--skip-disable-blscfg` flag. If your provider uses the instance of GRUB2 provided by the OS, or if your provider uses an instance of GRUB2 which does support BLS, this should work without issue. If you do encounter the described issue, see [issue #101](https://github.com/cpanel/elevate/issues/101) for further details.
