@@ -9,13 +9,22 @@ use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
+use cPstrict;
+
 use Test::MockFile 0.032;
 use Test::MockModule qw/strict/;
+
+# Some tests are incompatible with strict mode:
+BEGIN {
+    Test::MockFile::authorized_strict_mode_for_package('Cpanel::Autodie');
+    Test::MockFile::authorized_strict_mode_for_package('Cpanel::Config::LoadConfig');
+    Test::MockFile::authorized_strict_mode_for_package('File::Temp');
+}
 
 use lib $FindBin::Bin . "/lib";
 use Test::Elevate;
 
-use cPstrict;
+use File::Temp ();
 
 require $FindBin::Bin . '/../elevate-cpanel';
 
@@ -327,8 +336,6 @@ message_seen( 'ERROR', 'System is not up to date' );
 no_messages_seen();
 $cpev_mock->redefine( _system_update_check => 1 );
 
-$cpev_mock->redefine( _system_update_check => 1 );
-
 my $_blocker_ea4_profile_called = 0;
 $cpev_mock->redefine(
     _blocker_ea4_profile => sub {
@@ -362,11 +369,7 @@ my $sbin_ip = Test::MockFile->file('/sbin/ip');
     no_messages_seen();
 
     $cpev_mock->redefine( '_get_nics' => sub { qw< w0p1lan > } );
-    is( $cpev->blockers_check(), 0, 'No blocks when there are no kernel-named NICs' );
-    no_messages_seen();
 }
-
-ok $_blocker_ea4_profile_called, "_blocker_ea4_profile was called";
 
 $errors_mock->redefine(
     'saferunnoerror' => sub {
@@ -395,6 +398,35 @@ $errors_mock->redefine(
     $cpev_mock->redefine( '_latest_checksum' => 'HEX', '_self_checksum' => 'HEX' );
 }
 
+my $default_grub_temp = File::Temp->new;
+$default_grub_temp->autoflush(1);
+
+{
+    note "checking GRUB_ENABLE_BLSCFG state check";
+
+    # Test::MockFile will not work for testing here, because it uses Cpanel::Autodie under the hood
+
+    $cpev_mock->redefine( 'DEFAULT_GRUB_FILE' => '/this/path/does/not/exist' );
+    is( $cpev->blockers_check(), 106, "blocks when the file does not exist" );
+    message_seen( 'ERROR', qr/stored in BLS format upon upgrade/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( 'DEFAULT_GRUB_FILE' => $default_grub_temp->filename );
+    is( $cpev->blockers_check(), 106, "blocks when the file doesn't contain GRUB_ENABLE_BLSCFG" );
+    message_seen( 'ERROR', qr/stored in BLS format upon upgrade/ );
+    no_messages_seen();
+
+    $default_grub_temp->print("GRUB_ENABLE_BLSCFG=true\n");
+    is( $cpev->blockers_check(), 106, "blocks when the file contains GRUB_ENABLE_BLSCFG=true" );
+    message_seen( 'ERROR', qr/stored in BLS format upon upgrade/ );
+    no_messages_seen();
+
+    $default_grub_temp->seek( 0, 0 );
+    $default_grub_temp->print("GRUB_ENABLE_BLSCFG=false\n");
+}
+
+ok $_blocker_ea4_profile_called, "_blocker_ea4_profile was called";
+
 is( $cpev->blockers_check(), 0, 'No More Blockers' );
 no_messages_seen();
 
@@ -411,6 +443,19 @@ no_messages_seen();
     local $Cpanel::Version::Tiny::VERSION_BUILD = '11.102.0.7';
     is( $cpev->blockers_check(), 0, "blockers_check() passes without skip-cpanel-version-check specified." );
     no_messages_seen();
+
+    note("checking --skip-disable-blscfg");
+
+    $default_grub_temp->seek( 0, 0 );
+    $default_grub_temp->print("GRUB_ENABLE_BLSCFG=true\n");
+    $cpev->{'_getopt'}{'skip-disable-blscfg'} = 1;
+
+    is( $cpev->blockers_check(), 0, "blockers_check() passes if --skip-disable-blscfg provided when it would otherwise block" );
+    no_messages_seen();
+
+    delete $cpev->{'_getopt'}{'skip-disable-blscfg'};
+    $default_grub_temp->seek( 0, 0 );
+    $default_grub_temp->print("GRUB_ENABLE_BLSCFG=false\n");
 }
 
 {
