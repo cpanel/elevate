@@ -164,6 +164,15 @@
 </ul>
 </li>
 </ul>
+<h2 id="workarounds">Workarounds</h2>
+<ul>
+<li>Some providers of virtualized environments boot into a version of the GRUB2 boot loader which does not understand (or does not properly parse) the <a href="https://fedoraproject.org/wiki/Changes/BootLoaderSpecByDefault">Boot Loader Specification (BLS)</a> files which AlmaLinux 8 prefers to use to instruct the boot loader how to load the kernel and start the operating system. This can cause the system to fail to boot correctly in the middle of the upgrade process. To work around this issue, you must perform one of the following to proceed with the upgrade:
+<ul>
+<li>Disable the use of BLS when rebuilding boot loader entries by modifying the file <code>/etc/default/grub</code> to contain the line <code>GRUB_ENABLE_BLSCFG=false</code>.</li>
+<li>Run the script with the <code>--skip-disable-blscfg</code> flag. If your provider uses the instance of GRUB2 provided by the OS, or if your provider uses an instance of GRUB2 which does support BLS, this should work without issue. If you do encounter the described issue, see <a href="https://github.com/cpanel/elevate/issues/101">issue #101</a> for further details.</li>
+</ul>
+</li>
+</ul>
 
                 </article>
 
@@ -193,7 +202,7 @@
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Jul 21, 2022 at 20:47 (UTC)</i>
+        <br><i>page generated at Aug 2, 2022 at 20:10 (UTC)</i>
     </small>
     </div>
     </div>
