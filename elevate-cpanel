@@ -149,11 +149,14 @@ use File::Copy      ();
 use File::Find      ();
 use File::Path      ();
 use File::Slurper   ();
+use File::Spec      ();
 use File::Temp      ();
 use Hash::Merge     ();
 use LWP::Simple     ();
 use Term::ANSIColor ();
 
+use Cpanel::AccessIds::SetUids ();
+use Cpanel::Binaries ();
 use Cpanel::Config::Httpd                       ();
 use Cpanel::Config::LoadCpConf                  ();
 use Cpanel::HTTP::Client                        ();
@@ -164,7 +167,7 @@ use Cpanel::Pkgr                                ();
 use Cpanel::RestartSrv::Systemd                 ();
 use Cpanel::SafeRun::Simple                     ();
 use Cpanel::SafeRun::Errors                     ();
-use Cpanel::Transaction::File::LoadConfigReader ();
+use Cpanel::SafeRun::Object ();
 use Cpanel::Update::Tiers                       ();
 use Cpanel::Version::Tiny                       ();
 use Cpanel::Version::Compare                    ();
@@ -197,8 +200,7 @@ use constant SBIN_IP => q[/sbin/ip];
 
 use constant YUM_REPOS_D => q[/etc/yum.repos.d];
 
-# Test::MockModule doesn't like redefining constants
-sub DEFAULT_GRUB_FILE () { return '/etc/default/grub' }
+use constant DEFAULT_GRUB_FILE => '/etc/default/grub';
 
 use constant DISABLE_MYSQL_YUM_REPOS => qw{
   Mysql57.repo
@@ -2477,7 +2479,7 @@ sub blockers_check ( $self, $all = 0 ) {
             ERROR( $error->{msg} );
             return $error->{id} // 401;
         }
-        WARN("Unkown error while checking blockers: $error");
+        WARN("Unknown error while checking blockers: $error");
         return 127;    # unknown error
     }
 
@@ -2896,14 +2898,8 @@ sub _latest_checksum () {
 sub _blocker_blscfg ($self) {
 
     if ( !$self->getopt('skip-disable-blscfg') ) {
-        my $etc_default_grub = Cpanel::Transaction::File::LoadConfigReader->new(
-            path      => DEFAULT_GRUB_FILE,
-            delimiter => '=',
-            comment   => '^\s*#',
-        );
-
-        my $grub_enable_blscfg = $etc_default_grub->get_entry('GRUB_ENABLE_BLSCFG');
-        return $self->has_blocker( 106, <<~EOS ) if !$grub_enable_blscfg || $grub_enable_blscfg ne 'false';
+        my $grub_enable_blscfg = _parse_shell_variable( DEFAULT_GRUB_FILE, 'GRUB_ENABLE_BLSCFG' );
+        return $self->has_blocker( 106, <<~EOS ) if !$grub_enable_blscfg || $grub_enable_blscfg eq 'true';
         This system is currently configured so that the entries for the boot loader
         will be stored in BLS format upon upgrade. This is ordinarily fine, but some
         providers boot into their own copy of GRUB2, and theirs may not understand the
@@ -2927,6 +2923,33 @@ sub _blocker_blscfg ($self) {
     }
 
     return 0;
+}
+
+sub _parse_shell_variable ( $path, $varname ) {
+
+    my (undef, $dir, $file) = File::Spec->splitpath($path);
+    $dir = File::Spec->canonpath($dir);
+
+    # drop privileges and run bash in restricted mode
+    my $bash_sr = Cpanel::SafeRun::Object->new(
+        program => Cpanel::Binaries::path('bash'),
+        args => [
+            '--restricted',
+            '-c',
+            qq(set -ux ; [ "x\$PWD" = "x$dir" ] || exit 72 ; source $file ; echo "\$$varname"),
+        ],
+        before_exec => sub {
+            chdir $dir; 
+            Cpanel::AccessIds::SetUids::setuids('nobody');
+        },
+    );
+
+    return undef if $bash_sr->CHILD_ERROR && $bash_sr->error_code == 127;
+    $bash_sr->die_if_error(); # bail out if something else went wrong
+
+    my $value = $bash_sr->stdout;
+    chomp $value;
+    return $value;
 }
 
 sub _blockers_check ($self) {
