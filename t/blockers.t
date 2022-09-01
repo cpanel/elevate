@@ -411,8 +411,49 @@ my $sbin_ip = Test::MockFile->file('/sbin/ip');
     $cpev_mock->redefine( '_latest_checksum' => 'HEX', '_self_checksum' => 'HEX' );
 }
 
+{
+    note "checking GRUB_ENABLE_BLSCFG state check";
+
+    $cpev_mock->redefine( _parse_shell_variable => sub { die "something happened" } );
+    is( $cpev->blockers_check(), 127, "blockers_check() handles an exception when there is a problem parsing /etc/default/grub" );
+    message_seen( 'WARN', qr/something happened/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( _parse_shell_variable => "false" );
+    is( $cpev->blockers_check(), 106, "blocks when the variable is set to false" );
+    message_seen( 'ERROR', qr/Disabling the BLS boot entry format/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( _parse_shell_variable => sub { return undef } );
+}
+
+{
+    $cpev_mock->redefine( _grub2_workaround_state => cpev::GRUB2_WORKAROUND_UNCERTAIN );
+    is( $cpev->blockers_check(), 107, "uncertainty about whether GRUB2 workaround is present/needed blocks" );
+    message_seen( 'ERROR', qr/configuration of the GRUB2 bootloader/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( _grub2_workaround_state => cpev::GRUB2_WORKAROUND_NONE );
+}
+
 is( $cpev->blockers_check(), 0, 'No More Blockers' );
 no_messages_seen();
+
+{
+    my $stash = undef;
+    $cpev_mock->redefine(
+        _grub2_workaround_state => cpev::GRUB2_WORKAROUND_OLD,
+        update_stage_file       => sub { $stash = $_[0] },
+    );
+    is( $cpev->blockers_check(),                                   0, 'Blockers still pass...' );
+    is( $stash->{'grub2_workaround'}->{'needs_workaround_update'}, 1, "...but we found the GRUB2 workaround and need to update it" );
+    message_seen( 'WARN', qr/instance of the GRUB2 bootloader/ );
+    no_messages_seen();
+
+    $stash = undef;
+    $cpev_mock->redefine( _grub2_workaround_state => cpev::GRUB2_WORKAROUND_NONE );
+    $cpev_mock->unmock('update_stage_file');
+}
 
 {
     no warnings 'once';
