@@ -78,6 +78,8 @@ my $mock_ip_addr = q{1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state
        valid_lft forever preferred_lft forever
 };
 
+my $mock_isea4 = Test::MockFile->file( '/etc/cpanel/ea4/is_ea4' => 1 );
+
 my $cpconf_mock = Test::MockModule->new('Cpanel::Config::LoadCpConf');
 my %cpanel_conf = ( 'local_nameserver_type' => 'nsd', 'mysql-version' => '5.7' );
 $cpconf_mock->redefine( 'loadcpconf' => sub { return \%cpanel_conf } );
@@ -329,14 +331,6 @@ $cpev_mock->redefine( _system_update_check => 1 );
 
 $cpev_mock->redefine( _system_update_check => 1 );
 
-my $_blocker_ea4_profile_called = 0;
-$cpev_mock->redefine(
-    _blocker_ea4_profile => sub {
-        ++$_blocker_ea4_profile_called;
-        return;
-    }
-);
-
 # The NICs blocker runs /sbin/ip which breaks because Cpanel::SafeRun::Simple
 # opens /dev/null which Test::MockFile does not mock and is annoyed by it
 
@@ -362,17 +356,39 @@ my $sbin_ip = Test::MockFile->file('/sbin/ip');
     no_messages_seen();
 
     $cpev_mock->redefine( '_get_nics' => sub { qw< w0p1lan > } );
-    is( $cpev->blockers_check(), 0, 'No blocks when there are no kernel-named NICs' );
-    no_messages_seen();
+    $errors_mock->redefine(
+        'saferunnoerror' => sub {
+            $_[0] eq '/sbin/ip' ? '' : $errors_mock->original('saferunnoerror');
+        }
+    );
+
+    # tests which used to be here are now handled by the overall "No More Blockers" test below
 }
 
-ok $_blocker_ea4_profile_called, "_blocker_ea4_profile was called";
+{
+    my $type = '';
 
-$errors_mock->redefine(
-    'saferunnoerror' => sub {
-        $_[0] eq '/sbin/ip' ? '' : $errors_mock->original('saferunnoerror');
-    }
-);
+    $cpev_mock->redefine(
+        backup_ea4_profile => 1,
+        read_stage_file    => sub {
+            return {
+                ea4 => {
+                    dropped_pkgs => {
+                        'ea4-bad-pkg' => $type,
+                    },
+                },
+            };
+        }
+    );
+
+    # only testing the blocking case
+    is( $cpev->blockers_check(), 104, 'blocks when EA4 has an incompatible package' );
+    message_seen( 'INFO',  'Checking EasyApache profile compatibility with Almalinux 8.' );
+    message_seen( 'ERROR', qr/are not compatible with/ );
+    no_messages_seen();
+
+    $cpev_mock->redefine( _blocker_ea4_profile => sub { } );
+}
 
 {
     note "checking script update check";
