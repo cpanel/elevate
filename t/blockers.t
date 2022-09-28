@@ -383,7 +383,7 @@ my $sbin_ip = Test::MockFile->file('/sbin/ip');
 
     # only testing the blocking case
     is( $cpev->blockers_check(), 104, 'blocks when EA4 has an incompatible package' );
-    message_seen( 'INFO',  'Checking EasyApache profile compatibility with Almalinux 8.' );
+    message_seen( 'INFO',  'Checking EasyApache profile compatibility with AlmaLinux 8.' );
     message_seen( 'ERROR', qr/are not compatible with/ );
     no_messages_seen();
 

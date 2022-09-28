@@ -109,7 +109,7 @@ the update process by running:
 
 =head1 WARNINGS
 
-The elevation process from CentOS 7 to Almalinux 8 distribution is not a risk free update.
+The elevation process from CentOS 7 to AlmaLinux 8 distribution is not a risk free update.
 Depending on the state of your current distribution multiple errors can occur.
 We recommend updating your system to the last upstream state before starting.
 
@@ -647,7 +647,7 @@ sub run_stage_1 ($self) {
         return 1;
     }
 
-    print_box(q[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to Almalinux 8 server.]);
+    print_box(q[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to AlmaLinux 8 server.]);
 
     say <<'EOS';
 
@@ -2344,7 +2344,7 @@ sub reinstall_imunify_360 {
 sub post_upgrade_check {
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq 'almalinux' ) {
-        FATAL('Your distro does not looks like Almalinux 8.');
+        FATAL('Your distro does not looks like AlmaLinux 8.');
         return 1;
     }
 
@@ -2818,7 +2818,7 @@ sub _blocker_ea4_profile ($self) {
 
     # perform an early backup so we can check the list of dropped packages
 
-    INFO("Checking EasyApache profile compatibility with Almalinux 8.");
+    INFO("Checking EasyApache profile compatibility with AlmaLinux 8.");
 
     return unless backup_ea4_profile();
 
