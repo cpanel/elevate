@@ -261,7 +261,7 @@ sub test_blocker_ea4_profile : Test(16) ($self) {
     $self->{mock_cpev}->redefine( backup_ea4_profile => 0 );
 
     my $ea_info_check = sub {
-        message_seen( 'INFO' => "Checking EasyApache profile compatibility with Almalinux 8." );
+        message_seen( 'INFO' => "Checking EasyApache profile compatibility with AlmaLinux 8." );
     };
 
     my $cpev = bless {}, 'cpev';
