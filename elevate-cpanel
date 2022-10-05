@@ -49,6 +49,9 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
 
+       --update                       Instruct the script to replace itself on disk with a downloaded copy of the latest version.
+       --version                      Print the version number and exit.
+
        --skip-elevate-version-check   Skip the check for whether this script is up to date.
        --skip-cpanel-version-check    Skip the check for whether cPanel is up to date.
                                       This option is intended only for testing!
@@ -142,7 +145,6 @@ use Log::Log4perl qw(:easy);
 
 use Config;
 use Carp                  ();
-use Digest::SHA           ();
 use File::Basename        ();
 use File::Copy            ();
 use File::Copy::Recursive ();
@@ -152,7 +154,6 @@ use File::Slurper         ();
 use File::Spec            ();
 use File::Temp            ();
 use Hash::Merge           ();
-use LWP::Simple           ();
 use Term::ANSIColor       ();
 
 use Cpanel::AccessIds::SetUids  ();
@@ -172,6 +173,12 @@ use Cpanel::Update::Tiers       ();
 use Cpanel::Version::Tiny       ();
 use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
+
+#<<V *** DO NOT EDIT THESE LINES MANUALLY ***
+use constant VERSION => 0;
+#>>V *** DO NOT EDIT THESE LINES MANUALLY ***
+
+use constant ELEVATE_BASE_URL => 'https://raw.githubusercontent.com/cpanel/elevate/release/';
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
@@ -248,7 +255,7 @@ use constant {
 };
 
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log check:s skip-cpanel-version-check skip-elevate-version-check );
+    return qw( service start clean continue manual-reboots status log check:s skip-cpanel-version-check skip-elevate-version-check update version );
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
@@ -257,7 +264,16 @@ sub run ($self) {
 
     local $| = 1;
 
+    if ( $self->getopt('version') ) {
+        say VERSION;
+        return 0;
+    }
+
     $self->_init_logger();
+
+    if ( $self->getopt('update') ) {
+        return $self->do_update();
+    }
 
     if ( $self->getopt('start') ) {
         die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
@@ -294,6 +310,36 @@ sub run ($self) {
     }
 
     monitor_upgrade();
+
+    return 0;
+}
+
+sub do_update ($self) {
+
+    INFO( "Self-update of script version " . VERSION . " requested." );
+
+    my ( $needs_update, undef ) = $self->is_script_out_of_date();
+
+    if ($needs_update) {
+        INFO("Newer version of script found. Downloading.");
+        my $temp_file = _fetch_a_script( ELEVATE_BASE_URL . 'elevate-cpanel', 'elevate-cpanel', '' );
+        return 1 unless $temp_file;    # _fetch_a_script handled the error msg
+
+        my $running_from = Cwd::abs_path($0) // '';
+        if ( File::Copy::move( $temp_file, $running_from ) ) {
+            chmod 0700, $running_from;
+            my $confirmed_version = Cpanel::SafeRun::Simple::saferunnoerror($running_from, '--version');
+            chomp $confirmed_version;
+            INFO("Script update to version $confirmed_version successful.");
+        }
+        else {
+            ERROR("The system could not replace the existing copy of the script: $!");
+            return 1;
+        }
+    }
+    else {
+        INFO("Script is up to date.");
+    }
 
     return 0;
 }
@@ -1946,18 +1992,18 @@ sub _fetch_imunify_installer ($product) {
     return _fetch_a_script( $installer_url, 'imunify_installer' );
 }
 
-sub _fetch_a_script ( $url, $template ) {
+sub _fetch_a_script ( $url, $template, $suffix = '.sh' ) {
     my $response = eval {
         my $http = Cpanel::HTTP::Client->new()->die_on_http_error();
         $http->get($url);
     };
 
     if ( my $exception = $@ ) {
-        ERROR("The system could not fetch the uninstall script for $template: $exception");
+        ERROR("The system could not fetch the script for $template: $exception");
         return;
     }
 
-    my $fh = File::Temp->new( TEMPLATE => "${template}_XXXX", SUFFIX => '.sh', UNLINK => 0, PERMS => 0600, TMPDIR => 1 );
+    my $fh = File::Temp->new( TEMPLATE => "${template}_XXXX", SUFFIX => $suffix, UNLINK => 0, PERMS => 0600, TMPDIR => 1 );
     print {$fh} $response->{'content'};
     close $fh;
 
@@ -2640,8 +2686,9 @@ sub _blocker_non_bind_powerdns ( $self, $nameserver ) {
 
 sub _blocker_wrong_location ($self) {
 
-    # ensure the script is install at the correct location
+    # ensure the script is installed at the correct location
     my $running_from = Cwd::abs_path($0) // '';
+
     if (   $running_from ne '/scripts/elevate-cpanel'
         && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
         $self->has_blocker( 10, <<~'EOS');
@@ -2838,31 +2885,9 @@ sub _blocker_ea4_profile ($self) {
 
 sub _blocker_script_updated ($self) {
 
-    my ( $should_block, $blocker_text ) = ( undef, undef );
+    return if $self->getopt('skip-elevate-version-check');
 
-    if ( !$self->getopt('skip-elevate-version-check') ) {
-
-        my ( $latest_checksum, $self_checksum ) = ( _latest_checksum(), _self_checksum() );
-        if ( !defined $latest_checksum ) {
-            $should_block = 1;
-            $blocker_text = "The latest version of elevate-cpanel could not be fetched for comparison.";
-        }
-        elsif ( !defined $self_checksum ) {
-            $should_block = 1;
-            $blocker_text = "This script is not installed at the expected location /scripts/elevate-cpanel.";
-        }
-        else {
-            $should_block = $latest_checksum eq $self_checksum ? 0 : 1;
-            $blocker_text = <<~EOS if $should_block;
-            This script does not appear to be the newest available release.
-            Please download the latest version from the following URL and try again:
-
-            wget -O /scripts/elevate-cpanel \
-                https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel ;
-            chmod 700 /scripts/elevate-cpanel
-            EOS
-        }
-    }
+    my ( $should_block, $blocker_text ) = $self->is_script_out_of_date();
 
     return unless $should_block;
 
@@ -2874,26 +2899,30 @@ sub _blocker_script_updated ($self) {
 
 }
 
-sub _self_checksum () {
-    my $script_path = '/scripts/elevate-cpanel';
-    my $rv          = undef;
-    if ( -e $script_path ) {
-        my $digest = Digest::SHA->new('512');
-        $digest->addfile($script_path);
-        $rv = $digest->hexdigest;
+sub is_script_out_of_date ($self) {
+    my ( $should_block, $blocker_text ) = ( 0, undef );
+    my ( $latest_version, $self_version ) = ( $self->latest_version(), VERSION );
+
+    if ( !defined $latest_version ) {
+        $should_block = 1;
+        $blocker_text = "The script could not fetch information about the latest version.";
     }
-    return $rv;
+    else {
+        $should_block = $latest_version eq $self_version ? 0 : 1;
+        $blocker_text = <<~EOS if $should_block;
+            This script (version $self_version) does not appear to be the newest available release ($latest_version).
+            Run this script with the --update option:
+
+            /scripts/elevate-cpanel --update
+            EOS
+    }
+
+    return ( $should_block, $blocker_text );
 }
 
-sub _latest_checksum () {
-    my $latest = LWP::Simple::get('https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel');
-    my $rv     = undef;
-    if ( defined $latest ) {
-        my $digest = Digest::SHA->new('512');
-        $digest->add($latest);
-        $rv = $digest->hexdigest;
-    }
-    return $rv;
+sub latest_version ($self) {
+    my $response = Cpanel::HTTP::Client->new->get( ELEVATE_BASE_URL . 'version' );
+    return $response->success ? $response->content : undef;
 }
 
 sub _blocker_blscfg ($self) {
