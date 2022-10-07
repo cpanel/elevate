@@ -3,8 +3,11 @@ User Facing
  - Fix run_once entry names in stage file
  - Work around use of /boot/grub/ in some providers
  - Implement self-update mechanism for elevate-cpanel
- - Allow upgrade when using MySQL from mysql-community.repo
+ - Allow upgrades when using MySQL from mysql-community.repo
+ - Allow upgrades to Rocky Linux 8
 Internal:
  - read_stage_file() can read specific data
+ - run_once is now a method
+
 2022-10-07 - version 0
  - See git log for more history.

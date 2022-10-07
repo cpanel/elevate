@@ -61,7 +61,7 @@ is $cpev->_check_yum_repos() => $mask_unvetted_with_unused_repo, "Using an unkno
 
 $cpev_mock->redefine( get_installed_rpms_in_repo => 1 );
 is $cpev->_check_yum_repos() => $mask_unvetted | $mask_rpms_from_unvetted, "Using an unknown enabled repo with installed packages detected";
-is $cpev->{_yum_repos_unsupported_with_packages}, [ 'MyRepo' ], "Names of repos are recorded in object";
+is $cpev->{_yum_repos_unsupported_with_packages}, ['MyRepo'], "Names of repos are recorded in object";
 
 $cpev_mock->redefine( get_installed_rpms_in_repo => 0 );
 
