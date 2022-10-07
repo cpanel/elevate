@@ -191,7 +191,7 @@ delete $installed{'cpanel-ccs-calendarserver'};
 is( $cpev->blockers_check(), 8, "Postgresql 9.2 won't upgrade well." );
 message_seen( 'ERROR', <<'EOS' );
 You have postgresql-server version 9.2 installed.
-This is upgraded irreversably to version 10.0 when you switch to almalinux 8
+This is upgraded irreversably to version 10.0 when you switch to AlmaLinux 8
 We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.
 To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`
 EOS

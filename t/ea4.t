@@ -32,7 +32,7 @@ sub startup : Test(startup) ($self) {
 
     $self->{mock_cpev} = Test::MockModule->new('cpev');
     $self->{mock_cpev}->redefine(
-        ssystem => sub ( @cmd ) {
+        ssystem => sub (@cmd) {
             note "mocked ssystem: ", join( ' ', @cmd );
             $self->{last_ssystem_call} = [@cmd];
             return;
@@ -75,16 +75,20 @@ sub teardown : Test( teardown => 1 ) ($self) {
     return;
 }
 
+sub cpev {    # helper for test...
+    return bless {}, 'cpev';
+}
+
 sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
 
     $self->{mock_httpd}->redefine( is_ea4 => 0 );
 
-    is cpev::backup_ea4_profile(), undef, "backup_ea4_profile - not using ea4";
+    is cpev()->backup_ea4_profile(), undef, "backup_ea4_profile - not using ea4";
     message_seen( 'WARN' => q[Skipping EA4 backup. EA4 does not appear to be enabled on this system] );
 
     is cpev::read_stage_file(), { ea4 => { enable => 0 } }, "stage file - ea4 is disabled";
 
-    is cpev::restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
+    is cpev()->restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
     message_seen( 'WARN' => q[Skipping EA4 restore. EA4 does not appear to be enabled on this system.] );
 
     return;
@@ -100,7 +104,7 @@ sub test_missing_ea4_profile : Test(3) ($self) {
     );
 
     like(
-        dies { cpev::backup_ea4_profile() },
+        dies { cpev()->backup_ea4_profile() },
         qr/Unable to backup EA4 profile/,
         "Unable to backup EA4 profile - no profile file"
     );
@@ -124,7 +128,7 @@ sub test_get_ea4_profile : Test(10) ($self) {
         },
     );
 
-    is( cpev::_get_ea4_profile(), PROFILE_FILE, "_get_ea4_profile" );
+    is( cpev()->_get_ea4_profile(), PROFILE_FILE, "_get_ea4_profile" );
     _message_run_ea_current_to_profile(1);
 
     $output = <<'EOS';
@@ -159,7 +163,7 @@ EOS
     my $f      = q[/etc/cpanel/ea4/profiles/custom/current_state_at_2022-04-05_20:41:25_modified_for_AlmaLinux_8.json];
     my $mock_f = Test::MockFile->file( $f, '{}' );
 
-    is( cpev::_get_ea4_profile(), $f, "_get_ea4_profile with noise..." );
+    is( cpev()->_get_ea4_profile(), $f, "_get_ea4_profile with noise..." );
 
     _message_run_ea_current_to_profile($f);
 
@@ -169,7 +173,7 @@ EOS
 sub backup_non_existing_profile : Test(10) ($self) {
 
     like(
-        dies { cpev::backup_ea4_profile() },
+        dies { cpev()->backup_ea4_profile() },
         qr/Unable to backup EA4 profile/,
         "Unable to backup EA4 profile - non existing profile file"
     );
@@ -179,7 +183,7 @@ sub backup_non_existing_profile : Test(10) ($self) {
     $self->{mock_profile}->contents('');
 
     like(
-        dies { cpev::backup_ea4_profile() },
+        dies { cpev()->backup_ea4_profile() },
         qr/Unable to backup EA4 profile/,
         "Unable to backup EA4 profile - empty profile file"
     );
@@ -187,7 +191,7 @@ sub backup_non_existing_profile : Test(10) ($self) {
     _message_run_ea_current_to_profile();
 
     is cpev::read_stage_file(), { ea4 => { enable => 1 } }, "stage file - ea4 is enabled but we failed";
-    is cpev::restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
+    is cpev()->restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
 
     message_seen( 'WARN' => q[Unable to restore EA4 profile. Is EA4 enabled?] );
 
@@ -200,12 +204,12 @@ sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
 
     $self->_update_profile_file($profile);
 
-    is cpev::backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    is cpev()->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
     _message_run_ea_current_to_profile(1);
 
     is cpev::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
 
-    is cpev::restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
+    is cpev()->restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
     is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
       or diag explain $self->{last_ssystem_call};
 
@@ -227,7 +231,7 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
     };
     $self->_update_profile_file($profile);
 
-    is cpev::backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    is cpev()->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
     _message_run_ea_current_to_profile(1);
 
     is cpev::read_stage_file(), {
@@ -239,7 +243,7 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
       },
       "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
 
-    is cpev::restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
+    is cpev()->restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
     is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
       or diag explain $self->{last_ssystem_call};
 
@@ -264,7 +268,7 @@ sub test_blocker_ea4_profile : Test(16) ($self) {
         message_seen( 'INFO' => "Checking EasyApache profile compatibility with AlmaLinux 8." );
     };
 
-    my $cpev = bless {}, 'cpev';
+    my $cpev = cpev();
     $cpev->{_abort_on_first_blocker} = 1;    # enforce a die
 
     ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
@@ -276,7 +280,7 @@ sub test_blocker_ea4_profile : Test(16) ($self) {
         profile => '/some/file.not.used.there',
     };
     ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
-    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs";
+    ok !$cpev->_blocker_ea4_profile(),                 "no ea4 blockers: profile without any dropped_pkgs";
     $ea_info_check->();
 
     $stage_ea4->{'dropped_pkgs'} = {
@@ -284,7 +288,7 @@ sub test_blocker_ea4_profile : Test(16) ($self) {
         "ea-baz" => "exp",
     };
     ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
-    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only";
+    ok !$cpev->_blocker_ea4_profile(),                 "no ea4 blockers: profile with dropped_pkgs: exp only";
     $ea_info_check->();
 
     $stage_ea4->{'dropped_pkgs'} = {
@@ -301,7 +305,7 @@ sub test_blocker_ea4_profile : Test(16) ($self) {
     like $error, object {
         prop blessed => 'cpev::Blocker';
 
-        field id  => 104;
+        field id => 104;
         field msg => 'One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
 Please remove these packages before continuing the update.
 - pkg1
@@ -320,7 +324,7 @@ Please remove these packages before continuing the update.
 
 ## helpers
 
-sub _message_run_ea_current_to_profile($success=0) {
+sub _message_run_ea_current_to_profile ( $success = 0 ) {
 
     message_seen( 'INFO' => q[Running: /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8] );
     return unless $success;
