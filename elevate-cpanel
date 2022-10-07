@@ -217,6 +217,8 @@ use constant DISABLE_MYSQL_YUM_REPOS => qw{
   MariaDB103.repo
   MariaDB105.repo
   MariaDB106.repo
+
+  mysql-community.repo
 };
 
 use constant VETTED_YUM_REPO => qw{
@@ -328,7 +330,7 @@ sub do_update ($self) {
         my $running_from = Cwd::abs_path($0) // '';
         if ( File::Copy::move( $temp_file, $running_from ) ) {
             chmod 0700, $running_from;
-            my $confirmed_version = Cpanel::SafeRun::Simple::saferunnoerror($running_from, '--version');
+            my $confirmed_version = Cpanel::SafeRun::Simple::saferunnoerror( $running_from, '--version' );
             chomp $confirmed_version;
             INFO("Script update to version $confirmed_version successful.");
         }
