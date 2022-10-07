@@ -35,7 +35,7 @@ package cpev;
 
 =head1 DESCRIPTION
 
-Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
+Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
 
 =head1 SYNOPSIS
 
@@ -48,6 +48,8 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
+       --upgrade-to=[rocky|almalinux] Update to AlmaLinux 8 or Rocky Linuyx 8
+                                      [default to 'almalinux']
 
        --update                       Instruct the script to replace itself on disk with a downloaded copy of the latest version.
        --version                      Print the version number and exit.
@@ -66,14 +68,24 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8.
 
 You can start an elevation update by running:
 
+    # AlmaLinux 8 update
     /scripts/elevate-cpanel --start
+    /scripts/elevate-cpanel --start --upgrade-to=almalinux
+
+    # Rocky Linux 8 update
+    /scripts/elevate-cpanel --start --upgrade-to=rocky
 
 =item Compatibility check with elevation
 
 You can check if your server is compatible with the upgrade process without
 starting an upgrade process.
 
+    # Check AlmaLinux 8 update
     /scripts/elevate-cpanel --check
+    /scripts/elevate-cpanel --check --upgrade-to=almalinux
+
+    # Check Rocky Linux 8 ypdate
+    /scripts/elevate-cpanel --check --upgrade-to=rocky
 
 This will also save a JSON representation of the blockers to a file, C</var/cpanel/elevate-blockers> by default,
 but passing an optional argument will use the file given instead:
@@ -112,7 +124,8 @@ the update process by running:
 
 =head1 WARNINGS
 
-The elevation process from CentOS 7 to AlmaLinux 8 distribution is not a risk free update.
+The elevation process from CentOS 7 to AlmaLinux 8 or Rocky Linux 8 distribution
+is not a risk free update.
 Depending on the state of your current distribution multiple errors can occur.
 We recommend updating your system to the last upstream state before starting.
 
@@ -219,6 +232,7 @@ use constant DISABLE_MYSQL_YUM_REPOS => qw{
   MariaDB106.repo
 
   mysql-community.repo
+
 };
 
 use constant VETTED_YUM_REPO => qw{
@@ -256,8 +270,17 @@ use constant {
     GRUB2_WORKAROUND_UNCERTAIN => -1,
 };
 
+# prefer string over integers so we can read the configuration file (no need for bitmask)
+use constant UPGRADE_TO_ALMALINUX => q[AlmaLinux];
+use constant UPGRADE_TO_ROCKY     => q[Rocky];
+
 sub _OPTIONS {
-    return qw( service start clean continue manual-reboots status log check:s skip-cpanel-version-check skip-elevate-version-check update version );
+    return qw(
+      service start clean continue manual-reboots status log check:s
+      skip-cpanel-version-check skip-elevate-version-check
+      update version
+      upgrade-to=s
+    );
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
@@ -276,6 +299,8 @@ sub run ($self) {
     if ( $self->getopt('update') ) {
         return $self->do_update();
     }
+
+    $self->_parse_opt_upgrade_to();
 
     if ( $self->getopt('start') ) {
         die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
@@ -316,6 +341,23 @@ sub run ($self) {
     return 0;
 }
 
+sub _parse_opt_upgrade_to ($self) {
+
+    return unless my $flavor = $self->getopt('upgrade-to');
+
+    if ( !defined $self->getopt('start') && !defined $self->getopt('check') ) {
+        die qq[--upgrade-to option is only supported with --start or --check\n];
+    }
+    $flavor = lc $flavor;
+    if ( $flavor !~ m{^(?:almalinux|alma|rocky)$} ) {
+        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux' or 'rocky' are supported.\n];
+    }
+
+    $self->{upgrade_to} = $flavor eq 'rocky' ? UPGRADE_TO_ROCKY : UPGRADE_TO_ALMALINUX;
+
+    return;
+}
+
 sub do_update ($self) {
 
     INFO( "Self-update of script version " . VERSION . " requested." );
@@ -344,6 +386,20 @@ sub do_update ($self) {
     }
 
     return 0;
+}
+
+sub upgrade_to ($self) {    # main helper to know the upgrade_to distro
+    return $self->{upgrade_to} if $self->{upgrade_to};
+    return read_stage_file('upgrade_to') // UPGRADE_TO_ALMALINUX;    # default to AlmaLinux
+}
+
+sub upgrade_to_rocky ($self) {
+    return $self->upgrade_to() eq UPGRADE_TO_ROCKY;
+}
+
+sub upgrade_to_pretty_name ($self) {    # used by output messages
+    return q[Rocky Linux 8] if $self->upgrade_to_rocky;
+    return q[AlmaLinux 8];
 }
 
 sub monitor_upgrade {
@@ -521,13 +577,15 @@ sub add_final_notification ( $msg, $warn_now = 0 ) {
 
 sub _notify_success ($self) {
 
-    my $msg = <<'EOS';
-The cPanel & WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+    my $msg = <<"EOS";
+The cPanel & WHM server has completed the elevation process from CentOS 7 to $pretty_distro_name.
 EOS
 
     if ( my $warnings = read_stage_file('final_notifications') ) {
         if ( ref $warnings && scalar @$warnings ) {
-            $msg .= "\nThe update to AlmaLinux 8 was successful but please note that one ore more notifications require your attention:\n";
+            $msg .= "\nThe update to $pretty_distro_name was successful but please note that one ore more notifications require your attention:\n";
 
             foreach my $w ( reverse @$warnings ) {    # restore insert order
                 $msg .= "\n* $w\n";
@@ -535,7 +593,7 @@ EOS
         }
     }
 
-    send_notification( 'Successfully update to AlmaLinux 8' => $msg );
+    send_notification( qq[Successfully update to $pretty_distro_name] => $msg );
 
     return;
 }
@@ -561,7 +619,8 @@ $error
 
 EOS
 
-    send_notification( 'Fail to update to AlmaLinux 8' => $msg );
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    send_notification( qq[Fail to update to $pretty_distro_name] => $msg );
 
     return;
 }
@@ -692,7 +751,9 @@ sub run_stage_1 ($self) {
         return 1;
     }
 
-    print_box(q[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to AlmaLinux 8 server.]);
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+    print_box(qq[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to $pretty_distro_name server.]);
 
     say <<'EOS';
 
@@ -723,7 +784,11 @@ EOS
     print "\n";
 
     print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . SERVICE_NAME . " service" );
-    return install_cpanel_elevate_service();
+
+    # store 'upgrade_to' early so later stages can access it
+    update_stage_file( { upgrade_to => $self->upgrade_to } );
+
+    return $self->install_cpanel_elevate_service();
 }
 
 =head2 run_stage_2
@@ -752,10 +817,10 @@ sub run_stage_2 ($self) {
 
     setup_motd();
 
-    run_once('remove_kernelcare_if_needed');
+    $self->run_once('remove_kernelcare_if_needed');
 
-    run_once('update_grub2_workaround_if_needed');    # required part
-    run_once('merge_grub_directories_if_needed');     # best-effort part
+    $self->run_once('update_grub2_workaround_if_needed');    # required part
+    $self->run_once('merge_grub_directories_if_needed');     # best-effort part
 
     return REBOOT_NEEDED;
 }
@@ -776,17 +841,21 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 sub run_stage_3 ($self) {
 
-    run_once(
+    $self->run_once(
         prep_for_leapp => sub {
 
-            run_once(
+            $self->run_once(
                 install_pkgs => sub {
                     unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
+
+                        # provides leapp-data-almalinux & leapp-data-rocky
                         ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
                     }
 
-                    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed('leapp-data-almalinux') ) {
-                        ssystem_and_die(qw{/usr/bin/yum install -y leapp-upgrade leapp-data-almalinux});
+                    my $leap_data_pkg = $self->upgrade_to_rocky() ? 'leapp-data-rocky' : 'leapp-data-almalinux';
+
+                    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
+                        ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
                     }
                     if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
                         ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
@@ -796,7 +865,7 @@ sub run_stage_3 ($self) {
                 }
             );
 
-            run_once(
+            $self->run_once(
                 rmod_ln => sub {
                     ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
                     ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
@@ -806,7 +875,7 @@ sub run_stage_3 ($self) {
             );
 
             # We have to do this before removing the rpms.
-            run_once('pre_leapp_update_backup_and_cleanup');
+            $self->run_once('pre_leapp_update_backup_and_cleanup');
 
             # remove all arch cpanel packages
             # This also potentially removes
@@ -850,13 +919,14 @@ Restore removed packages during the previous stage.
 
 sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
-    Cpanel::OS::major() == 8 or die("Upgrade to AlmaLinux 8 did not succeed. Please restore from backup.");
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    Cpanel::OS::major() == 8 or die("Upgrade to $pretty_distro_name did not succeed. Please restore from backup.");
 
     my $stash = read_stage_file();
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    run_once(
+    $self->run_once(
         sysup => sub {
             Cpanel::Yum::Vars::install();
             ssystem_and_die(qw{/usr/bin/dnf clean all});
@@ -876,7 +946,7 @@ sub run_stage_4 ($self) {
         }
     );
 
-    run_once(
+    $self->run_once(
         restore_cpanel_services => sub {
             enable_all_cpanel_services();
             stop_services_before_upcp();
@@ -886,10 +956,10 @@ sub run_stage_4 ($self) {
         }
     );
 
-    run_once('restore_ea4_profile');
-    run_once('restore_ea_addons');
+    $self->run_once('restore_ea4_profile');
+    $self->run_once('restore_ea_addons');
 
-    run_once(
+    $self->run_once(
         upcp => sub {
 
             {
@@ -906,17 +976,18 @@ sub run_stage_4 ($self) {
         }
     );
 
-    post_leapp_update_restore();
+    $self->post_leapp_update_restore();
 
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
-      leapp leapp-data-almalinux leapp-upgrade-el7toel8 python2-leapp alt-pcre802 alt-pcre802-devel};
+      leapp leapp-data-almalinux leapp-data-rocky leapp-upgrade-el7toel8
+      python2-leapp alt-pcre802 alt-pcre802-devel};
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
 
     INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
     ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
 
     # run upcp a second time as we had to run it before with CPANEL_BASE_INSTALL=1
-    run_once(
+    $self->run_once(
         upcp_second_run => sub {
             ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
         }
@@ -933,7 +1004,7 @@ The elevate-cpanel service is now removed.
 =cut
 
 sub run_stage_5 ($self) {
-    return 1 if post_upgrade_check();
+    return 1 if $self->post_upgrade_check();
 
     # we cannot stop the service ( ourself )
     ssystem( '/usr/bin/systemctl', 'disable', SERVICE_NAME );
@@ -963,7 +1034,8 @@ sub run_stage_5 ($self) {
     INFO("Updating all packages before final reboot");
     ssystem(qw{/usr/bin/dnf -y --allowerasing update});
 
-    print_box("Great SUCCESS! Your upgrade to AlmaLinux 8 is complete.");
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
     return REBOOT_NEEDED;
 }
@@ -1006,7 +1078,7 @@ sub elevation_success_marker ($self) {
     return;
 }
 
-sub run_once ( $label, $code = undef ) {
+sub run_once ( $self, $label, $code = undef ) {
 
     die unless defined $label;
 
@@ -1028,7 +1100,7 @@ sub run_once ( $label, $code = undef ) {
         return 1;
     }
 
-    $code->();
+    $code->($self);
 
     # successfully run that block
     update_stage_file( { _run_once => { $full_label => 1 } } );
@@ -1424,7 +1496,7 @@ sub _is_service_enabled ($service) {
     return 0;
 }
 
-sub restore_ea4_profile () {
+sub restore_ea4_profile ($self) {
 
     my $stash      = read_stage_file();
     my $is_enabled = $stash->{'ea4'}->{'enable'};
@@ -1458,7 +1530,7 @@ sub restore_ea4_profile () {
     return 1;
 }
 
-sub restore_ea_addons () {
+sub restore_ea_addons ($self) {
 
     return unless read_stage_file('ea4')->{'nginx'};
 
@@ -1475,7 +1547,7 @@ sub restore_ea_addons () {
 ## Call early so we can use a blocker based on existing ea4 profile
 ##
 
-sub backup_ea4_profile () {
+sub backup_ea4_profile ($self) {
 
     my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
     update_stage_file( { ea4 => { enable => $use_ea4 } } );
@@ -1486,7 +1558,7 @@ sub backup_ea4_profile () {
         return;
     }
 
-    my $json = _get_ea4_profile();
+    my $json = $self->_get_ea4_profile();
 
     my $data = { profile => $json };
 
@@ -1501,8 +1573,12 @@ sub backup_ea4_profile () {
     return 1;
 }
 
-sub _get_ea4_profile {
-    my @cmd     = qw{ /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8};
+sub _get_ea4_profile ($self) {
+
+    # obs_project_aliases from /etc/cpanel/ea4/ea4-metainfo.json
+    my $ea_alias = $self->upgrade_to_rocky() ? 'CentOS_8' : 'AlmaLinux_8';
+
+    my @cmd     = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
     my $cmd_str = join( ' ', @cmd );
     INFO("Running: $cmd_str");
     my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
@@ -1530,7 +1606,7 @@ sub _get_ea4_profile {
     return $json;
 }
 
-sub backup_ea_addons() {
+sub backup_ea_addons ($self) {
 
     if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
         update_stage_file( { ea4 => { nginx => 1 } } );
@@ -1605,15 +1681,15 @@ EOS
 }
 
 # remove and store
-sub pre_leapp_update_backup_and_cleanup {
+sub pre_leapp_update_backup_and_cleanup ($self) {
 
-    run_once('capture_imunify_features');
-    run_once('backup_ea_addons');
-    run_once('backup_pecl_packages');
-    run_once('cleanup_mysql_packages');
-    run_once('disable_known_yum_repositories');
+    $self->run_once('capture_imunify_features');
+    $self->run_once('backup_ea_addons');
+    $self->run_once('backup_pecl_packages');
+    $self->run_once('cleanup_mysql_packages');
+    $self->run_once('disable_known_yum_repositories');
 
-    run_once(
+    $self->run_once(
         arch_rpms => sub {
 
             # Backup arch rpms which we're going to remove and are provided by yum.
@@ -1630,15 +1706,15 @@ sub pre_leapp_update_backup_and_cleanup {
         }
     );
 
-    purge_perl_xs(DISTRO_PERL_XS_PATH);
-    purge_perl_xs( $Config{'installsitearch'} );
+    $self->purge_perl_xs(DISTRO_PERL_XS_PATH);
+    $self->purge_perl_xs( $Config{'installsitearch'} );
 
-    run_once('remove_imunify_360');
-    run_once('remove_wordpress_toolkit');
-    run_once('remove_influxdb');
-    run_once('remove_jetbackup');
-    run_once('remove_nixstats');
-    run_once('pre_install_check_litespeed');
+    $self->run_once('remove_imunify_360');
+    $self->run_once('remove_wordpress_toolkit');
+    $self->run_once('remove_influxdb');
+    $self->run_once('remove_jetbackup');
+    $self->run_once('remove_nixstats');
+    $self->run_once('pre_install_check_litespeed');
 
     return;
 }
@@ -1784,7 +1860,7 @@ sub cleanup_mysql_106_packages {
     return;
 }
 
-sub post_leapp_update_restore {
+sub post_leapp_update_restore ($self) {
 
     INFO('Removing leapp from excludes in /etc/yum.conf');
     my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
@@ -1794,9 +1870,9 @@ sub post_leapp_update_restore {
     }
 
     # plugins can use MySQL - restore database earlier
-    run_once('reinstall_mysql_packages');
+    $self->run_once('reinstall_mysql_packages');
 
-    run_once(
+    $self->run_once(
         'restore_perl_xs' => sub {
             restore_perl_xs(DISTRO_PERL_XS_PATH);
             restore_perl_xs( $Config{'installsitearch'} );
@@ -1805,7 +1881,7 @@ sub post_leapp_update_restore {
         }
     );
 
-    run_once(
+    $self->run_once(
         'restore_plugins' => sub {
 
             # Restore YUM arch plugins.
@@ -1820,28 +1896,30 @@ sub post_leapp_update_restore {
         }
     );
 
-    run_once('check_pecl_packages');
-    run_once('reinstall_imunify_360');
-    run_once('reinstall_wordpress_toolkit');
-    run_once('reinstall_influxdb');
-    run_once('reinstall_jetbackup');
-    run_once('kernel_check');
-    run_once('restore_kernel_care');
-    run_once('restore_imunify_features');
-    run_once('restore_nixstats');
-    run_once('post_install_check_litespeed');
-    run_once('reinstall_digital_ocean_droplet_agent');
+    $self->run_once('check_pecl_packages');
+    $self->run_once('reinstall_imunify_360');
+    $self->run_once('reinstall_wordpress_toolkit');
+    $self->run_once('reinstall_influxdb');
+    $self->run_once('reinstall_jetbackup');
+    $self->run_once('kernel_check');
+    $self->run_once('restore_kernel_care');
+    $self->run_once('restore_imunify_features');
+    $self->run_once('restore_nixstats');
+    $self->run_once('post_install_check_litespeed');
+    $self->run_once('reinstall_digital_ocean_droplet_agent');
 
     return;
 }
 
-sub kernel_check {
+sub kernel_check ($self) {
     my @kernel_rpms = `/usr/bin/rpm -qa`;
     @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
     return unless @kernel_rpms;
     chomp @kernel_rpms;
 
-    my $msg = "The following kernels should probably be removed as they will not function on AlmaLinux 8:\n\n";
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+    my $msg = "The following kernels should probably be removed as they will not function on $pretty_distro_name:\n\n";
     foreach my $kernel (@kernel_rpms) {
         $msg .= "    $kernel\n";
     }
@@ -2380,10 +2458,13 @@ sub reinstall_imunify_360 {
     return;
 }
 
-sub post_upgrade_check {
+sub post_upgrade_check ($self) {
 
-    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq 'almalinux' ) {
-        FATAL('Your distro does not looks like AlmaLinux 8.');
+    my $expect_distro = $self->upgrade_to_rocky() ? 'rocky' : 'almalinux';
+
+    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        FATAL("Your distro does not looks like $pretty_distro_name.");
         return 1;
     }
 
@@ -2393,7 +2474,7 @@ sub post_upgrade_check {
     return 0;
 }
 
-sub purge_perl_xs ($path) {
+sub purge_perl_xs ( $self, $path ) {
 
     return unless length $path && -d $path;
 
@@ -2429,9 +2510,11 @@ sub purge_perl_xs ($path) {
         }
     }
 
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
     my $stash = {};
     if (%rpms_to_restore) {
-        INFO('The following `cpan` installed perl Modules will be removed and replaced with a AlmaLinux 8 RPM after upgrade:');
+        INFO("The following `cpan` installed perl Modules will be removed and replaced with a $pretty_distro_name RPM after upgrade:");
         foreach my $file ( sort { $rpms_to_restore{$a} cmp $rpms_to_restore{$b} || $a cmp $b } keys %rpms_to_restore ) {
             INFO( sprintf( "  %20s => %s", $file, $rpms_to_restore{$file} ) );
 
@@ -2445,7 +2528,7 @@ sub purge_perl_xs ($path) {
     }
 
     if (@modules_to_restore) {
-        WARN("The following modules will likely not be functional on AlmaLinux 8 and will be disabled. You will need to restore these manually:");
+        WARN("The following modules will likely not be functional on $pretty_distro_name and will be disabled. You will need to restore these manually:");
         my $to_restore = $stash->{'restore'}->{$path}->{'cpan'} //= [];
         foreach my $file (@modules_to_restore) {
             WARN("    $path/$file");
@@ -2592,7 +2675,8 @@ sub _blocker_is_invalid_cpanel_whm ($self) {
 
 sub _blocker_is_old_cpanel ($self) {
     if ( $Cpanel::Version::Tiny::major_version <= 100 ) {
-        $self->has_blocker( 2, "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better." );
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        $self->has_blocker( 2, "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to $pretty_distro_name. Please upgrade to cPanel version 102 or better." );
     }
 
     return 0;
@@ -2614,7 +2698,8 @@ sub _blocker_cpanel_needs_update ($self) {
 
 sub _blocker_is_non_centos7 ($self) {
     unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
-        $self->has_blocker( 3, 'This script is only designed to upgrade CentOS 7 to AlmaLinux 8' );
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name] );
     }
 
     return 0;
@@ -2622,7 +2707,8 @@ sub _blocker_is_non_centos7 ($self) {
 
 sub _blocker_is_old_centos7 ($self) {
     if ( Cpanel::OS::minor() < 9 ) {
-        $self->has_blocker( 4, 'You need to run CentOS 7.9 and later to upgrade AlmaLinux 8. You are currently using ' . Cpanel::OS::display_name() );
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        $self->has_blocker( 4, qq[You need to run CentOS 7.9 and later to upgrade $pretty_distro_name. You are currently using ] . Cpanel::OS::display_name() );
     }
 
     return 0;
@@ -2660,13 +2746,15 @@ sub _blocker_is_postgresql_installed ($self) {
         my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
         my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
 
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
         my $msg = qq[You have postgresql-server version $old_version installed.\n];
         if ( $old_version < 10 ) {
-            $msg .= qq[This is upgraded irreversably to version 10.0 when you switch to almalinux 8\n];
+            $msg .= qq[This is upgraded irreversably to version 10.0 when you switch to $pretty_distro_name\n];
         }
-        $msg .= qq[We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.\n];
+        $msg .= qq[We recommend data backup and removal of all postgresql packages before upgrade to $pretty_distro_name.\n];
         if ( $old_version < 10 ) {
-            $msg .= qq[To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`\n];
+            $msg .= qq[To re-install postgresql 9 on $pretty_distro_name, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`\n];
         }
 
         $self->has_blocker( 8, $msg );
@@ -2677,8 +2765,9 @@ sub _blocker_is_postgresql_installed ($self) {
 
 sub _blocker_non_bind_powerdns ( $self, $nameserver ) {
     if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
-        $self->has_blocker( 9, <<~'EOS');
-        AlmaLinux 8 only supports bind or powerdns. We suggest you switch to powerdns.
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        $self->has_blocker( 9, <<~"EOS");
+        $pretty_distro_name only supports bind or powerdns. We suggest you switch to powerdns.
         Before upgrading, we suggest you run: /scripts/setupnameserver powerdns.
         EOS
     }
@@ -2704,30 +2793,32 @@ sub _blocker_wrong_location ($self) {
 
 sub _blocker_old_mysql ( $self, $mysql_version = '' ) {
 
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
     # checking MySQL version
     if ( $mysql_version eq '5.7' ) {
-        $self->has_blocker( 11, <<~'EOS');
+        $self->has_blocker( 11, <<~"EOS");
         You are using MySQL 5.7 community server.
-        This version is not available for AlmaLinux 8.
+        This version is not available for $pretty_distro_name.
         You first need to update your MySQL server to 8.0 or later.
 
         You can update to version 8.0 using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0
 
-        Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+        Once the MySQL upgrade is finished, you can then retry to elevate to $pretty_distro_name.
         EOS
     }
     elsif ( $mysql_version eq '10.2' ) {
-        $self->has_blocker( 12, <<~'EOS');
-        You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
+        $self->has_blocker( 12, <<~"EOS");
+        You are using MariaDB server 10.2, this version is not available for $pretty_distro_name.
         You first need to update MariaDB server to 10.3 or later.
 
         You can update to version 10.3 using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
 
-        Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+        Once the MariaDB upgrade is finished, you can then retry to elevate to $pretty_distro_name.
         EOS
     }
     else {
@@ -2744,7 +2835,7 @@ sub _blocker_old_mysql ( $self, $mysql_version = '' ) {
 
         if ( !$supported_mysql_versions{$mysql_version} ) {
             $self->has_blocker( 13, <<~"EOS");
-            We do not know how to upgrade to AlmaLinux 8 with MySQL version $mysql_version.
+            We do not know how to upgrade to $pretty_distro_name with MySQL version $mysql_version.
             Please open a support ticket.
             EOS
         }
@@ -2804,7 +2895,15 @@ sub _blocker_invalid_ssh_config ($self) {
 }
 
 sub _blocker_old_jetbackup ($self) {
-    $self->has_blocker( 17, q[AlmaLinux 8 does not support JetBackup prior to version 5. Please upgrade JetBackup before elevate.] ) if _use_jetbackup4_or_earlier();
+
+    return 0 unless _use_jetbackup4_or_earlier();
+
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+    $self->has_blocker( 17, <<~"END" );
+    $pretty_distro_name does not support JetBackup prior to version 5.
+    Please upgrade JetBackup before elevate.
+    END
 
     return 0;
 }
@@ -2824,7 +2923,7 @@ sub _blocker_is_container ($self) {
 }
 
 sub _blocker_disk_space ($self) {
-    $self->has_blocker( 99, q[disk space issue] ) unless _disk_space_check();
+    $self->has_blocker( 99, q[disk space issue] ) unless $self->_disk_space_check();
 
     return 0;
 }
@@ -2858,9 +2957,11 @@ sub _blocker_ea4_profile ($self) {
 
     # perform an early backup so we can check the list of dropped packages
 
-    INFO("Checking EasyApache profile compatibility with AlmaLinux 8.");
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
 
-    return unless backup_ea4_profile();
+    INFO("Checking EasyApache profile compatibility with $pretty_distro_name.");
+
+    return unless $self->backup_ea4_profile();
 
     my $stash        = read_stage_file();
     my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
@@ -2879,7 +2980,7 @@ sub _blocker_ea4_profile ($self) {
     my $list = join( "\n", map { "- $_" } @incompatible_packages );
 
     return $self->has_blocker( 104, <<~"EOS" );
-    One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
+    One or more EasyApache 4 package(s) are not compatible with $pretty_distro_name.
     Please remove these packages before continuing the update.
     $list
     EOS
@@ -3068,7 +3169,7 @@ sub _grub2_workaround_state () {
     return GRUB2_WORKAROUND_UNCERTAIN;
 }
 
-sub update_grub2_workaround_if_needed () {
+sub update_grub2_workaround_if_needed ($self) {
 
     my $grub2_info = read_stage_file('grub2_workaround');
     if ( $grub2_info && $grub2_info->{'needs_workaround_update'} ) {
@@ -3095,7 +3196,7 @@ sub update_grub2_workaround_if_needed () {
     return;
 }
 
-sub merge_grub_directories_if_needed () {
+sub merge_grub_directories_if_needed ($self) {
     my $grub2_info = read_stage_file('grub2_workaround');
     if ( $grub2_info && $grub2_info->{'needs_workaround_update'} ) {
         my $grub_dir  = GRUB2_PREFIX_DEBIAN;
@@ -3395,7 +3496,7 @@ sub _is_container_envtype () {
     );
 }
 
-sub _disk_space_check() {
+sub _disk_space_check ($self) {
 
     # base unit size is in K
     my $K   = 1;
@@ -3455,8 +3556,10 @@ sub _disk_space_check() {
 
     my $details = join( "\n", @errors );
 
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
     my $error = <<"EOS";
-** Warning **: your system does not have enough disk space available to update to AlmaLinux 8
+** Warning **: your system does not have enough disk space available to update to $pretty_distro_name
 
 $details
 EOS
@@ -3509,9 +3612,11 @@ sub setup_answer_file {
     return;
 }
 
-sub install_cpanel_elevate_service {
+sub install_cpanel_elevate_service ($self) {
 
-    INFO( "Installing service " . SERVICE_NAME . " which will upgrade the server to AlmaLinux 8" );
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+    INFO( "Installing service " . SERVICE_NAME . " which will upgrade the server to " . $pretty_distro_name );
     open( my $fh, '>', SERVICE_FILE ) or die;
 
     # Works only in systemd v240 and newer!
@@ -3522,7 +3627,7 @@ sub install_cpanel_elevate_service {
 
     print {$fh} <<~"EOF";
         [Unit]
-        Description=Upgrade process from CentOS 7 to AlmaLinux 8.
+        Description=Upgrade process from CentOS 7 to $pretty_distro_name.
         After=network.target network-online.target
 
         [Service]

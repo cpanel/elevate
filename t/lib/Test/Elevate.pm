@@ -15,7 +15,7 @@ use Log::Log4perl;
 my @MESSAGES_SEEN;
 
 BEGIN {
-    if ($INC{'Test/MockFile.pm'}) {
+    if ( $INC{'Test/MockFile.pm'} ) {
         my $auth_pkg = Test::MockFile->can('authorized_strict_mode_for_package');
         $auth_pkg->('Cpanel::Logger') if $auth_pkg;
     }

@@ -66,7 +66,7 @@ is cpev::read_stage_file(), {
 $cpev->_notify_success();
 
 is $notification->{title}, 'Successfully update to AlmaLinux 8', '_notify_success: title';
-is $notification->{body}, <<EOS, '_notify_success: body' or note $notification->{body};
+is $notification->{body},  <<EOS,                                '_notify_success: body' or note $notification->{body};
 The cPanel & WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.
 
 The update to AlmaLinux 8 was successful but please note that one ore more notifications require your attention:

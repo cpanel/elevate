@@ -24,7 +24,7 @@ $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
 my $mock_elevate = Test::MockModule->new('cpev');
 $mock_elevate->redefine(
-    ssystem_and_die => sub(@args) {
+    ssystem_and_die => sub (@args) {
         note "run: ", join( ' ', @args );
 
         return;

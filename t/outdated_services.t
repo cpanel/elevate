@@ -7,7 +7,7 @@ use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
-use Test::MockFile qw/strict/;
+use Test::MockFile   qw/strict/;
 use Test::MockModule qw/strict/;
 
 use File::Slurper qw{read_text};
