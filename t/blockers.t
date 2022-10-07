@@ -370,7 +370,7 @@ my $sbin_ip = Test::MockFile->file('/sbin/ip');
 
     $cpev_mock->redefine(
         backup_ea4_profile => 1,
-        read_stage_file    => sub {
+        _read_stage_file   => sub {
             return {
                 ea4 => {
                     dropped_pkgs => {

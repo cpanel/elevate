@@ -99,7 +99,7 @@ is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
 {
     $mock_elevate->redefine( _get_pecl_installed_for => undef );
     $mock_elevate->redefine(
-        read_stage_file => sub {
+        _read_stage_file => sub {
             return {
                 pecl => {
                     cpanel => {

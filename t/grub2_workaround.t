@@ -62,7 +62,7 @@ subtest 'Testing update_grub2_workaround_if_needed' => sub {
         my $cpev      = bless {}, 'cpev';
 
         $cpev_mock->redefine(
-            read_stage_file     => { grub2_workaround => { needs_workaround_update => 0 } },
+            _read_stage_file    => { grub2_workaround => { needs_workaround_update => 0 } },
             GRUB2_PREFIX_DEBIAN => sub { die "GRUB2_PREFIX_DEBIAN referenced unexpectedly!" },
             GRUB2_PREFIX_RHEL   => sub { die "GRUB2_PREFIX_RHEL referenced unexpectedly!" },
         );
@@ -82,7 +82,7 @@ subtest 'Testing update_grub2_workaround_if_needed' => sub {
 
         my $stage_update;
         $cpev_mock->redefine(
-            read_stage_file     => { grub2_workaround => { needs_workaround_update => 1 } },
+            _read_stage_file    => { grub2_workaround => { needs_workaround_update => 1 } },
             update_stage_file   => sub { $stage_update = $_[0]; return 1; },
             GRUB2_PREFIX_DEBIAN => "$mocked_boot/grub",
             GRUB2_PREFIX_RHEL   => "$mocked_boot/grub2",
@@ -120,7 +120,7 @@ subtest 'Testing update_grub2_workaround_if_needed' => sub {
         my $now = CORE::time();
         my $stage_update;
         $cpev_mock->redefine(
-            read_stage_file     => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
+            _read_stage_file    => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
             update_stage_file   => sub { die 'this should not reached' },
             GRUB2_PREFIX_DEBIAN => "$mocked_boot/grub",
             GRUB2_PREFIX_RHEL   => "$mocked_boot/grub2",
@@ -145,7 +145,7 @@ subtest 'Testing merge_grub_directories_if_needed' => sub {
         my $cpev      = bless {}, 'cpev';
 
         $cpev_mock->redefine(
-            read_stage_file     => { grub2_workaround => { needs_workaround_update => 0 } },
+            _read_stage_file    => { grub2_workaround => { needs_workaround_update => 0 } },
             GRUB2_PREFIX_DEBIAN => sub { die "GRUB2_PREFIX_DEBIAN referenced unexpectedly!" },
             GRUB2_PREFIX_RHEL   => sub { die "GRUB2_PREFIX_RHEL referenced unexpectedly!" },
         );
@@ -167,7 +167,7 @@ subtest 'Testing merge_grub_directories_if_needed' => sub {
     symlink "grub2",             "$mocked_boot/grub";
 
     $cpev_mock->redefine(
-        read_stage_file     => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
+        _read_stage_file    => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
         GRUB2_PREFIX_DEBIAN => "$mocked_boot/grub",
         GRUB2_PREFIX_RHEL   => "$mocked_boot/grub2",
     );
