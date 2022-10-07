@@ -1,9 +1,9 @@
-
-2020-10-10 - version 1
+{{ NEXT }} - version 1
 User Facing
  - Fix run_once entry names in stage file
  - Work around use of /boot/grub/ in some providers
  - Implement self-update mechanism for elevate-cpanel
+ - Allow upgrade when using MySQL from mysql-community.repo
 Internal:
  - read_stage_file() can read specific data
 2022-10-07 - version 0
