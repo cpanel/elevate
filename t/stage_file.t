@@ -23,9 +23,11 @@ my $mock_elevate = Test::MockModule->new('cpev');
 my $mock_stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
 
 is cpev::read_stage_file(), {}, 'read_stage_file empty file';
+is cpev::read_stage_file('something'), undef, 'read_stage_file("something")';
 
 ok cpev::save_stage_file( { fruits => ['cherry'] } ), 'save_stage_file';
 is cpev::read_stage_file(), { fruits => ['cherry'] }, 'read_stage_file';
+is cpev::read_stage_file('fruits'), ['cherry'], 'read_stage_file("fruits")';
 
 ok cpev::update_stage_file( { veggies => ['carrots'] } ), 'update_stage_file';
 is cpev::read_stage_file(), { fruits => ['cherry'], veggies => ['carrots'] }, 'read_stage_file';
