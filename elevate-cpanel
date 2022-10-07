@@ -175,7 +175,7 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 0;
+use constant VERSION => 1;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant ELEVATE_BASE_URL => 'https://raw.githubusercontent.com/cpanel/elevate/test-tag/';
