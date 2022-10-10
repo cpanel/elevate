@@ -1558,17 +1558,20 @@ sub backup_ea4_profile ($self) {
         return;
     }
 
-    my $json = $self->_get_ea4_profile();
+    my $json_path = $self->_get_ea4_profile();
 
-    my $data = { profile => $json };
+    my $data = { profile => $json_path };
 
     # store dropped packages
-    my $profile = eval { Cpanel::JSON::LoadFile($json) } // {};
+    my $profile = eval { Cpanel::JSON::LoadFile($json_path) } // {};
     if ( ref $profile->{os_upgrade} && ref $profile->{os_upgrade}->{dropped_pkgs} ) {
         $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
     }
 
     update_stage_file( { ea4 => $data } );
+
+    # CPANEL-41603: delete ea4 backup file if in --check mode
+    unlink $json_path unless $self->{_abort_on_first_blocker};
 
     return 1;
 }
