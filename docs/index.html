@@ -108,7 +108,7 @@
                     class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
                     <h1 id="welcome-to-the-cpanel-elevate-project">Welcome to the cPanel ELevate Project.</h1>
 <h2 id="goal">Goal</h2>
-<p>The cPanel ELevate Project provides a script to upgrade an existing <code>cPanel &amp; WHM</code> CentOS 7 server installation to AlmaLinux 8.</p>
+<p>The cPanel ELevate Project provides a script to upgrade an existing <code>cPanel &amp; WHM</code> [CentOS 7][https://centos.org] server installation to [AlmaLinux 8][https://almalinux.org] or [Rocky Linux 8][https://rockylinux.org].</p>
 <h2 id="disclaimer">Disclaimer</h2>
 <p>We do not guarantee the functionality of software in this repository.  We provide it on an experimental basis only. You assume all risk for use of any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
 <p>cPanel Technical Support is limited in their ability to support experimental software. You should instead utilize the <a href="https://github.com/cpanel/elevate/issues">Github Issues page</a></p>
@@ -122,8 +122,8 @@
 </li>
 </ul>
 <p>This project builds on the <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux ELevate</a> project, which leans heavily on the <a href="https://leapp.readthedocs.io/en/latest/">LEAPP Project</a> created for in-place upgrades of RedHat-based systems.</p>
-<p>The <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux ELevate</a> project is very effective at upgrading the distro packages from <a href="https://www.centos.org/">CentOS 7</a> to <a href="https://almalinux.org/">AlmaLinux 8</a>. However if you attempt use it directly on a CentOS 7-based <a href="https://www.cpanel.net/">cPanel install</a>, you will end up with a broken system.</p>
-<p>This project was designed to be a wrapper around the <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux ELevate</a> project to allow you to successfully upgrade a <a href="https://www.cpanel.net/">cPanel install</a> with an aim to minimize outages.</p>
+<p>The <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux ELevate</a> project is very effective at upgrading the distro packages from <a href="https://centos.org/">CentOS 7</a> to <a href="https://almalinux.org/">AlmaLinux 8</a> or [Rocky Linux 8][https://rockylinux.org]. However if you attempt use it directly on a CentOS 7-based <a href="https://cpanel.net/">cPanel install</a>, you will end up with a broken system.</p>
+<p>This project was designed to be a wrapper around the <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">Alma Linux ELevate</a> project to allow you to successfully upgrade a <a href="https://cpanel.net/">cPanel install</a> with an aim to minimize outages.</p>
 <h3 id="our-current-approach-can-be-summarized-as">Our current approach can be summarized as:</h3>
 <ol>
 <li><a href="https://cpanel.github.io/elevate/blockers/">Check for blockers</a></li>
@@ -191,24 +191,36 @@ and then <a href="#pre-upgrade-checks">running pre-checks</a>.</p>
 </span><span style="color:#ae81ff"></span>    https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel ;
 chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
 </code></pre></div><h3 id="pre-upgrade-checks">Pre-upgrade checks</h3>
-<p>We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system. You can do this by running:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
-/scripts/elevate-cpanel --check
+<p>We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system.</p>
+<p>You can check if your system is ready to upgrade to <strong>AlmaLinux 8</strong> by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Check AlmaLinux 8 upgrade (dry run mode)</span>
+/scripts/elevate-cpanel --check --upgrade-to<span style="color:#f92672">=</span>almalinux
+</code></pre></div><p>You can check if your system is ready to upgrade to <strong>Rocky Linux 8</strong> by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Check Rocky Linux 8 upgrade (dry run mode)</span>
+/scripts/elevate-cpanel --check --upgrade-to<span style="color:#f92672">=</span>rocky
 </code></pre></div><h3 id="to-upgrade">To upgrade</h3>
 <p>Once you have a backup of your server (<strong>The cPanel elevate script does not back up before upgrading</strong>), and have cleared upgrade blockers with Pre-upgrade checks, you can begin the migration.</p>
 <p><strong>NOTE</strong> This upgrade could take over 30 minutes. Be sure your users are aware that your server may be down and
 unreachable during this time.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Start the migration</span>
-/scripts/elevate-cpanel --start
+<p>You can upgrade to <strong>AlmaLinux 8</strong> by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Start the migration to AlmaLinux 8</span>
+/scripts/elevate-cpanel --start --upgrade-to<span style="color:#f92672">=</span>almalinux
+</code></pre></div><p>You can upgrade to <strong>Rocky Linux 8</strong> by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Start the migration to Rocky Linux 8</span>
+/scripts/elevate-cpanel --start --upgrade-to<span style="color:#f92672">=</span>rocky
 </code></pre></div><h3 id="command-line-options">Command line options</h3>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Read the help (and risks mentionned in this documentation)</span>
 /scripts/elevate-cpanel --help
 
 <span style="color:#75715e"># Check if your server is ready for elevation (dry run mode)</span>
-/scripts/elevate-cpanel --check
+/scripts/elevate-cpanel --check <span style="color:#75715e"># default to AlmaLinux</span>
+/scripts/elevate-cpanel --check --upgrade-to<span style="color:#f92672">=</span>almalinux
+/scripts/elevate-cpanel --check --upgrade-to<span style="color:#f92672">=</span>rocky
 
 <span style="color:#75715e"># Start the migration</span>
-/scripts/elevate-cpanel --start
+/scripts/elevate-cpanel --start <span style="color:#75715e"># default to AlmaLinux</span>
+/scripts/elevate-cpanel --start --upgrade-to<span style="color:#f92672">=</span>almalinux
+/scripts/elevate-cpanel --start --upgrade-to<span style="color:#f92672">=</span>rocky
 
 ... <span style="color:#75715e"># expect multiple reboots (~30 min)</span>
 
@@ -271,7 +283,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Oct 10, 2022 at 16:06 (UTC)</i>
+        <br><i>page generated at Oct 10, 2022 at 17:16 (UTC)</i>
     </small>
     </div>
     </div>
