@@ -1570,9 +1570,6 @@ sub backup_ea4_profile ($self) {
 
     update_stage_file( { ea4 => $data } );
 
-    # CPANEL-41603: delete ea4 backup file if in --check mode
-    unlink $json_path unless $self->{_abort_on_first_blocker};
-
     return 1;
 }
 
@@ -1581,32 +1578,47 @@ sub _get_ea4_profile ($self) {
     # obs_project_aliases from /etc/cpanel/ea4/ea4-metainfo.json
     my $ea_alias = $self->upgrade_to_rocky() ? 'CentOS_8' : 'AlmaLinux_8';
 
-    my @cmd     = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
+    my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
+
+    my $profile_file;
+
+    if ( $self->is_check_mode() ) {
+
+        # use a temporary file in check mode
+        $profile_file = $self->tmp_dir() . '/ea_profile.json';
+        push @cmd, "--output=$profile_file";
+    }
+
     my $cmd_str = join( ' ', @cmd );
+
     INFO("Running: $cmd_str");
     my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
     die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
 
-    my @lines = split( "\n", $output );
+    if ( !$profile_file ) {
 
-    my $json;
-    if ( scalar @lines == 1 ) {
-        $json = $lines[0];
-    }
-    else {
-        foreach my $l ( reverse @lines ) {
-            next unless $l =~ m{^/.*\.json};
-            if ( -f $l ) {
-                $json = $l;
-                last;
+        # parse the output to find the profile file...
+
+        my @lines = split( "\n", $output );
+
+        if ( scalar @lines == 1 ) {
+            $profile_file = $lines[0];
+        }
+        else {
+            foreach my $l ( reverse @lines ) {
+                next unless $l =~ m{^/.*\.json};
+                if ( -f $l ) {
+                    $profile_file = $l;
+                    last;
+                }
             }
         }
     }
 
-    die "Unable to backup EA4 profile running: $cmd_str" unless length $json && -f $json && -s _;
-    INFO("Backed up EA4 profile to $json");
+    die "Unable to backup EA4 profile running: $cmd_str" unless length $profile_file && -f $profile_file && -s _;
+    INFO("Backed up EA4 profile to $profile_file");
 
-    return $json;
+    return $profile_file;
 }
 
 sub backup_ea_addons ($self) {
@@ -2091,6 +2103,10 @@ sub _fetch_a_script ( $url, $template, $suffix = '.sh' ) {
     close $fh;
 
     return "$fh";
+}
+
+sub tmp_dir ($self) {
+    return $self->{tmp} //= File::Temp->newdir();    # auto cleanup on destroy
 }
 
 my $yum_list_cache;
@@ -2592,7 +2608,7 @@ use constant _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX              => 2;
 use constant _CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO => 4;
 use constant _CHECK_YUM_REPO_BITMASK_HAS_UNUSED_REPO_ENABLED     => 8;
 
-sub blockers_check ( $self, $all = 0 ) {
+sub blockers_check ( $self, $check_mode = 0 ) {
 
     die unless ref $self;
 
@@ -2602,7 +2618,8 @@ sub blockers_check ( $self, $all = 0 ) {
     }
 
     $self->{blockers}                = [];
-    $self->{_abort_on_first_blocker} = !$all;
+    $self->{_is_check_mode}          = !!$check_mode;               # running with --check
+    $self->{_abort_on_first_blocker} = !$self->{_is_check_mode};    # abort on first blocker
 
     eval {
         $self->_blockers_check();
@@ -2619,6 +2636,10 @@ sub blockers_check ( $self, $all = 0 ) {
     }
 
     return scalar $self->{blockers}->@*;
+}
+
+sub is_check_mode ($self) {
+    return $self->{_is_check_mode};
 }
 
 # Needed to convert these with Cpanel::JSON::Dump:
@@ -2872,7 +2893,7 @@ sub _blocker_invalid_yum_repos ($self) {
             EOS
         }
 
-        if ( $self->{_abort_on_first_blocker} ) {    # autofix when --check is not used
+        if ( !$self->is_check_mode() ) {    # autofix when --check is not used
             $self->_autofix_yum_repos();
 
             # perform a second check to make sure we are in good shape
@@ -3101,7 +3122,7 @@ sub _blocker_grub2_workaround ($self) {
         current $deb directory, re-create $deb as a symlink to $rhel,
         and then copy as much of the old $deb into $rhel as possible.
         EOS
-        update_stage_file( { 'grub2_workaround' => { 'needs_workaround_update' => 1 } } ) if $self->{_abort_on_first_blocker};    # don't update stage file if this is just a check
+        update_stage_file( { 'grub2_workaround' => { 'needs_workaround_update' => 1 } } ) if !$self->is_check_mode();    # don't update stage file if this is just a check
     }
     elsif ( $state == GRUB2_WORKAROUND_UNCERTAIN ) {
 
