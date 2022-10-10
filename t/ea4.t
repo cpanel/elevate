@@ -200,13 +200,13 @@ sub backup_non_existing_profile : Test(10) ($self) {
 
 sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
 
-    my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
+    my $cpev = cpev( _abort_on_first_blocker => 1 );
 
     my $profile = { my_profile => ['...'] };
 
     $self->_update_profile_file($profile);
 
-    is cpev(_abort_on_first_blocker => 1 )->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    is cpev( _abort_on_first_blocker => 1 )->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
     _message_run_ea_current_to_profile(1);
 
     is cpev::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
@@ -220,7 +220,7 @@ sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
 
 sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
 
-    my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
+    my $cpev = cpev( _abort_on_first_blocker => 1 );
 
     my $profile = {
         "os_upgrade" => {
@@ -235,7 +235,7 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
     };
     $self->_update_profile_file($profile);
 
-    is cpev(_abort_on_first_blocker => 1 )->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    is cpev( _abort_on_first_blocker => 1 )->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
     _message_run_ea_current_to_profile(1);
 
     is cpev::read_stage_file(), {
@@ -334,8 +334,7 @@ sub test_blocker_file_behavior : Tests(8) ($self) {
 
     $self->{mock_cpev}->redefine( _get_ea4_profile => sub { $self->{mock_profile}->contents('{}'); return PROFILE_FILE } );
 
-    my $cpev = bless {}, 'cpev';
-    $cpev->{_abort_on_first_blocker} = 1;    # enforce a die
+    my $cpev = cpev( _abort_on_first_blocker => 1 );    # enforce a die
 
     ok !$cpev->_blocker_ea4_profile(), "no block";
     $ea_info_check->();
