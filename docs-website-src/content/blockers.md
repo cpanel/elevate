@@ -44,10 +44,10 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
   * You will need to be on a version mentioned in the "Latest cPanel & WHM Builds (All Architectures)" section at http://httpupdate.cpanel.net/
   * Mitigation: `/usr/local/cpanel/scripts/upcp`
 * **nameserver**
-  * cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8, it is preferred that you always be on PowerDNS.
+  * cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8 / Rocky 8, it is preferred that you always be on PowerDNS.
   * Mitigation: `/scripts/setupnameserver powerdns`
 * **MySQL**
-  * 99% of existing AlmaLinux 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.
-  * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8.
-* Some **EA4 packages** are not supported on AlmaLinux 8.
-  * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8. You would need to remove these packages before the upgrading to AlmaLinux 8. Doing so might impact your system users. Proceed with caution.
+  * 99% of existing AlmaLinux 8 / Rocky 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.
+  * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8 / Rocky 8.
+* Some **EA4 packages** are not supported on AlmaLinux 8 / Rocky 8.
+  * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8 / Rocky 8. You would need to remove these packages before the upgrading to AlmaLinux 8 / Rocky 8. Doing so might impact your system users. Proceed with caution.
