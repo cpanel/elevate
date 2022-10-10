@@ -5,6 +5,9 @@ User Facing
  - Implement self-update mechanism for elevate-cpanel
  - Allow upgrades when using MySQL from mysql-community.repo
  - Allow upgrades to Rocky Linux 8
+ - AlmaLinux capitalization
+ - Begin versioning and a formal changelog
+ - Backup EA profile to a temporary file on --check
 Internal:
  - read_stage_file() can read specific data
  - run_once is now a method
