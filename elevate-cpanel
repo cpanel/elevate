@@ -84,7 +84,7 @@ starting an upgrade process.
     /scripts/elevate-cpanel --check
     /scripts/elevate-cpanel --check --upgrade-to=almalinux
 
-    # Check Rocky Linux 8 ypdate
+    # Check Rocky Linux 8 update
     /scripts/elevate-cpanel --check --upgrade-to=rocky
 
 This will also save a JSON representation of the blockers to a file, C</var/cpanel/elevate-blockers> by default,
