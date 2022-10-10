@@ -76,7 +76,7 @@ sub teardown : Test( teardown => 1 ) ($self) {
 }
 
 sub cpev {    # helper for test...
-    return bless {}, 'cpev';
+    return bless {@_}, 'cpev';
 }
 
 sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
@@ -200,11 +200,13 @@ sub backup_non_existing_profile : Test(10) ($self) {
 
 sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
 
+    my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
+
     my $profile = { my_profile => ['...'] };
 
     $self->_update_profile_file($profile);
 
-    is cpev()->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    is cpev(_abort_on_first_blocker => 1 )->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
     _message_run_ea_current_to_profile(1);
 
     is cpev::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
@@ -217,6 +219,8 @@ sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
 }
 
 sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
+
+    my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
 
     my $profile = {
         "os_upgrade" => {
@@ -231,7 +235,7 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
     };
     $self->_update_profile_file($profile);
 
-    is cpev()->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    is cpev(_abort_on_first_blocker => 1 )->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
     _message_run_ea_current_to_profile(1);
 
     is cpev::read_stage_file(), {
@@ -274,7 +278,7 @@ sub test_blocker_ea4_profile : Test(16) ($self) {
     ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
     $ea_info_check->();
 
-    $self->{mock_cpev}->redefine( backup_ea4_profile => 1 );
+    $self->{mock_cpev}->redefine( backup_ea4_profile => PROFILE_FILE );
 
     my $stage_ea4 = {
         profile => '/some/file.not.used.there',
@@ -319,6 +323,31 @@ Please remove these packages before continuing the update.
     # make sure to restore context
     $self->{mock_cpev}->unmock('backup_ea4_profile');
 
+    return;
+}
+
+sub test_blocker_file_behavior : Tests(8) ($self) {
+
+    my $ea_info_check = sub {
+        message_seen( 'INFO' => "Checking EasyApache profile compatibility with AlmaLinux 8." );
+    };
+
+    $self->{mock_cpev}->redefine( _get_ea4_profile => sub { $self->{mock_profile}->contents('{}'); return PROFILE_FILE } );
+
+    my $cpev = bless {}, 'cpev';
+    $cpev->{_abort_on_first_blocker} = 1;    # enforce a die
+
+    ok !$cpev->_blocker_ea4_profile(), "no block";
+    $ea_info_check->();
+    ok( -f PROFILE_FILE, "profile still exists when running blocker for real" );
+
+    $cpev->{_abort_on_first_blocker} = 0;
+
+    ok !$cpev->_blocker_ea4_profile(), "no block";
+    $ea_info_check->();
+    ok( !-f PROFILE_FILE, "profile no longer exists when running blocker in check mode" );
+
+    $self->{mock_cpev}->unmock('_get_ea4_profile');
     return;
 }
 
