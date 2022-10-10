@@ -138,12 +138,12 @@ You can upgrade to **Rocky Linux 8** by running:
 /scripts/elevate-cpanel --help
 
 # Check if your server is ready for elevation (dry run mode)
-/scripts/elevate-cpanel --check # default to AlmaLinux
+/scripts/elevate-cpanel --check # defaults to AlmaLinux
 /scripts/elevate-cpanel --check --upgrade-to=almalinux
 /scripts/elevate-cpanel --check --upgrade-to=rocky
 
 # Start the migration
-/scripts/elevate-cpanel --start # default to AlmaLinux
+/scripts/elevate-cpanel --start # defaults to AlmaLinux
 /scripts/elevate-cpanel --start --upgrade-to=almalinux
 /scripts/elevate-cpanel --start --upgrade-to=rocky
 
