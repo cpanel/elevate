@@ -9,7 +9,7 @@ layout: single
 
 ## Goal
 
-The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` CentOS 7 server installation to AlmaLinux 8.
+The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` [CentOS&nbsp;7][https://centos.org] server installation to [AlmaLinux&nbsp;8][https://almalinux.org] or [Rocky&nbsp;Linux&nbsp;8][https://rockylinux.org].
 
 ## Disclaimer
 
@@ -25,9 +25,9 @@ cPanel Technical Support is limited in their ability to support experimental sof
 
 This project builds on the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of RedHat-based systems.
 
-The [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://www.centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/). However if you attempt use it directly on a CentOS 7-based [cPanel install](https://www.cpanel.net/), you will end up with a broken system.
+The [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/) or [Rocky&nbsp;Linux&nbsp;8][https://rockylinux.org]. However if you attempt use it directly on a CentOS 7-based [cPanel&nbsp;install](https://cpanel.net/), you will end up with a broken system.
 
-This project was designed to be a wrapper around the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://www.cpanel.net/) with an aim to minimize outages.
+This project was designed to be a wrapper around the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://cpanel.net/) with an aim to minimize outages.
 
 ### Our current approach can be summarized as:
 
@@ -97,10 +97,18 @@ chmod 700 /scripts/elevate-cpanel
 
 ### Pre-upgrade checks
 
-We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system. You can do this by running:
+We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system.
+
+You can check if your system is ready to upgrade to **AlmaLinux 8** by running:
 ```bash
-# Check if your server is ready for elevation (dry run mode)
-/scripts/elevate-cpanel --check
+# Check AlmaLinux 8 upgrade (dry run mode)
+/scripts/elevate-cpanel --check --upgrade-to=almalinux
+```
+
+You can check if your system is ready to upgrade to **Rocky Linux 8** by running:
+```bash
+# Check Rocky Linux 8 upgrade (dry run mode)
+/scripts/elevate-cpanel --check --upgrade-to=rocky
 ```
 
 ### To upgrade
@@ -111,9 +119,16 @@ Once you have a backup of your server (**The cPanel elevate script does not back
 unreachable during this time.
 
 
+You can upgrade to **AlmaLinux 8** by running:
 ```bash
-# Start the migration
-/scripts/elevate-cpanel --start
+# Start the migration to AlmaLinux 8
+/scripts/elevate-cpanel --start --upgrade-to=almalinux
+```
+
+You can upgrade to **Rocky Linux 8** by running:
+```bash
+# Start the migration to Rocky Linux 8
+/scripts/elevate-cpanel --start --upgrade-to=rocky
 ```
 
 ### Command line options
@@ -123,10 +138,14 @@ unreachable during this time.
 /scripts/elevate-cpanel --help
 
 # Check if your server is ready for elevation (dry run mode)
-/scripts/elevate-cpanel --check
+/scripts/elevate-cpanel --check # default to AlmaLinux
+/scripts/elevate-cpanel --check --upgrade-to=almalinux
+/scripts/elevate-cpanel --check --upgrade-to=rocky
 
 # Start the migration
-/scripts/elevate-cpanel --start
+/scripts/elevate-cpanel --start # default to AlmaLinux
+/scripts/elevate-cpanel --start --upgrade-to=almalinux
+/scripts/elevate-cpanel --start --upgrade-to=rocky
 
 ... # expect multiple reboots (~30 min)
 
