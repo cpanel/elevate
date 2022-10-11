@@ -191,7 +191,7 @@ use Cpanel::Yum::Vars           ();
 use constant VERSION => 1;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
-use constant ELEVATE_BASE_URL => 'https://raw.githubusercontent.com/cpanel/elevate/release/';
+use constant DEFAULT_ELEVATE_BASE_URL => 'https://raw.githubusercontent.com/cpanel/elevate/release/';
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
@@ -366,7 +366,7 @@ sub do_update ($self) {
 
     if ($needs_update) {
         INFO("Newer version of script found. Downloading.");
-        my $temp_file = _fetch_a_script( ELEVATE_BASE_URL . 'elevate-cpanel', 'elevate-cpanel', '' );
+        my $temp_file = _fetch_a_script( $self->base_url . 'elevate-cpanel', 'elevate-cpanel', '' );
         return 1 unless $temp_file;    # _fetch_a_script handled the error msg
 
         my $running_from = Cwd::abs_path($0) // '';
@@ -386,6 +386,10 @@ sub do_update ($self) {
     }
 
     return 0;
+}
+
+sub base_url ($self) {
+    return $self->{'base_url'} ||= $ENV{'ELEVATE_BASE_URL'} || DEFAULT_ELEVATE_BASE_URL;
 }
 
 sub upgrade_to ($self) {    # main helper to know the upgrade_to distro
@@ -3048,7 +3052,7 @@ sub is_script_out_of_date ($self) {
 }
 
 sub latest_version ($self) {
-    my $response = Cpanel::HTTP::Client->new->get( ELEVATE_BASE_URL . 'version' );
+    my $response = Cpanel::HTTP::Client->new->get( $self->base_url . 'version' );
     return $response->success ? $response->content : undef;
 }
 
