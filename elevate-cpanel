@@ -3035,7 +3035,7 @@ sub is_script_out_of_date ($self) {
         $blocker_text = "The script could not fetch information about the latest version.";
     }
     else {
-        $should_block = $latest_version eq $self_version ? 0 : 1;
+        $should_block = $latest_version == $self_version ? 0 : 1;
         $blocker_text = <<~EOS if $should_block;
             This script (version $self_version) does not appear to be the newest available release ($latest_version).
             Run this script with the --update option:
