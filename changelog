@@ -1,4 +1,5 @@
-{{ NEXT }} - version 1
+2022-10-17 - version 1
+
 User Facing
  - Fix run_once entry names in stage file
  - Work around use of /boot/grub/ in some providers
@@ -8,6 +9,7 @@ User Facing
  - AlmaLinux capitalization
  - Begin versioning and a formal changelog
  - Backup EA profile to a temporary file on --check
+
 Internal:
  - read_stage_file() can read specific data
  - run_once is now a method
