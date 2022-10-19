@@ -1,5 +1,8 @@
 {{NEXT}} - version 2
 
+Internal:
+ - Allow testing using alternative update URLs
+
 2022-10-17 - version 1
 
 User Facing
