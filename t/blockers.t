@@ -239,7 +239,7 @@ $0 = '/usr/local/cpanel/scripts/elevate-cpanel';
 is( $cpev->blockers_check(), 12, "the script location is correct but MariaDB 10.2 is installed." );
 message_seen(
     'ERROR',
-    "You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.\nYou first need to update MariaDB server to 10.3 or later.\n\nYou can update to version 10.3 using the following command:\n\n    /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3\n\nOnce the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.\n"
+    qr"You are using MariaDB server 10\.2, this version is not available for AlmaLinux 8\.\nYou first need to update MariaDB server to 10\.\d or later\.\n\nYou can update to version 10\.\d using the following command:\n\n    /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10\.\d\n\nOnce the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8\.\n"
 );
 no_messages_seen();
 
