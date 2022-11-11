@@ -2838,13 +2838,17 @@ sub _blocker_old_mysql ( $self, $mysql_version = '' ) {
         EOS
     }
     elsif ( $mysql_version eq '10.2' ) {
+
+        # cPanel 110 no longer supports upgrades from something else to 10.3. Suggest 10.5 in that case:
+        my $upgrade_version = $Cpanel::Version::Tiny::major_version <= 108 ? '10.3' : '10.5';
+
         $self->has_blocker( 12, <<~"EOS");
         You are using MariaDB server 10.2, this version is not available for $pretty_distro_name.
-        You first need to update MariaDB server to 10.3 or later.
+        You first need to update MariaDB server to $upgrade_version or later.
 
-        You can update to version 10.3 using the following command:
+        You can update to version $upgrade_version using the following command:
 
-            /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
+            /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
 
         Once the MariaDB upgrade is finished, you can then retry to elevate to $pretty_distro_name.
         EOS
