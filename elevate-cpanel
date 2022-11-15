@@ -3056,9 +3056,9 @@ sub is_script_out_of_date ($self) {
 }
 
 sub latest_version ($self) {
-    my $response = Cpanel::HTTP::Client->new->get( ELEVATE_BASE_URL . 'version' );
+    my $response = Cpanel::HTTP::Client->new->get( $self->base_url() . 'version' );
     return if !$response->success;
-    my $versions = $response->content;
+    my $version = $response->content // '';
     chomp $version;
     return $version;
 }
