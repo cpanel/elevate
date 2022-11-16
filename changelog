@@ -1,4 +1,4 @@
-{{NEXT}} - version 2
+2022-11-16 - version 2
 
 User Facing
  - Fixed bug in logic for version check which was detecting a new version incorrectly.
