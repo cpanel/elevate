@@ -1,5 +1,9 @@
 {{NEXT}} - version 2
 
+User Facing
+ - Fixed bug in logic for version check which was detecting a new version incorrectly.
+ - Recommend proper MariaDB version for cPanel v110
+
 Internal:
  - Allow testing using alternative update URLs
 
