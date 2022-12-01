@@ -3343,9 +3343,25 @@ sub _system_update_check() {
 
     INFO("Checking if your system is up to date: ");
     ssystem(qw{/usr/bin/yum clean all});
-    if ( ssystem(qw{/usr/bin/yum check-update}) != 0 ) {
+
+    my $out = ssystem_capture_output(qw{/usr/bin/yum check-update -q});
+
+    if ( $out->{status} != 0 ) {
+
+        # not a blocker: only a warning
         WARN("Your system is not up to date please run: /usr/bin/yum update");
-        return;
+
+        my $is_blocker;
+        my $output = $out->{stdout} // [];
+        foreach my $line (@$output) {
+            next if $line =~ qr{^\s+$};
+            next if $line =~ qr{^kernel};    # do not block if we need to update kernel packages
+            $is_blocker = 1;
+            last;
+        }
+
+        # not a blocker when only kernels packages need to be updated
+        return if $is_blocker;
     }
 
     INFO("Checking /scripts/sysup");
@@ -3785,7 +3801,16 @@ sub read_redhat_release() {
     return $first_line;
 }
 
+sub ssystem_capture_output (@args) {
+    return _ssystem( \@args, 1 );
+}
+
 sub ssystem (@args) {
+    return _ssystem( \@args );
+}
+
+sub _ssystem ( $command, $should_capture_output = 0 ) {
+    my @args = @{ $command // [] };
     INFO( "Running: " . join( " ", @args ) );
     INFO();    # Buffer so they can more easily read the output.
 
@@ -3794,10 +3819,20 @@ sub ssystem (@args) {
         unshift @args, qw(/usr/bin/bash -c);
     }
 
-    my $program = shift @args;
+    my $capture_output = { stdout => [], stderr => [] };
+    my $program        = shift @args;
     my ( $callback_out, $callback_err ) = map {
         my $label = $_;
-        Cpanel::IOCallbackWriteLine->new( sub ($line) { chomp $line; INFO($line); } )
+        Cpanel::IOCallbackWriteLine->new(
+            sub ($line) {
+                chomp $line;
+                INFO($line);
+                if ($should_capture_output) {
+                    push $capture_output->{$label}->@*, $line;
+                }
+                return;
+            }
+        )
     } qw(stdout stderr);
     my $sr = Cpanel::SafeRun::Object->new(
         program      => $program,
@@ -3809,7 +3844,14 @@ sub ssystem (@args) {
     );
     INFO();    # Buffer so they can more easily read the output.
 
-    return $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
+    $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
+
+    if ($should_capture_output) {
+        $capture_output->{status} = $?;
+        return $capture_output;
+    }
+
+    return $?;
 }
 
 sub ssystem_and_die (@args) {

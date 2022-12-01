@@ -516,37 +516,5 @@ no_messages_seen();
     is cpev::_sshd_setup() => 0, "sshd_config with commented PermitRootLogin=yes";
 }
 
-{
-    note "checking _system_update_check";
-    my $status = 0;
-    my @cmds;
-    $cpev_mock->unmock('_system_update_check');
-    $cpev_mock->redefine(
-        ssystem => sub {
-            push @cmds, [@_];
-            return $status;
-        }
-    );
-
-    ok cpev::_system_update_check(), '_system_update_check - success';
-    is \@cmds, [
-        [qw{/usr/bin/yum clean all}],
-        [qw{/usr/bin/yum check-update}],
-        ['/scripts/sysup']
-      ],
-      "check yum & sysup";
-
-    @cmds   = ();
-    $status = 1;
-
-    is cpev::_system_update_check(), undef, '_system_update_check - failure';
-    is \@cmds, [
-        [qw{/usr/bin/yum clean all}],
-        [qw{/usr/bin/yum check-update}],
-      ],
-      "check yum & abort";
-
-}
-
 done_testing();
 exit;
