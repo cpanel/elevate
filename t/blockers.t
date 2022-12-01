@@ -228,10 +228,17 @@ no_messages_seen();
 
 $0 = '/scripts/elevate-cpanel';
 is( $cpev->blockers_check(), 11, "the script location is correct but MySQL 5.7 is installed." );
-message_seen(
-    'ERROR',
-    "You are using MySQL 5.7 community server.\nThis version is not available for AlmaLinux 8.\nYou first need to update your MySQL server to 8.0 or later.\n\nYou can update to version 8.0 using the following command:\n\n    /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0\n\nOnce the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.\n"
-);
+message_seen( 'ERROR', <<END );
+You are using MySQL 5.7 server.
+This version is not available for AlmaLinux 8.
+You first need to update your MySQL server to 8.0 or later.
+
+You can update to version 8.0 using the following command:
+
+    /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0
+
+Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+END
 no_messages_seen();
 
 $cpanel_conf{'mysql-version'} = '10.2';
@@ -245,7 +252,12 @@ no_messages_seen();
 
 $cpanel_conf{'mysql-version'} = '4.0';
 is( $cpev->blockers_check(), 13, 'An Unknown MySQL is present so we block for now.' );
-message_seen( 'ERROR', "We do not know how to upgrade to AlmaLinux 8 with MySQL version 4.0.\nPlease open a support ticket.\n" );
+message_seen( 'ERROR', <<'END' );
+We do not know how to upgrade to AlmaLinux 8 with MySQL version 4.0.
+Please upgrade your MySQL server to one of the supported versions before running elevate.
+
+Supported MySQL server versions are: 8.0, 10.3, 10.4, 10.5, 10.6
+END
 no_messages_seen();
 
 $cpanel_conf{'mysql-version'} = '10.3';
