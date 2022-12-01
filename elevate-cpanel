@@ -394,7 +394,7 @@ sub base_url ($self) {
 
 sub upgrade_to ($self) {    # main helper to know the upgrade_to distro
     return $self->{upgrade_to} if $self->{upgrade_to};
-    return read_stage_file('upgrade_to') // UPGRADE_TO_ALMALINUX;    # default to AlmaLinux
+    return read_stage_file( 'upgrade_to', UPGRADE_TO_ALMALINUX );    # default to AlmaLinux
 }
 
 sub upgrade_to_rocky ($self) {
@@ -543,7 +543,7 @@ sub check_status ($self) {
         return;
     }
 
-    my $status = read_stage_file('status') // 'unknown';
+    my $status = read_stage_file( 'status', 'unknown' );
 
     if ( $status eq 'success' ) {
         say q[success];
@@ -587,8 +587,8 @@ sub _notify_success ($self) {
 The cPanel & WHM server has completed the elevation process from CentOS 7 to $pretty_distro_name.
 EOS
 
-    if ( my $warnings = read_stage_file('final_notifications') ) {
-        if ( ref $warnings && scalar @$warnings ) {
+    if ( my $warnings = read_stage_file( 'final_notifications', [] ) ) {
+        if ( scalar @$warnings ) {
             $msg .= "\nThe update to $pretty_distro_name was successful but please note that one ore more notifications require your attention:\n";
 
             foreach my $w ( reverse @$warnings ) {    # restore insert order
@@ -1025,7 +1025,7 @@ sub run_stage_5 ($self) {
     File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
     cleanup_motd();
 
-    my $final_notifications = read_stage_file()->{'final_notifications'} // [];
+    my $final_notifications = read_stage_file( 'final_notifications', [] );
     if (@$final_notifications) {
 
         print_box("Final Notifications");
@@ -1135,9 +1135,11 @@ sub capture_imunify_features {
 }
 
 sub restore_imunify_features {
+
+    return unless my $features = read_stage_file('reinstall')->{'imunify_features'};
+
     File::Copy::move( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
 
-    return unless my $features = read_stage_file()->{'reinstall'}->{'imunify_features'};
     return unless ref $features eq 'ARRAY';
     return unless @$features;
 
@@ -1232,7 +1234,7 @@ sub remove_kernelcare_if_needed {
 }
 
 sub restore_kernel_care {
-    return unless read_stage_file()->{'reinstall'}->{'kernelcare'};
+    return unless read_stage_file('reinstall')->{'kernelcare'};
 
     INFO("Restoring kernelcare");
 
@@ -1408,7 +1410,7 @@ sub restore_outdated_services {
 }
 
 sub enable_all_cpanel_services {
-    my $services = read_stage_file('disabled_cpanel_services') // [];
+    my $services = read_stage_file( 'disabled_cpanel_services', [] );
     unless (@$services) {
         WARN('No cPanel services were disabled!');
     }
@@ -1510,7 +1512,7 @@ sub _is_service_enabled ($service) {
 sub restore_ea4_profile ($self) {
 
     my $stash      = read_stage_file();
-    my $is_enabled = $stash->{'ea4'}->{'enable'};
+    my $is_enabled = $stash->{'ea4'} && $stash->{'ea4'}->{'enable'};
 
     unless ($is_enabled) {
         WARN('Skipping EA4 restore. EA4 does not appear to be enabled on this system.');
@@ -1747,7 +1749,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
 
 sub cleanup_mysql_packages {
 
-    my $mysql_version = read_stage_file('mysql-version');
+    my $mysql_version = read_stage_file( 'mysql-version', '' );
     return unless length $mysql_version;
 
     INFO("# Cleanup MySQL packages ; using version $mysql_version");
@@ -1771,7 +1773,7 @@ sub cleanup_mysql_packages {
 
 sub reinstall_mysql_packages {
 
-    my $mysql_version = read_stage_file('mysql-version') or return;
+    my $mysql_version = read_stage_file( 'mysql-version', '' ) or return;
 
     INFO("Restoring MySQL $mysql_version");
 
@@ -2478,7 +2480,7 @@ sub remove_imunify_360 {
 }
 
 sub reinstall_imunify_360 {
-    my $product_type = read_stage_file('reinstall')->{'imunify'} || return;
+    my $product_type = read_stage_file('reinstall')->{'imunify'} or return;
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
@@ -3214,76 +3216,77 @@ sub _grub2_workaround_state () {
 sub update_grub2_workaround_if_needed ($self) {
 
     my $grub2_info = read_stage_file('grub2_workaround');
-    if ( $grub2_info && $grub2_info->{'needs_workaround_update'} ) {
-        my $grub_dir  = GRUB2_PREFIX_DEBIAN;
-        my $grub2_dir = GRUB2_PREFIX_RHEL;
+    return unless $grub2_info->{'needs_workaround_update'};
 
-        my $grub_bak;
-        if ( $grub2_info->{'backup_dir'} ) {
-            $grub_bak = $grub2_info->{'backup_dir'};
-        }
-        else {
-            $grub_bak = $grub2_info->{'backup_dir'} = $grub_dir . '-' . time;
-            update_stage_file( { 'grub2_workaround' => $grub2_info } );
-        }
+    my $grub_dir  = GRUB2_PREFIX_DEBIAN;
+    my $grub2_dir = GRUB2_PREFIX_RHEL;
 
-        rename $grub_dir, $grub_bak or LOGDIE("Unable to rename $grub_dir to $grub_bak: $!");    # failure on cross-device move is a feature
-        symlink $grub2_dir, $grub_dir or do {
-            rename $grub_bak, $grub_dir;                                                         # undo previous change on failure
-            LOGDIE("Unable to create symlink $grub_dir to point to $grub2_dir");                 # symlink() doesn't set $!
-        };
-
+    my $grub_bak;
+    if ( $grub2_info->{'backup_dir'} ) {
+        $grub_bak = $grub2_info->{'backup_dir'};
     }
+    else {
+        $grub_bak = $grub2_info->{'backup_dir'} = $grub_dir . '-' . time;
+        update_stage_file( { 'grub2_workaround' => $grub2_info } );
+    }
+
+    rename $grub_dir, $grub_bak or LOGDIE("Unable to rename $grub_dir to $grub_bak: $!");    # failure on cross-device move is a feature
+    symlink $grub2_dir, $grub_dir or do {
+        rename $grub_bak, $grub_dir;                                                         # undo previous change on failure
+        LOGDIE("Unable to create symlink $grub_dir to point to $grub2_dir");                 # symlink() doesn't set $!
+    };
 
     return;
 }
 
 sub merge_grub_directories_if_needed ($self) {
+
     my $grub2_info = read_stage_file('grub2_workaround');
-    if ( $grub2_info && $grub2_info->{'needs_workaround_update'} ) {
-        my $grub_dir  = GRUB2_PREFIX_DEBIAN;
-        my $grub2_dir = GRUB2_PREFIX_RHEL;
-        my $grub_bak  = $grub2_info->{'backup_dir'};
+    return unless $grub2_info->{'needs_workaround_update'};
 
-        my ( $skipped_copy, $failed_copy ) = ( 0, 0 );
+    my $grub_dir  = GRUB2_PREFIX_DEBIAN;
+    my $grub2_dir = GRUB2_PREFIX_RHEL;
+    my $grub_bak  = $grub2_info->{'backup_dir'};
 
-        # If something goes wrong here, we should give up on the copy but allow the upgrade to continue.
-        # Therefore, don't use LOGDIE() inside of the eval block.
-        eval {
-            my %grub2_entries;
+    my ( $skipped_copy, $failed_copy ) = ( 0, 0 );
 
-            opendir my $grub2_dir_fh, $grub2_dir or die "Unable to open directory $grub2_dir: $!";
-            while ( my $entry = readdir $grub2_dir_fh ) {
-                $grub2_entries{$entry} = 1;
+    # If something goes wrong here, we should give up on the copy but allow the upgrade to continue.
+    # Therefore, don't use LOGDIE() inside of the eval block.
+    eval {
+        my %grub2_entries;
+
+        opendir my $grub2_dir_fh, $grub2_dir or die "Unable to open directory $grub2_dir: $!";
+        while ( my $entry = readdir $grub2_dir_fh ) {
+            $grub2_entries{$entry} = 1;
+        }
+        closedir $grub2_dir_fh;
+
+        opendir my $grub_bak_fh, $grub_bak or die "Unable to open directory $grub_bak: $!";
+        while ( my $entry = readdir $grub_bak_fh ) {
+
+            next if $entry eq '.';
+            next if $entry eq '..';
+
+            # grub.cfg in the backup dir is the old symlink, so ignore it separately to avoid warnings:
+            next if $entry eq "grub.cfg";
+
+            if ( exists $grub2_entries{$entry} ) {
+                $skipped_copy++;
+                WARN("\"$grub_bak/$entry\" is not being copied to \"$grub2_dir/$entry\" because the destination already exists.");
+                next;
             }
-            closedir $grub2_dir_fh;
 
-            opendir my $grub_bak_fh, $grub_bak or die "Unable to open directory $grub_bak: $!";
-            while ( my $entry = readdir $grub_bak_fh ) {
-
-                next if $entry eq '.';
-                next if $entry eq '..';
-
-                # grub.cfg in the backup dir is the old symlink, so ignore it separately to avoid warnings:
-                next if $entry eq "grub.cfg";
-
-                if ( exists $grub2_entries{$entry} ) {
-                    $skipped_copy++;
-                    WARN("\"$grub_bak/$entry\" is not being copied to \"$grub2_dir/$entry\" because the destination already exists.");
-                    next;
-                }
-
-                if ( !File::Copy::Recursive::rcopy( "$grub_bak/$entry", "$grub2_dir/$entry" ) ) {
-                    $failed_copy++;
-                    WARN("Copying \"$grub_bak/$entry\" into \"$grub2_dir\" failed.");
-                }
+            if ( !File::Copy::Recursive::rcopy( "$grub_bak/$entry", "$grub2_dir/$entry" ) ) {
+                $failed_copy++;
+                WARN("Copying \"$grub_bak/$entry\" into \"$grub2_dir\" failed.");
             }
-            closedir $grub_bak_fh;
-        };
-        WARN("Unable to copy the contents of \"$grub_bak\" into \"$grub2_dir\": $@") if $@;
+        }
+        closedir $grub_bak_fh;
+    };
+    WARN("Unable to copy the contents of \"$grub_bak\" into \"$grub2_dir\": $@") if $@;
 
-        my $log_file = LOG_FILE;
-        add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
+    my $log_file = LOG_FILE;
+    add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
         After converting "$grub_dir" from a directory to a symlink to
         "$grub2_dir", the upgrade process chose not to copy $skipped_copy
         entries from the old directory due to name conflicts, and it failed to
@@ -3294,8 +3297,6 @@ sub merge_grub_directories_if_needed ($self) {
         If you did not add these files or otherwise customize the boot loader
         configuration, you may ignore this message.
         EOS
-
-    }
 
     return;
 }
@@ -3703,10 +3704,10 @@ sub install_cpanel_elevate_service ($self) {
 
 # TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.
 
-sub read_stage_file ( $k = undef ) {
+sub read_stage_file ( $k = undef, $default = {} ) {
     my $stage_info = _read_stage_file() // {};
 
-    return $stage_info->{$k} if defined $k;
+    return $stage_info->{$k} // $default if defined $k;
     return $stage_info;
 }
 
@@ -3733,7 +3734,7 @@ sub update_stage_file ($data) {
 }
 
 sub get_stage {
-    return read_stage_file('stage_number') // 0;
+    return read_stage_file( 'stage_number', 0 );
 }
 
 sub bump_stage ( $by = 1 ) {
@@ -3771,7 +3772,7 @@ sub reboot {
 }
 
 sub request_manual_reboots() {
-    return !!read_stage_file('manual_reboots');
+    return !!read_stage_file( 'manual_reboots', 0 );
 }
 
 sub read_redhat_release() {
