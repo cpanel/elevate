@@ -2,6 +2,7 @@
 
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
+PERL_BIN=/usr/local/cpanel/3rdparty/perl/536/bin
 
 test:
 	perl -cw elevate-cpanel
@@ -11,7 +12,7 @@ test:
 cover:
 	/usr/bin/rm -rf cover_db
 	HARNESS_PERL_SWITCHES="-MDevel::Cover=-loose_perms,on,-coverage,statement,branch,condition,subroutine,-ignore,.,-select,elevate-cpanel" prove -j8 t/*.t ||:
-	cover -silent
+	$(PERL_BIN)/cover -silent
 	find cover_db -type f -exec chmod 644 {} \;
 	find cover_db -type d -exec chmod 755 {} \;
 
