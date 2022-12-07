@@ -670,12 +670,19 @@ sub _run_service ($self) {
 
     print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
 
-    return
-        $stage == 1 ? $self->run_stage_1()
-      : $stage == 2 ? $self->run_stage_2()
-      : $stage == 3 ? $self->run_stage_3()
-      : $stage == 4 ? $self->run_stage_4()
-      : $stage == 5 ? $self->run_stage_5()
+    # sanity check
+    if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {
+        WARN( "Detected " . Cpanel::OS::pretty_distro() . " while running stage $stage: swtiching to stage 4" );
+        $stage = 4;
+        _update_stage_number($stage);
+    }
+
+    return $stage == 1
+      ? $self->run_stage_1()                                                       # Sanity check & install elevate service
+      : $stage == 2 ? $self->run_stage_2()                                         # Update the current distro packages then reboot
+      : $stage == 3 ? $self->run_stage_3()                                         # Prep leapp & run leapp process
+      : $stage == 4 ? $self->run_stage_4()                                         # reboot on AlmaLinux 8: restore packages
+      : $stage == 5 ? $self->run_stage_5()                                         # Final checks and cleanup
       :               die "Unknown stage '$stage'. I don't know how to proceed";
 
 }
@@ -846,7 +853,7 @@ Remove some known conflicting packages. (Reinstall later).
 Provide answers to a few leapp questions.
 
 Attempt to perform the leapp upgrade itself.
-In case of failure you probably want to reply to a few extra questions or remove some conflictiong packages.
+In case of failure you probably want to reply to a few extra questions or remove some conflicting packages.
 
 =cut
 
@@ -930,8 +937,30 @@ Restore removed packages during the previous stage.
 
 sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    Cpanel::OS::major() == 8 or die("Upgrade to $pretty_distro_name did not succeed. Please restore from backup.");
+
+    if ( Cpanel::OS::major() != 8 ) {
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $current_distro     = Cpanel::OS::pretty_distro();
+
+        if ( Cpanel::OS::major() == 7 ) {
+            WARN("Detected $current_distro from stage 4, reverting back to stage 3.");
+            _update_stage_number(3);
+        }
+
+        die( <<~"END");
+        Server is currently running $current_distro after leapp upgrade.
+        Upgrade to $pretty_distro_name did not succeed.
+
+        Please review your upgrade logs and correct the problem.
+        `leapp` logs are located at:
+            /var/log/leapp/leapp-report.txt
+            /var/log/leapp/leapp-report.json
+
+        Once you believe you have corrected the problem you can continue the upgrade process
+        by running:
+            /scripts/elevate-cpanel --continue
+        END
+    }
 
     my $stash = read_stage_file();
 
@@ -3759,7 +3788,10 @@ sub get_stage {
 
 sub bump_stage ( $by = 1 ) {
 
-    my $stage_id = get_stage() + $by;
+    return _update_stage_number( get_stage() + $by );
+}
+
+sub _update_stage_number ($stage_id) {
 
     update_stage_file( { stage_number => $stage_id } );
 
