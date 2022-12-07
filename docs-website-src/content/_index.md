@@ -1,6 +1,6 @@
 ---
 title: "cPanel ELevate CentOS 7 to AlmaLinux 8"
-date: 2022-03-15T08:53:47-05:00
+date: 2022-12-07T08:53:47-05:00
 draft: false
 layout: single
 ---
@@ -158,6 +158,84 @@ You can upgrade to **Rocky Linux 8** by running:
 # In case of errors, once fixed you can continue the migration process
 /scripts/elevate-cpanel --continue
 ```
+
+## SumUp of upgrade process
+
+The elevate process is divided in multiple `stages`.
+Each `stage` is repsonsible for one part of the upgrade.
+Between each stage a `reboot` is performed before doing a final reboot at the very end.
+
+### Stage 1
+
+Start the elevation process by installing the `elevate-cpanel` service responsible of the multiple reboots.
+
+### Stage 2
+
+Update the current distro packages.
+Disable cPanel services and setup motd.
+
+### Stage 3
+
+Setup the `elevate-release-latest-el7` repo and install leapp packages.
+Prepare the cPanel packages for the update.
+
+Remove some known conflicting packages and backup some existing configurations. (these packages will be reinstalled druing the next stage).
+
+Provide answers to a few leapp questions.
+
+Attempt to perform the `leapp` upgrade.
+
+In case of failure you probably want to reply to a few extra questions or remove some conflicting packages.
+
+### Stage 4
+
+At this stage we should now run Alamalinux 8 (or RockyLinux 8).
+Update cPanel product for the new distro.
+
+Restore removed packages during the previous stage.
+
+### Stage 5
+
+This is the final stage of the upgrade process.
+Perform some sanity checks and cleanup.
+Remove the `elevate-cpanel` service used during the upgrade process.
+
+A final reboot is performed at the end of this stage.
+
+## FAQ
+
+### How to check the current status?
+
+You can check the current status of the elevation process by running:
+```
+/scripts/elevate-cpanel --status
+```
+
+### How to check elevate log?
+
+The main log from the `/scripts/elevate-cpanel` can be read by running:
+```
+/scripts/elevate-cpanel --log
+```
+
+### Where to find leapp issues?
+
+If you need more details why the leapp process failed you can access logs at:
+```
+        /var/log/leapp/leapp-report.txt
+        /var/log/leapp/leapp-report.json
+```
+
+### How to continue the elevation process?
+
+After addressing the reported issues, you can continue an existing elevation process by running:
+```
+/scripts/elevate-cpanel --continue
+```
+
+### I need more help?
+
+You can report an issue to the [Github Issues page](https://github.com/cpanel/elevate/issues)
 
 ## Copyright
 
