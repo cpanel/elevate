@@ -35,16 +35,21 @@ sectionPagesMenu = "main"
     weight = 2
 
   [[menu.left]]
-    name = "Using the script"
-    url = "/#using-the-script"
+    name = "Risks"
+    url = "/#risks"
     weight = 3
 
   [[menu.left]]
-    name = "Risks"
-    url = "/#risks"
+    name = "Using the script"
+    url = "/#using-the-script"
     weight = 4
+
+  [[menu.left]]
+    name = "SumUp of upgrade process"
+    url = "/#SumUp-of-upgrade-process"
+    weight = 5
 
   [[menu.left]]
     name = "Copyright"
     url = "/#copyright"
-    weight = 5
+    weight = 6
