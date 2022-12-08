@@ -2810,26 +2810,17 @@ sub _blocker_is_calendar_installed ($self) {
     return 0;
 }
 
-sub _blocker_is_postgresql_installed ($self) {
-    if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
-        my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
-        my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
+sub _warning_if_postgresql_installed ($self) {
+    return 0 unless Cpanel::Pkgr::is_installed('postgresql-server');
 
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
+    my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
+    return 1 if !$old_version || $old_version >= 10;
 
-        my $msg = qq[You have postgresql-server version $old_version installed.\n];
-        if ( $old_version < 10 ) {
-            $msg .= qq[This is upgraded irreversably to version 10.0 when you switch to $pretty_distro_name\n];
-        }
-        $msg .= qq[We recommend data backup and removal of all postgresql packages before upgrade to $pretty_distro_name.\n];
-        if ( $old_version < 10 ) {
-            $msg .= qq[To re-install postgresql 9 on $pretty_distro_name, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`\n];
-        }
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    WARN("You have postgresql-server version $old_version installed. This will be upgraded irreversibly to version 10.0 when you switch to $pretty_distro_name");
 
-        $self->has_blocker( 8, $msg );
-    }
-
-    return 0;
+    return 2;
 }
 
 sub _blocker_non_bind_powerdns ( $self, $nameserver = '' ) {
@@ -3352,7 +3343,6 @@ sub _blockers_check ($self) {
     $self->_blocker_is_experimental_os();
     $self->_blocker_is_sandbox();
     $self->_blocker_is_calendar_installed();
-    $self->_blocker_is_postgresql_installed();
     $self->_blocker_non_bind_powerdns( $cpconf->{'local_nameserver_type'} );
     $self->_blocker_wrong_location();
     $self->_blocker_old_mysql( $cpconf->{'mysql-version'} );
@@ -3369,6 +3359,8 @@ sub _blockers_check ($self) {
     $self->_blocker_script_updated();
     $self->_blocker_blscfg();
     $self->_blocker_grub2_workaround();
+
+    $self->_warning_if_postgresql_installed();
 
     return 0;
 }

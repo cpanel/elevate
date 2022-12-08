@@ -245,22 +245,20 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     $pkgr_mock->redefine( 'is_installed'        => sub ($rpm) { return defined $installed{$rpm} ? 1 : 0 } );
     $pkgr_mock->redefine( 'get_package_version' => sub ($rpm) { return $installed{$rpm} } );
 
-    is(
-        dies { $cpev->_blocker_is_postgresql_installed() },
-        {
-            id  => 8,
-            msg => <<~'EOS',
-    You have postgresql-server version 9.2 installed.
-    This is upgraded irreversably to version 10.0 when you switch to AlmaLinux 8
-    We recommend data backup and removal of all postgresql packages before upgrade to AlmaLinux 8.
-    To re-install postgresql 9 on AlmaLinux 8, you can run: `dnf -y module enable postgresql:9.6; dnf -y install postgresql-server`
-    EOS
-        },
-        'Pg 10 is a blocker.'
-    );
+    is( $cpev->_warning_if_postgresql_installed, 2, "pg 9 is installed" );
+    message_seen( 'WARN', "You have postgresql-server version 9.2 installed. This will be upgraded irreversibly to version 10.0 when you switch to AlmaLinux 8" );
+
+    $installed{'postgresql-server'} = '10.2';
+    is( $cpev->_warning_if_postgresql_installed, 1, "pg 10 is installed so no warning" );
+    no_messages_seen();
+
+    $installed{'postgresql-server'} = 'an_unexpected_version';
+    is( $cpev->_warning_if_postgresql_installed, 1, "unknown pg version is installed so no warning" );
+    no_messages_seen();
 
     delete $installed{'postgresql-server'};
-    is( $cpev->_blocker_is_postgresql_installed(), 0, "if pg isn't installed, we're ok" );
+    is( $cpev->_warning_if_postgresql_installed, 0, "pg is not installed so no warning" );
+    no_messages_seen();
 
     is(
         dies { $cpev->_blocker_is_calendar_installed() },
