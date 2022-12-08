@@ -138,6 +138,9 @@ Please do not interrupt the reboots and elevation process.
 
 use cPstrict;
 
+use constant MINIMUM_LTS_SUPPORTED      => 102;
+use constant MINIMUM_CENTOS_7_SUPPORTED => '9';
+
 BEGIN {
     # sanity check before loading the script
     eval { require Cpanel::Version::Tiny } or do {
@@ -145,9 +148,9 @@ BEGIN {
         exit 1;
     };
 
-    $Cpanel::Version::Tiny::major_version >= 102
+    $Cpanel::Version::Tiny::major_version >= MINIMUM_LTS_SUPPORTED
       or do {
-        warn qq[You need to upgrade your cPanel server to version 102 or later before running this script.\n];
+        warn qq[You need to upgrade your cPanel server to version ] . MINIMUM_LTS_SUPPORTED . qq[or later before running this script.\n];
         exit 1;
       };
 }
@@ -2704,16 +2707,16 @@ sub _blocker_is_missing_cpanel_whm ($self) {
 
 sub _blocker_is_invalid_cpanel_whm ($self) {
     if ( !$Cpanel::Version::Tiny::major_version ) {
-        $self->has_blocker( 1, 'Invalid cPanel & WHM major_version' );
+        $self->has_blocker( 1, 'Invalid cPanel & WHM major_version.' );
     }
 
     return 0;
 }
 
-sub _blocker_is_old_cpanel ($self) {
-    if ( $Cpanel::Version::Tiny::major_version <= 100 ) {
+sub _blocker_is_newer_than_lts ($self) {
+    if ( $Cpanel::Version::Tiny::major_version <= MINIMUM_LTS_SUPPORTED - 2 ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        $self->has_blocker( 2, "This version $Cpanel::Version::Tiny::VERSION_BUILD does not support upgrades to $pretty_distro_name. Please upgrade to cPanel version 102 or better." );
+        $self->has_blocker( 2, sprintf( "This version %s does not support upgrades to %s. Please upgrade to cPanel version %s or better.", $Cpanel::Version::Tiny::VERSION_BUILD, $pretty_distro_name, MINIMUM_LTS_SUPPORTED ) );
     }
 
     return 0;
@@ -2736,16 +2739,16 @@ sub _blocker_cpanel_needs_update ($self) {
 sub _blocker_is_non_centos7 ($self) {
     unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name] );
+        $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name.] );
     }
 
     return 0;
 }
 
 sub _blocker_is_old_centos7 ($self) {
-    if ( Cpanel::OS::minor() < 9 ) {
+    if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        $self->has_blocker( 4, qq[You need to run CentOS 7.9 and later to upgrade $pretty_distro_name. You are currently using ] . Cpanel::OS::display_name() );
+        $self->has_blocker( 4, sprintf( 'You need to run CentOS 7.%s and later to upgrade %s. You are currently using %s', MINIMUM_CENTOS_7_SUPPORTED, $pretty_distro_name, Cpanel::OS::display_name() ) );
     }
 
     return 0;
@@ -2800,7 +2803,7 @@ sub _blocker_is_postgresql_installed ($self) {
     return 0;
 }
 
-sub _blocker_non_bind_powerdns ( $self, $nameserver ) {
+sub _blocker_non_bind_powerdns ( $self, $nameserver = '' ) {
     if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         $self->has_blocker( 9, <<~"EOS");
@@ -2817,8 +2820,7 @@ sub _blocker_wrong_location ($self) {
     # ensure the script is installed at the correct location
     my $running_from = Cwd::abs_path($0) // '';
 
-    if (   $running_from ne '/scripts/elevate-cpanel'
-        && $running_from ne '/usr/local/cpanel/scripts/elevate-cpanel' ) {
+    unless ( $running_from eq '/usr/local/cpanel/scripts/elevate-cpanel' ) {
         $self->has_blocker( 10, <<~'EOS');
         The script is not installed to the correct directory.
         Please install it to /scripts/elevate-cpanel and run it again.
@@ -2962,21 +2964,24 @@ sub _blocker_mysql_upgrade_in_progress ($self) {
 }
 
 sub _blocker_is_container ($self) {
-    $self->has_blocker( 90, "cPanel thinks that this is a container-like environment, which this script cannot support at this time." ) if _is_container_envtype();
-
+    if ( _is_container_envtype() ) {
+        return $self->has_blocker( 90, "cPanel thinks that this is a container-like environment, which this script cannot support at this time." );
+    }
     return 0;
 }
 
 sub _blocker_disk_space ($self) {
-    $self->has_blocker( 99, q[disk space issue] ) unless $self->_disk_space_check();
+    if ( !$self->_disk_space_check() ) {
+        $self->has_blocker( 99, q[disk space issue] );
+    }
 
     return 0;
 }
 
 sub _blocker_system_update ($self) {
-    $self->has_blocker( 101, q[System is not up to date] ) unless _system_update_check();
+    return 0 if _system_update_check();
 
-    return 0;
+    return $self->has_blocker( 101, q[System is not up to date] );
 }
 
 sub _blocker_bad_nics_naming ($self) {
@@ -3311,7 +3316,7 @@ sub _blockers_check ($self) {
 
     $self->_blocker_is_missing_cpanel_whm();
     $self->_blocker_is_invalid_cpanel_whm();
-    $self->_blocker_is_old_cpanel();
+    $self->_blocker_is_newer_than_lts();
     $self->_blocker_cpanel_needs_update();
     $self->_blocker_is_non_centos7();
     $self->_blocker_is_old_centos7();
