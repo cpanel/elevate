@@ -1,3 +1,18 @@
+2022-12-12 - version 3
+
+User Facing
+ - Do not use "ERROR" for successful notifications.
+ - Fine tune the logging colors and only use it for the keyword.
+ - Fix crash when restoring imunify if it was not present at start.
+ - Do not block when detecting kernel update required.
+ - Better hints for MySQL upgrade needed.
+ - Handle recovery after manual intervention if leapp process fails. Give better advice to users when it happens.
+ - Stop warning about postgresql 9 now CCS supports 10
+
+Internal:
+ - Simplify v# release process.
+ - Modularize blocker tests.
+
 2022-11-16 - version 2
 
 User Facing
