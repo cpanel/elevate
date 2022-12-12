@@ -24,7 +24,7 @@ clean:
 
 release: version := $(shell dc -f version -e '1 + p')
 release:
-	echo -n ${version} > version
+	echo -n $(version) > version
 	sed -i -re "/^#<<V/,+1 s/VERSION => [0-9]*;/VERSION => ${version};/" elevate-cpanel
 	$(GIT) commit -m "Release version ${version}" -- version elevate-cpanel
 	$(GIT) tag -f $(RELEASE_TAG)
