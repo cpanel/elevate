@@ -10,7 +10,7 @@ User Facing
  - Stop warning about postgresql 9 now CCS supports 10
 
 Internal:
- - Simplify v# release process.
+ - Simplify release process.
  - Modularize blocker tests.
 
 2022-11-16 - version 2
