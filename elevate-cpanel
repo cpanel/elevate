@@ -1680,7 +1680,8 @@ sub _do_leapp_upgrade {
     INFO("Running leapp upgrade");
 
     my $ok = eval {
-        ssystem_and_die(qw{/usr/bin/leapp upgrade});
+        local $ENV{LEAPP_OVL_SIZE} = 3000;
+        ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
         1;
     };
 
@@ -3599,7 +3600,7 @@ sub _disk_space_check ($self) {
     my $need_space = {
         '/boot'             => 120 * $MEG,
         '/usr/local/cpanel' => 1.5 * $GIG,    #
-        '/var/lib'          => 3 * $GIG,
+        '/var/lib'          => 5 * $GIG,
     };
 
     my @keys = ( sort keys %$need_space );
@@ -3831,14 +3832,29 @@ sub read_redhat_release() {
 }
 
 sub ssystem_capture_output (@args) {
-    return _ssystem( \@args, 1 );
+
+    my %opts;
+    if ( ref $args[0] ) {
+        my $ropts = shift @args;
+        %opts = %$ropts;
+    }
+    $opts{should_capture_output} = 1;
+
+    return _ssystem( \@args, %opts );
 }
 
 sub ssystem (@args) {
-    return _ssystem( \@args );
+
+    my %opts;
+    if ( ref $args[0] ) {
+        my $ropts = shift @args;
+        %opts = %$ropts;
+    }
+
+    return _ssystem( \@args, %opts );
 }
 
-sub _ssystem ( $command, $should_capture_output = 0 ) {
+sub _ssystem ( $command, %opts ) {
     my @args = @{ $command // [] };
     INFO( "Running: " . join( " ", @args ) );
     INFO();    # Buffer so they can more easily read the output.
@@ -3856,7 +3872,7 @@ sub _ssystem ( $command, $should_capture_output = 0 ) {
             sub ($line) {
                 chomp $line;
                 INFO($line);
-                if ($should_capture_output) {
+                if ( $opts{should_capture_output} ) {
                     push $capture_output->{$label}->@*, $line;
                 }
                 return;
@@ -3869,13 +3885,14 @@ sub _ssystem ( $command, $should_capture_output = 0 ) {
         stdout       => $callback_out,
         stderr       => $callback_err,
         timeout      => 0,
+        keep_env     => $opts{keep_env} // 0,
         read_timeout => 0,
     );
     INFO();    # Buffer so they can more easily read the output.
 
     $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
 
-    if ($should_capture_output) {
+    if ( $opts{should_capture_output} ) {
         $capture_output->{status} = $?;
         return $capture_output;
     }

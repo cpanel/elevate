@@ -20,11 +20,11 @@ The following conditions are assumed to be in place any time you run this script
 
 ## Disk space
 
-At any given time, the upgrade process may use at or more than 3 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:
+At any given time, the upgrade process may use at or more than 5 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:
 
 * **/boot**: 120 MB
 * **/usr/local/cpanel**: 1.5 GB
-* **/var/lib**: 3 GB
+* **/var/lib**: 5 GB
 
 ## Unsupported software
 
