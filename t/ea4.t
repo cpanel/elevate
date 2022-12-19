@@ -303,6 +303,61 @@ EOS
     return;
 }
 
+sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(14) ($self) {
+
+    my $cpev = cpev();
+
+    my $profile = {
+        "os_upgrade" => {
+            "source_os"          => "<the source OS’s display name>",
+            "target_os"          => "<the --target-os=value value>",
+            "target_obs_project" => "<the target os’s OBS project>",
+            "dropped_pkgs"       => {
+                "ea-bar" => "reg",
+                "ea-baz" => "exp"
+            }
+        }
+    };
+    $self->_update_profile_file($profile);
+
+    is cpev()->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    _message_run_ea_current_to_profile(1);
+
+    is cpev::read_stage_file(), {
+        ea4 => {
+            enable       => 1,                                        #
+            profile      => PROFILE_FILE,                             #
+            dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
+        }
+      },
+      "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
+
+    $profile = {
+        "os_upgrade" => {
+            "source_os"          => "<the source OS’s display name>",
+            "target_os"          => "<the --target-os=value value>",
+            "target_obs_project" => "<the target os’s OBS project>",
+        }
+    };
+    $self->_update_profile_file($profile);
+
+    is cpev()->backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+    _message_run_ea_current_to_profile(1);
+
+    my $stage = cpev::read_stage_file();
+    is $stage, {
+        ea4 => {
+            enable  => 1,               #
+            profile => PROFILE_FILE,    #
+        }
+      },
+      "stage file - ea4 is enabled / profile: clear the dropped_pkgs hash"
+      or diag explain $stage;
+
+    return;
+
+}
+
 sub test_blocker_ea4_profile : Test(18) ($self) {
 
     $self->{mock_cpev}->redefine( backup_ea4_profile => 0 );

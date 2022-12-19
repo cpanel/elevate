@@ -1595,6 +1595,9 @@ sub restore_ea_addons ($self) {
 sub backup_ea4_profile ($self) {
 
     my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
+
+    remove_from_stage_file('ea4');
+
     update_stage_file( { ea4 => { enable => $use_ea4 } } );
 
     unless ($use_ea4) {
@@ -1670,6 +1673,9 @@ sub backup_ea_addons ($self) {
 
     if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
         update_stage_file( { ea4 => { nginx => 1 } } );
+    }
+    else {
+        update_stage_file( { ea4 => { nginx => 0 } } );
     }
 
     return;
@@ -1772,8 +1778,8 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
 
     $self->run_once('remove_imunify_360');
     $self->run_once('remove_wordpress_toolkit');
-    $self->run_once('remove_influxdb');
-    $self->run_once('remove_jetbackup');
+    $self->run_once('capture_influxdb_state');
+    $self->run_once('capture_jetbackup_state');
     $self->run_once('remove_nixstats');
     $self->run_once('pre_install_check_litespeed');
 
@@ -2065,6 +2071,8 @@ sub check_pecl_packages {
 sub _store_pecl_for ( $bin, $name ) {
     my $list = _get_pecl_installed_for($bin);
 
+    remove_from_stage_file("pecl.$name");
+
     return unless ref $list && scalar keys $list->%*;
 
     update_stage_file( { pecl => { $name => $list } } );
@@ -2235,7 +2243,9 @@ sub backup_3rdparty_file ($file) {
     return File::Copy::copy( $file, $target );
 }
 
-sub remove_jetbackup {
+sub capture_jetbackup_state {
+    remove_from_stage_file('reinstall.jetbackup');
+
     return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
 
     my $repos = yum_list();
@@ -2271,7 +2281,9 @@ sub reinstall_jetbackup {
     return;
 }
 
-sub remove_influxdb {
+sub capture_influxdb_state {
+    remove_from_stage_file('reinstall.influxdb');
+
     return unless Cpanel::Pkgr::is_installed('telegraf');
     INFO("Not removing influxdb. Will re-install it after elevate.");
     update_stage_file( { 'reinstall' => { 'influxdb' => 1 } } );
@@ -2439,6 +2451,8 @@ sub reinstall_wordpress_toolkit {
 }
 
 sub pre_install_check_litespeed {
+
+    remove_from_stage_file('reinstall.litespeed');
 
     my $ls_cfg_dir = q[/usr/local/lsws/conf];
     return unless -d $ls_cfg_dir;
@@ -3778,6 +3792,30 @@ sub update_stage_file ($data) {
     my $merged  = Hash::Merge::merge( $data, $current );
 
     return save_stage_file($merged);
+}
+
+sub remove_from_stage_file ($key) {
+    return unless length $key;
+
+    my $stage = read_stage_file();
+
+    my @list = split( qr/\./, $key );
+    return unless scalar @list;
+
+    my $to_delete = pop @list;
+
+    my $h = $stage;
+    while ( my $k = shift @list ) {
+        $h = $h->{$k};
+        last unless ref $h;
+    }
+
+    return if scalar @list;
+    return unless exists $h->{$to_delete};
+
+    delete $h->{$to_delete};
+
+    return save_stage_file($stage);
 }
 
 sub get_stage {
