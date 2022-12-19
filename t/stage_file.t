@@ -64,4 +64,68 @@ is cpev::read_stage_file(), { ea4 => { profile => q[myprofile], enable => 1 } },
     is cpev::read_stage_file(), { stage_number => 3, key => 'value' }, 'read_stage_file: stage is preserved';
 }
 
+subtest 'read / delete' => sub {
+    $mock_stage_file->contents('');
+
+    ok cpev::save_stage_file( { root => { fruits => [qw/banana/], veggies => [qw/carrot/] } } ), 'save_stage_file';
+    is cpev::read_stage_file(), { root => { fruits => ['banana'], veggies => ['carrot'] } }, 'read_stage_file';
+
+    ok cpev::update_stage_file( { root => { fruits => [qw/cherry/] } } ), 'update_stage_file';
+    is cpev::read_stage_file(), { root => { fruits => [qw{cherry banana}], veggies => ['carrot'] } }, 'update_stage_file merge...'
+      or diag explain cpev::read_stage_file();
+
+    ok cpev::remove_from_stage_file('root.fruits'), "can remove root.fruits";
+    is cpev::read_stage_file(), { root => { veggies => ['carrot'] } }, 'fruits entry was removed'
+      or diag explain cpev::read_stage_file();
+
+    ok cpev::update_stage_file( { root => { fruits => [qw/cherry/] } } ), 'update_stage_file';
+    is cpev::read_stage_file(), { root => { fruits => [qw{cherry}], veggies => ['carrot'] } }, 'update_stage_file after a partial cleanup'
+      or diag explain cpev::read_stage_file();
+
+    ok cpev::remove_from_stage_file('root'), "can remove root";
+    is cpev::read_stage_file(), {}, 'removed root entry'
+      or diag explain cpev::read_stage_file();
+
+    ok cpev::save_stage_file( { root => { levelone => { leveltwo => {qw/bla bla/} }, veggies => [qw/carrot/] } } ), 'save_stage_file';
+    is cpev::read_stage_file(),
+      {
+        'root' => {
+            'levelone' => { 'leveltwo' => { 'bla' => 'bla' } },
+            'veggies'  => ['carrot']
+        }
+      },
+      'check stage file'
+      or diag explain cpev::read_stage_file();
+
+    ok !cpev::remove_from_stage_file('not-there'),      "nothing to remove";
+    ok !cpev::remove_from_stage_file('root.not-there'), "nothing to remove";
+
+    is cpev::read_stage_file(),
+      {
+        'root' => {
+            'levelone' => { 'leveltwo' => { 'bla' => 'bla' } },
+            'veggies'  => ['carrot']
+        }
+      },
+      'check stage file'
+      or diag explain cpev::read_stage_file();
+
+    ok cpev::remove_from_stage_file('root.levelone.leveltwo'), "remove root.levelone.leveltwo";
+    is cpev::read_stage_file(),
+      {
+        'root' => {
+            'levelone' => {},
+            'veggies'  => ['carrot']
+        }
+      },
+      'check stage file'
+      or diag explain cpev::read_stage_file();
+
+    ok cpev::remove_from_stage_file('root'), "remove root";
+    is cpev::read_stage_file(), {}, 'removed root entry'
+      or diag explain cpev::read_stage_file();
+    ok !cpev::remove_from_stage_file('root'), "cannot remove root twice";
+
+};
+
 done_testing;
