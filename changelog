@@ -1,3 +1,9 @@
+2022-12-20 - version 4
+
+User Facing
+ - Increase the disk requirements for upgrade +1GB to allow more space in the leapp container.
+ - #149 - Cleanup stage_file before storing data. Fixes inaccurate EA4 blocker cache issue.
+
 2022-12-12 - version 3
 
 User Facing
