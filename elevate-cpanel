@@ -1818,11 +1818,6 @@ sub reinstall_mysql_packages {
 
     my ( $major, $minor ) = split( /\./, $mysql_version );
 
-    # ensure the repo package is available for MySQL / MariaDB
-    # my $repopkg = $major >= 10 ? q[Cpanel::MariaDB::Install] : q[Cpanel::Mysql::Install];
-    # Cpanel::SafeRun::Simple::saferunnoerror( $^X, "-M$repopkg", '-E', "$repopkg->new->install_repo( q[$mysql_version] )" );
-    # WARN(qq[Fail to install repo for $mysql_version using $repopkg]) if $?;
-
     my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
     die qq[Fail to restore MySQL $mysql_version] if $?;
 
