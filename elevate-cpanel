@@ -848,7 +848,7 @@ sub run_stage_2 ($self) {
 
 =head2 run_stage_3
 
-Setup the Alamlinux elevate-release-latest-el7 repo and install leapp packages.
+Setup the AlmaLinux elevate-release-latest-el7 repo and install leapp packages.
 Prepare the cPanel packages for the update.
 
 Remove some known conflicting packages. (Reinstall later).
