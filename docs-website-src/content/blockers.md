@@ -51,3 +51,15 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
   * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8 / Rocky 8.
 * Some **EA4 packages** are not supported on AlmaLinux 8 / Rocky 8.
   * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8 / Rocky 8. You would need to remove these packages before the upgrading to AlmaLinux 8 / Rocky 8. Doing so might impact your system users. Proceed with caution.
+
+# Other Known Issues
+
+The following is a list of other known issues that could prevent your server's successful elevation.
+
+## Using OVH proactive intervention monitoring
+
+If you are using a dedicated server hosted at OVH, you should **disable the `proactive monitoring` before starting** the elevation process.
+The proactive monitoring incorrectly detects an issue on your server during one of the reboots.
+Your server would then boot to a rescue mode, interrupting the elevation upgrade.
+
+[Read more about OVH monitoring](https://support.us.ovhcloud.com/hc/en-us/articles/115001821044-Overview-of-OVHcloud-Monitoring-on-Dedicated-Servers)
