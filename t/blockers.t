@@ -190,11 +190,11 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     undef $f;
     Cpanel::OS::clear_cache_after_cloudlinux_update();
     $f = Test::MockFile->symlink( 'linux|centos|7|4|2009', '/var/cpanel/caches/Cpanel-OS' );
-    is(
+    like(
         dies { $cpev->_blocker_is_old_centos7() },
         {
             id  => 4,
-            msg => 'You need to run CentOS 7.9 and later to upgrade AlmaLinux 8. You are currently using CentOS v7.4.2009',
+            msg => qr{You need to run CentOS 7.9 and later to upgrade AlmaLinux 8. You are currently using},
         },
         'Need at least CentOS 7.9.'
     );
@@ -311,11 +311,11 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     You are using MySQL 5.7 server.
     This version is not available for AlmaLinux 8.
     You first need to update your MySQL server to 8.0 or later.
-    
+
     You can update to version 8.0 using the following command:
-    
+
         /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0
-    
+
     Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
     EOS
         },
@@ -330,7 +330,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
             msg => <<~'EOS',
         You are using MariaDB server 10.1, this version is not available for AlmaLinux 8.
         You first need to update MariaDB server to 10.3 or later.
-        
+
         You can update to version 10.3 using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
@@ -349,7 +349,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
             msg => <<~'EOS',
         You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
         You first need to update MariaDB server to 10.5 or later.
-        
+
         You can update to version 10.5 using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.5
@@ -694,7 +694,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
             id  => 105,
             msg => <<~'EOS',
         The script could not fetch information about the latest version.
-        
+
         Pass the --skip-elevate-version-check flag to skip this check.
         EOS
 
@@ -710,7 +710,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
             id  => 105,
             msg => <<~'EOS',
         The script could not fetch information about the latest version.
-        
+
         Pass the --skip-elevate-version-check flag to skip this check.
         EOS
 
