@@ -45,7 +45,7 @@ ls -l /usr/local/cpanel/3rdparty/perl/532/bin/perl
 
 echo "# ............. cpanm round 2"
 #perl bin/cpanm -n Params::Util
-perl bin/cpanm --cpanfile ${REPO}/t/cpanfile --installdeps .
+perl bin/cpanm -n --cpanfile ${REPO}/t/cpanfile --installdeps .
 #Crypt::Cracklib
 
 echo "# ............. scripts/cpservice"
