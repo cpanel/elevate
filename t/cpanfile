@@ -9,6 +9,7 @@ requires "Log::Log4perl";
 requires "Moo";
 requires "Params::Util";
 requires "Sub::Identify";
+requires "Net::CIDR";
 
 # test
 on 'test' => sub {
