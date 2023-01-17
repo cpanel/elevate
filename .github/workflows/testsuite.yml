@@ -23,15 +23,14 @@ jobs:
 
     container:
       image: cpanelos/perl-compiler:perl-v5.32.0
-      #options: --privileged
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup PATH
         run: |
           echo $CPANEL_BIN_PATH >> $GITHUB_PATH;
-          $CPANEL_PERL -MConfig -E 'say $Config{sitebin}' >> $GITHUB_PATH
+          $CPANEL_PERL -MConfig -E 'say $Config{sitebin}'   >> $GITHUB_PATH
           $CPANEL_PERL -MConfig -E 'say $Config{vendorbin}' >> $GITHUB_PATH
       - run: perl -V
       - name: install Perl dependencies
