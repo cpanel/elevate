@@ -1061,6 +1061,8 @@ sub run_stage_5 ($self) {
     File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
     cleanup_motd();
 
+    $self->check_and_fix_grub();
+
     my $final_notifications = read_stage_file( 'final_notifications', [] );
     if (@$final_notifications) {
 
@@ -1085,6 +1087,27 @@ sub run_stage_5 ($self) {
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
     return REBOOT_NEEDED;
+}
+
+sub check_and_fix_grub ($self) {
+
+    # for an autofixer
+    # return unless -e q[/var/cpanel/version/elevate];
+
+    # check that the current kernel is using 'net.ifnames=0'
+    my $proc_cmd_line = eval { File::Slurper::read_binary('/proc/cmdline') } // '';
+    return unless $proc_cmd_line =~ m{net.ifnames=0};
+
+    # check that grub contains the net.ifnames
+    my $grub_conf = eval { File::Slurper::read_binary(DEFAULT_GRUB_FILE) } // '';
+    return unless length $grub_conf;
+    return if $grub_conf =~ m/net.ifnames/;
+
+    # add net.ifnames=0 if needed
+    return unless $grub_conf =~ s/GRUB_CMDLINE_LINUX="(.+?)"/GRUB_CMDLINE_LINUX="$1 net.ifnames=0"/m;
+    File::Slurper::write_binary( DEFAULT_GRUB_FILE, $grub_conf );
+
+    return 1;
 }
 
 sub _bq_now () {
