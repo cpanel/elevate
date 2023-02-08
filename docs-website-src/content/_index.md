@@ -240,7 +240,7 @@ You can report an issue to the [Github Issues page](https://github.com/cpanel/el
 ## Copyright
 
 ```c
-Copyright 2022 cPanel L.L.C.
+Copyright 2023 cPanel L.L.C.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
