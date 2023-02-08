@@ -2,6 +2,10 @@ next - version 5
 
 User Facing
  - Correct spelling of "Alamlinux"
+ - Add a doc notification for OVH monitoring
+ - Add a warning/blocker for OVH monitoring
+ - Bump copyright to 2023
+ - Check and fix grub for net.ifnames=0 post leapp upgrade.
 
 2022-12-20 - version 4
 
