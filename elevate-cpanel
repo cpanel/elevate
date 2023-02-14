@@ -191,7 +191,7 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 4;
+use constant VERSION => 5;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant DEFAULT_ELEVATE_BASE_URL => 'https://raw.githubusercontent.com/cpanel/elevate/release/';
