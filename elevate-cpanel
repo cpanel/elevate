@@ -272,6 +272,7 @@ use constant VETTED_YUM_REPO => qw{
   droplet-agent.repo
   cloudlinux.repo
   cloudlinux-ea4.repo
+  cloudlinux-ea4-testing.repo
   cl-mysql.repo
   imunify.repo
   elevate-testing.repo
