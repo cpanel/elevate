@@ -3886,7 +3886,7 @@ sub _disk_space_check ($self) {
     my $need_space = {
         '/boot'             => 120 * $MEG,
         '/usr/local/cpanel' => 1.5 * $GIG,    #
-        '/var/lib'          => 5 * $GIG,
+        '/var/lib'          => 1.5 * $GIG,
     };
 
     my @keys = ( sort keys %$need_space );
