@@ -1051,7 +1051,7 @@ sub run_stage_4 ($self) {
         sysup => sub {
             Cpanel::Yum::Vars::install();
             # don't fail if any repositories are inaccessible
-            ssystem_and_die(qw{/usr/bin/sed -i -e '/skip_if_unavailable=/ s/=.*/=True/' /etc/dnf/dnf.conf});
+            ssystem_and_die(qw{/usr/bin/sed -i -e "/skip_if_unavailable=/ s/=.*/=True/" /etc/dnf/dnf.conf});
 
             ssystem_and_die(qw{/usr/bin/dnf clean all});
 
