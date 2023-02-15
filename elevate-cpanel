@@ -986,11 +986,6 @@ sub run_stage_3 ($self) {
             # remove all ea- packages
             ssystem(q{/usr/bin/yum -y erase ea-*});
 
-            foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
-                next unless Cpanel::Pkgr::is_installed($rpm);
-                ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
-            }
-
             # Avoids having to do preupgrade.
             setup_answer_file();
 
