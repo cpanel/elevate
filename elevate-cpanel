@@ -1808,7 +1808,7 @@ sub _do_leapp_upgrade {
 
     my $ok = eval {
         local $ENV{LEAPP_OVL_SIZE} = 3000;
-        ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
+        ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade --debug} );
         1;
     };
 
