@@ -1811,12 +1811,8 @@ sub _do_leapp_upgrade {
 
     my $ok = eval {
         local $ENV{LEAPP_OVL_SIZE} = 3000;
-        if ( $self->getopt('leapp-debug') ) {
-            ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade --debug} );
-        }
-        else {
-            ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
-        }
+        # if ( $self->getopt('leapp-debug') ) {
+        ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
         1;
     };
 
@@ -3647,7 +3643,7 @@ sub _blockers_check ($self) {
     $self->_blocker_mysql_upgrade_in_progress();
     $self->_blocker_is_container();
     $self->_blocker_disk_space();
-    # $self->_blocker_system_update();
+    $self->_blocker_system_update();
     $self->_blocker_bad_nics_naming();
     $self->_blocker_ea4_profile();
     $self->_blocker_script_updated();
