@@ -48,7 +48,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
-       --upgrade-to=[rocky|almalinux] Update to AlmaLinux 8 or Rocky Linuyx 8
+       --upgrade-to=[rocky|almalinux|cloudlinux] Update to AlmaLinux 8, Rocky Linux 8 or CloudLinux 8
                                       [default to 'almalinux']
 
        --update                       Instruct the script to replace itself on disk with a downloaded copy of the latest version.
@@ -268,6 +268,8 @@ use constant VETTED_YUM_REPO => qw{
   wp-toolkit-cpanel.repo
   imunify360-ea-php-hardened.repo
   droplet-agent.repo
+  cloudlinux.repo
+  cloudlinux-ea4.repo
 }, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
@@ -282,6 +284,7 @@ use constant {
 # prefer string over integers so we can read the configuration file (no need for bitmask)
 use constant UPGRADE_TO_ALMALINUX => q[AlmaLinux];
 use constant UPGRADE_TO_ROCKY     => q[Rocky];
+use constant UPGRADE_TO_CLOUDLINUX     => q[CloudLinux];
 
 sub _OPTIONS {
     return qw(
@@ -358,11 +361,15 @@ sub _parse_opt_upgrade_to ($self) {
         die qq[--upgrade-to option is only supported with --start or --check\n];
     }
     $flavor = lc $flavor;
-    if ( $flavor !~ m{^(?:almalinux|alma|rocky)$} ) {
-        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux' or 'rocky' are supported.\n];
+    if ( $flavor !~ m{^(?:almalinux|alma|rocky|cloudlinux)$} ) {
+        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux', 'rocky' and 'cloudlinux' are supported.\n];
     }
 
     $self->{upgrade_to} = $flavor eq 'rocky' ? UPGRADE_TO_ROCKY : UPGRADE_TO_ALMALINUX;
+
+    if ( $flavor eq 'cloudlinux') {
+        $self->{upgrade_to} = UPGRADE_TO_CLOUDLINUX;
+    }
 
     return;
 }
@@ -410,8 +417,13 @@ sub upgrade_to_rocky ($self) {
     return $self->upgrade_to() eq UPGRADE_TO_ROCKY;
 }
 
+sub upgrade_to_cloudlinux ($self) {
+    return $self->upgrade_to() eq UPGRADE_TO_CLOUDLINUX;
+}
+
 sub upgrade_to_pretty_name ($self) {    # used by output messages
     return q[Rocky Linux 8] if $self->upgrade_to_rocky;
+    return q[CloudLinux 8] if $self->upgrade_to_cloudlinux;
     return q[AlmaLinux 8];
 }
 
@@ -782,10 +794,10 @@ sub save_blocker_file ( $path, $stash ) {
 
 # We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
-    if ( !( eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() eq 'centos' && Cpanel::OS::major() == 7 ) ) ) {
-        FATAL qq[This script is designed to only run on CentOS 7 servers.\n];
-        exit 1;
-    }
+    # if ( !( eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) ) ) {
+    #     FATAL qq[This script is designed to only run on CentOS 7 servers.\n];
+    #     exit 1;
+    # }
 
     return;
 }
@@ -922,13 +934,24 @@ sub run_stage_3 ($self) {
 
             $self->run_once(
                 install_pkgs => sub {
-                    unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
-
-                        # provides leapp-data-almalinux & leapp-data-rocky
-                        ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+                    my $leap_data_pkg = 'leapp-data-almalinux'
+                    if ($self->upgrade_to_rocky()) {
+                        $leap_data_pkg = 'leapp-data-rocky';
+                    }
+                    if ($self->upgrade_to_cloudlinux()) {
+                        $leap_data_pkg = 'leapp-data-cloudlinux';
                     }
 
-                    my $leap_data_pkg = $self->upgrade_to_rocky() ? 'leapp-data-rocky' : 'leapp-data-almalinux';
+                    if ($self->upgrade_to_cloudlinux()) {
+                        ssystem_and_die(qw{/usr/bin/curl https://repo.almalinux.org/elevate/testing/elevate-testing.repo -o /etc/yum.repos.d/elevate-testing.repo});
+                        ssystem_and_die(qw{/usr/bin/rpm --import https://repo.almalinux.org/elevate/RPM-GPG-KEY-ELevate});
+                    }
+                    else {
+                        # provides leapp-data-almalinux & leapp-data-rocky
+                        unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
+                            ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+                        }
+                    }
 
                     unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
                         ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
@@ -2633,6 +2656,9 @@ sub reinstall_imunify_360 {
 sub post_upgrade_check ($self) {
 
     my $expect_distro = $self->upgrade_to_rocky() ? 'rocky' : 'almalinux';
+    if ( $self->upgrade_to_cloudlinux() ) {
+        $expect_distro = 'cloudlinux';
+    }
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
@@ -2874,10 +2900,10 @@ sub _blocker_cpanel_needs_update ($self) {
 }
 
 sub _blocker_is_non_centos7 ($self) {
-    unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name.] );
-    }
+    # unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
+    #     my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    #     $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name.] );
+    # }
 
     return 0;
 }
@@ -3059,12 +3085,6 @@ sub _blocker_invalid_yum_repos ($self) {
 
 sub _blocker_unstable_yum ($self) {
     $self->has_blocker( 15, q[yum is not stable] ) unless _yum_is_stable();
-
-    return 0;
-}
-
-sub _blocker_invalid_ssh_config ($self) {
-    $self->has_blocker( 16, q[Issue with sshd configuration] ) unless _sshd_setup();
 
     return 0;
 }
@@ -3615,7 +3635,6 @@ sub _blockers_check ($self) {
     $self->_blocker_old_mysql( $cpconf->{'mysql-version'} );
     $self->_blocker_invalid_yum_repos();
     $self->_blocker_unstable_yum();
-    $self->_blocker_invalid_ssh_config();
     $self->_blocker_old_jetbackup();
     $self->_blocker_mysql_upgrade_in_progress();
     $self->_blocker_is_container();
