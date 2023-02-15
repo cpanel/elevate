@@ -272,6 +272,7 @@ use constant VETTED_YUM_REPO => qw{
   cloudlinux-ea4.repo
   cl-mysql.repo
   imunify.repo
+  elevate-testing.repo
 }, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
@@ -3626,7 +3627,7 @@ sub _blockers_check ($self) {
     $self->_blocker_is_missing_cpanel_whm();
     $self->_blocker_is_invalid_cpanel_whm();
     $self->_blocker_is_newer_than_lts();
-    # $self->_blocker_cpanel_needs_update();
+    $self->_blocker_cpanel_needs_update();
     $self->_blocker_is_non_centos7();
     $self->_blocker_is_old_centos7();
     $self->_blocker_is_experimental_os();
