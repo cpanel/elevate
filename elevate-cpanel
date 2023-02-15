@@ -936,10 +936,10 @@ sub run_stage_3 ($self) {
                 install_pkgs => sub {
                     my $leap_data_pkg = 'leapp-data-almalinux'
                     if ($self->upgrade_to_rocky()) {
-                        $leap_data_pkg = 'leapp-data-rocky';
+                        my $leap_data_pkg = 'leapp-data-rocky';
                     }
                     if ($self->upgrade_to_cloudlinux()) {
-                        $leap_data_pkg = 'leapp-data-cloudlinux';
+                        my $leap_data_pkg = 'leapp-data-cloudlinux';
                     }
 
                     if ($self->upgrade_to_cloudlinux()) {
@@ -2657,7 +2657,7 @@ sub post_upgrade_check ($self) {
 
     my $expect_distro = $self->upgrade_to_rocky() ? 'rocky' : 'almalinux';
     if ( $self->upgrade_to_cloudlinux() ) {
-        $expect_distro = 'cloudlinux';
+        my $expect_distro = 'cloudlinux';
     }
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
