@@ -1051,9 +1051,7 @@ sub run_stage_4 ($self) {
         sysup => sub {
             Cpanel::Yum::Vars::install();
             ssystem_and_die(qw{/usr/bin/dnf clean all});
-
-            # no failures once already installed: no need to check for the epel-release version
-            ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
+            ssystem_and_die(qw{/usr/bin/rm -r /var/cache/dnf});
 
             ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
             {
@@ -1901,7 +1899,6 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->purge_perl_xs(DISTRO_PERL_XS_PATH);
     $self->purge_perl_xs( $Config{'installsitearch'} );
 
-    $self->run_once('remove_imunify_360');
     $self->run_once('remove_wordpress_toolkit');
     $self->run_once('capture_influxdb_state');
     $self->run_once('capture_jetbackup_state');
@@ -2084,7 +2081,6 @@ sub post_leapp_update_restore ($self) {
     );
 
     $self->run_once('check_pecl_packages');
-    $self->run_once('reinstall_imunify_360');
     $self->run_once('reinstall_wordpress_toolkit');
     $self->run_once('reinstall_influxdb');
     $self->run_once('reinstall_jetbackup');
