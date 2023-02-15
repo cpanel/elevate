@@ -7,3 +7,4 @@
 .DS_Store
 .tdy
 /tags
+*.code-workspace
