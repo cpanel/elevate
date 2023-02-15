@@ -263,6 +263,7 @@ use constant VETTED_YUM_REPO => qw{
   epel.repo
   imunify-rollout.repo
   imunify360.repo
+  imunify360-testing.repo
   influxdb.repo
   kernelcare.repo
   wp-toolkit-cpanel.repo
@@ -273,6 +274,7 @@ use constant VETTED_YUM_REPO => qw{
   cl-mysql.repo
   imunify.repo
   elevate-testing.repo
+  centos-extras.repo
 }, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
