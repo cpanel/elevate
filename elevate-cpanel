@@ -3642,7 +3642,7 @@ sub _blockers_check ($self) {
     $self->_blocker_mysql_upgrade_in_progress();
     $self->_blocker_is_container();
     $self->_blocker_disk_space();
-    $self->_blocker_system_update();
+    # $self->_blocker_system_update();
     $self->_blocker_bad_nics_naming();
     $self->_blocker_ea4_profile();
     $self->_blocker_script_updated();
