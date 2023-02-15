@@ -270,6 +270,8 @@ use constant VETTED_YUM_REPO => qw{
   droplet-agent.repo
   cloudlinux.repo
   cloudlinux-ea4.repo
+  cl-mysql.repo
+  imunify.repo
 }, DISABLE_MYSQL_YUM_REPOS;
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
