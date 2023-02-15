@@ -910,7 +910,7 @@ sub run_stage_2 ($self) {
 
     setup_motd();
 
-    $self->run_once('remove_kernelcare_if_needed');
+    # $self->run_once('remove_kernelcare_if_needed');
 
     $self->run_once('update_grub2_workaround_if_needed');    # required part
     $self->run_once('merge_grub_directories_if_needed');     # best-effort part
@@ -1876,7 +1876,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_once('capture_imunify_features');
     $self->run_once('backup_ea_addons');
     $self->run_once('backup_pecl_packages');
-    $self->run_once('cleanup_mysql_packages');
+    # $self->run_once('cleanup_mysql_packages');
     $self->run_once('disable_known_yum_repositories');
 
     $self->run_once(
@@ -2054,7 +2054,7 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_once('reinstall_mysql_packages');
+    # $self->run_once('reinstall_mysql_packages');
 
     $self->run_once(
         'restore_perl_xs' => sub {
@@ -2085,7 +2085,7 @@ sub post_leapp_update_restore ($self) {
     $self->run_once('reinstall_influxdb');
     $self->run_once('reinstall_jetbackup');
     $self->run_once('kernel_check');
-    $self->run_once('restore_kernel_care');
+    # $self->run_once('restore_kernel_care');
     $self->run_once('restore_imunify_features');
     $self->run_once('restore_nixstats');
     $self->run_once('post_install_check_litespeed');
@@ -3632,7 +3632,7 @@ sub _blockers_check ($self) {
     $self->_blocker_is_calendar_installed();
     $self->_blocker_non_bind_powerdns( $cpconf->{'local_nameserver_type'} );
     $self->_blocker_wrong_location();
-    $self->_blocker_old_mysql( $cpconf->{'mysql-version'} );
+    # $self->_blocker_old_mysql( $cpconf->{'mysql-version'} );
     $self->_blocker_invalid_yum_repos();
     $self->_blocker_unstable_yum();
     $self->_blocker_old_jetbackup();
