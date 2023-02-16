@@ -802,7 +802,7 @@ sub save_blocker_file ( $path, $stash ) {
 
 # We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
-    if ( !( eval { Cpanel::OS::can_be_elevated() } || ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) ) ) {
+    if ( !( eval { Cpanel::OS::can_be_elevated() } // ( ( Cpanel::OS::distro() eq 'cloudlinux' || Cpanel::OS::distro() eq 'centos' ) && Cpanel::OS::major() == 7 ) ) ) {
         FATAL qq[This script is designed to only run on CentOS 7 and CloudLinux 7 servers.\n];
         exit 1;
     }
@@ -2694,7 +2694,7 @@ sub post_upgrade_check ($self) {
     my $expect_distro = 'almalinux';
     if ( $self->upgrade_to_rocky() ) {
         $expect_distro = 'rocky';
-    elsif ( $self->upgrade_to_cloudlinux() ) {
+    } elsif ( $self->upgrade_to_cloudlinux() ) {
         $expect_distro = 'cloudlinux';
     }
 
