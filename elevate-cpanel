@@ -57,7 +57,6 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
        --skip-elevate-version-check   Skip the check for whether this script is up to date.
        --skip-cpanel-version-check    Skip the check for whether cPanel is up to date.
                                       This option is intended only for testing!
-       --leapp-debug                  Enable verbose output from the Leapp framework.
 
        --help                         Display this documentation.
 
@@ -297,7 +296,7 @@ sub _OPTIONS {
     return qw(
       service start clean continue manual-reboots status log check:s
       skip-cpanel-version-check skip-elevate-version-check
-      update version leapp-debug
+      update version
       upgrade-to=s
     );
 }
@@ -1835,7 +1834,6 @@ sub _do_leapp_upgrade {
 
     my $ok = eval {
         local $ENV{LEAPP_OVL_SIZE} = 3000;
-        # if ( $self->getopt('leapp-debug') ) {
         ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
         1;
     };
