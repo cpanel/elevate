@@ -372,10 +372,12 @@ sub _parse_opt_upgrade_to ($self) {
         die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux', 'rocky' and 'cloudlinux' are supported.\n];
     }
 
-    $self->{upgrade_to} = $flavor eq 'rocky' ? UPGRADE_TO_ROCKY : UPGRADE_TO_ALMALINUX;
-
-    if ( $flavor eq 'cloudlinux') {
+    if ($flavor eq 'rocky') {
+        $self->{upgrade_to} = UPGRADE_TO_ROCKY;
+    } elsif ($flavor eq 'cloudlinux') {
         $self->{upgrade_to} = UPGRADE_TO_CLOUDLINUX;
+    } else {
+        $self->{upgrade_to} = UPGRADE_TO_ALMALINUX;
     }
 
     return;
@@ -801,10 +803,10 @@ sub save_blocker_file ( $path, $stash ) {
 
 # We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
-    # if ( !( eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) ) ) {
-    #     FATAL qq[This script is designed to only run on CentOS 7 servers.\n];
-    #     exit 1;
-    # }
+    if ( !( eval { Cpanel::OS::can_be_elevated() } || ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) ) ) {
+        FATAL qq[This script is designed to only run on CentOS 7 and CloudLinux 7 servers.\n];
+        exit 1;
+    }
 
     return;
 }
@@ -901,6 +903,9 @@ sub run_stage_2 ($self) {
     $self->elevation_startup_marker($sum);
 
     ssystem(qw{/usr/bin/yum clean all});
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        ssystem_and_die(qw{/scripts/update-packages});
+    }
     ssystem_and_die(qw{/usr/bin/yum -y update});
 
     disable_all_cpanel_services();
@@ -911,7 +916,9 @@ sub run_stage_2 ($self) {
 
     setup_motd();
 
-    # $self->run_once('remove_kernelcare_if_needed');
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        $self->run_once('remove_kernelcare_if_needed');
+    }
 
     $self->run_once('update_grub2_workaround_if_needed');    # required part
     $self->run_once('merge_grub_directories_if_needed');     # best-effort part
@@ -944,11 +951,12 @@ sub run_stage_3 ($self) {
                     if ($self->upgrade_to_rocky()) {
                         $leap_data_pkg = 'leapp-data-rocky';
                     }
-                    if ($self->upgrade_to_cloudlinux()) {
+                    elsif ($self->upgrade_to_cloudlinux()) {
                         $leap_data_pkg = 'leapp-data-cloudlinux';
                     }
 
                     if ($self->upgrade_to_cloudlinux()) {
+                        # CloudLinux upgrade currently only functions with elevate-testing
                         ssystem_and_die(qw{/usr/bin/curl https://repo.almalinux.org/elevate/testing/elevate-testing.repo -o /etc/yum.repos.d/elevate-testing.repo});
                         ssystem_and_die(qw{/usr/bin/rpm --import https://repo.almalinux.org/elevate/RPM-GPG-KEY-ELevate});
                     }
@@ -988,6 +996,14 @@ sub run_stage_3 ($self) {
 
             # remove all ea- packages
             ssystem(q{/usr/bin/yum -y erase ea-*});
+
+            # Leapp handles EPEL on CloudLinux
+            unless ( $self->upgrade_to_cloudlinux() ) {
+                foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
+                    next unless Cpanel::Pkgr::is_installed($rpm);
+                    ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
+                }
+            }
 
             # Avoids having to do preupgrade.
             setup_answer_file();
@@ -1054,6 +1070,11 @@ sub run_stage_4 ($self) {
             ssystem_and_die(qw{/usr/bin/dnf clean all});
             ssystem_and_die(qw{/usr/bin/rm -r /var/cache/dnf});
 
+            unless ( $self->upgrade_to_cloudlinux() ) {
+                # no failures once already installed: no need to check for the epel-release version
+                ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
+            }
+
             ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
             {
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
@@ -1100,7 +1121,8 @@ sub run_stage_4 ($self) {
 
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
       leapp leapp-data-almalinux leapp-data-rocky leapp-data-cloudlinux leapp-upgrade-el7toel8
-      python2-leapp};
+      python2-leapp alt-pcre802 alt-pcre802-devel};
+
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
 
     INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
@@ -1744,8 +1766,11 @@ sub backup_ea4_profile ($self) {
 sub _get_ea4_profile ($self) {
 
     # obs_project_aliases from /etc/cpanel/ea4/ea4-metainfo.json
-    my $ea_alias = $self->upgrade_to_rocky() ? 'CentOS_8' : 'AlmaLinux_8';
-    if ($self->upgrade_to_cloudlinux()) {
+
+    my $ea_alias = 'AlmaLinux_8';
+    if ($self->upgrade_to_rocky()) {
+        $ea_alias = 'CentOS_8';
+    } elsif ($self->upgrade_to_cloudlinux()) {
         $ea_alias = 'CloudLinux_8';
     }
 
@@ -1877,7 +1902,9 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_once('capture_imunify_features');
     $self->run_once('backup_ea_addons');
     $self->run_once('backup_pecl_packages');
-    # $self->run_once('cleanup_mysql_packages');
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        $self->run_once('cleanup_mysql_packages');
+    }
     $self->run_once('disable_known_yum_repositories');
 
     $self->run_once(
@@ -1900,6 +1927,9 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->purge_perl_xs(DISTRO_PERL_XS_PATH);
     $self->purge_perl_xs( $Config{'installsitearch'} );
 
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        $self->run_once('remove_imunify_360');
+    }
     $self->run_once('remove_wordpress_toolkit');
     $self->run_once('capture_influxdb_state');
     $self->run_once('capture_jetbackup_state');
@@ -2055,7 +2085,9 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    # $self->run_once('reinstall_mysql_packages');
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        $self->run_once('reinstall_mysql_packages');
+    }
 
     $self->run_once(
         'restore_perl_xs' => sub {
@@ -2082,11 +2114,16 @@ sub post_leapp_update_restore ($self) {
     );
 
     $self->run_once('check_pecl_packages');
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        $self->run_once('reinstall_imunify_360');
+    }
     $self->run_once('reinstall_wordpress_toolkit');
     $self->run_once('reinstall_influxdb');
     $self->run_once('reinstall_jetbackup');
     $self->run_once('kernel_check');
-    # $self->run_once('restore_kernel_care');
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        $self->run_once('restore_kernel_care');
+    }
     $self->run_once('restore_imunify_features');
     $self->run_once('restore_nixstats');
     $self->run_once('post_install_check_litespeed');
@@ -2656,8 +2693,10 @@ sub reinstall_imunify_360 {
 
 sub post_upgrade_check ($self) {
 
-    my $expect_distro = $self->upgrade_to_rocky() ? 'rocky' : 'almalinux';
-    if ( $self->upgrade_to_cloudlinux() ) {
+    my $expect_distro = 'almalinux';
+    if ( $self->upgrade_to_rocky() ) {
+        $expect_distro = 'rocky';
+    elsif ( $self->upgrade_to_cloudlinux() ) {
         $expect_distro = 'cloudlinux';
     }
 
@@ -2901,10 +2940,10 @@ sub _blocker_cpanel_needs_update ($self) {
 }
 
 sub _blocker_is_non_centos7 ($self) {
-    # unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
-    #     my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    #     $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name.] );
-    # }
+    unless ( Cpanel::OS::major() == 7 && ( Cpanel::OS::distro() eq 'centos' || Cpanel::OS::distro() eq 'cloudlinux' ) ) {
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 or CloudLinux 7 to $pretty_distro_name.] );
+    }
 
     return 0;
 }
@@ -3633,7 +3672,9 @@ sub _blockers_check ($self) {
     $self->_blocker_is_calendar_installed();
     $self->_blocker_non_bind_powerdns( $cpconf->{'local_nameserver_type'} );
     $self->_blocker_wrong_location();
-    # $self->_blocker_old_mysql( $cpconf->{'mysql-version'} );
+    unless ( $self->upgrade_to_cloudlinux() ) {
+        $self->_blocker_old_mysql( $cpconf->{'mysql-version'} );
+    }
     $self->_blocker_invalid_yum_repos();
     $self->_blocker_unstable_yum();
     $self->_blocker_old_jetbackup();
