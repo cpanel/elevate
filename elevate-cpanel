@@ -1900,6 +1900,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_once('capture_imunify_features');
     $self->run_once('backup_ea_addons');
     $self->run_once('backup_pecl_packages');
+    $self->run_once('backup_eaphp_configs');
     unless ( $self->upgrade_to_cloudlinux() ) {
         $self->run_once('cleanup_mysql_packages');
     }
@@ -2112,6 +2113,7 @@ sub post_leapp_update_restore ($self) {
     );
 
     $self->run_once('check_pecl_packages');
+    $self->run_once('restore_eaphp_configs');
     unless ( $self->upgrade_to_cloudlinux() ) {
         $self->run_once('reinstall_imunify_360');
     }
@@ -2146,6 +2148,26 @@ sub kernel_check ($self) {
     $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
 
     add_final_notification($msg);
+
+    return;
+}
+
+sub backup_eaphp_configs {
+    my @ea_versions = qw{ea-php51 ea-php52 ea-php53 ea-php54 ea-php55 ea-php56 ea-php70 ea-php71 ea-php72 ea-php73 ea-php74 ea-php80 ea-php81};
+
+    foreach my $v (@ea_versions) {
+        backup_3rdparty_file(qq[/opt/cpanel/$v/root/etc/php.ini]);
+    }
+
+    return;
+}
+
+sub restore_eaphp_configs {
+    my @ea_versions = qw{ea-php51 ea-php52 ea-php53 ea-php54 ea-php55 ea-php56 ea-php70 ea-php71 ea-php72 ea-php73 ea-php74 ea-php80 ea-php81};
+
+    foreach my $v (@ea_versions) {
+        restore_3rdparty_file(qq[/opt/cpanel/$v/root/etc/php.ini]);
+    }
 
     return;
 }
@@ -2393,6 +2415,11 @@ sub remove_rpms_from_repos (@repo_list) {
 sub backup_3rdparty_file ($file) {
     my $target = "$file.elevate_backup";
     return File::Copy::copy( $file, $target );
+}
+
+sub restore_3rdparty_file ($file) {
+    my $source = "$file.elevate_backup";
+    return File::Copy::copy( $source, $file );
 }
 
 sub capture_jetbackup_state {
