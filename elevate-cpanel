@@ -35,7 +35,7 @@ package cpev;
 
 =head1 DESCRIPTION
 
-Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
+Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8, as well as CloudLinux 7 cPanel servers to CloudLinux 8.
 
 =head1 SYNOPSIS
 
@@ -48,7 +48,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
-       --upgrade-to=[rocky|almalinux|cloudlinux] Update to AlmaLinux 8, Rocky Linux 8 or CloudLinux 8
+       --upgrade-to=[rocky|almalinux] Update to AlmaLinux 8 or Rocky Linux 8
                                       [default to 'almalinux']
 
        --update                       Instruct the script to replace itself on disk with a downloaded copy of the latest version.
@@ -74,6 +74,8 @@ You can start an elevation update by running:
 
     # Rocky Linux 8 update
     /scripts/elevate-cpanel --start --upgrade-to=rocky
+
+CloudLinux servers will be automatically upgraded to CloudLinux without the need to specify the --upgrade-to option.
 
 =item Compatibility check with elevation
 
@@ -361,20 +363,27 @@ sub run ($self) {
 
 sub _parse_opt_upgrade_to ($self) {
 
+    if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7  ) {
+        INFO("Running on CloudLinux 7, upgrade target set to CloudLinux 8.");
+        $self->{upgrade_to} = UPGRADE_TO_CLOUDLINUX;
+
+        if ( defined $self->getopt('upgrade-to') ) {
+            die qq[--upgrade-to option is not supported on CloudLinux systems\n];
+        }
+    }
+
     return unless my $flavor = $self->getopt('upgrade-to');
 
     if ( !defined $self->getopt('start') && !defined $self->getopt('check') ) {
         die qq[--upgrade-to option is only supported with --start or --check\n];
     }
     $flavor = lc $flavor;
-    if ( $flavor !~ m{^(?:almalinux|alma|rocky|cloudlinux)$} ) {
-        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux', 'rocky' and 'cloudlinux' are supported.\n];
+    if ( $flavor !~ m{^(?:almalinux|alma|rocky)$} ) {
+        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux' and 'rocky' are supported.\n];
     }
 
     if ($flavor eq 'rocky') {
         $self->{upgrade_to} = UPGRADE_TO_ROCKY;
-    } elsif ($flavor eq 'cloudlinux') {
-        $self->{upgrade_to} = UPGRADE_TO_CLOUDLINUX;
     } else {
         $self->{upgrade_to} = UPGRADE_TO_ALMALINUX;
     }
