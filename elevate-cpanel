@@ -2171,7 +2171,7 @@ sub restore_eaphp_configs {
     foreach my $v (@ea_versions) {
         my $config_path = "/opt/cpanel/$v/root/etc/php.ini";
         if (-f $config_path) {
-            restore_3rdparty_file($config_path]);
+            restore_3rdparty_file($config_path);
         }
     }
 
