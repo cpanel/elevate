@@ -811,8 +811,8 @@ sub save_blocker_file ( $path, $stash ) {
 
 # We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
-    if ( !( ( Cpanel::OS::distro() eq 'cloudlinux' || Cpanel::OS::distro() eq 'centos' ) && Cpanel::OS::major() == 7 ) ) {
-        FATAL qq[This script is designed to only run on CentOS 7 and CloudLinux 7 servers.\n];
+    if ( Cpanel::OS::major() != 7 } {
+        FATAL qq[This script is designed to only run on RHEL 7 deriviative servers.\n];
         exit 1;
     }
 
@@ -959,11 +959,9 @@ sub run_stage_3 ($self) {
                     if ($self->upgrade_to_rocky()) {
                         $leap_data_pkg = 'leapp-data-rocky';
                     }
-                    elsif ($self->upgrade_to_cloudlinux()) {
-                        $leap_data_pkg = 'leapp-data-cloudlinux';
-                    }
 
                     if ($self->upgrade_to_cloudlinux()) {
+                        $leap_data_pkg = 'leapp-data-cloudlinux';
                         # CloudLinux upgrade currently only functions with elevate-testing
                         ssystem_and_die(qw{/usr/bin/curl https://repo.almalinux.org/elevate/testing/elevate-testing.repo -o /etc/yum.repos.d/elevate-testing.repo});
                         ssystem_and_die(qw{/usr/bin/rpm --import https://repo.almalinux.org/elevate/RPM-GPG-KEY-ELevate});
@@ -2980,7 +2978,7 @@ sub _blocker_cpanel_needs_update ($self) {
 }
 
 sub _blocker_is_non_centos7 ($self) {
-    unless ( Cpanel::OS::major() == 7 && ( Cpanel::OS::distro() eq 'centos' || Cpanel::OS::distro() eq 'cloudlinux' ) ) {
+    unless ( Cpanel::OS::major() == 7 ) ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         $self->has_blocker( 3, qq[This script is only designed to upgrade CentOS 7 or CloudLinux 7 to $pretty_distro_name.] );
     }
