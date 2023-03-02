@@ -811,7 +811,7 @@ sub save_blocker_file ( $path, $stash ) {
 
 # We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
-    if ( Cpanel::OS::major() != 7 } {
+    if ( Cpanel::OS::major() != 7 ) {
         FATAL qq[This script is designed to only run on RHEL 7 deriviative servers.\n];
         exit 1;
     }
