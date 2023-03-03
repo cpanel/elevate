@@ -161,6 +161,7 @@ use Log::Log4perl qw(:easy);
 
 use Config;
 use Carp                  ();
+use Errno                 ();
 use File::Basename        ();
 use File::Copy            ();
 use File::Copy::Recursive ();
@@ -216,6 +217,7 @@ use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
 use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
 
 use constant OVH_MONITORING_TOUCH_FILE => q[/var/cpanel/acknowledge_ovh_monitoring_for_elevate];
+use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recommendations];
 
 use constant IMUNIFY_AGENT          => '/usr/bin/imunify360-agent';
 use constant IMUNIFY_LICENSE_FILE   => '/var/imunify360/license.json';
@@ -744,6 +746,43 @@ sub bail_out_on_inappropriate_distro () {
     return;
 }
 
+sub present_noc_recommendations () {
+    local $!;
+
+    my $default_msg = <<~EOS;
+    Your server provider has requested that you contact their technical support
+    for additional information before you continue with this upgrade process.
+    EOS
+
+    my $can_read_file = open( my $fh, '<', NOC_RECOMMENDATIONS_TOUCH_FILE );
+
+    if ($can_read_file || $! != Errno::ENOENT) {
+        WARN "Provider advisory file potentially present but unable to be opened for reading ($!): using default notice." unless $can_read_file;
+
+        my $msg;
+        if ($fh) {
+            local $/;
+            $msg = <$fh>;
+        }
+        $msg ||= $default_msg;
+        say $msg;
+
+        print "Proceed with the upgrade process? (yes/no) ";
+        my $reply = lc <STDIN>;
+        chomp $reply;
+
+        if ( $reply !~ m/^y(?:es?)?$/ ) {
+            FATAL "Provider recommendations not acknowledged.";
+            exit 1;
+        }
+
+        INFO "Provider recommendations acknowledged; continuing.";
+    }
+
+    close $fh if $fh;
+    return 1;
+}
+
 =head1 STAGES
 
 Description of the multiple stages used during the elevation process.
@@ -779,6 +818,8 @@ sub run_stage_1 ($self) {
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
 
     print_box(qq[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to $pretty_distro_name server.]);
+
+    present_noc_recommendations();
 
     say <<'EOS';
 
