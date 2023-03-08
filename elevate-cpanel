@@ -216,7 +216,7 @@ use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdate
 use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
 use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
 
-use constant OVH_MONITORING_TOUCH_FILE => q[/var/cpanel/acknowledge_ovh_monitoring_for_elevate];
+use constant OVH_MONITORING_TOUCH_FILE      => q[/var/cpanel/acknowledge_ovh_monitoring_for_elevate];
 use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recommendations];
 
 use constant IMUNIFY_AGENT          => '/usr/bin/imunify360-agent';
@@ -756,7 +756,7 @@ sub present_noc_recommendations () {
 
     my $can_read_file = open( my $fh, '<', NOC_RECOMMENDATIONS_TOUCH_FILE );
 
-    if ($can_read_file || $! != Errno::ENOENT) {
+    if ( $can_read_file || $! != Errno::ENOENT ) {
         WARN "Provider advisory file potentially present but unable to be opened for reading ($!): using default notice." unless $can_read_file;
 
         my $msg;
