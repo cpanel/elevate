@@ -443,6 +443,8 @@ sub start ($self) {
 
     }
 
+    $self->give_last_chance();
+
     system touch => LOG_FILE;
 
     bump_stage();    # init stage number to 1
@@ -455,6 +457,46 @@ sub start ($self) {
 
     # prefer over running step1: so status and notifications are enabled
     return $self->run_service_and_notify();
+}
+
+# This code used to be in stage 1, but it makes more sense for it to take place before a stage has been set.
+sub give_last_chance ($self) {
+
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+    print_box(qq[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to $pretty_distro_name server.]);
+
+    present_noc_recommendations();
+
+    say <<'EOS';
+
+The elevation process can take several long minutes and requires multiple reboots.
+Some reboots can be longer than normal, please do not interrupt the process.
+
+Please *do not interrupt* the reboots and elevation process.
+
+You can check at any time the current status of the update by running:
+
+    /scripts/elevate-cpanel
+
+On failures after fixing them you can continue the elevation process by running:
+
+    /scripts/elevate-cpanel --continue
+
+EOS
+
+    _do_warn_skip_version_check() if $self->getopt('skip-cpanel-version-check');    # give one last reminder
+
+    say <<EOS;
+This is your chance now to cancel the update process.
+You can hit CTRL-C to abort, otherwise the install starts in a few seconds.
+EOS
+
+    do { sleep 1; print '.' }
+      for 1 .. 6;
+    print "\n";
+
+    return;
 }
 
 sub continue_elevation ($self) {
@@ -814,40 +856,6 @@ sub run_stage_1 ($self) {
         unlink ELEVATE_STAGE_FILE;
         return 1;
     }
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    print_box(qq[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to $pretty_distro_name server.]);
-
-    present_noc_recommendations();
-
-    say <<'EOS';
-
-The elevation process can take several long minutes and requires multiple reboots.
-Some reboots can be longer than normal, please do not interrupt the process.
-
-Please *do not interrupt* the reboots and elevation process.
-
-You can check at any time the current status of the update by running:
-
-    /scripts/elevate-cpanel
-
-On failures after fixing them you can continue the elevation process by running:
-
-    /scripts/elevate-cpanel --continue
-
-EOS
-
-    _do_warn_skip_version_check() if $self->getopt('skip-cpanel-version-check');    # give one last reminder
-
-    say <<EOS;
-This is your chance now to cancel the update process.
-You can hit CTRL-C to abort, otherwise the install starts in a few seconds.
-EOS
-
-    do { sleep 1; print '.' }
-      for 1 .. 6;
-    print "\n";
 
     print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . SERVICE_NAME . " service" );
 
