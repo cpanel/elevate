@@ -1,4 +1,7 @@
-next
+2023-03-13 - version 6
+ - If the file /var/cpanel/elevate-noc-recommendations exists, present the user with the contents of the file and confirm if they want to proceed.
+ - Exempt EA4 OpenSSL devel packages from blocker
+ - Ensure `net.ifnames=0` is added to the GRUB env if not mentioned there.
 
 2023-02-14 - version 5
 
