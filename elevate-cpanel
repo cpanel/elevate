@@ -3285,7 +3285,8 @@ sub _blocker_ea4_profile ($self) {
     my @incompatible_packages;
     foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
         my $type = $dropped_pkgs->{$pkg} // '';
-        next if $type eq 'exp';    # use of experimental packages is a non blocker
+        next if $type eq 'exp';                          # use of experimental packages is a non blocker
+        next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
         push @incompatible_packages, $pkg;
     }
 
