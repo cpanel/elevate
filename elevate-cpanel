@@ -232,43 +232,134 @@ use constant GRUB_EDITENV      => '/usr/bin/grub2-editenv';
 use constant GRUB_ENV_FILE     => '/boot/grub2/grubenv';
 
 use constant DISABLE_MYSQL_YUM_REPOS => qw{
-  Mysql57.repo
-  Mysql80.repo
-
-  MariaDB102.repo
-  MariaDB103.repo
-  MariaDB105.repo
-  MariaDB106.repo
-
-  mysql-community.repo
-
+  mysql-connectors-community
+  mysql-tools-community
+  mysql55-community
+  mysql56-community
+  mysql57-community
+  mysql80-community
+  mysql-tools-preview
+  mysql-cluster-7.5-community
+  mysql-cluster-7.6-community
+  mysql-connectors-community-source
+  mysql-tools-community-source
+  mysql55-community-source
+  mysql56-community-source
+  mysql57-community-source
+  mysql80-community-source
+  mysql-tools-preview-source
+  mysql-cluster-7.5-community-source
+  mysql-cluster-7.6-community-source
+  mysql57-community-source
+  mysql80-community-source
+  mysql-connectors-community-source
+  mysql-tools-community-source
+  mysql-tools-preview-source
+  mysql-cluster-7.5-community-source
+  mysql-cluster-7.6-community-source
+  mysql-cluster-8.0-community-source
+  mysql57-community
+  mysql80-community
+  mysql-connectors-community
+  mysql-tools-community
+  mysql-tools-preview
+  mysql-cluster-7.5-community
+  mysql-cluster-7.6-community
+  mysql-cluster-8.0-community
+  mysql80-community-debuginfo
+  mysql-connectors-community-debuginfo
+  mysql-tools-community-debuginfo
+  mysql-cluster-8.0-community-debuginfo
+  MariaDB102
+  MariaDB103
+  MariaDB105
+  MariaDB106
 };
 
 use constant VETTED_YUM_REPO => qw{
-  CentOS-Base.repo
-  CentOS-CR.repo
-  CentOS-Debuginfo.repo
-  CentOS-fasttrack.repo
-  CentOS-Media.repo
-  CentOS-Sources.repo
-  CentOS-Vault.repo
-  CentOS-x86_64-kernel.repo
-  cPAddons.repo
-  cpanel-plugins.repo
-  cp-dev-tools.repo
-  EA4.repo
-  ELevate.repo
-  elasticsearch.repo
-  epel-testing.repo
-  epel.repo
-  imunify-rollout.repo
-  imunify360.repo
-  influxdb.repo
-  kernelcare.repo
-  wp-toolkit-cpanel.repo
-  imunify360-ea-php-hardened.repo
-  droplet-agent.repo
+  base
+  updates
+  extras
+  centosplus
+  cr
+  base-debuginfo
+  c7-media
+  base-source
+  updates-source
+  extras-source
+  centosplus-source
+  C7.0.1406-base
+  C7.0.1406-updates
+  C7.0.1406-extras
+  C7.0.1406-centosplus
+  C7.0.1406-fasttrack
+  C7.1.1503-base
+  C7.1.1503-updates
+  C7.1.1503-extras
+  C7.1.1503-centosplus
+  C7.1.1503-fasttrack
+  C7.2.1511-base
+  C7.2.1511-updates
+  C7.2.1511-extras
+  C7.2.1511-centosplus
+  C7.2.1511-fasttrack
+  C7.3.1611-base
+  C7.3.1611-updates
+  C7.3.1611-extras
+  C7.3.1611-centosplus
+  C7.3.1611-fasttrack
+  C7.4.1708-base
+  C7.4.1708-updates
+  C7.4.1708-extras
+  C7.4.1708-centosplus
+  C7.4.1708-fasttrack
+  C7.5.1804-base
+  C7.5.1804-updates
+  C7.5.1804-extras
+  C7.5.1804-centosplus
+  C7.5.1804-fasttrack
+  C7.6.1810-base
+  C7.6.1810-updates
+  C7.6.1810-extras
+  C7.6.1810-centosplus
+  C7.6.1810-fasttrack
+  C7.7.1908-base
+  C7.7.1908-updates
+  C7.7.1908-extras
+  C7.7.1908-centosplus
+  C7.7.1908-fasttrack
+  C7.8.2003-base
+  C7.8.2003-updates
+  C7.8.2003-extras
+  C7.8.2003-centosplus
+  C7.8.2003-fasttrack
+  fasttrack
+  EA4
+  epel-testing
+  epel-testing-debuginfo
+  epel-testing-source
+  epel
+  epel-debuginfo
+  epel-source
+  centos-kernel
+  centos-kernel-experimental
+  wp-toolkit-cpanel
+  wp-toolkit-thirdparties
+  cpanel-addons-production-feed
+  cpanel-plugins
+  elasticsearch
+  cp-dev-tools
+  elevate
+  elevate-source
+  influxdb
+  droplet-agent
+  kernelcare
+  imunify-rollout
+  imunify360
+  imunify360-ea-php-hardened
 }, DISABLE_MYSQL_YUM_REPOS;
+# XXX TODO verify that imunify reponames are in fact correct.
+# As of now they are straight up guesses.
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
@@ -2756,11 +2847,6 @@ sub xspm_to_rpm () {
     };
 }
 
-use constant _CHECK_YUM_REPO_BITMASK_UNVETTED                    => 1;
-use constant _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX              => 2;
-use constant _CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO => 4;
-use constant _CHECK_YUM_REPO_BITMASK_HAS_UNUSED_REPO_ENABLED     => 8;
-
 sub blockers_check ( $self, $check_mode = 0 ) {
 
     die unless ref $self;
@@ -3022,10 +3108,22 @@ sub _blocker_old_mysql ( $self, $mysql_version = '' ) {
     return 0;
 }
 
+sub _yum_status_hr_contains_blocker ($status_hr) {
+    return 0 if ref $status_hr ne 'HASH' || !scalar keys( %{$status_hr} );
+
+    # Not using List::Util here already, so not gonna use first()
+    my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO};
+    foreach my $blocked (@blockers) {
+        return 1 if $status_hr->{$blocked};
+    };
+    return 0;
+}
+
 sub _blocker_invalid_yum_repos ($self) {
-    if ( my $status = $self->_check_yum_repos() ) {
+    my $status_hr = $self->_check_yum_repos();
+    if  ( _yum_status_hr_contains_blocker($status_hr) ) {
         my $msg = '';
-        if ( $status & _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX ) {
+        if ( $status_hr->{'INVALID_SYNTAX'} ) {
             $msg .= <<~'EOS';
             One or more enabled YUM repo are using invalid syntax.
             '\$' variables behave differently in repo files between RedHat 7 and RedHat 8.
@@ -3034,9 +3132,9 @@ sub _blocker_invalid_yum_repos ($self) {
             Please fix the files before continuing the update.
             EOS
         }
-        if ( $status & _CHECK_YUM_REPO_BITMASK_UNVETTED ) {
+        if ( $status_hr->{'USE_RPMS_FROM_UNVETTED_REPO'} ) {
             $msg .= <<~'EOS';
-            One or more enabled YUM repo are currently unsupported.
+            One or more enabled YUM repo are currently unsupported and have installed packages.
             You should disable these repositories and remove packages installed from them
             before continuing the update.
 
@@ -3048,10 +3146,10 @@ sub _blocker_invalid_yum_repos ($self) {
             $self->_autofix_yum_repos();
 
             # perform a second check to make sure we are in good shape
-            $status = $self->_check_yum_repos();
+            $status_hr = $self->_check_yum_repos();
         }
 
-        $self->has_blocker( 14, $msg, repos => $self->{_yum_repos_unsupported_with_packages} ) if $status;
+        $self->has_blocker( 14, $msg, repos => $self->{_yum_repos_unsupported_with_packages} ) if _yum_status_hr_contains_blocker($status_hr);
     }
 
     return 0;
@@ -3701,10 +3799,12 @@ sub _autofix_yum_repos ($self) {
     return;
 }
 
-# $mask = $self->_check_yum_repos()
+# $status_hr = $self->_check_yum_repos()
 #   check current repos:
-#       _CHECK_YUM_REPO_BITMASK_UNVETTED is set when using packages from unvetted repo
-#       _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX is set when one ore more repo use invalid syntax
+#       UNVETTED is set when using packages from unvetted repo
+#       INVALID_SYNTAX is set when one ore more repo use invalid syntax
+#       USE_RPMS_FROM_UNVETTED_REPO is set when packages are installed from unvetted repo
+#       HAS_UNUSED_REPO_ENABLED is set when packages are not installed from unvetted repo
 #
 sub _check_yum_repos ($self) {
 
@@ -3717,8 +3817,7 @@ sub _check_yum_repos ($self) {
 
     my $repo_dir = YUM_REPOS_D;
 
-    my $status_mask = 0;
-
+    my %status;
     opendir( my $dh, $repo_dir ) or return ERROR("Cannot read directory $repo_dir - $!");
     foreach my $f ( readdir($dh) ) {
 
@@ -3741,8 +3840,8 @@ sub _check_yum_repos ($self) {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
 
-            if ( !$vetted{$f} ) {
-                $status_mask |= _CHECK_YUM_REPO_BITMASK_UNVETTED;
+            if ( !$vetted{$current_repo_name} ) {
+                $status{'UNVETTED'} = 1;
                 if ( my $total_pkg = scalar get_installed_rpms_in_repo($current_repo_name) ) {
                     ERROR(
                         sprintf(
@@ -3752,14 +3851,14 @@ sub _check_yum_repos ($self) {
                         )
                     );
                     push( $self->{_yum_repos_unsupported_with_packages}->@*, $current_repo_name );
-                    $status_mask |= _CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO;
+                    $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
                 }
                 else {
-                    WARN( sprintf( "Unsupported YUM repo enabled '%s' without packages installed from %s", $current_repo_name, $path ) );
+                    INFO( sprintf( "Unsupported YUM repo enabled '%s' without packages installed from %s, these will be disabled before ELevation", $current_repo_name, $path ) );
 
                     # no packages installed need to disable it
                     push( $self->{_yum_repos_to_disable}->@*, $current_repo_name );
-                    $status_mask |= _CHECK_YUM_REPO_BITMASK_HAS_UNUSED_REPO_ENABLED;
+                    $status{'HAS_UNUSED_REPO_ENABLED'} = 1;
                 }
             }
             elsif ( !$current_repo_use_valid_syntax ) {
@@ -3767,7 +3866,7 @@ sub _check_yum_repos ($self) {
                 unless ( grep { $_ eq $path } $self->{_yum_repos_path_using_invalid_syntax}->@* ) {
                     push( $self->{_yum_repos_path_using_invalid_syntax}->@*, $path );
                 }
-                $status_mask |= _CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX;
+                $status{'INVALID_SYNTAX'} = 1;
             }
             return;
         };
@@ -3795,8 +3894,7 @@ sub _check_yum_repos ($self) {
         # check the last repo found
         $check_last_known_repo->();
     }
-
-    return $status_mask;
+    return \%status;
 }
 
 sub _yum_is_stable () {

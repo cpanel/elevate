@@ -21,12 +21,10 @@ $cpev_mock->redefine(
     get_installed_rpms_in_repo => 0,    # for now
 );
 
-my $mask_unvetted            = cpev::_CHECK_YUM_REPO_BITMASK_UNVETTED();
-my $mask_invalid_syntax      = cpev::_CHECK_YUM_REPO_BITMASK_INVALID_SYNTAX();
-my $mask_rpms_from_unvetted  = cpev::_CHECK_YUM_REPO_BITMASK_USE_RPMS_FROM_UNVETTED_REPO();
-my $mask_unused_repo_enabled = cpev::_CHECK_YUM_REPO_BITMASK_HAS_UNUSED_REPO_ENABLED();
-
-my $mask_unvetted_with_unused_repo = $mask_unvetted | $mask_unused_repo_enabled;
+my $unvetted            = 'UNVETTED';
+my $invalid_syntax      = 'INVALID_SYNTAX';
+my $rpms_from_unvetted  = 'USE_RPMS_FROM_UNVETTED_REPO';
+my $unused_repo_enabled = 'HAS_UNUSED_REPO_ENABLED';
 
 my $path_yum_repos_d = '/etc/yum.repos.d';
 
@@ -38,41 +36,37 @@ is $cpev->_check_yum_repos(), undef, "no blockers when directory is empty";
 
 ok scalar cpev::VETTED_YUM_REPO(), "VETTED_YUM_REPO populated";
 
-foreach my $repo ( cpev::VETTED_YUM_REPO() ) {
-    fail("$repo is not a valid repo name") unless $repo =~ qr{\.repo$};
-}
+ok( grep( { 'MariaDB103' } cpev::VETTED_YUM_REPO() ), 'MariaDB103 is a valid repo' );
 
-ok( grep( { 'MariaDB103.repo' } cpev::VETTED_YUM_REPO() ), 'MariaDB103.repo is a valid repo' );
-
-my $mock_vetted_repo = Test::MockFile->file( "$path_yum_repos_d/MariaDB103.repo" => q[Whatever] );
+my $mock_vetted_repo = Test::MockFile->file( "$path_yum_repos_d/MariaDB103.repo" => q[MariaDB103] );
 
 note "Testing unvetted repo";
 
 mkdir $path_yum_repos_d;
 
-is $cpev->_check_yum_repos(), 0, "no blockers when directory is empty";
+is $cpev->_check_yum_repos(), {}, "no blockers when directory is empty";
 
 my $mock_unknown_repo = Test::MockFile->file( "$path_yum_repos_d/Unknown.repo" => <<'EOS' );
 [MyRepo]
 enabled=1
 EOS
 
-is $cpev->_check_yum_repos() => $mask_unvetted_with_unused_repo, "Using an unknown enabled repo detected";
+is $cpev->_check_yum_repos() => {$unused_repo_enabled => 1, $unvetted => 1}, "Using an unknown enabled repo detected";
 
 $cpev_mock->redefine( get_installed_rpms_in_repo => 1 );
-is $cpev->_check_yum_repos() => $mask_unvetted | $mask_rpms_from_unvetted, "Using an unknown enabled repo with installed packages detected";
+is $cpev->_check_yum_repos() => {$unvetted => 1, $rpms_from_unvetted => 1}, "Using an unknown enabled repo with installed packages detected";
 is $cpev->{_yum_repos_unsupported_with_packages}, ['MyRepo'], "Names of repos are recorded in object";
 
 $cpev_mock->redefine( get_installed_rpms_in_repo => 0 );
 
 $mock_unknown_repo->contents('# whatever');
-ok !$cpev->_check_yum_repos(), "no repo set";
+is $cpev->_check_yum_repos(), {}, "no repo set";
 
 $mock_unknown_repo->contents( <<EOS );
 [MyRepo]
 enabled=0
 EOS
-ok !$cpev->_check_yum_repos(), "Using an unknown disabled repo";
+is $cpev->_check_yum_repos(), {}, "Using an unknown disabled repo";
 
 $mock_unknown_repo->contents( <<EOS );
 [MyRepo]
@@ -81,63 +75,58 @@ enabled=0
 [Another]
 enabled=1
 EOS
-is $cpev->_check_yum_repos() => $mask_unvetted_with_unused_repo, "Using unknown repo with mixed disabled / enabled";
+is $cpev->_check_yum_repos(), { $unvetted => 1, $unused_repo_enabled => 1}, "Using unknown repo with mixed disabled / enabled";
 
 note "Testing invalid syntax in repo";
 
 $mock_unknown_repo->unlink;
 $mock_vetted_repo->contents( <<'EOS' );
-[OhMaria]
+[MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c$releasever-$basearch
 enabled=1
 EOS
 
-ok !$cpev->_check_yum_repos(), q[vetted repo with valid syntax using $ in url];
+is $cpev->_check_yum_repos(), {}, q[vetted repo with valid syntax using $ in url];
 
 $mock_vetted_repo->contents( <<'EOS' );
-[OhMaria]
+[MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c\$releasever-$basearch
 enabled=1
 EOS
 
-# {
-#     use File::Slurper qw/read_text/;
-#     note read_text( $mock_vetted_repo->path );
-# }
-
-is $cpev->_check_yum_repos() => $mask_invalid_syntax, q[vetted repo with invalid syntax using a \$ in url];
+is $cpev->_check_yum_repos(), {$invalid_syntax => 1}, q[vetted repo with invalid syntax using a \$ in url];
 
 $mock_vetted_repo->contents( <<'EOS' );
-[OhMaria]
+[MariaDB102]
 name = MariaDB102
 #baseurl = http://yum.mariadb.org/10.2/c\$releasever-$basearch
 # this is now fixed just here
 baseurl = http://yum.mariadb.org/10.2/c$releasever-$basearch
 enabled=1
 EOS
-is $cpev->_check_yum_repos() => 0, q[vetted repo with invalid syntax in a comment is ignored];
+is $cpev->_check_yum_repos(), {}, q[vetted repo with invalid syntax in a comment is ignored];
 
 $mock_vetted_repo->contents( <<'EOS' );
-[OhMaria]
+[MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c$releasever-$basearch # and not \$var
 enabled=1
 EOS
-is $cpev->_check_yum_repos() => 0, q[vetted repo with invalid syntax in a comment is ignored];
+is $cpev->_check_yum_repos(), {}, q[vetted repo with invalid syntax in a comment is ignored];
 
 $mock_vetted_repo->contents( <<'EOS' );
-[OhMaria]
+[MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c\$releasever-\$basearch
 enabled=1
 
-[Fixed]
-baseurl = http://yum.mariadb.org/10.2/c$releasever-$basearch
+[MariaDB103]
+baseurl = http://yum.mariadb.org/10.3/c$releasever-$basearch
 enabled=1
 EOS
-is $cpev->_check_yum_repos() => $mask_invalid_syntax, q[vetted repo with invalid syntax followed by valid syntax -> error];
+is $cpev->_check_yum_repos(), {$invalid_syntax => 1}, q[vetted repo with invalid syntax followed by valid syntax -> error];
 
 my $invalid_synax = <<'EOS';
 [Unknown]
@@ -149,10 +138,12 @@ EOS
 $mock_vetted_repo->contents(q[whatever]);
 $mock_unknown_repo->contents($invalid_synax);
 
-is $cpev->_check_yum_repos() => $mask_unvetted_with_unused_repo, "syntax errors in unknown repo are ignored";
+is $cpev->_check_yum_repos(), { $unvetted => 1, $unused_repo_enabled => 1 }, "syntax errors in unknown repo are ignored";
 
-$mock_vetted_repo->contents($invalid_synax);
+my $valid_syn_acks = "[cr]\r\nname=MicroSoft Bob\r\nbaseurl=http://win.doze/gates/\\\$v1/\\\$v2\r\nenabled=1\r\n";
+$cpev_mock->redefine('get_installed_rpms_in_repo' => sub { return ( 'solitaire.exe', 1 ) } );
+$mock_vetted_repo->contents($valid_syn_acks);
 $mock_unknown_repo->contents($invalid_synax);
-is $cpev->_check_yum_repos() => $mask_unvetted | $mask_invalid_syntax | $mask_unused_repo_enabled, "syntax errors and unvetted repos are both reported";
+is $cpev->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $invalid_syntax => 1 }, "syntax errors and unvetted repos w/installed RPMs are both reported";
 
 done_testing;
