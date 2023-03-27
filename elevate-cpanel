@@ -2356,7 +2356,6 @@ sub yum_list ( $invalidate_cache = 0 ) {
     while ( my $line = shift @lines ) {
         last if $line && $line =~ m/^Installed Packages/;
     }
-    shift @lines;
 
     my %repos;
     while ( my $line = shift @lines ) {
