@@ -282,65 +282,11 @@ use constant VETTED_YUM_REPO => qw{
   extras
   centosplus
   cr
-  base-debuginfo
   c7-media
-  base-source
-  updates-source
-  extras-source
-  centosplus-source
-  C7.0.1406-base
-  C7.0.1406-updates
-  C7.0.1406-extras
-  C7.0.1406-centosplus
-  C7.0.1406-fasttrack
-  C7.1.1503-base
-  C7.1.1503-updates
-  C7.1.1503-extras
-  C7.1.1503-centosplus
-  C7.1.1503-fasttrack
-  C7.2.1511-base
-  C7.2.1511-updates
-  C7.2.1511-extras
-  C7.2.1511-centosplus
-  C7.2.1511-fasttrack
-  C7.3.1611-base
-  C7.3.1611-updates
-  C7.3.1611-extras
-  C7.3.1611-centosplus
-  C7.3.1611-fasttrack
-  C7.4.1708-base
-  C7.4.1708-updates
-  C7.4.1708-extras
-  C7.4.1708-centosplus
-  C7.4.1708-fasttrack
-  C7.5.1804-base
-  C7.5.1804-updates
-  C7.5.1804-extras
-  C7.5.1804-centosplus
-  C7.5.1804-fasttrack
-  C7.6.1810-base
-  C7.6.1810-updates
-  C7.6.1810-extras
-  C7.6.1810-centosplus
-  C7.6.1810-fasttrack
-  C7.7.1908-base
-  C7.7.1908-updates
-  C7.7.1908-extras
-  C7.7.1908-centosplus
-  C7.7.1908-fasttrack
-  C7.8.2003-base
-  C7.8.2003-updates
-  C7.8.2003-extras
-  C7.8.2003-centosplus
-  C7.8.2003-fasttrack
   fasttrack
   EA4
   epel-testing
-  epel-testing-debuginfo
-  epel-testing-source
   epel
-  epel-debuginfo
-  epel-source
   centos-kernel
   centos-kernel-experimental
   wp-toolkit-cpanel
