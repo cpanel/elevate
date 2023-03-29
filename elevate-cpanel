@@ -1230,10 +1230,11 @@ sub elevation_startup_marker ( $self, $sum = 'unknown' ) {
     update_stage_file(
         {
             '_elevate_process' => {
-                script_md5         => $sum,
-                cpanel_build       => $Cpanel::Version::Tiny::VERSION_BUILD,
-                started_at         => _bq_now(),
-                redhat_release_pre => read_redhat_release(),
+                script_md5            => $sum,
+                cpanel_build          => $Cpanel::Version::Tiny::VERSION_BUILD,
+                started_at            => _bq_now(),
+                redhat_release_pre    => read_redhat_release(),
+                elevate_version_start => VERSION,
             }
         }
     );
@@ -1246,8 +1247,9 @@ sub elevation_success_marker ($self) {
     update_stage_file(
         {
             '_elevate_process' => {
-                finished_at         => _bq_now(),
-                redhat_release_post => read_redhat_release(),
+                finished_at            => _bq_now(),
+                redhat_release_post    => read_redhat_release(),
+                elevate_version_finish => VERSION,
             }
         }
     );
@@ -2758,8 +2760,10 @@ sub restore_perl_xs ($path) {
     if ( $path eq DISTRO_PERL_XS_PATH ) {
         my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
-        my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-        ssystem(@cmd);
+        if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
+            my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
+            ssystem(@cmd);
+        }
     }
 
     my $cpan_modules = $stash->{$path}->{'cpan'} // return;
