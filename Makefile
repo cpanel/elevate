@@ -1,10 +1,10 @@
-.PHONY: test cover tags clean release
+.PHONY: test cover tags clean release build
 
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
 PERL_BIN=/usr/local/cpanel/3rdparty/perl/536/bin
 
-test:
+test: elevate-cpanel
 	perl -cw elevate-cpanel
 	/usr/local/cpanel/3rdparty/bin/prove t/00_load.t
 	/usr/local/cpanel/3rdparty/bin/yath test -j8 t/*.t
@@ -18,6 +18,21 @@ cover:
 
 tags:
 	/usr/bin/ctags -R --languages=perl elevate-cpanel t
+
+elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
+	USE_CPANEL_PERL_FOR_PERLSTATIC=1 /usr/local/cpanel/bin/perlpkg \
+				       --dir=lib \
+				       --no-cpstrict \
+				       --no-try-tiny \
+				       --no-http-tiny \
+				       --no-file-path-tiny \
+				       script/elevate-cpanel.PL
+	mv script/elevate-cpanel.PL.static elevate-cpanel
+	perltidy elevate-cpanel && mv elevate-cpanel.tdy elevate-cpanel
+
+build:
+	rm -f elevate-cpanel
+	$(MAKE) elevate-cpanel
 
 clean:
 	rm -f tags
