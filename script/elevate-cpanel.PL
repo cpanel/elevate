@@ -1,81 +1,4 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
-BEGIN {    # Suppress load of all of these at earliest point.
-    $INC{'Elevate/Motd.pm'} = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-}
-
-{    # --- BEGIN lib/Elevate/Motd.pm
-
-    package Elevate::Motd;
-
-    use cPstrict;
-
-    sub setup {
-
-        my $f = _motd_file();
-
-        my $notice = _motd_notice_message();
-
-        local $/;
-        my $fh;
-        my $content = '';
-
-        if ( open( $fh, '+<', $f ) ) {
-            $content = <$fh> // '';
-        }
-        elsif ( open( $fh, '>', $f ) ) {
-            1;
-        }
-
-        return 0 if $content =~ qr{elevate in progress}mi;
-
-        print {$fh} "\n" if length($content) && $content !~ qr{\n\z};
-
-        print {$fh} $notice;
-
-        return 1;
-    }
-
-    sub cleanup {
-
-        my $f = _motd_file();
-
-        my $content;
-        open( my $fh, '+<', $f ) or return;
-        {
-            local $/;
-            $content = <$fh>;
-        }
-
-        return 0 unless $content && $content =~ qr{elevate in progress}mi;
-
-        my $notice = _motd_notice_message();
-
-        if ( $content =~ s{\Q$notice\E}{} ) {
-            seek( $fh, 0, 0 );
-            print {$fh} $content;
-            truncate( $fh, tell($fh) );
-            close($fh);
-
-            return 1;
-        }
-
-        return;
-    }
-
-    sub _motd_notice_message {
-        return <<~'EOS';
-    EOS
-    }
-
-    sub _motd_file {    # allow us to mock it, we cannot use Test::MockFile GH #77 - https://github.com/cpanel/Test-MockFile/issues/77
-        return q[/etc/motd];
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Motd.pm
-
-package main;
 
 # Copyright 2023 cPanel L.L.C.
 #
@@ -386,7 +309,6 @@ use constant VETTED_YUM_REPO => qw{
   imunify360
   imunify360-ea-php-hardened
 }, DISABLE_MYSQL_YUM_REPOS;
-
 # XXX TODO verify that imunify reponames are in fact correct.
 # As of now they are straight up guesses.
 
@@ -1312,11 +1234,10 @@ sub elevation_startup_marker ( $self, $sum = 'unknown' ) {
     update_stage_file(
         {
             '_elevate_process' => {
-                script_md5            => $sum,
-                cpanel_build          => $Cpanel::Version::Tiny::VERSION_BUILD,
-                started_at            => _bq_now(),
-                redhat_release_pre    => read_redhat_release(),
-                elevate_version_start => VERSION,
+                script_md5         => $sum,
+                cpanel_build       => $Cpanel::Version::Tiny::VERSION_BUILD,
+                started_at         => _bq_now(),
+                redhat_release_pre => read_redhat_release(),
             }
         }
     );
@@ -1329,9 +1250,8 @@ sub elevation_success_marker ($self) {
     update_stage_file(
         {
             '_elevate_process' => {
-                finished_at            => _bq_now(),
-                redhat_release_post    => read_redhat_release(),
-                elevate_version_finish => VERSION,
+                finished_at         => _bq_now(),
+                redhat_release_post => read_redhat_release(),
             }
         }
     );
@@ -2766,10 +2686,8 @@ sub restore_perl_xs ($path) {
     if ( $path eq DISTRO_PERL_XS_PATH ) {
         my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
-        if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
-            my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-            ssystem(@cmd);
-        }
+        my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
+        ssystem(@cmd);
     }
 
     my $cpan_modules = $stash->{$path}->{'cpan'} // return;
