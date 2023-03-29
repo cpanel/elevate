@@ -300,13 +300,13 @@ use constant VETTED_YUM_REPO => qw{
   influxdb
   droplet-agent
   kernelcare
-  imunify-rollout
+  imunify360-rollout-1
+  imunify360-rollout-2
+  imunify360-rollout-3
+  imunify360-rollout-4
   imunify360
   imunify360-ea-php-hardened
 }, DISABLE_MYSQL_YUM_REPOS;
-
-# XXX TODO verify that imunify reponames are in fact correct.
-# As of now they are straight up guesses.
 
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
