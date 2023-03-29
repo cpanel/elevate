@@ -2758,8 +2758,10 @@ sub restore_perl_xs ($path) {
     if ( $path eq DISTRO_PERL_XS_PATH ) {
         my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
-        my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-        ssystem(@cmd);
+        if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
+            my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
+            ssystem(@cmd);
+        }
     }
 
     my $cpan_modules = $stash->{$path}->{'cpan'} // return;
