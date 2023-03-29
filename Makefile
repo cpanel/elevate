@@ -26,6 +26,7 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 				       --no-try-tiny \
 				       --no-http-tiny \
 				       --no-file-path-tiny \
+				       --leave-broken \
 				       script/elevate-cpanel.PL
 	mv script/elevate-cpanel.PL.static elevate-cpanel
 	perltidy elevate-cpanel && mv elevate-cpanel.tdy elevate-cpanel

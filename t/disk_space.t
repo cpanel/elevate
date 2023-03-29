@@ -11,9 +11,10 @@ use Test2::Tools::Exception;
 
 use Test::MockModule qw/strict/;
 
-use FindBin;
-
-require $FindBin::Bin . '/../elevate-cpanel';
+BEGIN {
+    use FindBin;
+    require $FindBin::Bin . '/../elevate-cpanel';
+}
 
 my $saferun_output;
 
@@ -48,7 +49,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/vda1       83874796 76307692   7567104  91% /
 EOS
 
-is cpev()->_disk_space_check(), 1, "_disk_space_check ok";
+is( cpev()->_disk_space_check(), 1, "_disk_space_check ok" );
 
 my $boot = 121 * 1_024;
 
@@ -59,7 +60,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/vda1       83874796 76307692   7567104  91% /
 EOS
 
-is cpev()->_disk_space_check(), 1, "_disk_space_check ok - /boot 121 M";
+is( cpev()->_disk_space_check(), 1, "_disk_space_check ok - /boot 121 M" );
 
 $boot = 119 * 1_024;
 
@@ -88,7 +89,7 @@ Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/vda1       83874796 76307692   7567104  91% /
 EOS
 
-is cpev()->_disk_space_check(), 1, "_disk_space_check ok - /usr/local/cpanel 2 G";
+is( cpev()->_disk_space_check(), 1, "_disk_space_check ok - /usr/local/cpanel 2 G" );
 
 $usr_local_cpanel = 1.4 * 1_024**2;     # 2 G in K
 

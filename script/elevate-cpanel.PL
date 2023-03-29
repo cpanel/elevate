@@ -191,7 +191,11 @@ use Cpanel::Version::Tiny       ();
 use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
-use Elevate::Motd ();
+# FatPack these packages
+use Elevate::Constants  ();
+use Elevate::Motd       ();
+use Elevate::Service    ();
+use Elevate::Roles::Run ();    # used as parent, but ensure fatpack
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 6;
@@ -204,11 +208,6 @@ use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 use constant ELEVATE_BACKUP_DIR   => "/root/.elevate.backup";
-use constant SHORT_SERVICE_NAME   => 'elevate-cpanel';
-use constant SERVICE_NAME         => SHORT_SERVICE_NAME . '.service';
-use constant SERVICE_FILE         => '/etc/systemd/system/' . SERVICE_NAME;
-use constant LOG_FILE             => q[/var/log/elevate-cpanel.log];
-use constant PID_FILE             => q[/var/run/elevate-cpanel.pid];
 
 use constant VALID_STAGES        => 5;
 use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
@@ -325,6 +324,14 @@ use constant {
 use constant UPGRADE_TO_ALMALINUX => q[AlmaLinux];
 use constant UPGRADE_TO_ROCKY     => q[Rocky];
 
+use Simple::Accessor qw{
+  service
+};
+
+use parent qw{
+  Elevate::Roles::Run
+};
+
 sub _OPTIONS {
     return qw(
       service start clean continue manual-reboots status log check:s
@@ -335,6 +342,12 @@ sub _OPTIONS {
 }
 
 exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
+
+sub _build_service ($self) {
+
+    # FIXME weaken
+    return Elevate::Service->new( cpev => $self );
+}
 
 sub run ($self) {
 
@@ -361,8 +374,8 @@ sub run ($self) {
         return $self->check_status();
     }
 
-    return do_cleanup()      if $self->getopt('clean');
-    return $self->do_check() if defined $self->getopt('check');
+    return $self->do_cleanup() if $self->getopt('clean');
+    return $self->do_check()   if defined $self->getopt('check');
 
     my $stage = get_stage();
 
@@ -460,9 +473,9 @@ sub upgrade_to_pretty_name ($self) {    # used by output messages
 sub monitor_upgrade {
     my $stage = get_stage();
 
-    INFO( "# Monitoring existing upgrade (stage=$stage) process via: tail -f " . LOG_FILE );
+    INFO( "# Monitoring existing upgrade (stage=$stage) process via: tail -f " . Elevate::Constants::LOG_FILE );
 
-    exec( qw{/usr/bin/tail -n40 -F }, LOG_FILE );
+    exec( qw{/usr/bin/tail -n40 -F }, Elevate::Constants::LOG_FILE );
 }
 
 sub start ($self) {
@@ -489,7 +502,7 @@ sub start ($self) {
 
     $self->give_last_chance();
 
-    system touch => LOG_FILE;
+    system touch => Elevate::Constants::LOG_FILE;
 
     bump_stage();    # init stage number to 1
 
@@ -545,8 +558,8 @@ EOS
 
 sub continue_elevation ($self) {
 
-    if ( _is_service_active(SERVICE_NAME) ) {
-        WARN( "The service " . SERVICE_NAME . " is still running. Please wait for it to finish before restarting it." );
+    if ( $self->service->is_active ) {
+        WARN( "The service " . $self->service->name . " is still running. Please wait for it to finish before restarting it." );
         return;
     }
 
@@ -562,19 +575,18 @@ sub continue_elevation ($self) {
     else {
         # when restarting leapp process the restart process can hang for a long time
         #   return earlier to let the user tail the service log
-        ssystem( qw{/usr/bin/systemctl restart}, SERVICE_NAME );
+        $self->service->restart;
         exit(0);
     }
 }
 
-sub do_cleanup {
-    ssystem( '/usr/bin/systemctl', 'stop',    SERVICE_NAME );
-    ssystem( '/usr/bin/systemctl', 'disable', SERVICE_NAME );
-    unlink SERVICE_FILE;
+sub do_cleanup ($self) {
 
-    ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+    $self->service->remove;
+
+    $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
     unlink ELEVATE_STAGE_FILE;
-    unlink PID_FILE;
+    unlink Elevate::Constants::PID_FILE;
 
     unlink OVH_MONITORING_TOUCH_FILE;
 
@@ -583,7 +595,7 @@ sub do_cleanup {
     return 0;
 }
 
-sub run_service_and_notify ($self) {
+sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need Notify
 
     # check it outside the eval block to avoid notification from the command line
     $self->check_and_create_pidfile();
@@ -606,7 +618,7 @@ sub run_service_and_notify ($self) {
             $self->_notify_success();
         }
 
-        reboot() if $out == REBOOT_NEEDED;
+        $self->reboot() if $out == REBOOT_NEEDED;
     }
     else {
         my $error = $@ // q[Unknown error];
@@ -621,7 +633,7 @@ sub run_service_and_notify ($self) {
 }
 
 sub check_and_create_pidfile ($self) {
-    my $upid = Cpanel::PID->new( { pid_file => PID_FILE } );
+    my $upid = Cpanel::PID->new( { pid_file => Elevate::Constants::PID_FILE } );
 
     if ( $upid->create_pid_file() != 1 ) {
         die qq[Another process is already running. Please wait for it to finish.\n];
@@ -782,9 +794,9 @@ sub _run_service ($self) {
 
 }
 
-sub do_check ($self) {
+sub do_check ($self) {    # Check.pm
 
-    if ( _is_service_active(SERVICE_NAME) ) {
+    if ( $self->service->is_active ) {
         WARN("An elevation process is already in progress.");
         return 1;
     }
@@ -885,7 +897,7 @@ sub run_stage_1 ($self) {
 
     # do not leave cruft behing when aborting
     my $abort = sub {
-        do_cleanup();
+        $self->do_cleanup();
         exit 42;    ## no critic(Cpanel::NoExitsFromSubroutines) catching signals
     };
 
@@ -897,16 +909,16 @@ sub run_stage_1 ($self) {
     if ( $self->blockers_check() ) {
 
         # we have not yet install the service yet, clear the stage file
-        unlink ELEVATE_STAGE_FILE;
+        $self->service->remove;
         return 1;
     }
 
-    print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . SERVICE_NAME . " service" );
+    print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . $self->service->name . " service" );
 
     # store 'upgrade_to' early so later stages can access it
     update_stage_file( { upgrade_to => $self->upgrade_to } );
 
-    return $self->install_cpanel_elevate_service();
+    return $self->service->install();
 }
 
 =head2 run_stage_2
@@ -923,13 +935,13 @@ sub run_stage_2 ($self) {
 
     $self->elevation_startup_marker($sum);
 
-    ssystem(qw{/usr/bin/yum clean all});
-    ssystem_and_die(qw{/scripts/update-packages});
-    ssystem_and_die(qw{/usr/bin/yum -y update});
+    $self->ssystem(qw{/usr/bin/yum clean all});
+    $self->ssystem_and_die(qw{/scripts/update-packages});
+    $self->ssystem_and_die(qw{/usr/bin/yum -y update});
 
-    disable_all_cpanel_services();
+    $self->disable_all_cpanel_services();
 
-    setup_outdated_services();
+    $self->setup_outdated_services();
 
     system touch => CHKSRVD_SUSPEND_FILE;
 
@@ -967,16 +979,16 @@ sub run_stage_3 ($self) {
                     unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
 
                         # provides leapp-data-almalinux & leapp-data-rocky
-                        ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+                        $self->ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
                     }
 
                     my $leap_data_pkg = $self->upgrade_to_rocky() ? 'leapp-data-rocky' : 'leapp-data-almalinux';
 
                     unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
-                        ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
+                        $self->ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
                     }
                     if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-                        ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
+                        $self->ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
                     }
 
                     return;
@@ -985,8 +997,8 @@ sub run_stage_3 ($self) {
 
             $self->run_once(
                 rmod_ln => sub {
-                    ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
-                    ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+                    $self->ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
+                    $self->ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
 
                     return;
                 }
@@ -997,14 +1009,14 @@ sub run_stage_3 ($self) {
 
             # remove all arch cpanel packages
             # This also potentially removes
-            ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
+            $self->ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
 
             # remove all ea- packages
-            ssystem(q{/usr/bin/yum -y erase ea-*});
+            $self->ssystem(q{/usr/bin/yum -y erase ea-*});
 
             foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
                 next unless Cpanel::Pkgr::is_installed($rpm);
-                ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
+                $self->ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
             }
 
             # Avoids having to do preupgrade.
@@ -1014,7 +1026,7 @@ sub run_stage_3 ($self) {
         }
     );
 
-    _do_leapp_upgrade();
+    $self->_do_leapp_upgrade();
 
     WARN(<<'EOS');
 Rebooting for distro upgrade. This will take over 10 minutes to run.
@@ -1069,18 +1081,18 @@ sub run_stage_4 ($self) {
     $self->run_once(
         sysup => sub {
             Cpanel::Yum::Vars::install();
-            ssystem_and_die(qw{/usr/bin/dnf clean all});
+            $self->ssystem_and_die(qw{/usr/bin/dnf clean all});
 
             # no failures once already installed: no need to check for the epel-release version
-            ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
+            $self->ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
 
-            ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
+            $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
             {
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
                 ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
             }
-            ssystem(qw{/usr/bin/dnf -y --allowerasing update});
-            ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
+            $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+            $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
 
             return;
         }
@@ -1088,9 +1100,9 @@ sub run_stage_4 ($self) {
 
     $self->run_once(
         restore_cpanel_services => sub {
-            enable_all_cpanel_services();
-            stop_services_before_upcp();
-            clear_cpanel_caches();
+            $self->enable_all_cpanel_services();
+            $self->stop_services_before_upcp();
+            $self->clear_cpanel_caches();
 
             return;
         }
@@ -1105,12 +1117,12 @@ sub run_stage_4 ($self) {
             {
                 # MySQL server is not upgraded at this point - treat the upcp like a fresh install
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;
-                ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+                $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
             }
 
             # cleanup the license: cpsanitycheck.so binary is compiled for a different distro
-            ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/cpsanitycheck.so});
-            ssystem(qw{/usr/local/cpanel/cpkeyclt});
+            $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/cpsanitycheck.so});
+            $self->ssystem(qw{/usr/local/cpanel/cpkeyclt});
 
             return;
         }
@@ -1124,12 +1136,12 @@ sub run_stage_4 ($self) {
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
 
     INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
-    ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
+    $self->ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
 
     # run upcp a second time as we had to run it before with CPANEL_BASE_INSTALL=1
     $self->run_once(
         upcp_second_run => sub {
-            ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+            $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
         }
     );
 
@@ -1147,9 +1159,8 @@ sub run_stage_5 ($self) {
     return 1 if $self->post_upgrade_check();
 
     # we cannot stop the service ( ourself )
-    ssystem( '/usr/bin/systemctl', 'disable', SERVICE_NAME );
-    unlink SERVICE_FILE;
-    unlink PID_FILE;
+    $self->service->disable;
+    unlink Elevate::Constants::PID_FILE;
     unlink CHKSRVD_SUSPEND_FILE;
     File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
     Elevate::Motd->cleanup();
@@ -1171,10 +1182,10 @@ sub run_stage_5 ($self) {
 
     $self->elevation_success_marker();
 
-    restore_outdated_services();
+    $self->restore_outdated_services();
 
     INFO("Updating all packages before final reboot");
-    ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+    $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
@@ -1405,7 +1416,7 @@ sub remove_kernelcare_if_needed {
     return 1;
 }
 
-sub restore_kernel_care {
+sub restore_kernel_care ($self) {
     return unless read_stage_file('reinstall')->{'kernelcare'};
 
     INFO("Restoring kernelcare");
@@ -1422,12 +1433,12 @@ sub restore_kernel_care {
     }
 
     INFO("Running kernelcare installer");
-    ssystem_and_die( '/usr/bin/bash' => $installer_script );
+    $self->ssystem_and_die( '/usr/bin/bash' => $installer_script );
 
     unlink $installer_script;
 
     INFO("Updating kernelcare");
-    ssystem(qw{ /usr/bin/kcarectl --update });
+    $self->ssystem(qw{ /usr/bin/kcarectl --update });
 
     return;
 }
@@ -1455,7 +1466,7 @@ sub print_box ($message) {
     return;
 }
 
-sub setup_outdated_services {
+sub setup_outdated_services ($self) {
 
     my $content = '';
 
@@ -1463,7 +1474,7 @@ sub setup_outdated_services {
         $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
     }
 
-    my $service_name = SHORT_SERVICE_NAME;
+    my $service_name = $self->service->short_name;
 
     return if $content =~ qr{^${service_name}$}m;
 
@@ -1481,13 +1492,13 @@ sub setup_outdated_services {
     return 1;
 }
 
-sub restore_outdated_services {
+sub restore_outdated_services ($self) {
 
     return unless -e IGNORE_OUTDATED_SERVICES_FILE;
 
     my $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
 
-    my $service_name = SHORT_SERVICE_NAME;
+    my $service_name = $self->service->short_name;
 
     if ( $content =~ s{^$service_name$}{}gm ) {
         1 while chomp $content;
@@ -1505,32 +1516,32 @@ sub restore_outdated_services {
     return;
 }
 
-sub enable_all_cpanel_services {
+sub enable_all_cpanel_services ($self) {
     my $services = read_stage_file( 'disabled_cpanel_services', [] );
     unless (@$services) {
         WARN('No cPanel services were disabled!');
     }
 
     foreach my $service (@$services) {
-        ssystem( '/usr/bin/systemctl', 'enable', $service );
-        ssystem( '/usr/bin/systemctl', 'stop',   $service );
+        $self->ssystem( '/usr/bin/systemctl', 'enable', $service );
+        $self->ssystem( '/usr/bin/systemctl', 'stop',   $service );
     }
 
     return;
 }
 
-sub stop_services_before_upcp {
+sub stop_services_before_upcp ($self) {
 
     # make sure we stop some extra services before updating them
 
-    ssystem(qw{/scripts/restartsrv_tailwatchd --stop});
-    ssystem(qw{/scripts/restartsrv_dovecot    --stop});
-    ssystem(qw{/scripts/restartsrv_exim       --stop});
+    $self->ssystem(qw{/scripts/restartsrv_tailwatchd --stop});
+    $self->ssystem(qw{/scripts/restartsrv_dovecot    --stop});
+    $self->ssystem(qw{/scripts/restartsrv_exim       --stop});
 
     return;
 }
 
-sub disable_all_cpanel_services {
+sub disable_all_cpanel_services ($self) {
 
     my @cpanel_services = qw/
       cpanel cpdavd cpgreylistd cphulkd cpipv6
@@ -1545,7 +1556,7 @@ sub disable_all_cpanel_services {
     foreach my $service (@cpanel_services) {
         next unless _is_service_enabled($service);
 
-        ssystem( qw{/usr/bin/systemctl disable --now}, $service );
+        $self->ssystem( qw{/usr/bin/systemctl disable --now}, $service );
         push @disabled_services, $service;
     }
     update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
@@ -1573,38 +1584,6 @@ sub disable_known_yum_repositories {
     return;
 }
 
-sub _is_service_active ($service) {
-
-    # cannot trust: `systemctl is-active` with a one-shot service
-
-    my $is_active;
-    Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
-    $is_active = 1 if $? == 0;
-
-    my $info = Cpanel::RestartSrv::Systemd::get_service_info_via_systemd($service);
-    $info->{'ActiveState'} //= '';
-    $info->{'SubState'}    //= '';
-
-    $is_active = 1 if $info->{'ActiveState'} eq 'activating' && $info->{'SubState'} eq 'start';
-
-    if ( $is_active && $info->{'SubState'} ne 'exited' ) {
-        return 1;
-    }
-
-    return 0;
-}
-
-sub _is_service_enabled ($service) {
-
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-enabled}, $service ) // '';
-
-    chomp $out;
-
-    return 1 if $out eq 'enabled';
-
-    return 0;
-}
-
 sub restore_ea4_profile ($self) {
 
     my $stash      = read_stage_file();
@@ -1622,7 +1601,7 @@ sub restore_ea4_profile ($self) {
         return;
     }
 
-    ssystem( '/usr/local/bin/ea_install_profile', '--install', $json );
+    $self->ssystem( '/usr/local/bin/ea_install_profile', '--install', $json );
 
     if ( my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} ) {
         if ( scalar keys $dropped_pkgs->%* ) {
@@ -1646,8 +1625,8 @@ sub restore_ea_addons ($self) {
     INFO("Restoring ea-nginx");
 
     # ea profile restore it in a broken state - remove & reinstall
-    ssystem(qw{/usr/bin/rpm -e --nodeps ea-nginx});
-    ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
+    $self->ssystem(qw{/usr/bin/rpm -e --nodeps ea-nginx});
+    $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
 
     return;
 }
@@ -1745,13 +1724,13 @@ sub backup_ea_addons ($self) {
     return;
 }
 
-sub _do_leapp_upgrade {
+sub _do_leapp_upgrade ($self) {
 
     INFO("Running leapp upgrade");
 
     my $ok = eval {
         local $ENV{LEAPP_OVL_SIZE} = 3000;
-        ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
+        $self->ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
         1;
     };
 
@@ -2015,7 +1994,7 @@ sub post_leapp_update_restore ($self) {
             my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
             if (@$yum_arch_plugins) {
                 INFO('Restoring cPanel yum-based-plugins');
-                ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
+                $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
             }
 
             return;
@@ -2161,7 +2140,7 @@ sub _get_pecl_installed_for ($bin) {
     return $installed;
 }
 
-sub clear_cpanel_caches {
+sub clear_cpanel_caches ($self) {
 
     my @dirs = (
 
@@ -2175,7 +2154,7 @@ sub clear_cpanel_caches {
     };
 
     foreach my $d (@dirs) {
-        ssystem( qw{/usr/bin/rm -rf}, $d );
+        $self->ssystem( qw{/usr/bin/rm -rf}, $d );
     }
 
     unlink $_ foreach @files;
@@ -2291,7 +2270,7 @@ sub remove_rpms_from_repos (@repo_list) {
 
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
-    ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
+    __PACKAGE__->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
 
     return;
 }
@@ -2326,7 +2305,7 @@ sub capture_jetbackup_state {
     return;
 }
 
-sub reinstall_jetbackup {
+sub reinstall_jetbackup ($self) {
     my $data = read_stage_file('reinstall')->{'jetbackup'};
     return unless ref $data && ref $data->{packages};
 
@@ -2334,7 +2313,7 @@ sub reinstall_jetbackup {
 
     my $tier     = $data->{tier};
     my @packages = $data->{packages}->@*;
-    ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
+    $self->ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
 
     return;
 }
@@ -2349,10 +2328,10 @@ sub capture_influxdb_state {
     return;
 }
 
-sub reinstall_influxdb {
+sub reinstall_influxdb ($self) {
     return unless read_stage_file('reinstall')->{'influxdb'};
     INFO("Re-installing telegraf for influxdb");
-    ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
+    $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
 
     return;
 }
@@ -2361,7 +2340,7 @@ sub has_nixstats {
     return -e q[/etc/systemd/system/nixstatsagent.service] || -e q[/usr/local/bin/nixstatsagent];
 }
 
-sub remove_nixstats {
+sub remove_nixstats ($self) {
 
     return unless has_nixstats();
 
@@ -2390,8 +2369,8 @@ sub remove_nixstats {
 
     my $is_enabled = _is_service_enabled($service);
 
-    ssystem( qw{/usr/bin/systemctl disable}, $service ) if $is_enabled;
-    ssystem( qw{/usr/bin/systemctl stop},    $service );
+    $self->ssystem( qw{/usr/bin/systemctl disable}, $service ) if $is_enabled;
+    $self->ssystem( qw{/usr/bin/systemctl stop},    $service );
 
     my $pip;
 
@@ -2403,7 +2382,7 @@ sub remove_nixstats {
     }
 
     if ($pip) {
-        ssystem( $pip, qw{uninstall -y nixstatsagent} );
+        $self->ssystem( $pip, qw{uninstall -y nixstatsagent} );
     }
     else {
         ERROR("Cannot remove nixstatsagent: cannot find pip binary");
@@ -2419,7 +2398,7 @@ sub remove_nixstats {
     return;
 }
 
-sub restore_nixstats {
+sub restore_nixstats ($self) {
     my $data = read_stage_file('reinstall')->{'nixstats'};
     return unless ref $data;
 
@@ -2433,7 +2412,7 @@ sub restore_nixstats {
 
     my $installer_script = _fetch_a_script( 'https://www.nixstats.com/nixstatsagent.sh', 'nixstatsagent' );
 
-    ssystem( '/usr/bin/bash', $installer_script, $user );
+    $self->ssystem( '/usr/bin/bash', $installer_script, $user );
 
     unlink $installer_script;
 
@@ -2444,7 +2423,7 @@ sub restore_nixstats {
     my $service = q[nixstatsagent];
 
     # Stopping the agent
-    ssystem( qw{/usr/bin/systemctl stop}, $service );
+    $self->ssystem( qw{/usr/bin/systemctl stop}, $service );
 
     # Restoring backup files
     my $to_restore = $data->{to_restore};
@@ -2457,16 +2436,16 @@ sub restore_nixstats {
 
     # restoring the state of the service before elevation
     if ( $data->{service_enabled} ) {
-        ssystem( qw{/usr/bin/systemctl enable}, $service );
+        $self->ssystem( qw{/usr/bin/systemctl enable}, $service );
     }
     else {    # leave it disabled
-        ssystem( qw{/usr/bin/systemctl disable}, $service );
+        $self->ssystem( qw{/usr/bin/systemctl disable}, $service );
     }
 
     # do not really need to start/stop the daemon, we are about to reboot
     #   but start it for sanity purpose
 
-    ssystem( qw{/usr/bin/systemctl start}, $service );
+    $self->ssystem( qw{/usr/bin/systemctl start}, $service );
     if ( $? == 0 ) {
         INFO("nixstatsagent restored");
     }
@@ -2496,19 +2475,19 @@ sub remove_wordpress_toolkit {
     return;
 }
 
-sub reinstall_wordpress_toolkit {
+sub reinstall_wordpress_toolkit ($self) {
     return unless read_stage_file('reinstall')->{'wordpress_toolkit'};
 
     INFO("Restoring Wordpress Toolkit");
     my $installer_script = _fetch_a_script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );
 
-    ssystem( '/usr/bin/bash', $installer_script );
+    $self->ssystem( '/usr/bin/bash', $installer_script );
     unlink $installer_script;
 
     return;
 }
 
-sub pre_install_check_litespeed {
+sub pre_install_check_litespeed ($self) {
 
     remove_from_stage_file('reinstall.litespeed');
 
@@ -2518,7 +2497,7 @@ sub pre_install_check_litespeed {
     INFO("LiteSpeed is installed");
 
     # check if the license is valid before updating
-    ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
+    $self->ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
     my $has_valid_license = $? == 0 ? 1 : 0;
 
     my $data = {
@@ -2530,7 +2509,7 @@ sub pre_install_check_litespeed {
     return;
 }
 
-sub post_install_check_litespeed {
+sub post_install_check_litespeed ($self) {
     my $data = read_stage_file('reinstall')->{'litespeed'};
     return unless ref $data;
 
@@ -2538,23 +2517,25 @@ sub post_install_check_litespeed {
 
     # check the current license
     if ( $data->{has_valid_license} ) {
-        ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
+        $self->ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
         ERROR("LiteSpeed license is not valid. Check /usr/local/lsws/conf/serial.no") if $? != 0;
     }
 
-    ssystem(qw{/usr/bin/systemctl restart lsws});
+    $self->ssystem(qw{/usr/bin/systemctl restart lsws});
 
     return;
 }
 
-sub reinstall_digital_ocean_droplet_agent {
+sub reinstall_digital_ocean_droplet_agent ($self) {
     return unless Cpanel::Pkgr::is_installed('droplet-agent');
     return unless -f '/etc/yum.repos.d/droplet-agent.repo';
 
-    ssystem(qw{/usr/bin/yum -y reinstall droplet-agent});
+    $self->ssystem(qw{/usr/bin/yum -y reinstall droplet-agent});
+
+    return;
 }
 
-sub remove_imunify_360 {
+sub remove_imunify_360 ($self) {
 
     # One of these 2 rpms should be in place or imunify isn't really functioning.
     my $im360 = Cpanel::Pkgr::is_installed('imunify360-firewall');
@@ -2575,7 +2556,7 @@ sub remove_imunify_360 {
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
-    ssystem( '/usr/bin/bash', $installer_script, '--uninstall' );
+    $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' );
     unlink $installer_script;
 
     # Cleanup any lingering packages.
@@ -2584,12 +2565,12 @@ sub remove_imunify_360 {
     return;
 }
 
-sub reinstall_imunify_360 {
+sub reinstall_imunify_360 ($self) {
     my $product_type = read_stage_file('reinstall')->{'imunify'} or return;
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
-    ssystem( '/usr/bin/bash', $installer_script );
+    $self->ssystem( '/usr/bin/bash', $installer_script );
     unlink $installer_script;
 
     return;
@@ -2606,7 +2587,7 @@ sub post_upgrade_check ($self) {
     }
 
     # call a cpanel binary
-    ssystem_and_die(qw{/usr/local/cpanel/cpanel -V});
+    $self->ssystem_and_die(qw{/usr/local/cpanel/cpanel -V});
 
     return 0;
 }
@@ -2686,8 +2667,10 @@ sub restore_perl_xs ($path) {
     if ( $path eq DISTRO_PERL_XS_PATH ) {
         my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
-        my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-        ssystem(@cmd);
+        if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
+            my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
+            __PACKAGE__->ssystem(@cmd);
+        }
     }
 
     my $cpan_modules = $stash->{$path}->{'cpan'} // return;
@@ -3079,7 +3062,7 @@ sub _blocker_disk_space ($self) {
 }
 
 sub _blocker_system_update ($self) {
-    return 0 if _system_update_check();
+    return 0 if $self->_system_update_check();
 
     return $self->has_blocker( 101, q[System is not up to date] );
 }
@@ -3553,7 +3536,7 @@ sub merge_grub_directories_if_needed ($self) {
     };
     WARN("Unable to copy the contents of \"$grub_bak\" into \"$grub2_dir\": $@") if $@;
 
-    my $log_file = LOG_FILE;
+    my $log_file = Elevate::Constants::LOG_FILE;
     add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
         After converting "$grub_dir" from a directory to a symlink to
         "$grub2_dir", the upgrade process chose not to copy $skipped_copy
@@ -3605,12 +3588,12 @@ sub _blockers_check ($self) {
     return 0;
 }
 
-sub _system_update_check() {
+sub _system_update_check ($self) {
 
     INFO("Checking if your system is up to date: ");
-    ssystem(qw{/usr/bin/yum clean all});
+    $self->ssystem(qw{/usr/bin/yum clean all});
 
-    my $out = ssystem_capture_output(qw{/usr/bin/yum check-update -q});
+    my $out = $self->ssystem_capture_output(qw{/usr/bin/yum check-update -q});
 
     if ( $out->{status} != 0 ) {
 
@@ -3631,7 +3614,7 @@ sub _system_update_check() {
     }
 
     INFO("Checking /scripts/sysup");
-    if ( ssystem("/scripts/sysup") != 0 ) {
+    if ( $self->ssystem("/scripts/sysup") != 0 ) {
         WARN("/scripts/sysup failed, please fix it and rerun it before upgrading.");
         return;
     }
@@ -3941,53 +3924,6 @@ sub setup_answer_file {
     return;
 }
 
-sub install_cpanel_elevate_service ($self) {
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    INFO( "Installing service " . SERVICE_NAME . " which will upgrade the server to " . $pretty_distro_name );
-    open( my $fh, '>', SERVICE_FILE ) or die;
-
-    # Works only in systemd v240 and newer!
-    # StandardOutput=append:/var/log/elevate-cpanel.log
-    # StandardError=inherit
-
-    my $log_file = LOG_FILE;
-
-    print {$fh} <<~"EOF";
-        [Unit]
-        Description=Upgrade process from CentOS 7 to $pretty_distro_name.
-        After=network.target network-online.target
-
-        [Service]
-        Type=simple
-        # want to run it once per boot time
-        RemainAfterExit=yes
-        ExecStart=/usr/local/cpanel/scripts/elevate-cpanel --service
-
-        [Install]
-        WantedBy=multi-user.target
-        EOF
-
-    close $fh;
-
-    ssystem_and_die( '/usr/bin/systemctl', 'daemon-reload' );
-    ssystem_and_die( '/usr/bin/systemctl', 'enable', SERVICE_NAME );
-    bump_stage();
-
-    my $pid = fork();
-    die qq[Failed to fork: $!] unless defined $pid;
-    if ($pid) {
-        INFO( 'Starting service ' . SERVICE_NAME );
-        return 0;
-    }
-    else {
-        unlink(PID_FILE);    # release the pid so the service can use it
-        ssystem_and_die( '/usr/bin/systemctl', 'start', SERVICE_NAME );
-        exit(0);
-    }
-}
-
 # TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.
 
 sub read_stage_file ( $k = undef, $default = {} ) {
@@ -4059,7 +3995,7 @@ sub _update_stage_number ($stage_id) {
     return $stage_id;
 }
 
-sub reboot {
+sub reboot ($self) {
     bump_stage();
 
     # protection
@@ -4080,7 +4016,7 @@ sub reboot {
         return 0;
     }
 
-    my $exit = ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
+    my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");
 }
 
@@ -4094,82 +4030,8 @@ sub read_redhat_release() {
     return $first_line;
 }
 
-sub ssystem_capture_output (@args) {
-
-    my %opts;
-    if ( ref $args[0] ) {
-        my $ropts = shift @args;
-        %opts = %$ropts;
-    }
-    $opts{should_capture_output} = 1;
-
-    return _ssystem( \@args, %opts );
-}
-
-sub ssystem (@args) {
-
-    my %opts;
-    if ( ref $args[0] ) {
-        my $ropts = shift @args;
-        %opts = %$ropts;
-    }
-
-    return _ssystem( \@args, %opts );
-}
-
-sub _ssystem ( $command, %opts ) {
-    my @args = @{ $command // [] };
-    INFO( "Running: " . join( " ", @args ) );
-    INFO();    # Buffer so they can more easily read the output.
-
-    # emulate shell behavior of system()
-    if ( scalar @args == 1 && $args[0] =~ m/[\$&*(){}\[\]'";\\|?<>~`\n]/ ) {
-        unshift @args, qw(/usr/bin/bash -c);
-    }
-
-    my $capture_output = { stdout => [], stderr => [] };
-    my $program        = shift @args;
-    my ( $callback_out, $callback_err ) = map {
-        my $label = $_;
-        Cpanel::IOCallbackWriteLine->new(
-            sub ($line) {
-                chomp $line;
-                INFO($line);
-                if ( $opts{should_capture_output} ) {
-                    push $capture_output->{$label}->@*, $line;
-                }
-                return;
-            }
-        )
-    } qw(stdout stderr);
-    my $sr = Cpanel::SafeRun::Object->new(
-        program      => $program,
-        args         => [@args],
-        stdout       => $callback_out,
-        stderr       => $callback_err,
-        timeout      => 0,
-        keep_env     => $opts{keep_env} // 0,
-        read_timeout => 0,
-    );
-    INFO();    # Buffer so they can more easily read the output.
-
-    $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
-
-    if ( $opts{should_capture_output} ) {
-        $capture_output->{status} = $?;
-        return $capture_output;
-    }
-
-    return $?;
-}
-
-sub ssystem_and_die (@args) {
-    ssystem(@args) or return 0;
-    die "command failed. Fix it and run command.";
-}
-
 sub _init_logger ( $self, $debug_level = 'DEBUG' ) {
-    my $log_file = LOG_FILE;
+    my $log_file = Elevate::Constants::LOG_FILE;
 
     my $config = <<~"EOF";
         log4perl.appender.File=Log::Log4perl::Appender::File
