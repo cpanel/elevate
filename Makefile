@@ -31,6 +31,7 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 				       --leave-broken \
 				       script/elevate-cpanel.PL
 	@mv script/elevate-cpanel.PL.static elevate-cpanel
+	MARKER="`cat maint/marker`" perl -pi -e 's|^(#!/usr/local/cpanel/3rdparty/bin/perl)|$$1\n\n$$ENV{MARKER}\n|' elevate-cpanel
 	@perltidy elevate-cpanel && mv elevate-cpanel.tdy elevate-cpanel
 
 build:
