@@ -304,6 +304,7 @@ use constant VETTED_YUM_REPO => qw{
   imunify360
   imunify360-ea-php-hardened
 }, DISABLE_MYSQL_YUM_REPOS;
+
 # XXX TODO verify that imunify reponames are in fact correct.
 # As of now they are straight up guesses.
 
@@ -3060,13 +3061,13 @@ sub _yum_status_hr_contains_blocker ($status_hr) {
     my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO};
     foreach my $blocked (@blockers) {
         return 1 if $status_hr->{$blocked};
-    };
+    }
     return 0;
 }
 
 sub _blocker_invalid_yum_repos ($self) {
     my $status_hr = $self->_check_yum_repos();
-    if  ( _yum_status_hr_contains_blocker($status_hr) ) {
+    if ( _yum_status_hr_contains_blocker($status_hr) ) {
         my $msg = '';
         if ( $status_hr->{'INVALID_SYNTAX'} ) {
             $msg .= <<~'EOS';
