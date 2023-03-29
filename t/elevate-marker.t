@@ -56,12 +56,14 @@ my $data = eval { Cpanel::JSON::LoadFile( $marker_file->path ) } // {};
 
 is $data, {
     '_elevate_process' => {
-        'cpanel_build'        => match qr{^[\d.]+$}a,
-        'finished_at'         => match qr/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}:\d{1,2}$/a,
-        'script_md5'          => 'deadbeef',
-        'started_at'          => match qr/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}:\d{1,2}$/a,
-        'redhat_release_pre'  => 'RHEL Before C7',
-        'redhat_release_post' => 'RHEL After A8',
+        'cpanel_build'           => match qr{^[\d.]+$}a,
+        'finished_at'            => match qr/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}:\d{1,2}$/a,
+        'script_md5'             => 'deadbeef',
+        'started_at'             => match qr/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}:\d{1,2}$/a,
+        'redhat_release_pre'     => 'RHEL Before C7',
+        'redhat_release_post'    => 'RHEL After A8',
+        'elevate_version_start'  => cpev::VERSION,
+        'elevate_version_finish' => cpev::VERSION,
     }
   },
   "stage file was stored to marker location with some data"
