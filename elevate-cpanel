@@ -661,6 +661,7 @@ use Simple::Accessor qw{
   service
 };
 
+# after Simple::Accessor
 use parent qw{
   Elevate::Roles::Run
 };

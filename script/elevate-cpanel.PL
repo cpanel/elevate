@@ -308,6 +308,7 @@ use constant VETTED_YUM_REPO => qw{
   imunify360
   imunify360-ea-php-hardened
 }, DISABLE_MYSQL_YUM_REPOS;
+
 # XXX TODO verify that imunify reponames are in fact correct.
 # As of now they are straight up guesses.
 
@@ -328,6 +329,7 @@ use Simple::Accessor qw{
   service
 };
 
+# after Simple::Accessor
 use parent qw{
   Elevate::Roles::Run
 };
