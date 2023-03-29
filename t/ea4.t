@@ -31,7 +31,7 @@ sub startup : Test(startup) ($self) {
 
     $self->{mock_cpev} = Test::MockModule->new('cpev');
     $self->{mock_cpev}->redefine(
-        ssystem => sub (@cmd) {
+        ssystem => sub ( $, @cmd ) {
             note "mocked ssystem: ", join( ' ', @cmd );
             $self->{last_ssystem_call} = [@cmd];
             return;
@@ -70,6 +70,14 @@ sub setup : Test(setup) ($self) {
 sub teardown : Test( teardown => 1 ) ($self) {
 
     no_messages_seen();
+
+    return;
+}
+
+sub shutdown : Test( shutdown ) ($self) {
+
+    undef $stage_file;
+    delete $self->{mock_profile};
 
     return;
 }
