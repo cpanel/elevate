@@ -24,15 +24,15 @@ require $FindBin::Bin . '/../elevate-cpanel';
 
 my $mock_log_file = Test::MockFile->file('/var/log/elevate-cpanel.log');
 
-my $cpev = bless {}, 'cpev';
+my $cpev = cpev->new;
 $cpev->_init_logger;
 
-is cpev::ssystem("/bin/true"),                       0, q[ssystem( "/bin/true" ) == 0];
-isnt my $status_false = cpev::ssystem("/bin/false"), 0, q[ssystem( "/bin/false" ) != 0];
+is( cpev->ssystem("/bin/true"), 0, q[ssystem( "/bin/true" ) == 0] );
+isnt( my $status_false = cpev->ssystem("/bin/false"), 0, q[ssystem( "/bin/false" ) != 0] );
 
-is cpev::ssystem(qw{ /bin/echo 12345}), 0, q[ssystem( "echo 12345" ) == 0];
+is( cpev->ssystem(qw{ /bin/echo 12345}), 0, q[ssystem( "echo 12345" ) == 0] );
 
-my $out = cpev::ssystem_capture_output("/bin/true");
+my $out = cpev->ssystem_capture_output("/bin/true");
 is $out, {
     status => 0,
     stdout => [],
@@ -41,7 +41,7 @@ is $out, {
   q[ssystem_capture_output( "/bin/true" )]
   or diag explain $out;
 
-$out = cpev::ssystem_capture_output("/bin/false");
+$out = cpev->ssystem_capture_output("/bin/false");
 is $out, {
     status => $status_false,
     stdout => [],
@@ -50,7 +50,7 @@ is $out, {
   q[ssystem_capture_output( "/bin/false" )]
   or diag explain $out;
 
-$out = cpev::ssystem_capture_output(qw{/bin/echo 12345});
+$out = cpev->ssystem_capture_output(qw{/bin/echo 12345});
 is $out, {
     'status' => 0,
     'stderr' => [],
@@ -59,7 +59,7 @@ is $out, {
   q[ssystem_capture_output( "/bin/echo 12345" )]
   or diag explain $out;
 
-$out = cpev::ssystem_capture_output( qw{ /bin/echo -e }, 'a\nb\nc' );
+$out = cpev->ssystem_capture_output( qw{ /bin/echo -e }, 'a\nb\nc' );
 is $out, {
     'status' => 0,
     'stderr' => [],
