@@ -1375,7 +1375,7 @@ sub monitor_imunify_feature_install ( $feature, $log_file ) {
             return 1;
         }
         if ( $status ne 'installing' ) {
-            FATAL("Failed to install immuinfy 360 feature $feature ($status)");
+            FATAL("Failed to install imunify 360 feature $feature ($status)");
             FATAL("See $log_file for more information");
             return 0;
         }
