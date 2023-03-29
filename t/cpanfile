@@ -8,6 +8,7 @@ requires "HTTP::Tiny::UA::Response";
 requires "Log::Log4perl";
 requires "Moo";
 requires "Params::Util";
+requires "Simple::Accessor";
 requires "Sub::Identify";
 requires "Net::CIDR";
 

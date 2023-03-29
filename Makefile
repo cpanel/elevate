@@ -4,7 +4,8 @@ GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
 PERL_BIN=/usr/local/cpanel/3rdparty/perl/536/bin
 
-test: elevate-cpanel
+test:
+	-$(MAKE) elevate-cpanel
 	perl -cw elevate-cpanel
 	/usr/local/cpanel/3rdparty/bin/prove t/00_load.t
 	/usr/local/cpanel/3rdparty/bin/yath test -j8 t/*.t
@@ -20,6 +21,7 @@ tags:
 	/usr/bin/ctags -R --languages=perl elevate-cpanel t
 
 elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
+	@test -x /usr/local/cpanel/bin/perlpkg || ( echo "Skip Target $@: no bin/perlpkg file"; false )
 	USE_CPANEL_PERL_FOR_PERLSTATIC=1 /usr/local/cpanel/bin/perlpkg \
 				       --dir=lib \
 				       --no-cpstrict \
@@ -28,8 +30,8 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 				       --no-file-path-tiny \
 				       --leave-broken \
 				       script/elevate-cpanel.PL
-	mv script/elevate-cpanel.PL.static elevate-cpanel
-	perltidy elevate-cpanel && mv elevate-cpanel.tdy elevate-cpanel
+	@mv script/elevate-cpanel.PL.static elevate-cpanel
+	@perltidy elevate-cpanel && mv elevate-cpanel.tdy elevate-cpanel
 
 build:
 	rm -f elevate-cpanel
