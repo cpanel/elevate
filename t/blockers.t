@@ -26,7 +26,9 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
 
 my $cpev_mock = Test::MockModule->new('cpev');
 $cpev_mock->redefine( _check_yum_repos => 0 );
-$cpev_mock->redefine( 'latest_version' => cpev::VERSION );
+
+my $script_mock = Test::MockModule->new('Elevate::Script');
+$script_mock->redefine( '_build_latest_version' => cpev::VERSION );
 
 my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
 
@@ -689,7 +691,8 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
 {
     note "checking script update check";
 
-    $cpev_mock->redefine( 'latest_version' => sub { undef } );
+    $script_mock->redefine( '_build_latest_version' => sub { return undef } );
+
     is(
         dies { $cpev->_blocker_script_updated() },
         {
@@ -704,8 +707,6 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
         "blocks when info about latest version can't be fetched"
     );
 
-    $cpev_mock->redefine( 'latest_version' => '-1' );
-    $cpev_mock->redefine( 'latest_version' => sub { undef } );
     is(
         dies { $cpev->_blocker_script_updated() },
         {
@@ -720,7 +721,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
         "blocks when the installed script isn't the latest release"
     );
 
-    $cpev_mock->unmock('latest_version');
+    $script_mock->unmock('_build_latest_version');
 }
 
 {

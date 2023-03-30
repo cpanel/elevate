@@ -175,7 +175,6 @@ use Cpanel::AccessIds::SetUids  ();
 use Cpanel::Binaries            ();
 use Cpanel::Config::Httpd       ();
 use Cpanel::Config::LoadCpConf  ();
-use Cpanel::HTTP::Client        ();
 use Cpanel::JSON                ();
 use Cpanel::OS                  ();
 use Cpanel::PID                 ();
@@ -194,14 +193,13 @@ use Elevate::Constants  ();
 use Elevate::Fetch      ();
 use Elevate::Logger     ();
 use Elevate::Motd       ();
+use Elevate::Script     ();
 use Elevate::Roles::Run ();    # used as parent, but ensure fatpack
 use Elevate::Service    ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 6;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
-
-use constant DEFAULT_ELEVATE_BASE_URL => 'https://raw.githubusercontent.com/cpanel/elevate/release/';
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
@@ -327,6 +325,7 @@ use constant UPGRADE_TO_ROCKY     => q[Rocky];
 
 use Simple::Accessor qw{
   service
+  script
 };
 
 # after Simple::Accessor
@@ -350,6 +349,10 @@ sub _build_service ($self) {
 
     # FIXME weaken
     return Elevate::Service->new( cpev => $self );
+}
+
+sub _build_script ($self) {
+    return Elevate::Script->new;
 }
 
 sub _init ( $self_or_pkg, @args ) {
@@ -442,11 +445,11 @@ sub do_update ($self) {
 
     INFO( "Self-update of script version " . VERSION . " requested." );
 
-    my ( $needs_update, undef ) = $self->is_script_out_of_date();
+    my ( $needs_update, undef ) = $self->script->is_out_of_date();
 
     if ($needs_update) {
         INFO("Newer version of script found. Downloading.");
-        my $temp_file = Elevate::Fetch::script( $self->base_url . 'elevate-cpanel', 'elevate-cpanel', '' );
+        my $temp_file = $self->script->fetch;
         return 1 unless $temp_file;    # Elevate::Fetch::script handled the error msg
 
         my $running_from = Cwd::abs_path($0) // '';
@@ -466,10 +469,6 @@ sub do_update ($self) {
     }
 
     return 0;
-}
-
-sub base_url ($self) {
-    return $self->{'base_url'} ||= $ENV{'ELEVATE_BASE_URL'} || DEFAULT_ELEVATE_BASE_URL;
 }
 
 sub upgrade_to ($self) {    # main helper to know the upgrade_to distro
@@ -3282,7 +3281,7 @@ sub _blocker_script_updated ($self) {
 
     return if $self->getopt('skip-elevate-version-check');
 
-    my ( $should_block, $blocker_text ) = $self->is_script_out_of_date();
+    my ( $should_block, $blocker_text ) = $self->script->is_out_of_date();
 
     return unless $should_block;
 
@@ -3292,35 +3291,6 @@ sub _blocker_script_updated ($self) {
     Pass the --skip-elevate-version-check flag to skip this check.
     EOS
 
-}
-
-sub is_script_out_of_date ($self) {
-    my ( $should_block, $blocker_text ) = ( 0, undef );
-    my ( $latest_version, $self_version ) = ( $self->latest_version(), VERSION );
-
-    if ( !defined $latest_version ) {
-        $should_block = 1;
-        $blocker_text = "The script could not fetch information about the latest version.";
-    }
-    else {
-        $should_block = $latest_version == $self_version ? 0 : 1;
-        $blocker_text = <<~EOS if $should_block;
-            This script (version $self_version) does not appear to be the newest available release ($latest_version).
-            Run this script with the --update option:
-
-            /scripts/elevate-cpanel --update
-            EOS
-    }
-
-    return ( $should_block, $blocker_text );
-}
-
-sub latest_version ($self) {
-    my $response = Cpanel::HTTP::Client->new->get( $self->base_url() . 'version' );
-    return if !$response->success;
-    my $version = $response->content // '';
-    chomp $version;
-    return $version;
 }
 
 sub _blocker_blscfg ($self) {
