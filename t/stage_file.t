@@ -50,13 +50,13 @@ is cpev::read_stage_file(), { ea4 => { profile => q[myprofile], enable => 1 } },
     $mock_stage_file->contents('');
 
     is cpev::get_stage(), 0, 'stage 0';
-    ok cpev::bump_stage(), 'bump_stage';
+    ok( cpev->bump_stage(), 'bump_stage' );
 
     is cpev::get_stage(), 1, 'stage 1';
-    ok cpev::bump_stage(), 'bump_stage';
+    ok( cpev->bump_stage(), 'bump_stage' );
 
     is cpev::get_stage(), 2, 'stage 2';
-    ok cpev::bump_stage(), 'bump_stage';
+    ok( cpev->bump_stage(), 'bump_stage' );
 
     ok cpev::update_stage_file( { key => 'value' } ), 'update_stage_file: add an extra entry';
 
