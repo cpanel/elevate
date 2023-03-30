@@ -518,7 +518,7 @@ sub start ($self) {
 
     system touch => Elevate::Constants::LOG_FILE;
 
-    bump_stage();    # init stage number to 1
+    $self->bump_stage();    # init stage number to 1
 
     # store the manual reboots flag
     if ( $self->getopt('manual-reboots') ) {
@@ -3997,12 +3997,17 @@ sub get_stage {
     return read_stage_file( 'stage_number', 0 );
 }
 
-sub bump_stage ( $by = 1 ) {
+sub bump_stage ( $self, $by = 1 ) {
 
     return _update_stage_number( get_stage() + $by );
 }
 
 sub _update_stage_number ($stage_id) {
+
+    if ( $stage_id > 10 ) {    # protection for stage
+        require Carp;
+        Carp::confess("Invalid stage number $stage_id");
+    }
 
     update_stage_file( { stage_number => $stage_id } );
 
@@ -4010,7 +4015,7 @@ sub _update_stage_number ($stage_id) {
 }
 
 sub reboot ($self) {
-    bump_stage();
+    $self->bump_stage();
 
     # protection
     my $stage = get_stage();
