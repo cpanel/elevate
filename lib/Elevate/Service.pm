@@ -42,7 +42,7 @@ sub _build_cpev {
     die q[Missing cpev];
 }
 
-sub install ($self) {    # sub install_cpanel_elevate_service ($self) {
+sub install ($self) {
 
     my $pretty_distro_name = $self->cpev->upgrade_to_pretty_name();
 
@@ -92,7 +92,7 @@ sub install ($self) {    # sub install_cpanel_elevate_service ($self) {
     }
 }
 
-sub is_active ( $self, $service = undef ) {    # sub _is_service_active
+sub is_active ( $self, $service = undef ) {
 
     # cannot trust: `systemctl is-active` with a one-shot service
 
@@ -115,7 +115,7 @@ sub is_active ( $self, $service = undef ) {    # sub _is_service_active
     return 0;
 }
 
-sub is_enabled ( $self, $service = undef ) {    # sub _is_service_enabled
+sub is_enabled ( $self, $service = undef ) {
 
     $service //= $self->name;
 
