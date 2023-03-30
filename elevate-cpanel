@@ -150,7 +150,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         die q[Missing cpev];
     }
 
-    sub install ($self) {    # sub install_cpanel_elevate_service ($self) {
+    sub install ($self) {
 
         my $pretty_distro_name = $self->cpev->upgrade_to_pretty_name();
 
@@ -195,7 +195,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         }
     }
 
-    sub is_active ( $self, $service = undef ) {    # sub _is_service_active
+    sub is_active ( $self, $service = undef ) {
 
         $service //= $self->name;
 
@@ -216,7 +216,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         return 0;
     }
 
-    sub is_enabled ( $self, $service = undef ) {    # sub _is_service_enabled
+    sub is_enabled ( $self, $service = undef ) {
 
         $service //= $self->name;
 
@@ -1911,7 +1911,7 @@ sub disable_all_cpanel_services ($self) {
     my @disabled_services;
 
     foreach my $service (@cpanel_services) {
-        next unless _is_service_enabled($service);
+        next unless $self->service->is_enabled($service);
 
         $self->ssystem( qw{/usr/bin/systemctl disable --now}, $service );
         push @disabled_services, $service;
