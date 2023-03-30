@@ -12,9 +12,10 @@
 
 BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Constants.pm'} = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Logger.pm'}    = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
     $INC{'Elevate/Motd.pm'}      = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Service.pm'}   = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
     $INC{'Elevate/Roles/Run.pm'} = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Service.pm'}   = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
 }
 
 {    # --- BEGIN lib/Elevate/Constants.pm
@@ -30,6 +31,63 @@ BEGIN {    # Suppress load of all of these at earliest point.
     1;
 
 }    # --- END lib/Elevate/Constants.pm
+
+{    # --- BEGIN lib/Elevate/Logger.pm
+
+    package Elevate::Logger;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+
+    use Term::ANSIColor ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub init ( $self, $debug_level = 'DEBUG' ) {
+        my $log_file = Elevate::Constants::LOG_FILE;
+
+        my $config = <<~"EOF";
+        log4perl.appender.File=Log::Log4perl::Appender::File
+        log4perl.appender.File.filename=$log_file
+        log4perl.appender.File.syswrite=1
+        log4perl.appender.File.layout=Log::Log4perl::Layout::PatternLayout
+        log4perl.appender.File.layout.ConversionPattern=* %d{yyyy-MM-dd HH:mm:ss} (%L) [%s%p%u] %m%n
+    EOF
+
+        if ( $self->getopt('service') ) {
+            $config .= <<~"EOF";
+        log4perl.logger = $debug_level, File
+        EOF
+        }
+        else {
+            $config .= <<~"EOF";
+        log4perl.appender.Screen=Log::Log4perl::Appender::Screen
+        log4perl.appender.Screen.stderr=0
+        log4perl.appender.Screen.layout=Log::Log4perl::Layout::PatternLayout
+        log4perl.appender.Screen.layout.ConversionPattern=* %d{yyyy-MM-dd HH:mm:ss} [%s%p%u] %m{indent=2,chomp}%n
+        log4perl.logger = $debug_level, Screen, File
+        EOF
+        }
+
+        my %colors = (
+            TRACE => 'cyan',
+            DEBUG => 'bold white',
+            INFO  => 'green',
+            WARN  => 'yellow',
+            ERROR => 'red',
+            FATAL => 'bold red',
+        );
+
+        Log::Log4perl::Layout::PatternLayout::add_global_cspec( 's' => sub { Term::ANSIColor::color( $colors{ $_[3] } ) } );
+        Log::Log4perl::Layout::PatternLayout::add_global_cspec( 'u' => sub { Term::ANSIColor::color('reset') } );
+
+        Log::Log4perl->init( \$config );
+
+        return;
+    }
+}    # --- END lib/Elevate/Logger.pm
 
 {    # --- BEGIN lib/Elevate/Motd.pm
 
@@ -102,6 +160,95 @@ BEGIN {    # Suppress load of all of these at earliest point.
     1;
 
 }    # --- END lib/Elevate/Motd.pm
+
+{    # --- BEGIN lib/Elevate/Roles/Run.pm
+
+    package Elevate::Roles::Run;
+
+    use cPstrict;
+
+    use Cpanel::IOCallbackWriteLine ();
+    use Cpanel::SafeRun::Object     ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub ssystem_capture_output ( $, @args ) {
+
+        my %opts;
+        if ( ref $args[0] ) {
+            my $ropts = shift @args;
+            %opts = %$ropts;
+        }
+        $opts{should_capture_output} = 1;
+
+        return _ssystem( \@args, %opts );
+    }
+
+    sub ssystem ( $, @args ) {
+
+        my %opts;
+        if ( ref $args[0] ) {
+            my $ropts = shift @args;
+            %opts = %$ropts;
+        }
+
+        return _ssystem( \@args, %opts );
+    }
+
+    sub ssystem_and_die ( $self, @args ) {
+        $self->ssystem(@args) or return 0;
+        die "command failed. Fix it and run command.";
+    }
+
+    sub _ssystem ( $command, %opts ) {
+        my @args = @{ $command // [] };
+        INFO( "Running: " . join( " ", @args ) );
+        INFO();    # Buffer so they can more easily read the output.
+
+        if ( scalar @args == 1 && $args[0] =~ m/[\$&*(){}\[\]'";\\|?<>~`\n]/ ) {
+            unshift @args, qw(/usr/bin/bash -c);
+        }
+
+        my $capture_output = { stdout => [], stderr => [] };
+        my $program        = shift @args;
+        my ( $callback_out, $callback_err ) = map {
+            my $label = $_;
+            Cpanel::IOCallbackWriteLine->new(
+                sub ($line) {
+                    chomp $line;
+                    INFO($line);
+                    if ( $opts{should_capture_output} ) {
+                        push $capture_output->{$label}->@*, $line;
+                    }
+                    return;
+                }
+            )
+        } qw(stdout stderr);
+        my $sr = Cpanel::SafeRun::Object->new(
+            program      => $program,
+            args         => [@args],
+            stdout       => $callback_out,
+            stderr       => $callback_err,
+            timeout      => 0,
+            keep_env     => $opts{keep_env} // 0,
+            read_timeout => 0,
+        );
+        INFO();    # Buffer so they can more easily read the output.
+
+        $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
+
+        if ( $opts{should_capture_output} ) {
+            $capture_output->{status} = $?;
+            return $capture_output;
+        }
+
+        return $?;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Roles/Run.pm
 
 {    # --- BEGIN lib/Elevate/Service.pm
 
@@ -251,95 +398,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     1;
 
 }    # --- END lib/Elevate/Service.pm
-
-{    # --- BEGIN lib/Elevate/Roles/Run.pm
-
-    package Elevate::Roles::Run;
-
-    use cPstrict;
-
-    use Cpanel::IOCallbackWriteLine ();
-    use Cpanel::SafeRun::Object     ();
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    sub ssystem_capture_output ( $, @args ) {
-
-        my %opts;
-        if ( ref $args[0] ) {
-            my $ropts = shift @args;
-            %opts = %$ropts;
-        }
-        $opts{should_capture_output} = 1;
-
-        return _ssystem( \@args, %opts );
-    }
-
-    sub ssystem ( $, @args ) {
-
-        my %opts;
-        if ( ref $args[0] ) {
-            my $ropts = shift @args;
-            %opts = %$ropts;
-        }
-
-        return _ssystem( \@args, %opts );
-    }
-
-    sub ssystem_and_die ( $self, @args ) {
-        $self->ssystem(@args) or return 0;
-        die "command failed. Fix it and run command.";
-    }
-
-    sub _ssystem ( $command, %opts ) {
-        my @args = @{ $command // [] };
-        INFO( "Running: " . join( " ", @args ) );
-        INFO();    # Buffer so they can more easily read the output.
-
-        if ( scalar @args == 1 && $args[0] =~ m/[\$&*(){}\[\]'";\\|?<>~`\n]/ ) {
-            unshift @args, qw(/usr/bin/bash -c);
-        }
-
-        my $capture_output = { stdout => [], stderr => [] };
-        my $program        = shift @args;
-        my ( $callback_out, $callback_err ) = map {
-            my $label = $_;
-            Cpanel::IOCallbackWriteLine->new(
-                sub ($line) {
-                    chomp $line;
-                    INFO($line);
-                    if ( $opts{should_capture_output} ) {
-                        push $capture_output->{$label}->@*, $line;
-                    }
-                    return;
-                }
-            )
-        } qw(stdout stderr);
-        my $sr = Cpanel::SafeRun::Object->new(
-            program      => $program,
-            args         => [@args],
-            stdout       => $callback_out,
-            stderr       => $callback_err,
-            timeout      => 0,
-            keep_env     => $opts{keep_env} // 0,
-            read_timeout => 0,
-        );
-        INFO();    # Buffer so they can more easily read the output.
-
-        $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
-
-        if ( $opts{should_capture_output} ) {
-            $capture_output->{status} = $?;
-            return $capture_output;
-        }
-
-        return $?;
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Roles/Run.pm
 
 package main;
 
@@ -534,9 +592,10 @@ use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
 use Elevate::Constants  ();
+use Elevate::Logger     ();
 use Elevate::Motd       ();
-use Elevate::Service    ();
 use Elevate::Roles::Run ();    # used as parent, but ensure fatpack
+use Elevate::Service    ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 7;
@@ -701,7 +760,7 @@ sub _init ( $self_or_pkg, @args ) {
         $self->{$k} = $getopts->{$k};
     }
 
-    $self->_init_logger();
+    Elevate::Logger::init($self);
 
     return $self;
 }
@@ -4394,46 +4453,4 @@ sub read_redhat_release() {
     return $first_line;
 }
 
-sub _init_logger ( $self, $debug_level = 'DEBUG' ) {
-    my $log_file = Elevate::Constants::LOG_FILE;
-
-    my $config = <<~"EOF";
-        log4perl.appender.File=Log::Log4perl::Appender::File
-        log4perl.appender.File.filename=$log_file
-        log4perl.appender.File.syswrite=1
-        log4perl.appender.File.layout=Log::Log4perl::Layout::PatternLayout
-        log4perl.appender.File.layout.ConversionPattern=* %d{yyyy-MM-dd HH:mm:ss} (%L) [%s%p%u] %m%n
-    EOF
-
-    if ( $self->getopt('service') ) {
-        $config .= <<~"EOF";
-        log4perl.logger = $debug_level, File
-        EOF
-    }
-    else {
-        $config .= <<~"EOF";
-        log4perl.appender.Screen=Log::Log4perl::Appender::Screen
-        log4perl.appender.Screen.stderr=0
-        log4perl.appender.Screen.layout=Log::Log4perl::Layout::PatternLayout
-        log4perl.appender.Screen.layout.ConversionPattern=* %d{yyyy-MM-dd HH:mm:ss} [%s%p%u] %m{indent=2,chomp}%n
-        log4perl.logger = $debug_level, Screen, File
-        EOF
-    }
-
-    my %colors = (
-        TRACE => 'cyan',
-        DEBUG => 'bold white',
-        INFO  => 'green',
-        WARN  => 'yellow',
-        ERROR => 'red',
-        FATAL => 'bold red',
-    );
-
-    Log::Log4perl::Layout::PatternLayout::add_global_cspec( 's' => sub { Term::ANSIColor::color( $colors{ $_[3] } ) } );
-    Log::Log4perl::Layout::PatternLayout::add_global_cspec( 'u' => sub { Term::ANSIColor::color('reset') } );
-
-    Log::Log4perl->init( \$config );
-
-    return;
-}
 1;
