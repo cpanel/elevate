@@ -1260,10 +1260,11 @@ sub elevation_startup_marker ( $self, $sum = 'unknown' ) {
     update_stage_file(
         {
             '_elevate_process' => {
-                script_md5         => $sum,
-                cpanel_build       => $Cpanel::Version::Tiny::VERSION_BUILD,
-                started_at         => _bq_now(),
-                redhat_release_pre => read_redhat_release(),
+                script_md5            => $sum,
+                cpanel_build          => $Cpanel::Version::Tiny::VERSION_BUILD,
+                started_at            => _bq_now(),
+                redhat_release_pre    => read_redhat_release(),
+                elevate_version_start => VERSION,
             }
         }
     );
@@ -1276,8 +1277,9 @@ sub elevation_success_marker ($self) {
     update_stage_file(
         {
             '_elevate_process' => {
-                finished_at         => _bq_now(),
-                redhat_release_post => read_redhat_release(),
+                finished_at            => _bq_now(),
+                redhat_release_post    => read_redhat_release(),
+                elevate_version_finish => VERSION,
             }
         }
     );
