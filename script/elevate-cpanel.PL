@@ -1568,7 +1568,7 @@ sub disable_all_cpanel_services ($self) {
     my @disabled_services;
 
     foreach my $service (@cpanel_services) {
-        next unless _is_service_enabled($service);
+        next unless $self->service->is_enabled($service);
 
         $self->ssystem( qw{/usr/bin/systemctl disable --now}, $service );
         push @disabled_services, $service;
