@@ -155,8 +155,6 @@ BEGIN {
       };
 }
 
-use parent qw( Cpanel::HelpfulScript );
-
 use Log::Log4perl qw(:easy);
 
 use Config;
@@ -332,6 +330,7 @@ use Simple::Accessor qw{
 # after Simple::Accessor
 use parent qw{
   Elevate::Roles::Run
+  Cpanel::HelpfulScript
 };
 
 sub _OPTIONS {
@@ -343,7 +342,7 @@ sub _OPTIONS {
     );
 }
 
-exit( __PACKAGE__->new(@ARGV)->run() // 0 ) if !caller;
+exit( __PACKAGE__->run(@ARGV) // 0 ) unless caller;
 
 sub _build_service ($self) {
 
@@ -351,9 +350,15 @@ sub _build_service ($self) {
     return Elevate::Service->new( cpev => $self );
 }
 
-sub run ($self) {
+sub run ( $self_or_pkg, @args ) {
 
     local $| = 1;
+
+    my $self    = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
+    my $getopts = __PACKAGE__->SUPER::new(@args);                        # HelpfulScript
+    foreach my $k ( keys %$getopts ) {
+        $self->{$k} = $getopts->{$k};
+    }
 
     if ( $self->getopt('version') ) {
         say VERSION;
