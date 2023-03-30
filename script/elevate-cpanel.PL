@@ -4035,6 +4035,8 @@ sub reboot ($self) {
         return 0;
     }
 
+    sleep(2);    # ensure display is flushed (using tail...)
+
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");
 }
