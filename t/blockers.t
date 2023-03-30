@@ -30,7 +30,7 @@ $cpev_mock->redefine( _check_yum_repos => 0 );
 my $script_mock = Test::MockModule->new('Elevate::Script');
 $script_mock->redefine( '_build_latest_version' => cpev::VERSION );
 
-my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
+my $cpev = cpev->new( _abort_on_first_blocker => 1 );
 
 {
     note "cPanel & WHM missing blocker";
@@ -520,24 +520,6 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
 
     $mf_mysql_upgrade->unlink;
     is( $cpev->_blocker_mysql_upgrade_in_progress(), 0, q[MySQL upgrade is not in progress.] );
-}
-
-{
-    note "containers";
-
-    $cpev_mock->redefine( '_is_container_envtype' => 1 );
-    is(
-        dies { $cpev->_blocker_is_container() },
-        {
-            id  => 90,
-            msg => "cPanel thinks that this is a container-like environment, which this script cannot support at this time.",
-        },
-        q{Block if this is a container like environment.}
-    );
-
-    $cpev_mock->redefine( '_is_container_envtype' => 0 );
-    is( $cpev->_blocker_is_container(), 0, q[not a container.] );
-    $cpev_mock->unmock('_is_container_envtype');
 }
 
 {

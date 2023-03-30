@@ -189,14 +189,15 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
-use Elevate::Blockers::UpToDate ();
-use Elevate::Constants          ();
-use Elevate::Fetch              ();
-use Elevate::Logger             ();
-use Elevate::Motd               ();
-use Elevate::Roles::Run         ();    # used as parent, but ensure fatpack
-use Elevate::Script             ();
-use Elevate::Service            ();
+use Elevate::Blockers::IsContainer ();
+use Elevate::Blockers::UpToDate    ();
+use Elevate::Constants             ();
+use Elevate::Fetch                 ();
+use Elevate::Logger                ();
+use Elevate::Motd                  ();
+use Elevate::Roles::Run            ();    # used as parent, but ensure fatpack
+use Elevate::Script                ();
+use Elevate::Service               ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 6;
@@ -327,6 +328,8 @@ use constant UPGRADE_TO_ROCKY     => q[Rocky];
 use Simple::Accessor qw{
   service
   script
+
+  _abort_on_first_blocker
 };
 
 # after Simple::Accessor
@@ -3046,13 +3049,6 @@ sub _blocker_mysql_upgrade_in_progress ($self) {
     return 0;
 }
 
-sub _blocker_is_container ($self) {
-    if ( _is_container_envtype() ) {
-        return $self->has_blocker( 90, "cPanel thinks that this is a container-like environment, which this script cannot support at this time." );
-    }
-    return 0;
-}
-
 sub _blocker_disk_space ($self) {
     if ( !$self->_disk_space_check() ) {
         $self->has_blocker( 99, q[disk space issue] );
@@ -3528,7 +3524,7 @@ sub _blockers_check ($self) {
     $self->_blocker_invalid_ssh_config();
     $self->_blocker_old_jetbackup();
     $self->_blocker_mysql_upgrade_in_progress();
-    $self->_blocker_is_container();
+    $self->_check_blocker('IsContainer');    # preserve order
     $self->_blocker_disk_space();
     $self->_blocker_system_update();
     $self->_blocker_bad_nics_naming();
@@ -3758,19 +3754,6 @@ sub _sshd_setup () {
     }
 
     return 1;
-}
-
-sub _is_container_envtype () {
-    require Cpanel::OSSys::Env;
-    my $envtype = Cpanel::OSSys::Env::get_envtype();
-
-    return scalar grep { $envtype eq $_ } qw(
-      virtuozzo
-      vzcontainer
-      lxc
-      virtualiron
-      vserver
-    );
 }
 
 sub _disk_space_check ($self) {
