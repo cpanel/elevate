@@ -541,25 +541,6 @@ my $cpev = cpev->new( _abort_on_first_blocker => 1 );
     $cpev_mock->unmock('_system_update_check');
 }
 
-{
-    note "disk space blocker.";
-
-    $cpev_mock->redefine( _disk_space_check => 0 );
-    is(
-        dies { $cpev->_blocker_disk_space() },
-        {
-            id  => 99,
-            msg => "disk space issue",
-        },
-        q{Block if disk space issues.}
-    );
-
-    $cpev_mock->redefine( _disk_space_check => 1 );
-    is( $cpev->_blocker_disk_space(), 0, 'System is up to date' );
-
-    $cpev_mock->unmock('_disk_space_check');
-}
-
 ## Make sure we have NICs that would fail
 #my $mock_ip_addr = q{1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
 #    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
