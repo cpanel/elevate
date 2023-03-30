@@ -191,6 +191,7 @@ use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
 use Elevate::Constants  ();
+use Elevate::Fetch      ();
 use Elevate::Logger     ();
 use Elevate::Motd       ();
 use Elevate::Roles::Run ();    # used as parent, but ensure fatpack
@@ -445,8 +446,8 @@ sub do_update ($self) {
 
     if ($needs_update) {
         INFO("Newer version of script found. Downloading.");
-        my $temp_file = _fetch_a_script( $self->base_url . 'elevate-cpanel', 'elevate-cpanel', '' );
-        return 1 unless $temp_file;    # _fetch_a_script handled the error msg
+        my $temp_file = Elevate::Fetch::script( $self->base_url . 'elevate-cpanel', 'elevate-cpanel', '' );
+        return 1 unless $temp_file;    # Elevate::Fetch::script handled the error msg
 
         my $running_from = Cwd::abs_path($0) // '';
         if ( File::Copy::move( $temp_file, $running_from ) ) {
@@ -1439,7 +1440,7 @@ sub restore_kernel_care ($self) {
     INFO("Restoring kernelcare");
 
     INFO("Retrieving kernelcare installer");
-    my $installer_script = _fetch_a_script( 'https://kernelcare.com/installer', 'kernelcare_installer' );
+    my $installer_script = Elevate::Fetch::script( 'https://kernelcare.com/installer', 'kernelcare_installer' );
 
     my $conf_file = q[/etc/sysconfig/kcare/kcare.conf];
     if ( -e $conf_file . q[.rpmsave] ) {
@@ -2193,25 +2194,7 @@ sub _fetch_imunify_installer ($product) {
         return;
     };
 
-    return _fetch_a_script( $installer_url, 'imunify_installer' );
-}
-
-sub _fetch_a_script ( $url, $template, $suffix = '.sh' ) {
-    my $response = eval {
-        my $http = Cpanel::HTTP::Client->new()->die_on_http_error();
-        $http->get($url);
-    };
-
-    if ( my $exception = $@ ) {
-        ERROR("The system could not fetch the script for $template: $exception");
-        return;
-    }
-
-    my $fh = File::Temp->new( TEMPLATE => "${template}_XXXX", SUFFIX => $suffix, UNLINK => 0, PERMS => 0600, TMPDIR => 1 );
-    print {$fh} $response->{'content'};
-    close $fh;
-
-    return "$fh";
+    return Elevate::Fetch::script( $installer_url, 'imunify_installer' );
 }
 
 sub tmp_dir ($self) {
@@ -2427,7 +2410,7 @@ sub restore_nixstats ($self) {
     # alternatively we could use the user from the nixstats-token.ini file
     my $user = q[deadbeefdeadbeefdeadbeef];
 
-    my $installer_script = _fetch_a_script( 'https://www.nixstats.com/nixstatsagent.sh', 'nixstatsagent' );
+    my $installer_script = Elevate::Fetch::script( 'https://www.nixstats.com/nixstatsagent.sh', 'nixstatsagent' );
 
     $self->ssystem( '/usr/bin/bash', $installer_script, $user );
 
@@ -2496,7 +2479,7 @@ sub reinstall_wordpress_toolkit ($self) {
     return unless read_stage_file('reinstall')->{'wordpress_toolkit'};
 
     INFO("Restoring Wordpress Toolkit");
-    my $installer_script = _fetch_a_script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );
+    my $installer_script = Elevate::Fetch::script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );
 
     $self->ssystem( '/usr/bin/bash', $installer_script );
     unlink $installer_script;

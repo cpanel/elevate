@@ -50,3 +50,5 @@ sub init ( $self, $debug_level = 'DEBUG' ) {
 
     return;
 }
+
+1;
