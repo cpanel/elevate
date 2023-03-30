@@ -13,13 +13,13 @@ The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WH
 
 ## Disclaimer
 
-We do not guarantee the functionality of software in this repository.  We provide it on an experimental basis only. You assume all risk for use of any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
+We do not guarantee the functionality of software in this repository. You assume all risk for use of any software that you install from this repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
 
-cPanel Technical Support is limited in their ability to support experimental software. You should instead utilize the [Github Issues page](https://github.com/cpanel/elevate/issues)
+That said, cPanel Technical Support is ready to help!
+Please contact [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/) if you encounter problems.
 
 ## Introduction
 
-- [Issues can be reported here](https://github.com/cpanel/elevate/issues)
 - [Pull requests are welcome](https://github.com/cpanel/elevate/pulls)
     - Code contributions are subject to our [Contributor License Agreement](docs/cPanel-CLA.pdf)
 
@@ -235,7 +235,7 @@ After addressing the reported issues, you can continue an existing elevation pro
 
 ### I need more help?
 
-You can report an issue to the [Github Issues page](https://github.com/cpanel/elevate/issues)
+You can report an issue to [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/)
 
 ## Copyright
 
