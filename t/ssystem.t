@@ -19,13 +19,9 @@ use cPstrict;
 
 require $FindBin::Bin . '/../elevate-cpanel';
 
-#my $cpev_mock = Test::MockModule->new('cpev');
-#$cpev_mock->redefine( _init_logger => sub { die "should not call init_logger" } );
-
 my $mock_log_file = Test::MockFile->file('/var/log/elevate-cpanel.log');
 
-my $cpev = cpev->new;
-$cpev->_init_logger;
+my $cpev = cpev->new->_init;
 
 is( cpev->ssystem("/bin/true"), 0, q[ssystem( "/bin/true" ) == 0] );
 isnt( my $status_false = cpev->ssystem("/bin/false"), 0, q[ssystem( "/bin/false" ) != 0] );

@@ -23,8 +23,7 @@ use cPstrict;
 my $log_file = Test::MockFile->file('/var/log/elevate-cpanel.log');
 my $mock_www = Test::MockFile->file('/etc/wwwacct.conf');
 
-my $cpev = bless {}, 'cpev';
-$cpev->_init_logger();
+my $cpev = cpev->new->_init;
 
 cpev::DEBUG("This is a DEBUG message...");
 cpev::INFO("This is an INFO message");
