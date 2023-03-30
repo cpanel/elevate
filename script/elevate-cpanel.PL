@@ -189,13 +189,14 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
-use Elevate::Constants  ();
-use Elevate::Fetch      ();
-use Elevate::Logger     ();
-use Elevate::Motd       ();
-use Elevate::Script     ();
-use Elevate::Roles::Run ();    # used as parent, but ensure fatpack
-use Elevate::Service    ();
+use Elevate::Blockers::UpToDate ();
+use Elevate::Constants          ();
+use Elevate::Fetch              ();
+use Elevate::Logger             ();
+use Elevate::Motd               ();
+use Elevate::Roles::Run         ();    # used as parent, but ensure fatpack
+use Elevate::Script             ();
+use Elevate::Service            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 6;
@@ -3277,22 +3278,6 @@ sub _blocker_ea4_profile ($self) {
     EOS
 }
 
-sub _blocker_script_updated ($self) {
-
-    return if $self->getopt('skip-elevate-version-check');
-
-    my ( $should_block, $blocker_text ) = $self->script->is_out_of_date();
-
-    return unless $should_block;
-
-    return $self->has_blocker( 105, $blocker_text . <<~EOS);
-
-
-    Pass the --skip-elevate-version-check flag to skip this check.
-    EOS
-
-}
-
 sub _blocker_blscfg ($self) {
 
     my $grub_enable_blscfg = _parse_shell_variable( DEFAULT_GRUB_FILE, 'GRUB_ENABLE_BLSCFG' );
@@ -3548,7 +3533,11 @@ sub _blockers_check ($self) {
     $self->_blocker_system_update();
     $self->_blocker_bad_nics_naming();
     $self->_blocker_ea4_profile();
-    $self->_blocker_script_updated();
+
+    foreach my $blocker (qw{UpToDate}) {
+        $self->_check_blocker($blocker);
+    }
+
     $self->_blocker_blscfg();
     $self->_blocker_grub2_workaround();
     $self->_blocker_ovh_monitoring();
@@ -3556,6 +3545,12 @@ sub _blockers_check ($self) {
     $self->_warning_if_postgresql_installed();
 
     return 0;
+}
+
+sub _check_blocker ( $self, $blocker ) {
+    my $pkg = "Elevate::Blockers::$blocker";                                    # need to be loaded
+    my $sub = $pkg->can('check') or die qq[Missing check function from $pkg];
+    return $sub->($self);
 }
 
 sub _system_update_check ($self) {

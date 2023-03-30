@@ -694,7 +694,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     $script_mock->redefine( '_build_latest_version' => sub { return undef } );
 
     is(
-        dies { $cpev->_blocker_script_updated() },
+        dies { $cpev->_check_blocker('UpToDate') },
         {
             id  => 105,
             msg => <<~'EOS',
@@ -708,7 +708,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     );
 
     is(
-        dies { $cpev->_blocker_script_updated() },
+        dies { $cpev->_check_blocker('UpToDate') },
         {
             id  => 105,
             msg => <<~'EOS',
