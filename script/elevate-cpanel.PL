@@ -189,6 +189,7 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
+use Elevate::Blockers::DiskSpace   ();
 use Elevate::Blockers::IsContainer ();
 use Elevate::Blockers::UpToDate    ();
 use Elevate::Constants             ();
@@ -2761,7 +2762,7 @@ sub has_blocker ( $self, $id, $msg, %others ) {
     # FIXME: consider removing the id
     my $blocker = bless { id => $id, msg => $msg, %others }, 'cpev::Blocker';
 
-    die $blocker if $self->{_abort_on_first_blocker};
+    die $blocker if $self->_abort_on_first_blocker;
 
     WARN( <<~"EOS");
     *** Elevation Blocker detected: ***
@@ -3044,14 +3045,6 @@ sub _blocker_old_jetbackup ($self) {
 sub _blocker_mysql_upgrade_in_progress ($self) {
     if ( -e q[/var/cpanel/mysql_upgrade_in_progress] ) {
         $self->has_blocker( 18, q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.] );
-    }
-
-    return 0;
-}
-
-sub _blocker_disk_space ($self) {
-    if ( !$self->_disk_space_check() ) {
-        $self->has_blocker( 99, q[disk space issue] );
     }
 
     return 0;
@@ -3524,8 +3517,10 @@ sub _blockers_check ($self) {
     $self->_blocker_invalid_ssh_config();
     $self->_blocker_old_jetbackup();
     $self->_blocker_mysql_upgrade_in_progress();
-    $self->_check_blocker('IsContainer');    # preserve order
-    $self->_blocker_disk_space();
+
+    foreach my $blocker (qw{UpToDate DiskSpace}) {    # preserve order
+        $self->_check_blocker($blocker);
+    }
     $self->_blocker_system_update();
     $self->_blocker_bad_nics_naming();
     $self->_blocker_ea4_profile();
@@ -3754,79 +3749,6 @@ sub _sshd_setup () {
     }
 
     return 1;
-}
-
-sub _disk_space_check ($self) {
-
-    # base unit size is in K
-    my $K   = 1;
-    my $MEG = 1_024 * $K;
-    my $GIG = 1_024 * $MEG;
-
-    # minimum disk space for some mount points
-    # note we are not doing the sum per mount point
-    #   - /boot is small enough
-    #   - /usr/local/cpanel is not going to be used at the same time than /var/lib
-    my $need_space = {
-        '/boot'             => 120 * $MEG,
-        '/usr/local/cpanel' => 1.5 * $GIG,    #
-        '/var/lib'          => 5 * $GIG,
-    };
-
-    my @keys = ( sort keys %$need_space );
-
-    my @df_cmd = ( qw{/usr/bin/df -k}, @keys );
-    my $cmd    = join( ' ', @df_cmd );
-
-    my $result = Cpanel::SafeRun::Simple::saferunnoerror(@df_cmd) // '';
-    die qq[Fail checking disk space using: $cmd\n] if $?;
-
-    my ( $header, @out ) = split( "\n", $result );
-
-    if ( scalar @out != scalar @keys ) {
-        my $count_keys = scalar @keys;
-        my $count_out  = scalar @out;
-        die qq[Fail: Cannot parse df output from: $cmd\n] . "# expected $count_keys lines ; got $count_out lines\n" . join( "\n", @out ) . "\n";
-    }
-
-    my @errors;
-
-    my $ix = 0;
-    foreach my $line (@out) {
-        my $key = $keys[ $ix++ ];
-        my ( undef, undef, undef, $available ) = split( /\s+/, $line );
-
-        my $need = $need_space->{$key};
-
-        next if $available > $need;
-
-        my $str;
-        if ( $need / $GIG > 1 ) {
-            $str = sprintf( "- $key needs %2.2f G => available %2.2f G", $need / $GIG, $available / $GIG );
-        }
-        else {
-            $str = sprintf( "- $key needs %d M => available %d M", $need / $MEG, $available / $MEG );
-        }
-
-        push @errors, $str;
-    }
-
-    # everything is fine: check ok
-    return 1 unless @errors;
-
-    my $details = join( "\n", @errors );
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    my $error = <<"EOS";
-** Warning **: your system does not have enough disk space available to update to $pretty_distro_name
-
-$details
-EOS
-
-    warn $error . "\n";
-
-    return 0;    # error
 }
 
 sub _get_nics {
