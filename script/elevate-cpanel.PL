@@ -350,9 +350,7 @@ sub _build_service ($self) {
     return Elevate::Service->new( cpev => $self );
 }
 
-sub run ( $self_or_pkg, @args ) {
-
-    local $| = 1;
+sub _init ( $self_or_pkg, @args ) {
 
     my $self    = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
     my $getopts = __PACKAGE__->SUPER::new(@args);                        # HelpfulScript
@@ -360,12 +358,21 @@ sub run ( $self_or_pkg, @args ) {
         $self->{$k} = $getopts->{$k};
     }
 
+    $self->_init_logger();
+
+    return $self;
+}
+
+sub run ( $pkg, @args ) {
+
+    local $| = 1;
+
+    my $self = _init( $pkg, @args );
+
     if ( $self->getopt('version') ) {
         say VERSION;
         return 0;
     }
-
-    $self->_init_logger();
 
     if ( $self->getopt('update') ) {
         return $self->do_update();
