@@ -1446,7 +1446,7 @@ sub run_stage_4 ($self) {
             $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
             {
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
-                ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
+                $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
             }
             $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
             $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
@@ -4377,6 +4377,8 @@ sub reboot ($self) {
         WARN("Manual Reboot Mode Enabled: please reboot the server to move to the next stage $stage");
         return 0;
     }
+
+    sleep(2);    # ensure display is flushed (using tail...)
 
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");

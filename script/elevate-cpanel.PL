@@ -1103,7 +1103,7 @@ sub run_stage_4 ($self) {
             $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
             {
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
-                ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
+                $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
             }
             $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
             $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
