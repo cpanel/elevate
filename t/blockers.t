@@ -21,8 +21,10 @@ use constant MINIMUM_LTS_SUPPORTED => 102;
 
 require $FindBin::Bin . '/../elevate-cpanel';
 
+my $logger_mock = Test::MockModule->new('Elevate::Logger');
+$logger_mock->redefine( init => sub { die "should not call init_logger" } );
+
 my $cpev_mock = Test::MockModule->new('cpev');
-$cpev_mock->redefine( _init_logger     => sub { die "should not call init_logger" } );
 $cpev_mock->redefine( _check_yum_repos => 0 );
 $cpev_mock->redefine( 'latest_version' => cpev::VERSION );
 

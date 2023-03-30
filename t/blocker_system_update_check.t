@@ -19,8 +19,9 @@ use cPstrict;
 
 require $FindBin::Bin . '/../elevate-cpanel';
 
-my $cpev_mock = Test::MockModule->new('cpev');
-$cpev_mock->redefine( _init_logger => sub { die "should not call init_logger" } );
+my $cpev_mock   = Test::MockModule->new('cpev');
+my $logger_mock = Test::MockModule->new('Elevate::Logger');
+$logger_mock->redefine( init => sub { die "should not call init_logger" } );
 
 {
     note "checking _system_update_check";
