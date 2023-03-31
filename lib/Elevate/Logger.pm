@@ -21,7 +21,7 @@ sub init ( $self, $debug_level = 'DEBUG' ) {
 
     if ( $self->getopt('service') ) {
         $config .= <<~"EOF";
-        log4perl.logger = $debug_level, File
+        log4perl.rootLogger = $debug_level, File
         EOF
     }
     else {
@@ -30,7 +30,7 @@ sub init ( $self, $debug_level = 'DEBUG' ) {
         log4perl.appender.Screen.stderr=0
         log4perl.appender.Screen.layout=Log::Log4perl::Layout::PatternLayout
         log4perl.appender.Screen.layout.ConversionPattern=* %d{yyyy-MM-dd HH:mm:ss} [%s%p%u] %m{indent=2,chomp}%n
-        log4perl.logger = $debug_level, Screen, File
+        log4perl.rootLogger = $debug_level, Screen, File
         EOF
     }
 
