@@ -18,6 +18,8 @@ BEGIN {
 
 use Elevate::Blockers::DiskSpace ();
 
+use cPstrict;
+
 # aliases for testing
 use constant MEG => Elevate::Blockers::DiskSpace::MEG();
 use constant GIG => Elevate::Blockers::DiskSpace::GIG();
