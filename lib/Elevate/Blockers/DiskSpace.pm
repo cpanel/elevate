@@ -4,13 +4,17 @@ use cPstrict;
 
 use Cpanel::SafeRun::Simple ();
 
+use parent qw{Elevate::Blockers::Base};
+
+use Log::Log4perl qw(:easy);
+
 use constant K   => 1;
 use constant MEG => 1_024 * K;
 use constant GIG => 1_024 * MEG;
 
 sub check ($self) {    # $self is a cpev object here
     my $ok = _disk_space_check($self);
-    $self->has_blocker( 99, q[disk space issue] ) unless $ok;
+    $self->has_blocker(q[disk space issue]) unless $ok;
 
     return $ok;
 }

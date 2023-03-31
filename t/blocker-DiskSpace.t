@@ -122,23 +122,15 @@ is $check, 0, "_disk_space_check failure - /usr/local/cpanel 1.4 G";
     my $mock_ds = Test::MockModule->new('Elevate::Blockers::DiskSpace');
     $mock_ds->redefine( _disk_space_check => 0 );
 
-    $INC{"cpev.pm"} = '__here__';
-    my $mock_cpev = Test::MockModule->new('cpev')    #
-      ->redefine(
-        '_blockers_check' => sub ($self) {
-
-            # only perform a single check
-            $self->_check_blocker('DiskSpace');
-            return 0;
-        }
-      );
+    my $blockers = cpev->new()->blockers;
+    is $blockers->_check_single_blocker('DiskSpace'), 0;
 
     is(
-        dies { check_blocker( _abort_on_first_blocker => 1 ) },
-        {
-            id  => 99,
+        $blockers->blockers,
+        [ {
+            id  => q[Elevate::Blockers::DiskSpace::check],
             msg => "disk space issue",
-        },
+        } ],
         q{Block if disk space issues.}
     );
 
@@ -150,8 +142,12 @@ undef $mock_saferun;
 undef $check;
 
 done_testing;
+exit;
 
 sub check_blocker (@args) {    # helper for test...
-                               #my $cpev = cpev->new;
-    return cpev->new(@args)->_check_blocker('DiskSpace');
+
+    my $blockers = cpev->new( @args )->blockers;
+    my $ds      = $blockers->_get_blocker_for('DiskSpace');
+
+    return $ds->check;
 }
