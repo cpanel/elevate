@@ -144,6 +144,9 @@ is $check, 0, "_disk_space_check failure - /usr/local/cpanel 1.4 G";
     ok( check_blocker( _abort_on_first_blocker => 1 ), 'System is up to date' );
 }
 
+undef $mock_saferun;
+undef $check;
+
 done_testing;
 
 sub check_blocker (@args) {    # helper for test...
