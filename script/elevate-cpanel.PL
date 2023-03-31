@@ -2371,7 +2371,7 @@ sub remove_nixstats ($self) {
 
     my $service = q[nixstatsagent];
 
-    my $is_enabled = _is_service_enabled($service);
+    my $is_enabled = $self->service->is_enabled($service);
 
     $self->ssystem( qw{/usr/bin/systemctl disable}, $service ) if $is_enabled;
     $self->ssystem( qw{/usr/bin/systemctl stop},    $service );
