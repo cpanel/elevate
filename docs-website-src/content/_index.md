@@ -235,7 +235,7 @@ After addressing the reported issues, you can continue an existing elevation pro
 
 ### I need more help?
 
-You can report an issue to [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/)
+You can report an issue to [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
 
 ## Copyright
 
