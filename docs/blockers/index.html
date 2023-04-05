@@ -2,8 +2,8 @@
 <html><head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-
+    
+    
     <title>cPanel elevate documentation | Known cPanel ELevate Blockers</title>
     <link rel=icon href="https://cpanel.github.io/elevate/images/favicon.png">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
@@ -23,21 +23,21 @@
         <div class="collapse navbar-collapse" id="navbarResponsive">
             <ul class="navbar-nav ml-auto">
 
-
+                
                 <li class="nav-item"></li>
-                <a class="nav-link" href="https://github.com/cpanel/elevate/issues">
-
-                    Report an issue
+                <a class="nav-link" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">
+                    
+                    Report an Issue
                 </a>
                 </li>
-
+                
                 <li class="nav-item"></li>
                 <a class="nav-link" href="https://github.com/cpanel/elevate">
-
+                    
                     Contribute
                 </a>
                 </li>
-
+                
             </ul>
         </div>
     </div>
@@ -67,41 +67,50 @@
                 <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
                         Repository</a></li>
                 <li><a class="btn btn-primary" role="button"
-                        href="https://github.com/cpanel/elevate/issues">Report an issue</a></li>
+                        href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">Issues</a></li>
                 <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate">Documentation</a></li>
-
+                
                 <a href="/elevate/#introduction">
-
+                    
                     <li>Introduction</li>
                 </a>
-
+                
                 <a href="/elevate/#before-updating">
-
+                    
                     <li>Before Updating</li>
                 </a>
-
-                <a href="/elevate/#using-the-script">
-
-                    <li>Using the script</li>
-                </a>
-
+                
                 <a href="/elevate/#risks">
-
+                    
                     <li>Risks</li>
                 </a>
-
+                
+                <a href="/elevate/#using-the-script">
+                    
+                    <li>Using the script</li>
+                </a>
+                
+                <a href="/elevate/#sumup-of-upgrade-process">
+                    
+                    <li>SumUp of upgrade process</li>
+                </a>
+                
                 <a href="/elevate/#copyright">
-
+                    
                     <li>Copyright</li>
                 </a>
-
+                
+                <li>
+                    <a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/#FAQ">FAQ</a>
+                </li>
                 <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/blockers">Known Blockers</a></li>
                 <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/whitepaper">White Paper</a></li>
             </ul>
         </div>
 
     </aside>
-</div><div class="col-md-9">
+</div>
+<div class="col-md-9">
 
                 <article
                     class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
@@ -119,11 +128,11 @@
 <li>You are logged in as <strong>root</strong>.</li>
 </ul>
 <h2 id="disk-space">Disk space</h2>
-<p>At any given time, the upgrade process may use at or more than 3 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:</p>
+<p>At any given time, the upgrade process may use at or more than 5 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:</p>
 <ul>
 <li><strong>/boot</strong>: 120 MB</li>
 <li><strong>/usr/local/cpanel</strong>: 1.5 GB</li>
-<li><strong>/var/lib</strong>: 3 GB</li>
+<li><strong>/var/lib</strong>: 5 GB</li>
 </ul>
 <h2 id="unsupported-software">Unsupported software</h2>
 <p>The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:</p>
@@ -164,6 +173,13 @@
 </ul>
 </li>
 </ul>
+<h1 id="other-known-issues">Other Known Issues</h1>
+<p>The following is a list of other known issues that could prevent your server&rsquo;s successful elevation.</p>
+<h2 id="using-ovh-proactive-intervention-monitoring">Using OVH proactive intervention monitoring</h2>
+<p>If you are using a dedicated server hosted at OVH, you should <strong>disable the <code>proactive monitoring</code> before starting</strong> the elevation process.
+The proactive monitoring incorrectly detects an issue on your server during one of the reboots.
+Your server would then boot to a rescue mode, interrupting the elevation upgrade.</p>
+<p><a href="https://support.us.ovhcloud.com/hc/en-us/articles/115001821044-Overview-of-OVHcloud-Monitoring-on-Dedicated-Servers">Read more about OVH monitoring</a></p>
 
                 </article>
 
@@ -193,7 +209,7 @@
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Nov 15, 2022 at 18:07 (UTC)</i>
+        <br><i>page generated at Apr 5, 2023 at 15:02 (UTC)</i>
     </small>
     </div>
     </div>

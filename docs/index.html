@@ -3,8 +3,8 @@
 	<meta name="generator" content="Hugo 0.91.2" />
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-
+    
+    
     <title>cPanel elevate documentation</title>
     <link rel=icon href="https://cpanel.github.io/elevate/images/favicon.png">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
@@ -24,21 +24,21 @@
         <div class="collapse navbar-collapse" id="navbarResponsive">
             <ul class="navbar-nav ml-auto">
 
-
+                
                 <li class="nav-item"></li>
-                <a class="nav-link" href="https://github.com/cpanel/elevate/issues">
-
-                    Report an issue
+                <a class="nav-link" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">
+                    
+                    Report an Issue
                 </a>
                 </li>
-
+                
                 <li class="nav-item"></li>
                 <a class="nav-link" href="https://github.com/cpanel/elevate">
-
+                    
                     Contribute
                 </a>
                 </li>
-
+                
             </ul>
         </div>
     </div>
@@ -68,41 +68,50 @@
                 <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
                         Repository</a></li>
                 <li><a class="btn btn-primary" role="button"
-                        href="https://github.com/cpanel/elevate/issues">Report an issue</a></li>
+                        href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">Issues</a></li>
                 <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate">Documentation</a></li>
-
+                
                 <a href="/elevate/#introduction">
-
+                    
                     <li>Introduction</li>
                 </a>
-
+                
                 <a href="/elevate/#before-updating">
-
+                    
                     <li>Before Updating</li>
                 </a>
-
-                <a href="/elevate/#using-the-script">
-
-                    <li>Using the script</li>
-                </a>
-
+                
                 <a href="/elevate/#risks">
-
+                    
                     <li>Risks</li>
                 </a>
-
+                
+                <a href="/elevate/#using-the-script">
+                    
+                    <li>Using the script</li>
+                </a>
+                
+                <a href="/elevate/#sumup-of-upgrade-process">
+                    
+                    <li>SumUp of upgrade process</li>
+                </a>
+                
                 <a href="/elevate/#copyright">
-
+                    
                     <li>Copyright</li>
                 </a>
-
+                
+                <li>
+                    <a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/#FAQ">FAQ</a>
+                </li>
                 <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/blockers">Known Blockers</a></li>
                 <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/whitepaper">White Paper</a></li>
             </ul>
         </div>
 
     </aside>
-</div><div class="col-md-9">
+</div>
+<div class="col-md-9">
 
                 <article
                     class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
@@ -110,11 +119,11 @@
 <h2 id="goal">Goal</h2>
 <p>The cPanel ELevate Project provides a script to upgrade an existing <code>cPanel &amp; WHM</code> <a href="https://centos.org">CentOS 7</a> server installation to <a href="https://almalinux.org">AlmaLinux 8</a> or <a href="https://rockylinux.org">Rocky Linux 8</a>.</p>
 <h2 id="disclaimer">Disclaimer</h2>
-<p>We do not guarantee the functionality of software in this repository.  We provide it on an experimental basis only. You assume all risk for use of any software that you install from this experimental repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
-<p>cPanel Technical Support is limited in their ability to support experimental software. You should instead utilize the <a href="https://github.com/cpanel/elevate/issues">Github Issues page</a></p>
+<p>We do not guarantee the functionality of software in this repository. You assume all risk for use of any software that you install from this repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
+<p>That said, cPanel Technical Support is ready to help!
+Please contact <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">cPanel Technical Support</a> if you encounter problems.</p>
 <h2 id="introduction">Introduction</h2>
 <ul>
-<li><a href="https://github.com/cpanel/elevate/issues">Issues can be reported here</a></li>
 <li><a href="https://github.com/cpanel/elevate/pulls">Pull requests are welcome</a>
 <ul>
 <li>Code contributions are subject to our <a href="docs/cPanel-CLA.pdf">Contributor License Agreement</a></li>
@@ -157,7 +166,7 @@
 <li>You should back up your server before attempting this upgrade</li>
 <li>Ensure your server is up to date: <code>yum update</code></li>
 <li>Ensure you are using the last stable version of cPanel &amp; WHM</li>
-<li>Use a version of MySQL/MariaDB compliant with AlmaLinux 8.</li>
+<li>Use a version of MySQL/MariaDB compliant with Almalinux 8.</li>
 </ul>
 <p>Additional checks can be performed by <a href="#download-the-elevate-cpanel-script">downloading the script</a>
 and then <a href="#pre-upgrade-checks">running pre-checks</a>.</p>
@@ -232,8 +241,49 @@ unreachable during this time.</p>
 
 <span style="color:#75715e"># In case of errors, once fixed you can continue the migration process</span>
 /scripts/elevate-cpanel --continue
-</code></pre></div><h2 id="copyright">Copyright</h2>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">Copyright <span style="color:#ae81ff">2022</span> cPanel L.L.C.
+</code></pre></div><h2 id="sumup-of-upgrade-process">SumUp of upgrade process</h2>
+<p>The elevate process is divided in multiple <code>stages</code>.
+Each <code>stage</code> is repsonsible for one part of the upgrade.
+Between each stage a <code>reboot</code> is performed before doing a final reboot at the very end.</p>
+<h3 id="stage-1">Stage 1</h3>
+<p>Start the elevation process by installing the <code>elevate-cpanel</code> service responsible of the multiple reboots.</p>
+<h3 id="stage-2">Stage 2</h3>
+<p>Update the current distro packages.
+Disable cPanel services and setup motd.</p>
+<h3 id="stage-3">Stage 3</h3>
+<p>Setup the <code>elevate-release-latest-el7</code> repo and install leapp packages.
+Prepare the cPanel packages for the update.</p>
+<p>Remove some known conflicting packages and backup some existing configurations. (these packages will be reinstalled druing the next stage).</p>
+<p>Provide answers to a few leapp questions.</p>
+<p>Attempt to perform the <code>leapp</code> upgrade.</p>
+<p>In case of failure you probably want to reply to a few extra questions or remove some conflicting packages.</p>
+<h3 id="stage-4">Stage 4</h3>
+<p>At this stage we should now run Alamalinux 8 (or RockyLinux 8).
+Update cPanel product for the new distro.</p>
+<p>Restore removed packages during the previous stage.</p>
+<h3 id="stage-5">Stage 5</h3>
+<p>This is the final stage of the upgrade process.
+Perform some sanity checks and cleanup.
+Remove the <code>elevate-cpanel</code> service used during the upgrade process.</p>
+<p>A final reboot is performed at the end of this stage.</p>
+<h2 id="faq">FAQ</h2>
+<h3 id="how-to-check-the-current-status">How to check the current status?</h3>
+<p>You can check the current status of the elevation process by running:</p>
+<pre tabindex="0"><code>/scripts/elevate-cpanel --status
+</code></pre><h3 id="how-to-check-elevate-log">How to check elevate log?</h3>
+<p>The main log from the <code>/scripts/elevate-cpanel</code> can be read by running:</p>
+<pre tabindex="0"><code>/scripts/elevate-cpanel --log
+</code></pre><h3 id="where-to-find-leapp-issues">Where to find leapp issues?</h3>
+<p>If you need more details why the leapp process failed you can access logs at:</p>
+<pre tabindex="0"><code>        /var/log/leapp/leapp-report.txt
+        /var/log/leapp/leapp-report.json
+</code></pre><h3 id="how-to-continue-the-elevation-process">How to continue the elevation process?</h3>
+<p>After addressing the reported issues, you can continue an existing elevation process by running:</p>
+<pre tabindex="0"><code>/scripts/elevate-cpanel --continue
+</code></pre><h3 id="i-need-more-help">I need more help?</h3>
+<p>You can report an issue to <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">cPanel Technical Support</a></p>
+<h2 id="copyright">Copyright</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">Copyright <span style="color:#ae81ff">2023</span> cPanel L.L.C.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -283,7 +333,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div class="col-sm-12 text-center">
     <small>
         cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
-        <br><i>page generated at Nov 15, 2022 at 18:07 (UTC)</i>
+        <br><i>page generated at Apr 5, 2023 at 15:02 (UTC)</i>
     </small>
     </div>
     </div>
