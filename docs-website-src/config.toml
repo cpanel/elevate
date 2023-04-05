@@ -12,8 +12,8 @@ sectionPagesMenu = "main"
 
 [menu]
   [[menu.main]]
-    name = "Report an issue"
-    url = "https://github.com/cpanel/elevate/issues"
+    name = "Report an Issue"
+    url = "https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/"
     weight = 1
 
   [[menu.main]]
