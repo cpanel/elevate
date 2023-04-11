@@ -21,8 +21,7 @@ tags:
 	/usr/bin/ctags -R --languages=perl elevate-cpanel t
 
 elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
-	@test -x /usr/local/cpanel/bin/perlpkg || ( echo "Skip Target $@: no bin/perlpkg file"; false )
-	USE_CPANEL_PERL_FOR_PERLSTATIC=1 /usr/local/cpanel/bin/perlpkg \
+	USE_CPANEL_PERL_FOR_PERLSTATIC=1 maint/perlpkg.static \
 				       --dir=lib \
 				       --no-cpstrict \
 				       --no-try-tiny \
