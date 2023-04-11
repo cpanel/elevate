@@ -1,0 +1,3046 @@
+#!/usr/local/cpanel/3rdparty/bin/perl
+BEGIN { # Suppress load of all of these at earliest point.
+    $INC{'cPstrict.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'HTTP/Tiny.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'File/Path/Tiny.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'Try/Tiny.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'Cpanel/Binaries.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'Cpanel/FHUtils/Autoflush.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'Cpanel/LoadFile/ReadFast.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'Cpanel/SV.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'Cpanel/SafeRun/Simple.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+    $INC{'Cpanel/SafeRun/Errors.pm'} = '/usr/local/cpanel/bin/perlpkg.static';
+}
+
+{ # --- BEGIN File::Path::Tiny
+package File::Path::Tiny;
+
+use strict;
+use warnings;
+use Cwd qw(cwd chdir);
+use Carp ();
+
+$File::Path::Tiny::VERSION = "1.0";
+
+sub mk {
+    my ( $path, $mask ) = @_;
+    return 2 if -d $path;
+    if ( -e $path ) { $! = 20; return; }
+    $mask ||= '0777';    # Perl::Critic == Integer with leading zeros at ...
+    $mask = oct($mask) if substr( $mask, 0, 1 ) eq '0';
+    require File::Spec;
+    my ( $vol, $directories ) = File::Spec->splitpath( $path, 1 );
+    my @dirs = File::Spec->splitdir($directories);
+    my @list;
+
+    while ( my ($_dir) = shift @dirs ) {
+        last if not defined $_dir;
+        push @list, $_dir;
+        next if ( $_dir eq '' );
+        my $progressive = File::Spec->catpath( $vol, File::Spec->catdir(@list), '' );
+        if ( !-d $progressive ) {
+            mkdir( $progressive, $mask ) or -d $progressive or return;
+        }
+    }
+    return 1 if -d $path;
+    return;
+}
+
+sub rm {
+    my ( $path, $fast ) = @_;
+    my ( $orig_dev, $orig_ino ) = ( lstat $path )[ 0, 1 ];
+    if ( -e _ && !-d _ ) { $! = 20; return; }
+    return 2 if !-d _;
+
+    empty_dir( $path, $fast ) or return;
+    _bail_if_changed( $path, $orig_dev, $orig_ino );
+    rmdir($path) or !-e $path or return;
+    return 1;
+}
+
+sub empty_dir {
+    my ( $path, $fast ) = @_;
+    my ( $orig_dev, $orig_ino ) = ( lstat $path )[ 0, 1 ];
+    if ( -e _ && !-d _ ) { $! = 20; return; }
+
+    my ( $starting_point, $starting_dev, $starting_ino );
+    if ( !$fast ) {
+        $starting_point = cwd();
+        ( $starting_dev, $starting_ino ) = ( lstat $starting_point )[ 0, 1 ];
+        chdir($path) or Carp::croak("Failed to change directory to “$path”: $!");
+        $path = '.';
+        _bail_if_changed( $path, $orig_dev, $orig_ino );
+    }
+
+    opendir( my $dh, $path ) or return;
+    my @contents = grep { $_ ne '.' && $_ ne '..' } readdir($dh);
+    closedir $dh;
+    _bail_if_changed( $path, $orig_dev, $orig_ino );
+
+    require File::Spec if @contents;
+    for my $thing (@contents) {
+        my $long = File::Spec->catdir( $path, $thing );
+        if ( !-l $long && -d _ ) {
+            _bail_if_changed( $path, $orig_dev, $orig_ino );
+            rm( $long, $fast ) or !-e $long or return;
+        }
+        else {
+            _bail_if_changed( $path, $orig_dev, $orig_ino );
+            unlink $long or !-e $long or return;
+        }
+    }
+
+    _bail_if_changed( $path, $orig_dev, $orig_ino );
+
+    if ( !$fast ) {
+        chdir($starting_point) or Carp::croak("Failed to change directory to “$starting_point”: $!");
+        _bail_if_changed( ".", $starting_dev, $starting_ino );
+    }
+
+    return 1;
+}
+
+sub mk_parent {
+    my ( $path, $mode ) = @_;
+    $path =~ s{/+$}{};
+
+    require File::Spec;
+    my ( $v, $d, $f ) = File::Spec->splitpath( $path, 1 );
+    my @p = File::Spec->splitdir($d);
+
+    # pop() is probably cheaper here, benchmark? $d = File::Spec->catdir(@p[0--$#p-1]);
+    pop @p;
+    $d = File::Spec->catdir(@p);
+
+    my $parent = File::Spec->catpath( $v, $d, $f );
+    return mk( $parent, $mode );
+}
+
+sub _bail_if_changed {
+    my ( $path, $orig_dev, $orig_ino ) = @_;
+
+    my ( $cur_dev, $cur_ino ) = ( lstat $path )[ 0, 1 ];
+
+    if ( !defined $cur_dev || !defined $cur_ino ) {
+        $cur_dev ||= "undef(path went away?)";
+        $cur_ino ||= "undef(path went away?)";
+    }
+    else {
+        $path = Cwd::abs_path($path);
+    }
+
+    if ( $orig_dev ne $cur_dev || $orig_ino ne $cur_ino ) {
+        local $Carp::CarpLevel += 1;
+        Carp::croak("directory $path changed: expected dev=$orig_dev ino=$orig_ino, actual dev=$cur_dev ino=$cur_ino, aborting");
+    }
+}
+
+1;
+
+} # --- END File::Path::Tiny
+
+
+{ # --- BEGIN HTTP::Tiny
+# vim: ts=4 sts=4 sw=4 et:
+package HTTP::Tiny;
+use strict;
+use warnings;
+# ABSTRACT: A small, simple, correct HTTP/1.1 client
+
+our $VERSION = '0.080';
+
+sub _croak { require Carp; Carp::croak(@_) }
+
+#pod =method new
+#pod
+#pod     $http = HTTP::Tiny->new( %attributes );
+#pod
+#pod This constructor returns a new HTTP::Tiny object.  Valid attributes include:
+#pod
+#pod =for :list
+#pod * C<agent> — A user-agent string (defaults to 'HTTP-Tiny/$VERSION'). If
+#pod   C<agent> — ends in a space character, the default user-agent string is
+#pod   appended.
+#pod * C<cookie_jar> — An instance of L<HTTP::CookieJar> — or equivalent class
+#pod   that supports the C<add> and C<cookie_header> methods
+#pod * C<default_headers> — A hashref of default headers to apply to requests
+#pod * C<local_address> — The local IP address to bind to
+#pod * C<keep_alive> — Whether to reuse the last connection (if for the same
+#pod   scheme, host and port) (defaults to 1)
+#pod * C<max_redirect> — Maximum number of redirects allowed (defaults to 5)
+#pod * C<max_size> — Maximum response size in bytes (only when not using a data
+#pod   callback).  If defined, requests with responses larger than this will return
+#pod   a 599 status code.
+#pod * C<http_proxy> — URL of a proxy server to use for HTTP connections
+#pod   (default is C<$ENV{http_proxy}> — if set)
+#pod * C<https_proxy> — URL of a proxy server to use for HTTPS connections
+#pod   (default is C<$ENV{https_proxy}> — if set)
+#pod * C<proxy> — URL of a generic proxy server for both HTTP and HTTPS
+#pod   connections (default is C<$ENV{all_proxy}> — if set)
+#pod * C<no_proxy> — List of domain suffixes that should not be proxied.  Must
+#pod   be a comma-separated string or an array reference. (default is
+#pod   C<$ENV{no_proxy}> —)
+#pod * C<timeout> — Request timeout in seconds (default is 60) If a socket open,
+#pod   read or write takes longer than the timeout, the request response status code
+#pod   will be 599.
+#pod * C<verify_SSL> — A boolean that indicates whether to validate the SSL
+#pod   certificate of an C<https> — connection (default is false)
+#pod * C<SSL_options> — A hashref of C<SSL_*> — options to pass through to
+#pod   L<IO::Socket::SSL>
+#pod
+#pod An accessor/mutator method exists for each attribute.
+#pod
+#pod Passing an explicit C<undef> for C<proxy>, C<http_proxy> or C<https_proxy> will
+#pod prevent getting the corresponding proxies from the environment.
+#pod
+#pod Errors during request execution will result in a pseudo-HTTP status code of 599
+#pod and a reason of "Internal Exception". The content field in the response will
+#pod contain the text of the error.
+#pod
+#pod The C<keep_alive> parameter enables a persistent connection, but only to a
+#pod single destination scheme, host and port.  If any connection-relevant
+#pod attributes are modified via accessor, or if the process ID or thread ID change,
+#pod the persistent connection will be dropped.  If you want persistent connections
+#pod across multiple destinations, use multiple HTTP::Tiny objects.
+#pod
+#pod See L</SSL SUPPORT> for more on the C<verify_SSL> and C<SSL_options> attributes.
+#pod
+#pod =cut
+
+my @attributes;
+BEGIN {
+    @attributes = qw(
+        cookie_jar default_headers http_proxy https_proxy keep_alive
+        local_address max_redirect max_size proxy no_proxy
+        SSL_options verify_SSL
+    );
+    my %persist_ok = map {; $_ => 1 } qw(
+        cookie_jar default_headers max_redirect max_size
+    );
+    no strict 'refs';
+    no warnings 'uninitialized';
+    for my $accessor ( @attributes ) {
+        *{$accessor} = sub {
+            @_ > 1
+                ? do {
+                    delete $_[0]->{handle} if !$persist_ok{$accessor} && $_[1] ne $_[0]->{$accessor};
+                    $_[0]->{$accessor} = $_[1]
+                }
+                : $_[0]->{$accessor};
+        };
+    }
+}
+
+sub agent {
+    my($self, $agent) = @_;
+    if( @_ > 1 ){
+        $self->{agent} =
+            (defined $agent && $agent =~ / $/) ? $agent . $self->_agent : $agent;
+    }
+    return $self->{agent};
+}
+
+sub timeout {
+    my ($self, $timeout) = @_;
+    if ( @_ > 1 ) {
+        $self->{timeout} = $timeout;
+        if ($self->{handle}) {
+            $self->{handle}->timeout($timeout);
+        }
+    }
+    return $self->{timeout};
+}
+
+sub new {
+    my($class, %args) = @_;
+
+    my $self = {
+        max_redirect => 5,
+        timeout      => defined $args{timeout} ? $args{timeout} : 60,
+        keep_alive   => 1,
+        verify_SSL   => $args{verify_SSL} || $args{verify_ssl} || 0, # no verification by default
+        no_proxy     => $ENV{no_proxy},
+    };
+
+    bless $self, $class;
+
+    $class->_validate_cookie_jar( $args{cookie_jar} ) if $args{cookie_jar};
+
+    for my $key ( @attributes ) {
+        $self->{$key} = $args{$key} if exists $args{$key}
+    }
+
+    $self->agent( exists $args{agent} ? $args{agent} : $class->_agent );
+
+    $self->_set_proxies;
+
+    return $self;
+}
+
+sub _set_proxies {
+    my ($self) = @_;
+
+    # get proxies from %ENV only if not provided; explicit undef will disable
+    # getting proxies from the environment
+
+    # generic proxy
+    if (! exists $self->{proxy} ) {
+        $self->{proxy} = $ENV{all_proxy} || $ENV{ALL_PROXY};
+    }
+
+    if ( defined $self->{proxy} ) {
+        $self->_split_proxy( 'generic proxy' => $self->{proxy} ); # validate
+    }
+    else {
+        delete $self->{proxy};
+    }
+
+    # http proxy
+    if (! exists $self->{http_proxy} ) {
+        # under CGI, bypass HTTP_PROXY as request sets it from Proxy header
+        local $ENV{HTTP_PROXY} = ($ENV{CGI_HTTP_PROXY} || "") if $ENV{REQUEST_METHOD};
+        $self->{http_proxy} = $ENV{http_proxy} || $ENV{HTTP_PROXY} || $self->{proxy};
+    }
+
+    if ( defined $self->{http_proxy} ) {
+        $self->_split_proxy( http_proxy => $self->{http_proxy} ); # validate
+        $self->{_has_proxy}{http} = 1;
+    }
+    else {
+        delete $self->{http_proxy};
+    }
+
+    # https proxy
+    if (! exists $self->{https_proxy} ) {
+        $self->{https_proxy} = $ENV{https_proxy} || $ENV{HTTPS_PROXY} || $self->{proxy};
+    }
+
+    if ( $self->{https_proxy} ) {
+        $self->_split_proxy( https_proxy => $self->{https_proxy} ); # validate
+        $self->{_has_proxy}{https} = 1;
+    }
+    else {
+        delete $self->{https_proxy};
+    }
+
+    # Split no_proxy to array reference if not provided as such
+    unless ( ref $self->{no_proxy} eq 'ARRAY' ) {
+        $self->{no_proxy} =
+            (defined $self->{no_proxy}) ? [ split /\s*,\s*/, $self->{no_proxy} ] : [];
+    }
+
+    return;
+}
+
+#pod =method get|head|put|post|patch|delete
+#pod
+#pod     $response = $http->get($url);
+#pod     $response = $http->get($url, \%options);
+#pod     $response = $http->head($url);
+#pod
+#pod These methods are shorthand for calling C<request()> for the given method.  The
+#pod URL must have unsafe characters escaped and international domain names encoded.
+#pod See C<request()> for valid options and a description of the response.
+#pod
+#pod The C<success> field of the response will be true if the status code is 2XX.
+#pod
+#pod =cut
+
+for my $sub_name ( qw/get head put post patch delete/ ) {
+    my $req_method = uc $sub_name;
+    no strict 'refs';
+    eval <<"HERE"; ## no critic
+    sub $sub_name {
+        my (\$self, \$url, \$args) = \@_;
+        \@_ == 2 || (\@_ == 3 && ref \$args eq 'HASH')
+        or _croak(q/Usage: \$http->$sub_name(URL, [HASHREF])/ . "\n");
+        return \$self->request('$req_method', \$url, \$args || {});
+    }
+HERE
+}
+
+#pod =method post_form
+#pod
+#pod     $response = $http->post_form($url, $form_data);
+#pod     $response = $http->post_form($url, $form_data, \%options);
+#pod
+#pod This method executes a C<POST> request and sends the key/value pairs from a
+#pod form data hash or array reference to the given URL with a C<content-type> of
+#pod C<application/x-www-form-urlencoded>.  If data is provided as an array
+#pod reference, the order is preserved; if provided as a hash reference, the terms
+#pod are sorted on key and value for consistency.  See documentation for the
+#pod C<www_form_urlencode> method for details on the encoding.
+#pod
+#pod The URL must have unsafe characters escaped and international domain names
+#pod encoded.  See C<request()> for valid options and a description of the response.
+#pod Any C<content-type> header or content in the options hashref will be ignored.
+#pod
+#pod The C<success> field of the response will be true if the status code is 2XX.
+#pod
+#pod =cut
+
+sub post_form {
+    my ($self, $url, $data, $args) = @_;
+    (@_ == 3 || @_ == 4 && ref $args eq 'HASH')
+        or _croak(q/Usage: $http->post_form(URL, DATAREF, [HASHREF])/ . "\n");
+
+    my $headers = {};
+    while ( my ($key, $value) = each %{$args->{headers} || {}} ) {
+        $headers->{lc $key} = $value;
+    }
+    delete $args->{headers};
+
+    return $self->request('POST', $url, {
+            %$args,
+            content => $self->www_form_urlencode($data),
+            headers => {
+                %$headers,
+                'content-type' => 'application/x-www-form-urlencoded'
+            },
+        }
+    );
+}
+
+#pod =method mirror
+#pod
+#pod     $response = $http->mirror($url, $file, \%options)
+#pod     if ( $response->{success} ) {
+#pod         print "$file is up to date\n";
+#pod     }
+#pod
+#pod Executes a C<GET> request for the URL and saves the response body to the file
+#pod name provided.  The URL must have unsafe characters escaped and international
+#pod domain names encoded.  If the file already exists, the request will include an
+#pod C<If-Modified-Since> header with the modification timestamp of the file.  You
+#pod may specify a different C<If-Modified-Since> header yourself in the C<<
+#pod $options->{headers} >> hash.
+#pod
+#pod The C<success> field of the response will be true if the status code is 2XX
+#pod or if the status code is 304 (unmodified).
+#pod
+#pod If the file was modified and the server response includes a properly
+#pod formatted C<Last-Modified> header, the file modification time will
+#pod be updated accordingly.
+#pod
+#pod =cut
+
+sub mirror {
+    my ($self, $url, $file, $args) = @_;
+    @_ == 3 || (@_ == 4 && ref $args eq 'HASH')
+      or _croak(q/Usage: $http->mirror(URL, FILE, [HASHREF])/ . "\n");
+
+    if ( exists $args->{headers} ) {
+        my $headers = {};
+        while ( my ($key, $value) = each %{$args->{headers} || {}} ) {
+            $headers->{lc $key} = $value;
+        }
+        $args->{headers} = $headers;
+    }
+
+    if ( -e $file and my $mtime = (stat($file))[9] ) {
+        $args->{headers}{'if-modified-since'} ||= $self->_http_date($mtime);
+    }
+    my $tempfile = $file . int(rand(2**31));
+
+    require Fcntl;
+    sysopen my $fh, $tempfile, Fcntl::O_CREAT()|Fcntl::O_EXCL()|Fcntl::O_WRONLY()
+       or _croak(qq/Error: Could not create temporary file $tempfile for downloading: $!\n/);
+    binmode $fh;
+    $args->{data_callback} = sub { print {$fh} $_[0] };
+    my $response = $self->request('GET', $url, $args);
+    close $fh
+        or _croak(qq/Error: Caught error closing temporary file $tempfile: $!\n/);
+
+    if ( $response->{success} ) {
+        rename $tempfile, $file
+            or _croak(qq/Error replacing $file with $tempfile: $!\n/);
+        my $lm = $response->{headers}{'last-modified'};
+        if ( $lm and my $mtime = $self->_parse_http_date($lm) ) {
+            utime $mtime, $mtime, $file;
+        }
+    }
+    $response->{success} ||= $response->{status} eq '304';
+    unlink $tempfile;
+    return $response;
+}
+
+#pod =method request
+#pod
+#pod     $response = $http->request($method, $url);
+#pod     $response = $http->request($method, $url, \%options);
+#pod
+#pod Executes an HTTP request of the given method type ('GET', 'HEAD', 'POST',
+#pod 'PUT', etc.) on the given URL.  The URL must have unsafe characters escaped and
+#pod international domain names encoded.
+#pod
+#pod B<NOTE>: Method names are B<case-sensitive> per the HTTP/1.1 specification.
+#pod Don't use C<get> when you really want C<GET>.  See L<LIMITATIONS> for
+#pod how this applies to redirection.
+#pod
+#pod If the URL includes a "user:password" stanza, they will be used for Basic-style
+#pod authorization headers.  (Authorization headers will not be included in a
+#pod redirected request.) For example:
+#pod
+#pod     $http->request('GET', 'http://Aladdin:open sesame@example.com/');
+#pod
+#pod If the "user:password" stanza contains reserved characters, they must
+#pod be percent-escaped:
+#pod
+#pod     $http->request('GET', 'http://john%40example.com:password@example.com/');
+#pod
+#pod A hashref of options may be appended to modify the request.
+#pod
+#pod Valid options are:
+#pod
+#pod =for :list
+#pod * C<headers> —
+#pod     A hashref containing headers to include with the request.  If the value for
+#pod     a header is an array reference, the header will be output multiple times with
+#pod     each value in the array.  These headers over-write any default headers.
+#pod * C<content> —
+#pod     A scalar to include as the body of the request OR a code reference
+#pod     that will be called iteratively to produce the body of the request
+#pod * C<trailer_callback> —
+#pod     A code reference that will be called if it exists to provide a hashref
+#pod     of trailing headers (only used with chunked transfer-encoding)
+#pod * C<data_callback> —
+#pod     A code reference that will be called for each chunks of the response
+#pod     body received.
+#pod * C<peer> —
+#pod     Override host resolution and force all connections to go only to a
+#pod     specific peer address, regardless of the URL of the request.  This will
+#pod     include any redirections!  This options should be used with extreme
+#pod     caution (e.g. debugging or very special circumstances). It can be given as
+#pod     either a scalar or a code reference that will receive the hostname and
+#pod     whose response will be taken as the address.
+#pod
+#pod The C<Host> header is generated from the URL in accordance with RFC 2616.  It
+#pod is a fatal error to specify C<Host> in the C<headers> option.  Other headers
+#pod may be ignored or overwritten if necessary for transport compliance.
+#pod
+#pod If the C<content> option is a code reference, it will be called iteratively
+#pod to provide the content body of the request.  It should return the empty
+#pod string or undef when the iterator is exhausted.
+#pod
+#pod If the C<content> option is the empty string, no C<content-type> or
+#pod C<content-length> headers will be generated.
+#pod
+#pod If the C<data_callback> option is provided, it will be called iteratively until
+#pod the entire response body is received.  The first argument will be a string
+#pod containing a chunk of the response body, the second argument will be the
+#pod in-progress response hash reference, as described below.  (This allows
+#pod customizing the action of the callback based on the C<status> or C<headers>
+#pod received prior to the content body.)
+#pod
+#pod The C<request> method returns a hashref containing the response.  The hashref
+#pod will have the following keys:
+#pod
+#pod =for :list
+#pod * C<success> —
+#pod     Boolean indicating whether the operation returned a 2XX status code
+#pod * C<url> —
+#pod     URL that provided the response. This is the URL of the request unless
+#pod     there were redirections, in which case it is the last URL queried
+#pod     in a redirection chain
+#pod * C<status> —
+#pod     The HTTP status code of the response
+#pod * C<reason> —
+#pod     The response phrase returned by the server
+#pod * C<content> —
+#pod     The body of the response.  If the response does not have any content
+#pod     or if a data callback is provided to consume the response body,
+#pod     this will be the empty string
+#pod * C<headers> —
+#pod     A hashref of header fields.  All header field names will be normalized
+#pod     to be lower case. If a header is repeated, the value will be an arrayref;
+#pod     it will otherwise be a scalar string containing the value
+#pod * C<protocol> -
+#pod     If this field exists, it is the protocol of the response
+#pod     such as HTTP/1.0 or HTTP/1.1
+#pod * C<redirects>
+#pod     If this field exists, it is an arrayref of response hash references from
+#pod     redirects in the same order that redirections occurred.  If it does
+#pod     not exist, then no redirections occurred.
+#pod
+#pod On an error during the execution of the request, the C<status> field will
+#pod contain 599, and the C<content> field will contain the text of the error.
+#pod
+#pod =cut
+
+my %idempotent = map { $_ => 1 } qw/GET HEAD PUT DELETE OPTIONS TRACE/;
+
+sub request {
+    my ($self, $method, $url, $args) = @_;
+    @_ == 3 || (@_ == 4 && ref $args eq 'HASH')
+      or _croak(q/Usage: $http->request(METHOD, URL, [HASHREF])/ . "\n");
+    $args ||= {}; # we keep some state in this during _request
+
+    # RFC 2616 Section 8.1.4 mandates a single retry on broken socket
+    my $response;
+    for ( 0 .. 1 ) {
+        $response = eval { $self->_request($method, $url, $args) };
+        last unless $@ && $idempotent{$method}
+            && $@ =~ m{^(?:Socket closed|Unexpected end|SSL read error)};
+    }
+
+    if (my $e = $@) {
+        # maybe we got a response hash thrown from somewhere deep
+        if ( ref $e eq 'HASH' && exists $e->{status} ) {
+            $e->{redirects} = delete $args->{_redirects} if @{ $args->{_redirects} || []};
+            return $e;
+        }
+
+        # otherwise, stringify it
+        $e = "$e";
+        $response = {
+            url     => $url,
+            success => q{},
+            status  => 599,
+            reason  => 'Internal Exception',
+            content => $e,
+            headers => {
+                'content-type'   => 'text/plain',
+                'content-length' => length $e,
+            },
+            ( @{$args->{_redirects} || []} ? (redirects => delete $args->{_redirects}) : () ),
+        };
+    }
+    return $response;
+}
+
+#pod =method www_form_urlencode
+#pod
+#pod     $params = $http->www_form_urlencode( $data );
+#pod     $response = $http->get("http://example.com/query?$params");
+#pod
+#pod This method converts the key/value pairs from a data hash or array reference
+#pod into a C<x-www-form-urlencoded> string.  The keys and values from the data
+#pod reference will be UTF-8 encoded and escaped per RFC 3986.  If a value is an
+#pod array reference, the key will be repeated with each of the values of the array
+#pod reference.  If data is provided as a hash reference, the key/value pairs in the
+#pod resulting string will be sorted by key and value for consistent ordering.
+#pod
+#pod =cut
+
+sub www_form_urlencode {
+    my ($self, $data) = @_;
+    (@_ == 2 && ref $data)
+        or _croak(q/Usage: $http->www_form_urlencode(DATAREF)/ . "\n");
+    (ref $data eq 'HASH' || ref $data eq 'ARRAY')
+        or _croak("form data must be a hash or array reference\n");
+
+    my @params = ref $data eq 'HASH' ? %$data : @$data;
+    @params % 2 == 0
+        or _croak("form data reference must have an even number of terms\n");
+
+    my @terms;
+    while( @params ) {
+        my ($key, $value) = splice(@params, 0, 2);
+        _croak("form data keys must not be undef")
+            if !defined($key);
+        if ( ref $value eq 'ARRAY' ) {
+            unshift @params, map { $key => $_ } @$value;
+        }
+        else {
+            push @terms, join("=", map { $self->_uri_escape($_) } $key, $value);
+        }
+    }
+
+    return join("&", (ref $data eq 'ARRAY') ? (@terms) : (sort @terms) );
+}
+
+#pod =method can_ssl
+#pod
+#pod     $ok         = HTTP::Tiny->can_ssl;
+#pod     ($ok, $why) = HTTP::Tiny->can_ssl;
+#pod     ($ok, $why) = $http->can_ssl;
+#pod
+#pod Indicates if SSL support is available.  When called as a class object, it
+#pod checks for the correct version of L<Net::SSLeay> and L<IO::Socket::SSL>.
+#pod When called as an object methods, if C<SSL_verify> is true or if C<SSL_verify_mode>
+#pod is set in C<SSL_options>, it checks that a CA file is available.
+#pod
+#pod In scalar context, returns a boolean indicating if SSL is available.
+#pod In list context, returns the boolean and a (possibly multi-line) string of
+#pod errors indicating why SSL isn't available.
+#pod
+#pod =cut
+
+sub can_ssl {
+    my ($self) = @_;
+
+    my($ok, $reason) = (1, '');
+
+    # Need IO::Socket::SSL 1.42 for SSL_create_ctx_callback
+    local @INC = @INC;
+    pop @INC if $INC[-1] eq '.';
+    unless (eval {require IO::Socket::SSL; IO::Socket::SSL->VERSION(1.42)}) {
+        $ok = 0;
+        $reason .= qq/IO::Socket::SSL 1.42 must be installed for https support\n/;
+    }
+
+    # Need Net::SSLeay 1.49 for MODE_AUTO_RETRY
+    unless (eval {require Net::SSLeay; Net::SSLeay->VERSION(1.49)}) {
+        $ok = 0;
+        $reason .= qq/Net::SSLeay 1.49 must be installed for https support\n/;
+    }
+
+    # If an object, check that SSL config lets us get a CA if necessary
+    if ( ref($self) && ( $self->{verify_SSL} || $self->{SSL_options}{SSL_verify_mode} ) ) {
+        my $handle = HTTP::Tiny::Handle->new(
+            SSL_options => $self->{SSL_options},
+            verify_SSL  => $self->{verify_SSL},
+        );
+        unless ( eval { $handle->_find_CA_file; 1 } ) {
+            $ok = 0;
+            $reason .= "$@";
+        }
+    }
+
+    wantarray ? ($ok, $reason) : $ok;
+}
+
+#pod =method connected
+#pod
+#pod     $host = $http->connected;
+#pod     ($host, $port) = $http->connected;
+#pod
+#pod Indicates if a connection to a peer is being kept alive, per the C<keep_alive>
+#pod option.
+#pod
+#pod In scalar context, returns the peer host and port, joined with a colon, or
+#pod C<undef> (if no peer is connected).
+#pod In list context, returns the peer host and port or an empty list (if no peer
+#pod is connected).
+#pod
+#pod B<Note>: This method cannot reliably be used to discover whether the remote
+#pod host has closed its end of the socket.
+#pod
+#pod =cut
+
+sub connected {
+    my ($self) = @_;
+
+    if ( $self->{handle} ) {
+        return $self->{handle}->connected;
+    }
+    return;
+}
+
+#--------------------------------------------------------------------------#
+# private methods
+#--------------------------------------------------------------------------#
+
+my %DefaultPort = (
+    http => 80,
+    https => 443,
+);
+
+sub _agent {
+    my $class = ref($_[0]) || $_[0];
+    (my $default_agent = $class) =~ s{::}{-}g;
+    my $version = $class->VERSION;
+    $default_agent .= "/$version" if defined $version;
+    return $default_agent;
+}
+
+sub _request {
+    my ($self, $method, $url, $args) = @_;
+
+    my ($scheme, $host, $port, $path_query, $auth) = $self->_split_url($url);
+
+    if ($scheme ne 'http' && $scheme ne 'https') {
+      die(qq/Unsupported URL scheme '$scheme'\n/);
+    }
+
+    my $request = {
+        method    => $method,
+        scheme    => $scheme,
+        host      => $host,
+        port      => $port,
+        host_port => ($port == $DefaultPort{$scheme} ? $host : "$host:$port"),
+        uri       => $path_query,
+        headers   => {},
+    };
+
+    my $peer = $args->{peer} || $host;
+
+    # Allow 'peer' to be a coderef.
+    if ('CODE' eq ref $peer) {
+        $peer = $peer->($host);
+    }
+
+    # We remove the cached handle so it is not reused in the case of redirect.
+    # If all is well, it will be recached at the end of _request.  We only
+    # reuse for the same scheme, host and port
+    my $handle = delete $self->{handle};
+    if ( $handle ) {
+        unless ( $handle->can_reuse( $scheme, $host, $port, $peer ) ) {
+            $handle->close;
+            undef $handle;
+        }
+    }
+    $handle ||= $self->_open_handle( $request, $scheme, $host, $port, $peer );
+
+    $self->_prepare_headers_and_cb($request, $args, $url, $auth);
+    $handle->write_request($request);
+
+    my $response;
+    do { $response = $handle->read_response_header }
+        until (substr($response->{status},0,1) ne '1');
+
+    $self->_update_cookie_jar( $url, $response ) if $self->{cookie_jar};
+    my @redir_args = $self->_maybe_redirect($request, $response, $args);
+
+    my $known_message_length;
+    if ($method eq 'HEAD' || $response->{status} =~ /^[23]04/) {
+        # response has no message body
+        $known_message_length = 1;
+    }
+    else {
+        # Ignore any data callbacks during redirection.
+        my $cb_args = @redir_args ? +{} : $args;
+        my $data_cb = $self->_prepare_data_cb($response, $cb_args);
+        $known_message_length = $handle->read_body($data_cb, $response);
+    }
+
+    if ( $self->{keep_alive}
+        && $handle->connected
+        && $known_message_length
+        && $response->{protocol} eq 'HTTP/1.1'
+        && ($response->{headers}{connection} || '') ne 'close'
+    ) {
+        $self->{handle} = $handle;
+    }
+    else {
+        $handle->close;
+    }
+
+    $response->{success} = substr( $response->{status}, 0, 1 ) eq '2';
+    $response->{url} = $url;
+
+    # Push the current response onto the stack of redirects if redirecting.
+    if (@redir_args) {
+        push @{$args->{_redirects}}, $response;
+        return $self->_request(@redir_args, $args);
+    }
+
+    # Copy the stack of redirects into the response before returning.
+    $response->{redirects} = delete $args->{_redirects}
+      if @{$args->{_redirects}};
+    return $response;
+}
+
+sub _open_handle {
+    my ($self, $request, $scheme, $host, $port, $peer) = @_;
+
+    my $handle  = HTTP::Tiny::Handle->new(
+        timeout         => $self->{timeout},
+        SSL_options     => $self->{SSL_options},
+        verify_SSL      => $self->{verify_SSL},
+        local_address   => $self->{local_address},
+        keep_alive      => $self->{keep_alive}
+    );
+
+    if ($self->{_has_proxy}{$scheme} && ! grep { $host =~ /\Q$_\E$/ } @{$self->{no_proxy}}) {
+        return $self->_proxy_connect( $request, $handle );
+    }
+    else {
+        return $handle->connect($scheme, $host, $port, $peer);
+    }
+}
+
+sub _proxy_connect {
+    my ($self, $request, $handle) = @_;
+
+    my @proxy_vars;
+    if ( $request->{scheme} eq 'https' ) {
+        _croak(qq{No https_proxy defined}) unless $self->{https_proxy};
+        @proxy_vars = $self->_split_proxy( https_proxy => $self->{https_proxy} );
+        if ( $proxy_vars[0] eq 'https' ) {
+            _croak(qq{Can't proxy https over https: $request->{uri} via $self->{https_proxy}});
+        }
+    }
+    else {
+        _croak(qq{No http_proxy defined}) unless $self->{http_proxy};
+        @proxy_vars = $self->_split_proxy( http_proxy => $self->{http_proxy} );
+    }
+
+    my ($p_scheme, $p_host, $p_port, $p_auth) = @proxy_vars;
+
+    if ( length $p_auth && ! defined $request->{headers}{'proxy-authorization'} ) {
+        $self->_add_basic_auth_header( $request, 'proxy-authorization' => $p_auth );
+    }
+
+    $handle->connect($p_scheme, $p_host, $p_port, $p_host);
+
+    if ($request->{scheme} eq 'https') {
+        $self->_create_proxy_tunnel( $request, $handle );
+    }
+    else {
+        # non-tunneled proxy requires absolute URI
+        $request->{uri} = "$request->{scheme}://$request->{host_port}$request->{uri}";
+    }
+
+    return $handle;
+}
+
+sub _split_proxy {
+    my ($self, $type, $proxy) = @_;
+
+    my ($scheme, $host, $port, $path_query, $auth) = eval { $self->_split_url($proxy) };
+
+    unless(
+        defined($scheme) && length($scheme) && length($host) && length($port)
+        && $path_query eq '/'
+    ) {
+        _croak(qq{$type URL must be in format http[s]://[auth@]<host>:<port>/\n});
+    }
+
+    return ($scheme, $host, $port, $auth);
+}
+
+sub _create_proxy_tunnel {
+    my ($self, $request, $handle) = @_;
+
+    $handle->_assert_ssl;
+
+    my $agent = exists($request->{headers}{'user-agent'})
+        ? $request->{headers}{'user-agent'} : $self->{agent};
+
+    my $connect_request = {
+        method    => 'CONNECT',
+        uri       => "$request->{host}:$request->{port}",
+        headers   => {
+            host => "$request->{host}:$request->{port}",
+            'user-agent' => $agent,
+        }
+    };
+
+    if ( $request->{headers}{'proxy-authorization'} ) {
+        $connect_request->{headers}{'proxy-authorization'} =
+            delete $request->{headers}{'proxy-authorization'};
+    }
+
+    $handle->write_request($connect_request);
+    my $response;
+    do { $response = $handle->read_response_header }
+        until (substr($response->{status},0,1) ne '1');
+
+    # if CONNECT failed, throw the response so it will be
+    # returned from the original request() method;
+    unless (substr($response->{status},0,1) eq '2') {
+        die $response;
+    }
+
+    # tunnel established, so start SSL handshake
+    $handle->start_ssl( $request->{host} );
+
+    return;
+}
+
+sub _prepare_headers_and_cb {
+    my ($self, $request, $args, $url, $auth) = @_;
+
+    for ($self->{default_headers}, $args->{headers}) {
+        next unless defined;
+        while (my ($k, $v) = each %$_) {
+            $request->{headers}{lc $k} = $v;
+            $request->{header_case}{lc $k} = $k;
+        }
+    }
+
+    if (exists $request->{headers}{'host'}) {
+        die(qq/The 'Host' header must not be provided as header option\n/);
+    }
+
+    $request->{headers}{'host'}         = $request->{host_port};
+    $request->{headers}{'user-agent'} ||= $self->{agent};
+    $request->{headers}{'connection'}   = "close"
+        unless $self->{keep_alive};
+
+    # Some servers error on an empty-body PUT/POST without a content-length
+    if ( $request->{method} eq 'PUT' || $request->{method} eq 'POST' ) {
+        if (!defined($args->{content}) || !length($args->{content}) ) {
+            $request->{headers}{'content-length'} = 0;
+        }
+    }
+
+    if ( defined $args->{content} ) {
+        if ( ref $args->{content} eq 'CODE' ) {
+            if ( exists $request->{'content-length'} && $request->{'content-length'} == 0 ) {
+                $request->{cb} = sub { "" };
+            }
+            else {
+                $request->{headers}{'content-type'} ||= "application/octet-stream";
+                $request->{headers}{'transfer-encoding'} = 'chunked'
+                  unless exists $request->{headers}{'content-length'}
+                  || $request->{headers}{'transfer-encoding'};
+                $request->{cb} = $args->{content};
+            }
+        }
+        elsif ( length $args->{content} ) {
+            my $content = $args->{content};
+            if ( $] ge '5.008' ) {
+                utf8::downgrade($content, 1)
+                    or die(qq/Wide character in request message body\n/);
+            }
+            $request->{headers}{'content-type'} ||= "application/octet-stream";
+            $request->{headers}{'content-length'} = length $content
+              unless $request->{headers}{'content-length'}
+                  || $request->{headers}{'transfer-encoding'};
+            $request->{cb} = sub { substr $content, 0, length $content, '' };
+        }
+        $request->{trailer_cb} = $args->{trailer_callback}
+            if ref $args->{trailer_callback} eq 'CODE';
+    }
+
+    ### If we have a cookie jar, then maybe add relevant cookies
+    if ( $self->{cookie_jar} ) {
+        my $cookies = $self->cookie_jar->cookie_header( $url );
+        $request->{headers}{cookie} = $cookies if length $cookies;
+    }
+
+    # if we have Basic auth parameters, add them
+    if ( length $auth && ! defined $request->{headers}{authorization} ) {
+        $self->_add_basic_auth_header( $request, 'authorization' => $auth );
+    }
+
+    return;
+}
+
+sub _add_basic_auth_header {
+    my ($self, $request, $header, $auth) = @_;
+    require MIME::Base64;
+    $request->{headers}{$header} =
+        "Basic " . MIME::Base64::encode_base64($auth, "");
+    return;
+}
+
+sub _prepare_data_cb {
+    my ($self, $response, $args) = @_;
+    my $data_cb = $args->{data_callback};
+    $response->{content} = '';
+
+    if (!$data_cb || $response->{status} !~ /^2/) {
+        if (defined $self->{max_size}) {
+            $data_cb = sub {
+                $_[1]->{content} .= $_[0];
+                die(qq/Size of response body exceeds the maximum allowed of $self->{max_size}\n/)
+                  if length $_[1]->{content} > $self->{max_size};
+            };
+        }
+        else {
+            $data_cb = sub { $_[1]->{content} .= $_[0] };
+        }
+    }
+    return $data_cb;
+}
+
+sub _update_cookie_jar {
+    my ($self, $url, $response) = @_;
+
+    my $cookies = $response->{headers}->{'set-cookie'};
+    return unless defined $cookies;
+
+    my @cookies = ref $cookies ? @$cookies : $cookies;
+
+    $self->cookie_jar->add( $url, $_ ) for @cookies;
+
+    return;
+}
+
+sub _validate_cookie_jar {
+    my ($class, $jar) = @_;
+
+    # duck typing
+    for my $method ( qw/add cookie_header/ ) {
+        _croak(qq/Cookie jar must provide the '$method' method\n/)
+            unless ref($jar) && ref($jar)->can($method);
+    }
+
+    return;
+}
+
+sub _maybe_redirect {
+    my ($self, $request, $response, $args) = @_;
+    my $headers = $response->{headers};
+    my ($status, $method) = ($response->{status}, $request->{method});
+    $args->{_redirects} ||= [];
+
+    if (($status eq '303' or ($status =~ /^30[1278]/ && $method =~ /^GET|HEAD$/))
+        and $headers->{location}
+        and @{$args->{_redirects}} < $self->{max_redirect}
+    ) {
+        my $location = ($headers->{location} =~ /^\//)
+            ? "$request->{scheme}://$request->{host_port}$headers->{location}"
+            : $headers->{location} ;
+        return (($status eq '303' ? 'GET' : $method), $location);
+    }
+    return;
+}
+
+sub _split_url {
+    my $url = pop;
+
+    # URI regex adapted from the URI module
+    my ($scheme, $host, $path_query) = $url =~ m<\A([^:/?#]+)://([^/?#]*)([^#]*)>
+      or die(qq/Cannot parse URL: '$url'\n/);
+
+    $scheme     = lc $scheme;
+    $path_query = "/$path_query" unless $path_query =~ m<\A/>;
+
+    my $auth = '';
+    if ( (my $i = index $host, '@') != -1 ) {
+        # user:pass@host
+        $auth = substr $host, 0, $i, ''; # take up to the @ for auth
+        substr $host, 0, 1, '';          # knock the @ off the host
+
+        # userinfo might be percent escaped, so recover real auth info
+        $auth =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+    }
+    my $port = $host =~ s/:(\d*)\z// && length $1 ? $1
+             : $scheme eq 'http'                  ? 80
+             : $scheme eq 'https'                 ? 443
+             : undef;
+
+    return ($scheme, (length $host ? lc $host : "localhost") , $port, $path_query, $auth);
+}
+
+# Date conversions adapted from HTTP::Date
+my $DoW = "Sun|Mon|Tue|Wed|Thu|Fri|Sat";
+my $MoY = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
+sub _http_date {
+    my ($sec, $min, $hour, $mday, $mon, $year, $wday) = gmtime($_[1]);
+    return sprintf("%s, %02d %s %04d %02d:%02d:%02d GMT",
+        substr($DoW,$wday*4,3),
+        $mday, substr($MoY,$mon*4,3), $year+1900,
+        $hour, $min, $sec
+    );
+}
+
+sub _parse_http_date {
+    my ($self, $str) = @_;
+    require Time::Local;
+    my @tl_parts;
+    if ($str =~ /^[SMTWF][a-z]+, +(\d{1,2}) ($MoY) +(\d\d\d\d) +(\d\d):(\d\d):(\d\d) +GMT$/) {
+        @tl_parts = ($6, $5, $4, $1, (index($MoY,$2)/4), $3);
+    }
+    elsif ($str =~ /^[SMTWF][a-z]+, +(\d\d)-($MoY)-(\d{2,4}) +(\d\d):(\d\d):(\d\d) +GMT$/ ) {
+        @tl_parts = ($6, $5, $4, $1, (index($MoY,$2)/4), $3);
+    }
+    elsif ($str =~ /^[SMTWF][a-z]+ +($MoY) +(\d{1,2}) +(\d\d):(\d\d):(\d\d) +(?:[^0-9]+ +)?(\d\d\d\d)$/ ) {
+        @tl_parts = ($5, $4, $3, $2, (index($MoY,$1)/4), $6);
+    }
+    return eval {
+        my $t = @tl_parts ? Time::Local::timegm(@tl_parts) : -1;
+        $t < 0 ? undef : $t;
+    };
+}
+
+# URI escaping adapted from URI::Escape
+# c.f. http://www.w3.org/TR/html4/interact/forms.html#h-17.13.4.1
+# perl 5.6 ready UTF-8 encoding adapted from JSON::PP
+my %escapes = map { chr($_) => sprintf("%%%02X", $_) } 0..255;
+$escapes{' '}="+";
+my $unsafe_char = qr/[^A-Za-z0-9\-\._~]/;
+
+sub _uri_escape {
+    my ($self, $str) = @_;
+    return "" if !defined $str;
+    if ( $] ge '5.008' ) {
+        utf8::encode($str);
+    }
+    else {
+        $str = pack("U*", unpack("C*", $str)) # UTF-8 encode a byte string
+            if ( length $str == do { use bytes; length $str } );
+        $str = pack("C*", unpack("C*", $str)); # clear UTF-8 flag
+    }
+    $str =~ s/($unsafe_char)/$escapes{$1}/g;
+    return $str;
+}
+
+package
+    HTTP::Tiny::Handle; # hide from PAUSE/indexers
+use strict;
+use warnings;
+
+use Errno      qw[EINTR EPIPE];
+use IO::Socket qw[SOCK_STREAM];
+use Socket     qw[SOL_SOCKET SO_KEEPALIVE];
+
+# PERL_HTTP_TINY_IPV4_ONLY is a private environment variable to force old
+# behavior if someone is unable to boostrap CPAN from a new perl install; it is
+# not intended for general, per-client use and may be removed in the future
+my $SOCKET_CLASS =
+    $ENV{PERL_HTTP_TINY_IPV4_ONLY} ? 'IO::Socket::INET' :
+    eval { require IO::Socket::IP; IO::Socket::IP->VERSION(0.32) } ? 'IO::Socket::IP' :
+    'IO::Socket::INET';
+
+sub BUFSIZE () { 32768 } ## no critic
+
+my $Printable = sub {
+    local $_ = shift;
+    s/\r/\\r/g;
+    s/\n/\\n/g;
+    s/\t/\\t/g;
+    s/([^\x20-\x7E])/sprintf('\\x%.2X', ord($1))/ge;
+    $_;
+};
+
+my $Token = qr/[\x21\x23-\x27\x2A\x2B\x2D\x2E\x30-\x39\x41-\x5A\x5E-\x7A\x7C\x7E]/;
+my $Field_Content = qr/[[:print:]]+ (?: [\x20\x09]+ [[:print:]]+ )*/x;
+
+sub new {
+    my ($class, %args) = @_;
+    return bless {
+        rbuf             => '',
+        timeout          => 60,
+        max_line_size    => 16384,
+        max_header_lines => 64,
+        verify_SSL       => 0,
+        SSL_options      => {},
+        %args
+    }, $class;
+}
+
+sub timeout {
+    my ($self, $timeout) = @_;
+    if ( @_ > 1 ) {
+        $self->{timeout} = $timeout;
+        if ( $self->{fh} && $self->{fh}->can('timeout') ) {
+            $self->{fh}->timeout($timeout);
+        }
+    }
+    return $self->{timeout};
+}
+
+sub connect {
+    @_ == 5 || die(q/Usage: $handle->connect(scheme, host, port, peer)/ . "\n");
+    my ($self, $scheme, $host, $port, $peer) = @_;
+
+    if ( $scheme eq 'https' ) {
+        $self->_assert_ssl;
+    }
+
+    $self->{fh} = $SOCKET_CLASS->new(
+        PeerHost  => $peer,
+        PeerPort  => $port,
+        $self->{local_address} ?
+            ( LocalAddr => $self->{local_address} ) : (),
+        Proto     => 'tcp',
+        Type      => SOCK_STREAM,
+        Timeout   => $self->{timeout},
+    ) or die(qq/Could not connect to '$host:$port': $@\n/);
+
+    binmode($self->{fh})
+      or die(qq/Could not binmode() socket: '$!'\n/);
+
+    if ( $self->{keep_alive} ) {
+        unless ( defined( $self->{fh}->setsockopt( SOL_SOCKET, SO_KEEPALIVE, 1 ) ) ) {
+            CORE::close($self->{fh});
+            die(qq/Could not set SO_KEEPALIVE on socket: '$!'\n/);
+        }
+    }
+
+    $self->start_ssl($host) if $scheme eq 'https';
+
+    $self->{scheme} = $scheme;
+    $self->{host} = $host;
+    $self->{peer} = $peer;
+    $self->{port} = $port;
+    $self->{pid} = $$;
+    $self->{tid} = _get_tid();
+
+    return $self;
+}
+
+sub connected {
+    my ($self) = @_;
+    if ( $self->{fh} && $self->{fh}->connected ) {
+        return wantarray
+          ? ( $self->{fh}->peerhost, $self->{fh}->peerport )
+          : join( ':', $self->{fh}->peerhost, $self->{fh}->peerport );
+    }
+    return;
+}
+
+sub start_ssl {
+    my ($self, $host) = @_;
+
+    # As this might be used via CONNECT after an SSL session
+    # to a proxy, we shut down any existing SSL before attempting
+    # the handshake
+    if ( ref($self->{fh}) eq 'IO::Socket::SSL' ) {
+        unless ( $self->{fh}->stop_SSL ) {
+            my $ssl_err = IO::Socket::SSL->errstr;
+            die(qq/Error halting prior SSL connection: $ssl_err/);
+        }
+    }
+
+    my $ssl_args = $self->_ssl_args($host);
+    IO::Socket::SSL->start_SSL(
+        $self->{fh},
+        %$ssl_args,
+        SSL_create_ctx_callback => sub {
+            my $ctx = shift;
+            Net::SSLeay::CTX_set_mode($ctx, Net::SSLeay::MODE_AUTO_RETRY());
+        },
+    );
+
+    unless ( ref($self->{fh}) eq 'IO::Socket::SSL' ) {
+        my $ssl_err = IO::Socket::SSL->errstr;
+        die(qq/SSL connection failed for $host: $ssl_err\n/);
+    }
+}
+
+sub close {
+    @_ == 1 || die(q/Usage: $handle->close()/ . "\n");
+    my ($self) = @_;
+    CORE::close($self->{fh})
+      or die(qq/Could not close socket: '$!'\n/);
+}
+
+sub write {
+    @_ == 2 || die(q/Usage: $handle->write(buf)/ . "\n");
+    my ($self, $buf) = @_;
+
+    if ( $] ge '5.008' ) {
+        utf8::downgrade($buf, 1)
+            or die(qq/Wide character in write()\n/);
+    }
+
+    my $len = length $buf;
+    my $off = 0;
+
+    local $SIG{PIPE} = 'IGNORE';
+
+    while () {
+        $self->can_write
+          or die(qq/Timed out while waiting for socket to become ready for writing\n/);
+        my $r = syswrite($self->{fh}, $buf, $len, $off);
+        if (defined $r) {
+            $len -= $r;
+            $off += $r;
+            last unless $len > 0;
+        }
+        elsif ($! == EPIPE) {
+            die(qq/Socket closed by remote server: $!\n/);
+        }
+        elsif ($! != EINTR) {
+            if ($self->{fh}->can('errstr')){
+                my $err = $self->{fh}->errstr();
+                die (qq/Could not write to SSL socket: '$err'\n /);
+            }
+            else {
+                die(qq/Could not write to socket: '$!'\n/);
+            }
+
+        }
+    }
+    return $off;
+}
+
+sub read {
+    @_ == 2 || @_ == 3 || die(q/Usage: $handle->read(len [, allow_partial])/ . "\n");
+    my ($self, $len, $allow_partial) = @_;
+
+    my $buf  = '';
+    my $got = length $self->{rbuf};
+
+    if ($got) {
+        my $take = ($got < $len) ? $got : $len;
+        $buf  = substr($self->{rbuf}, 0, $take, '');
+        $len -= $take;
+    }
+
+    # Ignore SIGPIPE because SSL reads can result in writes that might error.
+    # See "Expecting exactly the same behavior as plain sockets" in
+    # https://metacpan.org/dist/IO-Socket-SSL/view/lib/IO/Socket/SSL.pod#Common-Usage-Errors
+    local $SIG{PIPE} = 'IGNORE';
+
+    while ($len > 0) {
+        $self->can_read
+          or die(q/Timed out while waiting for socket to become ready for reading/ . "\n");
+        my $r = sysread($self->{fh}, $buf, $len, length $buf);
+        if (defined $r) {
+            last unless $r;
+            $len -= $r;
+        }
+        elsif ($! != EINTR) {
+            if ($self->{fh}->can('errstr')){
+                my $err = $self->{fh}->errstr();
+                die (qq/Could not read from SSL socket: '$err'\n /);
+            }
+            else {
+                die(qq/Could not read from socket: '$!'\n/);
+            }
+        }
+    }
+    if ($len && !$allow_partial) {
+        die(qq/Unexpected end of stream\n/);
+    }
+    return $buf;
+}
+
+sub readline {
+    @_ == 1 || die(q/Usage: $handle->readline()/ . "\n");
+    my ($self) = @_;
+
+    while () {
+        if ($self->{rbuf} =~ s/\A ([^\x0D\x0A]* \x0D?\x0A)//x) {
+            return $1;
+        }
+        if (length $self->{rbuf} >= $self->{max_line_size}) {
+            die(qq/Line size exceeds the maximum allowed size of $self->{max_line_size}\n/);
+        }
+        $self->can_read
+          or die(qq/Timed out while waiting for socket to become ready for reading\n/);
+        my $r = sysread($self->{fh}, $self->{rbuf}, BUFSIZE, length $self->{rbuf});
+        if (defined $r) {
+            last unless $r;
+        }
+        elsif ($! != EINTR) {
+            if ($self->{fh}->can('errstr')){
+                my $err = $self->{fh}->errstr();
+                die (qq/Could not read from SSL socket: '$err'\n /);
+            }
+            else {
+                die(qq/Could not read from socket: '$!'\n/);
+            }
+        }
+    }
+    die(qq/Unexpected end of stream while looking for line\n/);
+}
+
+sub read_header_lines {
+    @_ == 1 || @_ == 2 || die(q/Usage: $handle->read_header_lines([headers])/ . "\n");
+    my ($self, $headers) = @_;
+    $headers ||= {};
+    my $lines   = 0;
+    my $val;
+
+    while () {
+         my $line = $self->readline;
+
+         if (++$lines >= $self->{max_header_lines}) {
+             die(qq/Header lines exceeds maximum number allowed of $self->{max_header_lines}\n/);
+         }
+         elsif ($line =~ /\A ([^\x00-\x1F\x7F:]+) : [\x09\x20]* ([^\x0D\x0A]*)/x) {
+             my ($field_name) = lc $1;
+             if (exists $headers->{$field_name}) {
+                 for ($headers->{$field_name}) {
+                     $_ = [$_] unless ref $_ eq "ARRAY";
+                     push @$_, $2;
+                     $val = \$_->[-1];
+                 }
+             }
+             else {
+                 $val = \($headers->{$field_name} = $2);
+             }
+         }
+         elsif ($line =~ /\A [\x09\x20]+ ([^\x0D\x0A]*)/x) {
+             $val
+               or die(qq/Unexpected header continuation line\n/);
+             next unless length $1;
+             $$val .= ' ' if length $$val;
+             $$val .= $1;
+         }
+         elsif ($line =~ /\A \x0D?\x0A \z/x) {
+            last;
+         }
+         else {
+            die(q/Malformed header line: / . $Printable->($line) . "\n");
+         }
+    }
+    return $headers;
+}
+
+sub write_request {
+    @_ == 2 || die(q/Usage: $handle->write_request(request)/ . "\n");
+    my($self, $request) = @_;
+    $self->write_request_header(@{$request}{qw/method uri headers header_case/});
+    $self->write_body($request) if $request->{cb};
+    return;
+}
+
+# Standard request header names/case from HTTP/1.1 RFCs
+my @rfc_request_headers = qw(
+  Accept Accept-Charset Accept-Encoding Accept-Language Authorization
+  Cache-Control Connection Content-Length Expect From Host
+  If-Match If-Modified-Since If-None-Match If-Range If-Unmodified-Since
+  Max-Forwards Pragma Proxy-Authorization Range Referer TE Trailer
+  Transfer-Encoding Upgrade User-Agent Via
+);
+
+my @other_request_headers = qw(
+  Content-Encoding Content-MD5 Content-Type Cookie DNT Date Origin
+  X-XSS-Protection
+);
+
+my %HeaderCase = map { lc($_) => $_ } @rfc_request_headers, @other_request_headers;
+
+# to avoid multiple small writes and hence nagle, you can pass the method line or anything else to
+# combine writes.
+sub write_header_lines {
+    (@_ >= 2 && @_ <= 4 && ref $_[1] eq 'HASH') || die(q/Usage: $handle->write_header_lines(headers, [header_case, prefix])/ . "\n");
+    my($self, $headers, $header_case, $prefix_data) = @_;
+    $header_case ||= {};
+
+    my $buf = (defined $prefix_data ? $prefix_data : '');
+
+    # Per RFC, control fields should be listed first
+    my %seen;
+    for my $k ( qw/host cache-control expect max-forwards pragma range te/ ) {
+        next unless exists $headers->{$k};
+        $seen{$k}++;
+        my $field_name = $HeaderCase{$k};
+        my $v = $headers->{$k};
+        for (ref $v eq 'ARRAY' ? @$v : $v) {
+            $_ = '' unless defined $_;
+            $buf .= "$field_name: $_\x0D\x0A";
+        }
+    }
+
+    # Other headers sent in arbitrary order
+    while (my ($k, $v) = each %$headers) {
+        my $field_name = lc $k;
+        next if $seen{$field_name};
+        if (exists $HeaderCase{$field_name}) {
+            $field_name = $HeaderCase{$field_name};
+        }
+        else {
+            if (exists $header_case->{$field_name}) {
+                $field_name = $header_case->{$field_name};
+            }
+            else {
+                $field_name =~ s/\b(\w)/\u$1/g;
+            }
+            $field_name =~ /\A $Token+ \z/xo
+              or die(q/Invalid HTTP header field name: / . $Printable->($field_name) . "\n");
+            $HeaderCase{lc $field_name} = $field_name;
+        }
+        for (ref $v eq 'ARRAY' ? @$v : $v) {
+            # unwrap a field value if pre-wrapped by user
+            s/\x0D?\x0A\s+/ /g;
+            die(qq/Invalid HTTP header field value ($field_name): / . $Printable->($_). "\n")
+              unless $_ eq '' || /\A $Field_Content \z/xo;
+            $_ = '' unless defined $_;
+            $buf .= "$field_name: $_\x0D\x0A";
+        }
+    }
+    $buf .= "\x0D\x0A";
+    return $self->write($buf);
+}
+
+# return value indicates whether message length was defined; this is generally
+# true unless there was no content-length header and we just read until EOF.
+# Other message length errors are thrown as exceptions
+sub read_body {
+    @_ == 3 || die(q/Usage: $handle->read_body(callback, response)/ . "\n");
+    my ($self, $cb, $response) = @_;
+    my $te = $response->{headers}{'transfer-encoding'} || '';
+    my $chunked = grep { /chunked/i } ( ref $te eq 'ARRAY' ? @$te : $te ) ;
+    return $chunked
+        ? $self->read_chunked_body($cb, $response)
+        : $self->read_content_body($cb, $response);
+}
+
+sub write_body {
+    @_ == 2 || die(q/Usage: $handle->write_body(request)/ . "\n");
+    my ($self, $request) = @_;
+    if (exists $request->{headers}{'content-length'}) {
+        return unless $request->{headers}{'content-length'};
+        return $self->write_content_body($request);
+    }
+    else {
+        return $self->write_chunked_body($request);
+    }
+}
+
+sub read_content_body {
+    @_ == 3 || @_ == 4 || die(q/Usage: $handle->read_content_body(callback, response, [read_length])/ . "\n");
+    my ($self, $cb, $response, $content_length) = @_;
+    $content_length ||= $response->{headers}{'content-length'};
+
+    if ( defined $content_length ) {
+        my $len = $content_length;
+        while ($len > 0) {
+            my $read = ($len > BUFSIZE) ? BUFSIZE : $len;
+            $cb->($self->read($read, 0), $response);
+            $len -= $read;
+        }
+        return length($self->{rbuf}) == 0;
+    }
+
+    my $chunk;
+    $cb->($chunk, $response) while length( $chunk = $self->read(BUFSIZE, 1) );
+
+    return;
+}
+
+sub write_content_body {
+    @_ == 2 || die(q/Usage: $handle->write_content_body(request)/ . "\n");
+    my ($self, $request) = @_;
+
+    my ($len, $content_length) = (0, $request->{headers}{'content-length'});
+    while () {
+        my $data = $request->{cb}->();
+
+        defined $data && length $data
+          or last;
+
+        if ( $] ge '5.008' ) {
+            utf8::downgrade($data, 1)
+                or die(qq/Wide character in write_content()\n/);
+        }
+
+        $len += $self->write($data);
+    }
+
+    $len == $content_length
+      or die(qq/Content-Length mismatch (got: $len expected: $content_length)\n/);
+
+    return $len;
+}
+
+sub read_chunked_body {
+    @_ == 3 || die(q/Usage: $handle->read_chunked_body(callback, $response)/ . "\n");
+    my ($self, $cb, $response) = @_;
+
+    while () {
+        my $head = $self->readline;
+
+        $head =~ /\A ([A-Fa-f0-9]+)/x
+          or die(q/Malformed chunk head: / . $Printable->($head) . "\n");
+
+        my $len = hex($1)
+          or last;
+
+        $self->read_content_body($cb, $response, $len);
+
+        $self->read(2) eq "\x0D\x0A"
+          or die(qq/Malformed chunk: missing CRLF after chunk data\n/);
+    }
+    $self->read_header_lines($response->{headers});
+    return 1;
+}
+
+sub write_chunked_body {
+    @_ == 2 || die(q/Usage: $handle->write_chunked_body(request)/ . "\n");
+    my ($self, $request) = @_;
+
+    my $len = 0;
+    while () {
+        my $data = $request->{cb}->();
+
+        defined $data && length $data
+          or last;
+
+        if ( $] ge '5.008' ) {
+            utf8::downgrade($data, 1)
+                or die(qq/Wide character in write_chunked_body()\n/);
+        }
+
+        $len += length $data;
+
+        my $chunk  = sprintf '%X', length $data;
+           $chunk .= "\x0D\x0A";
+           $chunk .= $data;
+           $chunk .= "\x0D\x0A";
+
+        $self->write($chunk);
+    }
+    $self->write("0\x0D\x0A");
+    if ( ref $request->{trailer_cb} eq 'CODE' ) {
+        $self->write_header_lines($request->{trailer_cb}->())
+    }
+    else {
+        $self->write("\x0D\x0A");
+    }
+    return $len;
+}
+
+sub read_response_header {
+    @_ == 1 || die(q/Usage: $handle->read_response_header()/ . "\n");
+    my ($self) = @_;
+
+    my $line = $self->readline;
+
+    $line =~ /\A (HTTP\/(0*\d+\.0*\d+)) [\x09\x20]+ ([0-9]{3}) (?: [\x09\x20]+ ([^\x0D\x0A]*) )? \x0D?\x0A/x
+      or die(q/Malformed Status-Line: / . $Printable->($line). "\n");
+
+    my ($protocol, $version, $status, $reason) = ($1, $2, $3, $4);
+    $reason = "" unless defined $reason;
+
+    die (qq/Unsupported HTTP protocol: $protocol\n/)
+        unless $version =~ /0*1\.0*[01]/;
+
+    return {
+        status       => $status,
+        reason       => $reason,
+        headers      => $self->read_header_lines,
+        protocol     => $protocol,
+    };
+}
+
+sub write_request_header {
+    @_ == 5 || die(q/Usage: $handle->write_request_header(method, request_uri, headers, header_case)/ . "\n");
+    my ($self, $method, $request_uri, $headers, $header_case) = @_;
+
+    return $self->write_header_lines($headers, $header_case, "$method $request_uri HTTP/1.1\x0D\x0A");
+}
+
+sub _do_timeout {
+    my ($self, $type, $timeout) = @_;
+    $timeout = $self->{timeout}
+        unless defined $timeout && $timeout >= 0;
+
+    my $fd = fileno $self->{fh};
+    defined $fd && $fd >= 0
+      or die(qq/select(2): 'Bad file descriptor'\n/);
+
+    my $initial = time;
+    my $pending = $timeout;
+    my $nfound;
+
+    vec(my $fdset = '', $fd, 1) = 1;
+
+    while () {
+        $nfound = ($type eq 'read')
+            ? select($fdset, undef, undef, $pending)
+            : select(undef, $fdset, undef, $pending) ;
+        if ($nfound == -1) {
+            $! == EINTR
+              or die(qq/select(2): '$!'\n/);
+            redo if !$timeout || ($pending = $timeout - (time - $initial)) > 0;
+            $nfound = 0;
+        }
+        last;
+    }
+    $! = 0;
+    return $nfound;
+}
+
+sub can_read {
+    @_ == 1 || @_ == 2 || die(q/Usage: $handle->can_read([timeout])/ . "\n");
+    my $self = shift;
+    if ( ref($self->{fh}) eq 'IO::Socket::SSL' ) {
+        return 1 if $self->{fh}->pending;
+    }
+    return $self->_do_timeout('read', @_)
+}
+
+sub can_write {
+    @_ == 1 || @_ == 2 || die(q/Usage: $handle->can_write([timeout])/ . "\n");
+    my $self = shift;
+    return $self->_do_timeout('write', @_)
+}
+
+sub _assert_ssl {
+    my($ok, $reason) = HTTP::Tiny->can_ssl();
+    die $reason unless $ok;
+}
+
+sub can_reuse {
+    my ($self,$scheme,$host,$port,$peer) = @_;
+    return 0 if
+        $self->{pid} != $$
+        || $self->{tid} != _get_tid()
+        || length($self->{rbuf})
+        || $scheme ne $self->{scheme}
+        || $host ne $self->{host}
+        || $port ne $self->{port}
+        || $peer ne $self->{peer}
+        || eval { $self->can_read(0) }
+        || $@ ;
+        return 1;
+}
+
+# Try to find a CA bundle to validate the SSL cert,
+# prefer Mozilla::CA or fallback to a system file
+sub _find_CA_file {
+    my $self = shift();
+
+    my $ca_file =
+      defined( $self->{SSL_options}->{SSL_ca_file} )
+      ? $self->{SSL_options}->{SSL_ca_file}
+      : $ENV{SSL_CERT_FILE};
+
+    if ( defined $ca_file ) {
+        unless ( -r $ca_file ) {
+            die qq/SSL_ca_file '$ca_file' not found or not readable\n/;
+        }
+        return $ca_file;
+    }
+
+    local @INC = @INC;
+    pop @INC if $INC[-1] eq '.';
+    return Mozilla::CA::SSL_ca_file()
+        if eval { require Mozilla::CA; 1 };
+
+    # cert list copied from golang src/crypto/x509/root_unix.go
+    foreach my $ca_bundle (
+        "/etc/ssl/certs/ca-certificates.crt",     # Debian/Ubuntu/Gentoo etc.
+        "/etc/pki/tls/certs/ca-bundle.crt",       # Fedora/RHEL
+        "/etc/ssl/ca-bundle.pem",                 # OpenSUSE
+        "/etc/openssl/certs/ca-certificates.crt", # NetBSD
+        "/etc/ssl/cert.pem",                      # OpenBSD
+        "/usr/local/share/certs/ca-root-nss.crt", # FreeBSD/DragonFly
+        "/etc/pki/tls/cacert.pem",                # OpenELEC
+        "/etc/certs/ca-certificates.crt",         # Solaris 11.2+
+    ) {
+        return $ca_bundle if -e $ca_bundle;
+    }
+
+    die qq/Couldn't find a CA bundle with which to verify the SSL certificate.\n/
+      . qq/Try installing Mozilla::CA from CPAN\n/;
+}
+
+# for thread safety, we need to know thread id if threads are loaded
+sub _get_tid {
+    no warnings 'reserved'; # for 'threads'
+    return threads->can("tid") ? threads->tid : 0;
+}
+
+sub _ssl_args {
+    my ($self, $host) = @_;
+
+    my %ssl_args;
+
+    # This test reimplements IO::Socket::SSL::can_client_sni(), which wasn't
+    # added until IO::Socket::SSL 1.84
+    if ( Net::SSLeay::OPENSSL_VERSION_NUMBER() >= 0x01000000 ) {
+        $ssl_args{SSL_hostname} = $host,          # Sane SNI support
+    }
+
+    if ($self->{verify_SSL}) {
+        $ssl_args{SSL_verifycn_scheme}  = 'http'; # enable CN validation
+        $ssl_args{SSL_verifycn_name}    = $host;  # set validation hostname
+        $ssl_args{SSL_verify_mode}      = 0x01;   # enable cert validation
+        $ssl_args{SSL_ca_file}          = $self->_find_CA_file;
+    }
+    else {
+        $ssl_args{SSL_verifycn_scheme}  = 'none'; # disable CN validation
+        $ssl_args{SSL_verify_mode}      = 0x00;   # disable cert validation
+    }
+
+    # user options override settings from verify_SSL
+    for my $k ( keys %{$self->{SSL_options}} ) {
+        $ssl_args{$k} = $self->{SSL_options}{$k} if $k =~ m/^SSL_/;
+    }
+
+    return \%ssl_args;
+}
+
+1;
+
+
+} # --- END HTTP::Tiny
+
+
+{ # --- BEGIN Try::Tiny
+package Try::Tiny; # git description: v0.30-11-g1b81d0a
+use 5.006;
+# ABSTRACT: Minimal try/catch with proper preservation of $@
+
+our $VERSION = '0.31';
+
+use strict;
+use warnings;
+
+BEGIN   {
+use Exporter 5.57 'import';
+our @EXPORT = our @EXPORT_OK = qw(try catch finally);
+
+use Carp;
+$Carp::Internal{+__PACKAGE__}++;
+
+  if ($INC{'Sub/Util.pm'} && defined &Sub::Util::set_subname ) {
+      *_subname = \&Sub::Util::set_subname;
+      *_HAS_SUBNAME = sub {1};
+  }
+  elsif( $INC{'Sub/Name.pm'} && eval { Sub::Name->VERSION(0.08) } ){
+      *_subname = \&Sub::Name::subname;
+      *_HAS_SUBNAME = sub {1};
+  }
+  else {
+      *_HAS_SUBNAME = sub {0};
+  }
+}
+
+my %_finally_guards;
+
+# Need to prototype as @ not $$ because of the way Perl evaluates the prototype.
+# Keeping it at $$ means you only ever get 1 sub because we need to eval in a list
+# context & not a scalar one
+
+sub try (&;@) {
+  my ( $try, @code_refs ) = @_;
+
+  # we need to save this here, the eval block will be in scalar context due
+  # to $failed
+  my $wantarray = wantarray;
+
+  # work around perl bug by explicitly initializing these, due to the likelyhood
+  # this will be used in global destruction (perl rt#119311)
+  my ( $catch, @finally ) = ();
+
+  # find labeled blocks in the argument list.
+  # catch and finally tag the blocks by blessing a scalar reference to them.
+  foreach my $code_ref (@code_refs) {
+
+    if ( ref($code_ref) eq 'Try::Tiny::Catch' ) {
+      croak 'A try() may not be followed by multiple catch() blocks'
+        if $catch;
+      $catch = ${$code_ref};
+    } elsif ( ref($code_ref) eq 'Try::Tiny::Finally' ) {
+      push @finally, ${$code_ref};
+    } else {
+      croak(
+        'try() encountered an unexpected argument ('
+      . ( defined $code_ref ? $code_ref : 'undef' )
+      . ') - perhaps a missing semi-colon before or'
+      );
+    }
+  }
+
+  # FIXME consider using local $SIG{__DIE__} to accumulate all errors. It's
+  # not perfect, but we could provide a list of additional errors for
+  # $catch->();
+
+  # name the blocks if we have Sub::Name installed
+  _subname(caller().'::try {...} ' => $try)
+    if _HAS_SUBNAME;
+
+  # set up scope guards to invoke the finally blocks at the end.
+  # this should really be a function scope lexical variable instead of
+  # file scope + local but that causes issues with perls < 5.20 due to
+  # perl rt#119311
+  local $_finally_guards{guards} = [
+    map Try::Tiny::ScopeGuard->_new($_),
+    @finally
+  ];
+
+  # save the value of $@ so we can set $@ back to it in the beginning of the eval
+  # and restore $@ after the eval finishes
+  my $prev_error = $@;
+
+  my ( @ret, $error );
+
+  # failed will be true if the eval dies, because 1 will not be returned
+  # from the eval body
+  my $failed = not eval {
+    $@ = $prev_error;
+
+    # evaluate the try block in the correct context
+    if ( $wantarray ) {
+      @ret = $try->();
+    } elsif ( defined $wantarray ) {
+      $ret[0] = $try->();
+    } else {
+      $try->();
+    };
+
+    return 1; # properly set $failed to false
+  };
+
+  # preserve the current error and reset the original value of $@
+  $error = $@;
+  $@ = $prev_error;
+
+  # at this point $failed contains a true value if the eval died, even if some
+  # destructor overwrote $@ as the eval was unwinding.
+  if ( $failed ) {
+    # pass $error to the finally blocks
+    push @$_, $error for @{$_finally_guards{guards}};
+
+    # if we got an error, invoke the catch block.
+    if ( $catch ) {
+      # This works like given($error), but is backwards compatible and
+      # sets $_ in the dynamic scope for the body of C<$catch>
+      for ($error) {
+        return $catch->($error);
+      }
+
+      # in case when() was used without an explicit return, the C<for>
+      # loop will be aborted and there's no useful return value
+    }
+
+    return;
+  } else {
+    # no failure, $@ is back to what it was, everything is fine
+    return $wantarray ? @ret : $ret[0];
+  }
+}
+
+sub catch (&;@) {
+  my ( $block, @rest ) = @_;
+
+  croak 'Useless bare catch()' unless wantarray;
+
+  _subname(caller().'::catch {...} ' => $block)
+    if _HAS_SUBNAME;
+  return (
+    bless(\$block, 'Try::Tiny::Catch'),
+    @rest,
+  );
+}
+
+sub finally (&;@) {
+  my ( $block, @rest ) = @_;
+
+  croak 'Useless bare finally()' unless wantarray;
+
+  _subname(caller().'::finally {...} ' => $block)
+    if _HAS_SUBNAME;
+  return (
+    bless(\$block, 'Try::Tiny::Finally'),
+    @rest,
+  );
+}
+
+{
+  package # hide from PAUSE
+    Try::Tiny::ScopeGuard;
+
+  use constant UNSTABLE_DOLLARAT => ("$]" < '5.013002') ? 1 : 0;
+
+  sub _new {
+    shift;
+    bless [ @_ ];
+  }
+
+  sub DESTROY {
+    my ($code, @args) = @{ $_[0] };
+
+    local $@ if UNSTABLE_DOLLARAT;
+    eval {
+      $code->(@args);
+      1;
+    } or do {
+      warn
+        "Execution of finally() block $code resulted in an exception, which "
+      . '*CAN NOT BE PROPAGATED* due to fundamental limitations of Perl. '
+      . 'Your program will continue as if this event never took place. '
+      . "Original exception text follows:\n\n"
+      . (defined $@ ? $@ : '$@ left undefined...')
+      . "\n"
+      ;
+    }
+  }
+}
+
+1;
+
+} # --- END Try::Tiny
+
+
+{ # --- BEGIN cPstrict
+package cPstrict;
+
+# cpanel - cPstrict.pm                             Copyright 2022 cPanel, L.L.C.
+#                                                           All rights Reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited
+
+use strict;
+use warnings;
+
+=pod
+
+This is importing the following to your namespace
+
+    use strict;
+    use warnings;
+    use v5.30;
+
+    use feature 'signatures';
+    no warnings 'experimental::signatures';
+
+=cut
+
+sub import {
+
+    # auto import strict and warnings to our caller
+
+    warnings->import();
+    strict->import();
+
+    require feature;
+    feature->import( ':5.30', 'signatures' );
+    warnings->unimport('experimental::signatures');
+
+    return;
+}
+
+1;
+
+} # --- END cPstrict
+
+
+{ # --- BEGIN Cpanel/Binaries.pm
+package Cpanel::Binaries;
+
+
+
+use strict;
+use warnings;
+
+our @_OVERRIDES;
+our $VERBOSE = 1;
+
+use constant {
+    PERL_MAJOR        => 536,
+    PERL_LEGACY_MAJOR => 532,
+    PHP_MAJOR         => 81,
+    PHP_LEGACY_MAJOR  => 74,
+    THIRD_PARTY       => q{/usr/local/cpanel/3rdparty},
+};
+
+use constant {
+    THIRD_PARTY_BIN        => THIRD_PARTY . q{/bin},
+    CPANEL_PERL            => THIRD_PARTY . q{/perl/} . PERL_MAJOR(),
+    CPANEL_PERL_LEGACY     => THIRD_PARTY . q{/perl/} . PERL_LEGACY_MAJOR(),
+    CPANEL_PHP             => THIRD_PARTY . q{/php/} . PHP_MAJOR(),
+    CPANEL_PHP_LEGACY      => THIRD_PARTY . q{/php/} . PHP_LEGACY_MAJOR(),
+    CPANEL_PHP_UNVERSIONED => THIRD_PARTY . q{/php/unversioned},
+    SYSTEM_BIN             => q{/usr/bin},
+    SYSTEM_SBIN            => q{/usr/sbin},
+    LOCAL_BIN              => q{/usr/local/bin},
+};
+
+use constant {
+    CPANEL_PERL_BIN       => CPANEL_PERL . q{/bin},
+    CPANEL_PERL_SBIN      => CPANEL_PERL . q{/sbin},
+    CPANEL_PHP_BIN        => CPANEL_PHP . q{/bin},
+    CPANEL_PHP_LEGACY_BIN => CPANEL_PHP_LEGACY . q{/bin},
+};
+
+sub system_bin_locations {
+    return {
+        'identify' => SYSTEM_BIN,
+        'convert'  => SYSTEM_BIN,
+        'mogrify'  => SYSTEM_BIN,
+
+        'firewall-cmd' => SYSTEM_BIN,
+        'firewalld'    => SYSTEM_SBIN,
+
+        'at'                 => SYSTEM_BIN,
+        'atq'                => SYSTEM_BIN,
+        'atrm'               => SYSTEM_BIN,
+        'chattr'             => SYSTEM_BIN,
+        'crontab'            => SYSTEM_BIN,
+        'curl'               => SYSTEM_BIN,
+        'dig'                => SYSTEM_BIN,
+        'doveadm'            => SYSTEM_BIN,
+        'dpkg-query'         => SYSTEM_BIN,
+        'dsync'              => SYSTEM_BIN,
+        'file'               => SYSTEM_BIN,
+        'gcc'                => SYSTEM_BIN,
+        'getfacl'            => SYSTEM_BIN,
+        'gpg'                => SYSTEM_BIN,
+        'gzip'               => SYSTEM_BIN,
+        'host'               => SYSTEM_BIN,
+        'iconv'              => SYSTEM_BIN,
+        'ionice'             => SYSTEM_BIN,
+        'iostat'             => SYSTEM_BIN,
+        'ipcrm'              => SYSTEM_BIN,
+        'ipcs'               => SYSTEM_BIN,
+        'lsattr'             => SYSTEM_BIN,
+        'mysql'              => SYSTEM_BIN,
+        'mysql_config'       => SYSTEM_BIN,
+        'mysql_upgrade'      => SYSTEM_BIN,
+        'mysqladmin'         => SYSTEM_BIN,
+        'mysqlcheck'         => SYSTEM_BIN,
+        'mysqldump'          => SYSTEM_BIN,
+        'nano'               => SYSTEM_BIN,
+        'openssl'            => SYSTEM_BIN,
+        'pdns_control'       => SYSTEM_BIN,
+        'pdnsutil'           => SYSTEM_BIN,
+        'perl'               => SYSTEM_BIN,
+        'python2'            => THIRD_PARTY_BIN,
+        'quota'              => SYSTEM_BIN,
+        'repoquery'          => SYSTEM_BIN,
+        'rsync'              => SYSTEM_BIN,
+        'setfacl'            => SYSTEM_BIN,
+        'ssh-keygen'         => SYSTEM_BIN,
+        'ssh-keyscan'        => SYSTEM_BIN,
+        'strace'             => SYSTEM_BIN,
+        'sudo'               => SYSTEM_BIN,
+        'systemctl'          => SYSTEM_BIN,
+        'tail'               => SYSTEM_BIN,
+        'test'               => SYSTEM_BIN,
+        'unzip'              => SYSTEM_BIN,
+        'vim'                => SYSTEM_BIN,
+        'wall'               => SYSTEM_BIN,
+        'xmlwf'              => SYSTEM_BIN,
+        'yum'                => SYSTEM_BIN,
+        'yum-config-manager' => SYSTEM_BIN,
+        'zip'                => SYSTEM_BIN,
+
+        'atd'            => SYSTEM_SBIN,
+        'convertquota'   => SYSTEM_SBIN,
+        'edquota'        => SYSTEM_SBIN,
+        'exim'           => SYSTEM_SBIN,
+        'exim_dbmbuild'  => SYSTEM_SBIN,
+        'exim_tidydb'    => SYSTEM_SBIN,
+        'grubby'         => SYSTEM_SBIN,
+        'ifconfig'       => SYSTEM_SBIN,
+        'ip'             => SYSTEM_SBIN,
+        'ip6tables'      => SYSTEM_SBIN,
+        'ip6tables-save' => SYSTEM_SBIN,
+        'iptables'       => SYSTEM_SBIN,
+        'iptables-save'  => SYSTEM_SBIN,
+        'logrotate'      => SYSTEM_SBIN,
+        'losetup'        => SYSTEM_SBIN,
+        'mysqld'         => SYSTEM_SBIN,
+        'named'          => SYSTEM_SBIN,
+        'nft'            => SYSTEM_SBIN,
+        'nscd'           => SYSTEM_SBIN,
+        'pdns_server'    => SYSTEM_SBIN,
+        'quotacheck'     => SYSTEM_SBIN,
+        'quotaoff'       => SYSTEM_SBIN,
+        'quotaon'        => SYSTEM_SBIN,
+        'repquota'       => SYSTEM_SBIN,
+        'rndc-confgen'   => SYSTEM_SBIN,
+        'rsyslogd'       => SYSTEM_SBIN,
+        'service'        => SYSTEM_SBIN,
+        'sshd'           => SYSTEM_SBIN,
+
+        'pkill' => SYSTEM_BIN,
+
+        'bash'     => SYSTEM_BIN,
+        'cat'      => SYSTEM_BIN,
+        'cp'       => SYSTEM_BIN,
+        'date'     => SYSTEM_BIN,
+        'dd'       => SYSTEM_BIN,
+        'df'       => SYSTEM_BIN,
+        'echo'     => SYSTEM_BIN,
+        'false'    => SYSTEM_BIN,
+        'grep'     => SYSTEM_BIN,
+        'hostname' => SYSTEM_BIN,
+        'ls'       => SYSTEM_BIN,
+        'mount'    => SYSTEM_BIN,
+        'netstat'  => SYSTEM_BIN,
+        'pwd'      => SYSTEM_BIN,
+        'rm'       => SYSTEM_BIN,
+        'rpm'      => SYSTEM_BIN,
+        'sh'       => SYSTEM_BIN,
+        'su'       => SYSTEM_BIN,
+        'tar'      => SYSTEM_BIN,
+        'true'     => SYSTEM_BIN,
+        'umount'   => SYSTEM_BIN,
+        'zcat'     => SYSTEM_BIN,
+
+        'rsyslogd'   => SYSTEM_SBIN,
+        'ip6tables'  => SYSTEM_SBIN,
+        'ifconfig'   => SYSTEM_SBIN,
+        'quotaoff'   => SYSTEM_SBIN,
+        'losetup'    => SYSTEM_SBIN,
+        'quotacheck' => SYSTEM_SBIN,
+        'ip'         => SYSTEM_SBIN,
+        'quotaon'    => SYSTEM_SBIN,
+        'iptables'   => SYSTEM_SBIN,
+        'service'    => SYSTEM_SBIN,
+    };
+}
+
+sub dynamic_bin_location {
+    my $binary = shift
+      or die 'dynamic_bin_location($binary)';
+
+    if ( $binary eq 'lsof' ) {
+        return -e SYSTEM_BIN() . '/lsof'
+          ? SYSTEM_BIN()
+          : SYSTEM_SBIN();
+    }
+    else {
+        return;
+    }
+}
+
+sub thirdparty_binary_locations {
+    return {
+        %{ _get_thirdparty_binary_locations_static() },
+        %{ _get_thirdparty_binary_locations_dynamic() },
+    };
+}
+
+our %dynamic_vars = (
+
+    'pear'       => 1,
+    'peardev'    => 1,
+    'pecl'       => 1,
+    'phar'       => 1,
+    'php'        => 1,
+    'php-cgi'    => 1,
+    'php-config' => 1,
+    'phpize'     => 1,
+);
+
+our $cached_cleanup;    # Don't do these checks more than once.
+
+sub _remove_server_type_specific_binaries {
+    return if $cached_cleanup;
+    return $cached_cleanup = 1;
+}
+
+sub _get_thirdparty_binary_location {
+    my ($binary) = @_;
+
+    _remove_server_type_specific_binaries();
+
+    return ( exists( $dynamic_vars{$binary} ) ) ? _get_thirdparty_binary_locations_dynamic()->{$binary} : _get_thirdparty_binary_locations_static()->{$binary};
+}
+
+my $php_dir;
+
+sub _get_thirdparty_binary_locations_dynamic {
+    if ( !defined($php_dir) ) {
+        $php_dir = Cpanel::Binaries::get_php_3rdparty_dir() . "bin";
+    }
+
+    _remove_server_type_specific_binaries();
+
+    return { map { $_ => $php_dir } keys(%dynamic_vars) };
+}
+
+sub _get_thirdparty_binary_locations_static {
+    return {
+        'spamd'        => CPANEL_PERL_BIN,
+        'spamc'        => CPANEL_PERL_BIN,
+        'spamassassin' => CPANEL_PERL_BIN,
+        'sa-compile'   => CPANEL_PERL_BIN,
+        'sa-learn'     => CPANEL_PERL_BIN,
+        'sa-update'    => CPANEL_PERL_BIN,
+
+        'clamd'     => THIRD_PARTY_BIN,
+        'clamdscan' => THIRD_PARTY_BIN,
+        'freshclam' => THIRD_PARTY_BIN,
+
+        'puttygen' => THIRD_PARTY_BIN,
+
+        'pigz' => THIRD_PARTY_BIN,
+
+
+        're2c' => THIRD_PARTY_BIN,
+
+        'perl'       => CPANEL_PERL_BIN,
+        'perlcc'     => CPANEL_PERL_BIN,
+        'mysqldiff'  => CPANEL_PERL_BIN,
+        'munin-cron' => CPANEL_PERL_BIN,
+
+        'munin-node'           => CPANEL_PERL_SBIN,
+        'munin-node-configure' => CPANEL_PERL_SBIN,
+
+        'psql'       => THIRD_PARTY_BIN,
+        'pg_dump'    => THIRD_PARTY_BIN,
+        'pg_restore' => THIRD_PARTY_BIN,
+
+        'python' => THIRD_PARTY_BIN,
+
+        'git'                => THIRD_PARTY_BIN,
+        'git-receive-pack'   => THIRD_PARTY_BIN,
+        'git-shell'          => THIRD_PARTY_BIN,
+        'git-upload-archive' => THIRD_PARTY_BIN,
+        'git-upload-pack'    => THIRD_PARTY_BIN,
+
+        'wp-toolkit' => LOCAL_BIN,
+
+        @_OVERRIDES,
+    };
+}
+
+
+sub thirdparty_binary_names {
+    return {};
+}
+
+sub LOG {
+    my ($msg) = @_;
+    return unless $VERBOSE && defined $msg;
+    print "$msg\n";
+    return;
+}
+
+sub optional_binaries {
+    return qw/munin-cron munin-node munin-node-configure perlcc/;
+}
+
+
+sub path {
+    my $binary = shift or return;
+
+    if ( my $path = _get_thirdparty_binary_location($binary) ) {
+        return $path . '/' . $binary;
+    }
+
+    my $bin_hash = system_bin_locations();
+    if ( $bin_hash->{$binary} ) {
+        return $bin_hash->{$binary} . '/' . $binary;
+    }
+
+    if ( my $dynamic_location = dynamic_bin_location($binary) ) {
+        return $dynamic_location . '/' . $binary;
+    }
+
+    require Carp;
+    Carp::confess("Unkonwn binary: '$binary', possible typo?");
+}
+
+sub get_prefix {
+    my $binary = shift or return;
+
+    my $binloc = _get_thirdparty_binary_location($binary);
+    return unless $binloc;
+    $binloc =~ s{/bin$}{};
+    return $binloc;
+}
+
+
+sub get_php_version {
+    my %args = @_;
+
+    my $target_ver = _get_php_ver_only_for_testing('MAJOR');
+    if ( !-x CPANEL_PHP_BIN . "/php" ) {
+        $target_ver = _get_php_ver_only_for_testing('LEGACY');
+    }
+
+    return $target_ver if $args{flat};
+    return join '.', split( '', $target_ver, 2 );
+}
+
+sub _get_php_ver_only_for_testing {
+    return $_[0] eq 'MAJOR' ? PHP_MAJOR : PHP_LEGACY_MAJOR;
+}
+
+
+sub get_php_3rdparty_dir {
+    my $ver = Cpanel::Binaries::get_php_version( 'flat' => 1 );
+    return THIRD_PARTY . "/php/$ver/";
+}
+
+
+sub symlink_into_3rdparty_bin {
+    my $bin_loc_hash = thirdparty_binary_locations();
+    my $optional     = { map { $_ => 1 } optional_binaries() };
+    my $third_bin    = THIRD_PARTY_BIN;
+
+    my $ok = 1;
+
+    foreach my $binary ( keys %$bin_loc_hash ) {
+        next if ( $bin_loc_hash->{$binary} eq $third_bin );
+        next if ( $bin_loc_hash->{$binary} eq SYSTEM_BIN );
+
+        my $third_bin_names = thirdparty_binary_names();
+        my $real_binary     = $third_bin_names->{$binary};
+        $real_binary ||= $binary;
+        my $real_location = $bin_loc_hash->{$binary} . '/' . $real_binary;
+        if ( !-e $real_location ) {
+            LOG("WARNING: Unexpectedly missing $binary") unless $optional->{$binary};
+            next;
+        }
+
+        my $third_bin_loc = "$third_bin/$binary";
+        if ( -e $third_bin_loc || -l $third_bin_loc ) {
+            my $points_to = readlink($third_bin_loc);
+            next if ( $points_to && $points_to eq $real_location );
+            LOG( "Removing $third_bin_loc, which " . ( $points_to ? "unexpectedly pointed to $points_to" : "was not a symlink" ) );
+            unlink $third_bin_loc;
+        }
+
+        LOG("Linking $third_bin_loc -> $real_location");
+        $ok = 0 unless symlink( $real_location, $third_bin_loc );
+    }
+
+    return $ok;
+}
+
+
+sub binaries_to_symlink_into_system_bin {
+    return [qw/git git-receive-pack git-shell git-upload-archive git-upload-pack/];
+}
+
+
+sub symlink_thirdparty_into_system_bin {
+    my $ok           = 1;
+    my $to_link_ref  = binaries_to_symlink_into_system_bin();
+    my $bin_loc_hash = thirdparty_binary_locations();
+
+    foreach my $binary (@$to_link_ref) {
+        my $third_bin_loc = SYSTEM_BIN . qq{/$binary};
+        my $real_location = $bin_loc_hash->{$binary} . '/' . $binary;
+
+        if ( !-e $third_bin_loc && -x $real_location ) {
+            LOG("Linking $third_bin_loc -> $real_location");
+            $ok = 0 unless symlink( $real_location, $third_bin_loc );
+        }
+    }
+
+    return $ok;
+}
+
+1;
+
+} # --- END Cpanel/Binaries.pm
+
+
+{ # --- BEGIN Cpanel/FHUtils/Autoflush.pm
+package Cpanel::FHUtils::Autoflush;
+
+
+
+use strict;
+use warnings;
+
+sub enable {
+    select( ( select( $_[0] ), $| = 1 )[0] );    ## no critic qw(InputOutput::ProhibitOneArgSelect Variables::RequireLocalizedPunctuationVars) - aka $socket->autoflush(1) without importing IO::Socket
+
+    return;
+}
+
+1;
+
+} # --- END Cpanel/FHUtils/Autoflush.pm
+
+
+{ # --- BEGIN Cpanel/LoadFile/ReadFast.pm
+package Cpanel::LoadFile::ReadFast;
+
+
+use strict;
+use warnings;
+
+
+use constant READ_CHUNK => 1 << 18;    # 262144
+
+use constant _EINTR => 4;
+
+
+sub read_fast {
+    $_[1] //= q<>;
+
+    return ( @_ > 3 ? sysread( $_[0], $_[1], $_[2], $_[3] ) : sysread( $_[0], $_[1], $_[2] ) ) // do {
+        goto \&read_fast if $! == _EINTR;
+        die "Failed to read data: $!";
+    };
+}
+
+
+my $_ret;
+
+sub read_all_fast {
+    $_[1] //= q<>;
+
+    $_ret = 1;
+    while ($_ret) {
+        $_ret = sysread( $_[0], $_[1], READ_CHUNK, length $_[1] ) // do {
+            redo if $! == _EINTR;
+            die "Failed to read data: $!";
+        }
+    }
+    return;
+}
+
+1;
+
+} # --- END Cpanel/LoadFile/ReadFast.pm
+
+
+{ # --- BEGIN Cpanel/SV.pm
+package Cpanel::SV;
+
+
+use strict;
+use warnings;
+
+
+sub untaint {
+    return $_[0] unless ${^TAINT};
+    require    # Cpanel::Static OK - we should not untaint variables as part of updatenow.static
+      Taint::Util;
+    Taint::Util::untaint( $_[0] );
+    return $_[0];
+}
+
+1;
+
+} # --- END Cpanel/SV.pm
+
+
+{ # --- BEGIN Cpanel/SafeRun/Simple.pm
+package Cpanel::SafeRun::Simple;
+
+
+use strict;
+
+# use Cpanel::FHUtils::Autoflush ();
+# use Cpanel::LoadFile::ReadFast ();
+# use Cpanel::SV                 ();
+
+BEGIN {
+    eval { require Proc::FastSpawn; };
+}
+
+my $KEEP_STDERR  = 0;
+my $MERGE_STDERR = 1;
+my $NULL_STDERR  = 2;
+my $NULL_STDOUT  = 3;
+
+sub saferun_r {
+    return _saferun_r( \@_ );
+}
+
+sub _saferun_r {    ## no critic qw(Subroutines::ProhibitExcessComplexity)
+    my ( $cmdline, $error_flag ) = @_;
+
+    if ($Cpanel::AccessIds::ReducedPrivileges::PRIVS_REDUCED) {    # PPI NO PARSE --  can't be reduced if the module isn't loaded
+        eval "use Cpanel::Carp;";                                  ## no critic qw(BuiltinFunctions::ProhibitStringyEval)
+        die Cpanel::Carp::safe_longmess( __PACKAGE__ . " cannot be used with ReducedPrivileges. Use Cpanel::SafeRun::Object instead" );
+    }
+    elsif ( scalar @$cmdline == 1 && $cmdline->[0] =~ tr{><*?[]`$()|;&#$\\\r\n\t }{} ) {
+        eval "use Cpanel::Carp;";                                  ## no critic qw(BuiltinFunctions::ProhibitStringyEval)
+        die Cpanel::Carp::safe_longmess( __PACKAGE__ . " prevents accidental execution of a shell.  If you intended to execute a shell use saferun(" . join( ',', '/bin/sh', '-c', @$cmdline ) . ")" );
+    }
+
+    my $output;
+
+    if ( index( $cmdline->[0], '/' ) == 0 ) {
+        my ($check) = !-e $cmdline->[0] && $cmdline->[0] =~ /[\s<>&\|\;]/ ? split( /[\s<>&\|\;]/, $cmdline->[0], 2 ) : $cmdline->[0];
+
+        if ( !-x $check ) {
+            $? = -1;
+
+            return \$output;
+        }
+
+    }
+    $error_flag ||= 0;
+    local ($/);
+    my ( $pid, $prog_fh, $did_fastspawn );
+
+    if ( $INC{'Proc/FastSpawn.pm'} ) {    # may not be available yet due to upcp.static or updatenow.static
+
+        my @env = map { exists $ENV{$_} && $_ ne 'IFS' && $_ ne 'CDPATH' && $_ ne 'ENV' && $_ ne 'BASH_ENV' ? ( $_ . '=' . ( $ENV{$_} // '' ) ) : () } keys %ENV;
+
+        my ($child_write);
+        pipe( $prog_fh, $child_write ) or warn "Failed to pipe(): $!";
+
+        my $null_fh;
+        if ( $error_flag == $NULL_STDERR || $error_flag == $NULL_STDOUT ) {
+            open( $null_fh, '>', '/dev/null' ) or die "Failed open /dev/null: $!";
+        }
+
+        Cpanel::FHUtils::Autoflush::enable($_) for ( $prog_fh, $child_write );
+
+        $did_fastspawn = 1;
+
+        my $stdout_fileno = fileno($child_write);
+        my $stderr_fileno = -1;
+
+        if ( $error_flag == $MERGE_STDERR ) {
+            $stderr_fileno = fileno($child_write);
+        }
+        elsif ( $error_flag == $NULL_STDERR ) {
+            $stderr_fileno = fileno($null_fh);
+        }
+        elsif ( $error_flag == $NULL_STDOUT ) {
+            $stdout_fileno = fileno($null_fh);
+            $stderr_fileno = fileno($child_write);
+        }
+
+        $pid = Proc::FastSpawn::spawn_open3(
+            -1,                # stdin
+            $stdout_fileno,    # stdout
+            $stderr_fileno,    # stderr
+            $cmdline->[0],     # program
+            $cmdline,          # args
+            \@env,             #env
+        );
+
+    }
+    else {
+        if ( $pid = open( $prog_fh, '-|' ) ) {
+
+        }
+        elsif ( defined $pid ) {
+
+            delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+            $ENV{'PATH'} ||= '';
+            Cpanel::SV::untaint( $ENV{'PATH'} );
+
+            if ( $error_flag == $MERGE_STDERR ) {
+                open( STDERR, '>&STDOUT' ) or die "Failed to redirect STDERR to STDOUT: $!";
+            }
+            elsif ( $error_flag == $NULL_STDERR ) {
+                open( STDERR, '>', '/dev/null' ) or die "Failed to open /dev/null: $!";
+            }
+            elsif ( $error_flag == $NULL_STDOUT ) {
+                open( STDERR, '>&STDOUT' ) or die "Failed to redirect STDERR to STDOUT: $!";
+                open( STDOUT, '>', '/dev/null' ) or die "Failed to redirect STDOUT to /dev/null: $!";
+            }
+            exec(@$cmdline) or exit( $! || 127 );
+        }
+        else {
+            die "fork() failed: $!";
+        }
+    }
+    if ( !$prog_fh || !$pid ) {
+
+        $? = -1;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+
+        return \$output;
+    }
+    Cpanel::LoadFile::ReadFast::read_all_fast( $prog_fh, $output );
+    close($prog_fh);
+
+    waitpid( $pid, 0 ) if $did_fastspawn;
+
+    return \$output;
+}
+
+sub _call_saferun {
+    my ( $args, $flag ) = @_;
+    my $ref = _saferun_r( $args, $flag || 0 );
+
+    return $$ref if $ref;
+    return;
+}
+
+sub saferun {
+    return _call_saferun( \@_, $KEEP_STDERR );
+}
+
+sub saferunallerrors {
+    return _call_saferun( \@_, $MERGE_STDERR );
+}
+
+sub saferunnoerror {
+    return _call_saferun( \@_, $NULL_STDERR );
+}
+
+sub saferunonlyerrors {
+    return _call_saferun( \@_, $NULL_STDOUT );
+}
+
+1;
+
+} # --- END Cpanel/SafeRun/Simple.pm
+
+
+{ # --- BEGIN Cpanel/SafeRun/Errors.pm
+package Cpanel::SafeRun::Errors;
+
+
+use strict;
+
+# use Cpanel::SafeRun::Simple ();
+
+
+sub saferunallerrors {
+    my $output_ref = Cpanel::SafeRun::Simple::_saferun_r( \@_, 1 );    #1 = errors to stdout
+    return wantarray ? split( /\n/, $$output_ref ) : $$output_ref;
+}
+
+sub saferunnoerror {
+    my $output_ref = Cpanel::SafeRun::Simple::_saferun_r( \@_, 2 );    # 2 = errors to devnull
+    return wantarray ? split( /\n/, $$output_ref ) : $$output_ref;
+}
+
+sub saferunonlyerrors {
+    my $output_ref = Cpanel::SafeRun::Simple::_saferun_r( \@_, 3 );
+    return wantarray ? split( /\n/, $$output_ref ) : $$output_ref;
+}
+
+1;
+
+} # --- END Cpanel/SafeRun/Errors.pm
+
+
+package main;
+
+
+# cpanel - bin/perlpkg                             Copyright 2022 cPanel, L.L.C.
+#                                                           All rights reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited
+
+use strict;
+use warnings;
+use Module::CoreList;
+use Module::Want;
+# use Cpanel::Binaries        ();
+# use Cpanel::SafeRun::Simple ();
+# use Cpanel::SafeRun::Errors ();
+
+use Cwd ();
+
+my $cpanel_perl = Cpanel::Binaries::path('perl');
+my $cpanel_dir  = '/usr/local/cpanel';
+my $script      = $ARGV[-1];
+
+# Be whiny if they passed in a .static script.
+if ( $script =~ m/\.static$/ ) {
+    $script =~ s/\.static$//;
+    die("Did you mean to run: '$0 $script'\n");
+}
+
+my %EMBEDDED_NON_CORE_MODULES = (
+    'Try::Tiny'        => 1,
+    'HTTP::Tiny'       => 1,
+    'cPstrict'         => 1,
+    'File::Path::Tiny' => 1,
+);
+
+my $verbose = grep { $_ eq '--verbose' } @ARGV;
+if ( grep { $_ eq '--no-try-tiny' } @ARGV ) {
+    delete $EMBEDDED_NON_CORE_MODULES{'Try::Tiny'};
+}
+if ( grep { $_ eq '--no-http-tiny' } @ARGV ) {
+    delete $EMBEDDED_NON_CORE_MODULES{'HTTP::Tiny'};
+}
+if ( grep { $_ eq '--no-file-path-tiny' } @ARGV ) {
+    delete $EMBEDDED_NON_CORE_MODULES{'File::Path::Tiny'};
+}
+if ( grep { $_ eq '--no-cpstrict' } @ARGV ) {
+    delete $EMBEDDED_NON_CORE_MODULES{'cPstrict'};
+}
+my $leave_broken = ( grep { $_ eq '--leave-broken' } @ARGV )       ? 1 : 0;
+my $skip_compile = ( grep { $_ eq '--skip-compile-check' } @ARGV ) ? 1 : 0;
+
+my @dash_dir_opts = grep { m{^--dir=} } @ARGV;
+
+my @extra_dirs;
+foreach my $opt (@dash_dir_opts) {
+    my $dir = $opt;
+    $dir =~ s{^--dir=}{};
+    push @extra_dirs, $dir;
+}
+@extra_dirs = reverse sort @extra_dirs;
+
+if ( !-e $script ) {
+    die "$script does not exist";
+}
+
+my $static_script = Cwd::abs_path($script) . '.static';
+$static_script =~ s{//}{/}msg;    # Strip double // in path
+
+my $dependencies = Cpanel::SafeRun::Simple::saferun( $cpanel_perl, "$cpanel_dir/bin/depend", '--requires', @dash_dir_opts, $script );
+die if ( $dependencies =~ m/syspkg_system_module/ );
+$? and die( "Unexpected exit code calling bin/depend: " . ( $? >> 8 ) . "\n" );
+$dependencies =~ s{^\Q$script\E:\s+}{} or die("Unexpected dependency output from bin/depend: $dependencies\n");
+my @modules_to_include = split( /\s+/, $dependencies );
+@modules_to_include = grep { $_ ne $script } @modules_to_include;    # Pop off self.
+
+open( my $script_source_fh, '<', $script )        or die;
+open( my $script_fh,        ">", $static_script ) or die("Failed to open $static_script for write");
+while ( my $line = <$script_source_fh> ) {
+    print {$script_fh} $line;
+    last if ( $line =~ m{^#!\S+/perl} );                             # Stop copying when you get to the #! for perl.
+}
+
+# Inject %INC with load blockers.
+print {$script_fh} "BEGIN { # Suppress load of all of these at earliest point.\n";
+
+# Non code modules we embed.
+foreach ( keys %EMBEDDED_NON_CORE_MODULES ) {
+    my $module = $_;                                                 # Don't alter the hash.
+    $module =~ s{::}{/}g;
+    $module .= '.pm';
+    print {$script_fh} "    \$INC{'$module'} = '${static_script}';\n";
+}
+
+# cPanel modules we're embedding.
+foreach my $module (@modules_to_include) {
+    my $m = $module;
+
+    foreach my $d (@extra_dirs) {
+        $m =~ s{^$d/}{} and last;
+    }
+
+    print {$script_fh} "    \$INC{'$m'} = '${static_script}';\n";
+}
+print {$script_fh} "}\n\n";
+
+my $perldoc_bin = $^X . "doc";
+die qq[$perldoc_bin is not executable] unless -x $perldoc_bin;
+
+# Dump %EMBEDDED_NON_CORE_MODULES as-is.
+foreach my $module ( sort keys %EMBEDDED_NON_CORE_MODULES ) {
+    local $ENV{PERL5LIB};
+    my $module_loc = Cpanel::SafeRun::Simple::saferun( $perldoc_bin, '-lm', $module );
+    chomp $module_loc;
+
+    die qq[Fail to find module location: $perldoc_bin -lm $module] unless length $module_loc;
+
+    open( my $fh, "<", $module_loc ) or die("Failed to open $module_loc for read");
+    print {$script_fh} "{ # --- BEGIN $module\n";
+    while ( my $line = <$fh> ) {
+        last if ( $line =~ m/^__END__/ );    # The only module we embed terminates at __END__ with no pod prior to that.
+        if ( $module eq 'Try::Tiny' ) {
+            $line =~ s/^__PACKAGE__\s*[\n\r]?$/1;/;               # They're trying to be fancy at the end of the module and it's throwing a warning;
+            $line =~ s/^use Exporter/BEGIN   {\nuse Exporter/;    # Inject exporter into a BEGIN block so it works right in fat pack.
+            next if ( $line =~ m{BEGIN \{} );                     # Join the being block we just added to the one that already exists
+        }
+        print {$script_fh} $line;
+    }
+    print {$script_fh} "\n} # --- END $module\n\n\n";
+}
+
+my @packages_injected = map { my $name = $_; $name =~ s{/}{::}g; $name =~ s{\.pm$}{}; $name } @modules_to_include;
+
+# if Cpanel::Exception::CORE is included also consider that Cpanel::Exception is in
+if ( grep { 'Cpanel::Exception::CORE' } @packages_injected ) {
+    push @packages_injected, 'Cpanel::Exception';
+}
+
+my $in_use_base            = 0;
+my $cpan_module_found      = 0;
+my $previous_module        = '';
+my $second_previous_module = '';
+my $third_previous_module  = '';
+my $forth_previous_module  = '';
+my $fifth_previous_module  = '';
+
+my %our_isa_already;
+
+my $safe_to_load = { map { $_ => 1 } qw{vars feature warnings experimental} };
+
+# Dump all the modules depended on in.
+foreach my $module (@modules_to_include) {
+    open( my $fh, "<", $module ) or die("Failed to open $module for read");
+    print {$script_fh} "{ # --- BEGIN $module\n";
+    my $in_pod = 0;
+    while ( my $line = <$fh> ) {
+
+        # Strip POD
+        if ( index( $line, '=' ) == 0 ) {
+            if ( index( $line, '=cut' ) == 0 ) {
+                $in_pod = 0;
+                next;
+            }
+            elsif ( $line =~ m{^=(\w+)} ) {
+                print "  Skipping POD =$1\n" if ($verbose);
+                $in_pod = 1;
+            }
+
+        }
+        next if ($in_pod);
+
+        # Skip DATA sections
+        if ( index( $line, '__' ) > -1 && $line =~ m{^\s*__(END|DATA)__} ) {
+            print "  Stripping a $1 section from $module\n" if ($verbose);
+            last;
+        }
+
+        # Skip comment only lines.
+        my $first_comment = index( $line, '#' );
+        next if $first_comment == 0;                             # '#' at beginning of line - no regexp required
+        next if ( $first_comment > 0 && $line =~ m{^\s+\#} );    # '#' in the middle, let's check for space before it
+
+        if ( $in_use_base || index( $line, 'use ' ) > -1 ) {
+
+            # Comment out use () statements already brougt in.
+            if ( $line =~ m{\buse\s+([\w:]+)\s*(?:[\d._]+\s*)?\(\)} ) {
+                my $script_module = $1;
+                if ( grep { $_ eq $script_module } @packages_injected ) {
+                    $line = '# ' . $line;
+                }
+            }
+            elsif ( $in_use_base || $line =~ m{\buse\s+(?:base|parent)\s+(?:qw[(\{]|["'])?(.+)} ) {
+                my $modules = $in_use_base ? $line : $1;
+                $modules =~ s/\n//g;
+                $modules =~ s/#.*?$//;
+                $modules =~ s/\s*;\s*$//;
+
+                $in_use_base = 1;
+                $in_use_base = 0 if ( $modules =~ s{['"\)\}]}{}g );
+
+                $line = '';
+                foreach my $module_name ( split( m{\s+}, $modules ) ) {
+                    next if !$module || !Module::Want::is_ns($module_name);
+                    $line .= "# use $module_name();\n";
+                    $line .= "our \@ISA;\n" unless $our_isa_already{$module}++;
+                    $line .= 'BEGIN { pu' . "sh \@ISA, qw($module_name); }\n";    # The push is split up to avoid erroneously tripping ArrayHashFuncs
+                }
+            }
+            elsif ( $line =~ m{\buse\s+([\w:]+)\s+qw\((.+)\)} ) {
+                my $module = $1;
+                my $qw     = $2;
+                if ( !$safe_to_load->{$module} ) {
+                    $line = "# $line";
+                    $line .= "INIT { $module->import(qw{$qw}); }\n";
+                }
+            }
+            elsif ( $line =~ m{\buse\s+([\w:]+)\s+['"](.+)['"]} ) {
+                my $module = $1;
+                my $qw     = $2;
+                if ( !$safe_to_load->{$module} ) {
+                    $line = "# $line";
+                    $line .= "INIT { $module->import(qw{$qw}); }\n";
+                }
+            }
+        }
+        print {$script_fh} $line;
+    }
+    print {$script_fh} "\n} # --- END $module\n\n\n";
+    $fifth_previous_module  = $forth_previous_module;
+    $forth_previous_module  = $third_previous_module;
+    $third_previous_module  = $second_previous_module;
+    $second_previous_module = $previous_module;
+    $previous_module        = $module;
+}
+
+$cpan_module_found && die("Cannot generate $static_script due to non-core dependencies\n");
+
+# Dump the script in
+print {$script_fh} "package main;\n\n";
+while ( my $line = <$script_source_fh> ) {
+
+    # Strip simple /ULC path injection.
+    $line =~ s{unshift\s+\@INC\s*,\s*'/usr/local/cpanel'\s*;}{;};
+
+    # Comment out the use in the script if we've got it above
+    if ( $line =~ m{\buse\s+([\w:]+)} ) {
+        my $script_module = $1;
+        if ( grep { $_ eq $script_module } @packages_injected ) {
+            $line = '# ' . $line;
+        }
+    }
+    print {$script_fh} $line;
+}
+
+close $script_fh;
+
+exit 0 if $skip_compile;
+
+# Validate the script compiles with system perl to ensure installations work
+# (auto-build servers are running CentOS 5 so even if a sandbox has a newer perl,
+# the auto-build servers will catch issues that only occur on the older perl).
+my @check;
+
+# upcp and updatenow now use 3rdparty/bin/perl when run.
+my $perl_c = $ENV{'USE_CPANEL_PERL_FOR_PERLSTATIC'} ? '/usr/local/cpanel/3rdparty/bin/perl' : '/usr/bin/perl';
+
+if ( -x $perl_c ) {
+    push @check, split( /\n/, scalar Cpanel::SafeRun::Errors::saferunallerrors( $perl_c, "-c", "-Mstrict", $static_script ) );
+
+    # make sure we perl severe compilation errors, such as out of memory, where no message is output #
+    push @check, 'Does not compile' if !@check && ( $? >> 8 );
+}
+else {
+    push @check, "$perl_c does not exist as a file or is not executable";
+}
+
+# Choke if the script doesn't compile clean.
+if ( @check != 1 || $check[0] !~ m/^\Q$static_script syntax OK\E/ ) {
+    print "$perl_c -c $static_script fails compile check:\n\n";
+    print join( "\n", @check, "\n" );
+    unlink($static_script) unless $leave_broken;
+    exit 1;
+}
+
+print "$check[0]\n";
+exit 0;
