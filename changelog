@@ -1,3 +1,10 @@
+2023-04-10 - version 7
+ - Fix issue #151: Do not block on installed repos if no packages are installed from them.
+ - Remove source, debuginfo and vault entries from vetted repos.
+ - Stop restore_perl_xs from running dnf needlessly which led to a crash.
+ - Track which version of cpanel-elevate upgraded the local distro.
+ - Change recommended policy to direct people to cPanel support for issues.
+
 2023-03-13 - version 6
  - If the file /var/cpanel/elevate-noc-recommendations exists, present the user with the contents of the file and confirm if they want to proceed.
  - Exempt EA4 OpenSSL devel packages from blocker
