@@ -21,12 +21,16 @@ use constant MINIMUM_LTS_SUPPORTED => 102;
 
 require $FindBin::Bin . '/../elevate-cpanel';
 
-my $cpev_mock = Test::MockModule->new('cpev');
-$cpev_mock->redefine( _init_logger     => sub { die "should not call init_logger" } );
-$cpev_mock->redefine( _check_yum_repos => 0 );
-$cpev_mock->redefine( 'latest_version' => cpev::VERSION );
+my $logger_mock = Test::MockModule->new('Elevate::Logger');
+$logger_mock->redefine( init => sub { die "should not call init_logger" } );
 
-my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
+my $cpev_mock = Test::MockModule->new('cpev');
+$cpev_mock->redefine( _check_yum_repos => 0 );
+
+my $script_mock = Test::MockModule->new('Elevate::Script');
+$script_mock->redefine( '_build_latest_version' => cpev::VERSION );
+
+my $cpev = cpev->new( _abort_on_first_blocker => 1 );
 
 {
     note "cPanel & WHM missing blocker";
@@ -519,24 +523,6 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
 }
 
 {
-    note "containers";
-
-    $cpev_mock->redefine( '_is_container_envtype' => 1 );
-    is(
-        dies { $cpev->_blocker_is_container() },
-        {
-            id  => 90,
-            msg => "cPanel thinks that this is a container-like environment, which this script cannot support at this time.",
-        },
-        q{Block if this is a container like environment.}
-    );
-
-    $cpev_mock->redefine( '_is_container_envtype' => 0 );
-    is( $cpev->_blocker_is_container(), 0, q[not a container.] );
-    $cpev_mock->unmock('_is_container_envtype');
-}
-
-{
     note "system is up to date.";
 
     $cpev_mock->redefine( _system_update_check => 0 );
@@ -553,25 +539,6 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     is( $cpev->_blocker_system_update(), 0, 'System is up to date' );
 
     $cpev_mock->unmock('_system_update_check');
-}
-
-{
-    note "disk space blocker.";
-
-    $cpev_mock->redefine( _disk_space_check => 0 );
-    is(
-        dies { $cpev->_blocker_disk_space() },
-        {
-            id  => 99,
-            msg => "disk space issue",
-        },
-        q{Block if disk space issues.}
-    );
-
-    $cpev_mock->redefine( _disk_space_check => 1 );
-    is( $cpev->_blocker_disk_space(), 0, 'System is up to date' );
-
-    $cpev_mock->unmock('_disk_space_check');
 }
 
 ## Make sure we have NICs that would fail
@@ -687,9 +654,10 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
 {
     note "checking script update check";
 
-    $cpev_mock->redefine( 'latest_version' => sub { undef } );
+    $script_mock->redefine( '_build_latest_version' => sub { return undef } );
+
     is(
-        dies { $cpev->_blocker_script_updated() },
+        dies { $cpev->_check_blocker('UpToDate') },
         {
             id  => 105,
             msg => <<~'EOS',
@@ -702,10 +670,8 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
         "blocks when info about latest version can't be fetched"
     );
 
-    $cpev_mock->redefine( 'latest_version' => '-1' );
-    $cpev_mock->redefine( 'latest_version' => sub { undef } );
     is(
-        dies { $cpev->_blocker_script_updated() },
+        dies { $cpev->_check_blocker('UpToDate') },
         {
             id  => 105,
             msg => <<~'EOS',
@@ -718,7 +684,7 @@ my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
         "blocks when the installed script isn't the latest release"
     );
 
-    $cpev_mock->unmock('latest_version');
+    $script_mock->unmock('_build_latest_version');
 }
 
 {
