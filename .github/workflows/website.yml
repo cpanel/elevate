@@ -43,6 +43,7 @@ jobs:
         push-branch: 'docs'
         commit-message: 'Regenerate Documentation Website'
         force-add: 'true'
+        force-push: 'true'
         files: docs/
         name: GitHub Action
         email: github.bot@cpanel.net
