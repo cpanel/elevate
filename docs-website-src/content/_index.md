@@ -5,7 +5,7 @@ draft: false
 layout: single
 ---
 
-# Welcome to the cPanel ELevate Project.
+# Welcome to the cPanel ELevate Project!
 
 ## Goal
 
