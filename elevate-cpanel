@@ -11,34 +11,34 @@
 ## ----------------------------------------------------------------------------
 
 BEGIN {    # Suppress load of all of these at earliest point.
-    $INC{'Elevate/Constants.pm'}            = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Base.pm'}        = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers.pm'}             = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Databases.pm'}   = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DiskSpace.pm'}   = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Distros.pm'}     = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DNS.pm'}         = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/EA4.pm'}         = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Grub2.pm'}       = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/IsContainer.pm'} = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/JetBackup.pm'}   = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/NICs.pm'}        = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/OVH.pm'}         = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Script.pm'}      = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/SSH.pm'}         = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/UpToDate.pm'}    = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/WHM.pm'}         = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Yum.pm'}         = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Base.pm'}      = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/EA4.pm'}       = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Grub2.pm'}     = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Fetch.pm'}                = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Logger.pm'}               = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Motd.pm'}                 = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Notify.pm'}               = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Roles/Run.pm'}            = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Script.pm'}               = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Service.pm'}              = '/root/workspace/elevate/script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Constants.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Base.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Databases.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DiskSpace.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Distros.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DNS.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/EA4.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Grub2.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/IsContainer.pm'} = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/JetBackup.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/NICs.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/OVH.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Script.pm'}      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/SSH.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/UpToDate.pm'}    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/WHM.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Yum.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Base.pm'}      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/EA4.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Grub2.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Fetch.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Logger.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Motd.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Notify.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Roles/Run.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Script.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Service.pm'}              = 'script/elevate-cpanel.PL.static';
 }
 
 {    # --- BEGIN lib/Elevate/Constants.pm

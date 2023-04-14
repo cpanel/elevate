@@ -2824,7 +2824,7 @@ if ( !-e $script ) {
     die "$script does not exist";
 }
 
-my $static_script = Cwd::abs_path($script) . '.static';
+my $static_script = $script . '.static';
 $static_script =~ s{//}{/}msg;    # Strip double // in path
 
 my $dependencies = Cpanel::SafeRun::Simple::saferun( $cpanel_perl, "$cpanel_dir/bin/depend", '--requires', @dash_dir_opts, $script );
