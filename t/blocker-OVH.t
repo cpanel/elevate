@@ -17,34 +17,33 @@ use Test::Elevate;
 
 use cPstrict;
 
-note "checking _use_jetbackup4_or_earlier";
-
 my $myip = q[127.0.0.1];
 
 my $mock_mainip = Test::MockModule->new('Cpanel::DIp::MainIP')->redefine( getmainip => 42 );
 my $mock_nat    = Test::MockModule->new('Cpanel::NAT')->redefine( get_public_ip => sub { return $myip } );
 
-my $cpev = bless {}, 'cpev';
+my $cpev    = cpev->new;
+my $blocker = Elevate::Blockers::OVH->new( cpev => $cpev );
 
 subtest '__is_ovh' => sub {
 
     {
         my $mock_pvhrc = Test::MockFile->file('/root/.ovhrc');
 
-        is $cpev->__is_ovh(), 0, "no .ovhrc";
+        is $blocker->__is_ovh(), 0, "no .ovhrc";
 
         $mock_pvhrc->touch;
-        is $cpev->__is_ovh(), 1, "with .ovhrc";
+        is $blocker->__is_ovh(), 1, "with .ovhrc";
     }
 
     {
         my $mock_pvhrc = Test::MockFile->file('/root/.ovhrc');
 
-        is $cpev->__is_ovh(), 0, "invalid ip";
+        is $blocker->__is_ovh(), 0, "invalid ip";
 
         foreach my $ip (qw{54.38.193.69 192.99.6.142}) {
             $myip = $ip;
-            is $cpev->__is_ovh(), 1, "IP $ip belongs to OVH";
+            is $blocker->__is_ovh(), 1, "IP $ip belongs to OVH";
         }
     }
 
@@ -52,17 +51,23 @@ subtest '__is_ovh' => sub {
 };
 
 subtest 'ovh blocker' => sub {
-    my $mock_cpev = Test::MockModule->new('cpev');
-    $mock_cpev->redefine( '__is_ovh' => 1 );
+    my $mock_ovh = Test::MockModule->new('Elevate::Blockers::OVH');
+    $mock_ovh->redefine( '__is_ovh' => 1 );
 
-    my $mock_touchfile = Test::MockFile->file( cpev::OVH_MONITORING_TOUCH_FILE() );
+    #my $mock_service = Test::MockModule->new('Elevate::Service')->redefine( is_active => 0 );
+
+    my $mock_touchfile = Test::MockFile->file( Elevate::Blockers::OVH::OVH_MONITORING_TOUCH_FILE() );
     $mock_touchfile->touch();
-    is $cpev->_blocker_ovh_monitoring(), 0, "no blocker when file already touched";
+    is $blocker->check(), 0, "no blocker when file already touched";
 
     $mock_touchfile->unlink();
 
-    is $cpev->_blocker_ovh_monitoring(), object {
+    #local @Elevate::Blockers::BLOCKERS = qw{ OVH };
+    my $blockers = Elevate::Blockers->new( cpev => $cpev );
+
+    like $blockers->_check_single_blocker('OVH'), object {
         prop blessed => 'cpev::Blocker';
+        field id => 'Elevate::Blockers::OVH::check';
     }, "blocker when detecting OVH";
 
     return;

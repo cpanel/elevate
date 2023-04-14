@@ -21,10 +21,16 @@ BEGIN {
     }
     require $FindBin::Bin . q[/../elevate-cpanel];
     $INC{'cpev.pm'} = '__TEST__';
+    no warnings;
+    *Elevate::Logger::init = sub { };
 }
 
-sub _msg ( $self, $msg, $level ) {
-    note "MockedLogger [$level] $msg";
+sub _msg ( $self, $msg, $level = '[void]' ) {
+    if ( $level eq '[void]' ) {
+        $level = $msg;
+        $msg   = '';
+    }
+    note "MockedLogger [$level] $msg ";
     push @MESSAGES_SEEN, [ $level, $msg ];
     return;
 }
@@ -39,9 +45,10 @@ sub init {
     return if $once;
     $once = 1;
 
+    note "init Log4perl for testing";
+
     my $config = <<~'EOS';
     log4perl.category = DEBUG, MyTest
-
     log4perl.appender.MyTest=Log::Log4perl::Appender::TestBuffer
     log4perl.appender.MyTest.name=mybuffer
     log4perl.appender.MyTest.layout=Log::Log4perl::Layout::SimpleLayout
@@ -49,8 +56,26 @@ sub init {
     EOS
     Log::Log4perl->init( \$config );
 
-    my $log = Log::Log4perl::get_logger('cpev');
+    mockLoggerFor('');
+    mockLoggerFor('cpev');
+
+    # we should use a single logger and rootLogger....
+    my @elevate = grep { m{^Elevate/} } sort keys %INC;
+    foreach my $cat (@elevate) {
+        $cat =~ s{\Q.pm\E$}{};
+        $cat =~ s{/}{.}g;
+        mockLoggerFor($cat);
+    }
+
+    return;
+}
+
+sub mockLoggerFor ($pkg) {
+    $pkg //= '';    # default to root logger
+    my $log = Log::Log4perl::get_logger($pkg);
     $log->{$_} = \&_msg for qw{ALL DEBUG ERROR FATAL INFO OFF TRACE WARN};
+
+    return;
 }
 
 sub message_seen_lines ( $type, $msg ) {
