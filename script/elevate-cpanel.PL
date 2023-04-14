@@ -220,7 +220,7 @@ use Elevate::Script     ();
 use Elevate::Service    ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 6;
+use constant VERSION => 7;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
