@@ -20,21 +20,21 @@ use lib $FindBin::Bin . "/lib";
 use Test::Elevate;
 
 use cPstrict;
-
-my $cpev = bless {}, 'cpev';
-
 my $cmdline  = Test::MockFile->file('/proc/cmdline');
-my $grub_cfg = Test::MockFile->file(cpev::DEFAULT_GRUB_FILE);
+my $grub_cfg = Test::MockFile->file(Elevate::Constants::DEFAULT_GRUB_FILE);
 my $mock_srs = Test::MockModule->new('Cpanel::SafeRun::Simple');
 my $mock_sro = Test::MockModule->new('Cpanel::SafeRun::Object');
 
 subtest "check_and_fix_grub kernel using net.ifnames=0" => sub {
 
+    my $cpev = cpev->new;
+    my $g2   = cpev->component('Grub2');
+
     $cmdline->contents( <<~'EOS' );
     BOOT_IMAGE=(hd0,msdos1)/boot/vmlinuz-4.18.0-425.10.1.el8_7.x86_64 root=UUID=6cd50e51-cfc6-40b9-9ec5-f32fa2e4ff02 ro console=tty0 console=ttyS0,115200 earlyprintk=ttyS0,115200 consoleblank=0 crashkernel=no nosplash nomodeset rootflags=uquota net.ifnames=0
     EOS
 
-    ok !$cpev->check_and_fix_grub(), "grub file is missing";
+    ok !$g2->final_check_and_fix(), "grub file is missing";
 
     $grub_cfg->contents( <<~'EOS' );
     GRUB_TIMEOUT=5
@@ -63,7 +63,7 @@ subtest "check_and_fix_grub kernel using net.ifnames=0" => sub {
         }
     );
 
-    ok $cpev->check_and_fix_grub(), "check_and_fix_grub need to fixup grub config";
+    ok $g2->final_check_and_fix(), "check_and_fix_grub need to fixup grub config";
 
     is $grub_cfg->contents(), <<~'EOS', "file is fixed";
     GRUB_TIMEOUT=5
@@ -78,12 +78,16 @@ subtest "check_and_fix_grub kernel using net.ifnames=0" => sub {
 
     like $grubenv, qr/^kernelopts=root=UUID=6cd50e51-cfc6-40b9-9ec5-f32fa2e4ff02 ro console=tty0 console=ttyS0,115200 earlyprintk=ttyS0,115200 consoleblank=0 crashkernel=no nosplash nomodeset rootflags=uquota net\.ifnames=0\s*$/ma, "GRUB environment variable set correctly";
 
-    ok !$cpev->check_and_fix_grub(), "do not fix it twice";
+    ok !$g2->final_check_and_fix(), "do not fix it twice";
 
     return;
 };
 
 subtest "check_and_fix_grub kernel without net.ifnames=0" => sub {
+
+    my $cpev = cpev->new;
+    my $g2   = cpev->component('Grub2');
+
     $cmdline->unlink;
 
     $grub_cfg->contents( <<~'EOS' );
@@ -97,11 +101,11 @@ subtest "check_and_fix_grub kernel without net.ifnames=0" => sub {
     GRUB_ENABLE_BLSCFG=true
     EOS
 
-    ok !$cpev->check_and_fix_grub(), "no need to fix when current kernel does not use net.ifnames=0";
+    ok !$g2->final_check_and_fix(), "no need to fix when current kernel does not use net.ifnames=0";
 
     $cmdline->contents("whatever");
 
-    ok !$cpev->check_and_fix_grub(), "no need to fix when current kernel does not use net.ifnames=0";
+    ok !$g2->final_check_and_fix(), "no need to fix when current kernel does not use net.ifnames=0";
 
     return;
 };

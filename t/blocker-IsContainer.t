@@ -23,21 +23,24 @@ my $mock = Test::MockModule->new('Elevate::Blockers::IsContainer');
 {
     note "containers";
 
+    my $blockers    = cpev->new->blockers;
+    my $isContainer = $blockers->_get_blocker_for('IsContainer');
+
     $mock->redefine( '_is_container_envtype' => 1 );
 
     #my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     my $cpev = cpev->new( _abort_on_first_blocker => 1 );
     is(
-        dies { Elevate::Blockers::IsContainer::check($cpev) },
+        $isContainer->check(),
         {
-            id  => 90,
+            id  => q[Elevate::Blockers::IsContainer::check],
             msg => "cPanel thinks that this is a container-like environment, which this script cannot support at this time.",
         },
         q{Block if this is a container like environment.}
     );
 
     $mock->redefine( '_is_container_envtype' => 0 );
-    is( Elevate::Blockers::IsContainer::check($cpev), 0, q[not a container.] );
+    is( $isContainer->check(), 0, q[not a container.] );
 }
 
 done_testing;

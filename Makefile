@@ -1,12 +1,16 @@
-.PHONY: test cover tags clean release build
+.PHONY: test cover tags clean release build sanity
 
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
 PERL_BIN=/usr/local/cpanel/3rdparty/perl/536/bin
 
-test:
+sanity:
+	@for file in $$(find lib -type f -name "*.pm" | sort); do \
+		perl -cw -Ilib $$file || exit 1; \
+	done
+
+test: sanity
 	-$(MAKE) elevate-cpanel
-	perl -cw elevate-cpanel
 	/usr/local/cpanel/3rdparty/bin/prove t/00_load.t
 	/usr/local/cpanel/3rdparty/bin/yath test -j8 t/*.t
 
@@ -33,6 +37,7 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 	@MARKER="`cat maint/marker`" perl -pi -e 's|^(#!/usr/local/cpanel/3rdparty/bin/perl)|$$1\n\n$$ENV{MARKER}\n|' $@
 	@perltidy $@ && mv $@.tdy $@
 	@chmod +x $@
+	perl -cw elevate-cpanel
 
 build:
 	rm -f elevate-cpanel

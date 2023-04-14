@@ -25,6 +25,10 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
 
 {
     note "checking _system_update_check";
+
+    my $cpev = cpev->new;
+    my $yum  = cpev->get_blocker('Yum');
+
     my $status = 0;
     my @cmds;
     my @stdout;
@@ -39,7 +43,7 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
         },
     );
 
-    ok( cpev->_system_update_check(), '_system_update_check - success' );
+    ok( $yum->_system_update_check(), '_system_update_check - success' );
     is \@cmds, [
         [qw{/usr/bin/yum clean all}],
         [qw{/usr/bin/yum check-update -q}],
@@ -66,7 +70,7 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
         'ea-openssl11.x86_64                    1:1.1.1s-1.el7.cloudlinux cl-ea4         ',
     );
 
-    is( cpev->_system_update_check(), undef, '_system_update_check - failure' );
+    is( $yum->_system_update_check(), undef, '_system_update_check - failure' );
     is \@cmds, [
         [qw{/usr/bin/yum clean all}],
         [qw{/usr/bin/yum check-update -q}],
@@ -81,7 +85,7 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
 
     @cmds   = ();
     $status = 1;
-    is( cpev->_system_update_check(), undef, '_system_update_check - failure' );
+    is( $yum->_system_update_check(), undef, '_system_update_check - failure' );
     is \@cmds, [
         [qw{/usr/bin/yum clean all}],
         [qw{/usr/bin/yum check-update -q}],
