@@ -218,6 +218,7 @@ use Elevate::Notify     ();
 use Elevate::Roles::Run ();               # used as parent, but ensure fatpack
 use Elevate::Script     ();
 use Elevate::Service    ();
+use Elevate::Usage      ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 7;
@@ -262,17 +263,8 @@ use Simple::Accessor qw{
 # after Simple::Accessor
 use parent qw{
   Elevate::Roles::Run
-  Cpanel::HelpfulScript
+  Elevate::Usage
 };
-
-sub _OPTIONS {
-    return qw(
-      service start clean continue manual-reboots status log check:s
-      skip-cpanel-version-check skip-elevate-version-check
-      update version
-      upgrade-to=s
-    );
-}
 
 exit( __PACKAGE__->run(@ARGV) // 0 ) unless caller;
 
@@ -294,12 +286,9 @@ sub _build_script ($self) {
 
 sub _init ( $self_or_pkg, @args ) {
 
-    my $self    = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
-    my $getopts = __PACKAGE__->SUPER::new(@args);                        # HelpfulScript
-    foreach my $k ( keys %$getopts ) {
-        $self->{$k} = $getopts->{$k};
-    }
+    my $self = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
 
+    Elevate::Usage::init( $self, @args );
     Elevate::Logger::init($self);
 
     return $self;
@@ -337,15 +326,11 @@ sub run ( $pkg, @args ) {
 
     if ( $stage == 0 ) {
         print_box("Please re-run this script with --start if you would like to begin the upgrade process");
-        my $out = $self->full_help();
-        my ( $short_help, $extra ) = split( qr{^.+STAGES}m, $out );
-        chomp $short_help for 1 .. 2;
-        say $short_help;
-        return 1;
+        return $self->full_help(1);    # exit
     }
 
     if ( $self->getopt('start') || $self->getopt('log') ) {
-        1;    # these options are exclusive
+        1;                             # these options are exclusive
     }
     elsif ( $self->getopt('continue') ) {
         $self->continue_elevation();
