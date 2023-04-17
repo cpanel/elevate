@@ -173,8 +173,9 @@ BEGIN {    # Suppress load of all of these at earliest point.
       blockers
     );
 
-    use Log::Log4perl ();
-    use Cpanel::JSON  ();
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+    use Cpanel::JSON ();
 
     our @BLOCKERS = qw{
 
@@ -281,7 +282,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
 
-        foreach my $blocker (qw{UpToDate DiskSpace WHM }) {    # preserve order
+        foreach my $blocker (@BLOCKERS) {    # preserve order
             $self->_check_single_blocker($blocker);
         }
 

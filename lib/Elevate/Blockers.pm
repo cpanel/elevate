@@ -39,7 +39,7 @@ use Simple::Accessor qw(
   blockers
 );
 
-use Log::Log4perl ();
+use Log::Log4perl qw(:easy);
 use Cpanel::JSON  ();
 
 # This is where you should add your blockers class
@@ -150,7 +150,7 @@ sub _check_all_blockers ($self) {    # sub _blockers_check ($self) {
 
     my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
 
-    foreach my $blocker (qw{UpToDate DiskSpace WHM }) {    # preserve order
+    foreach my $blocker (@BLOCKERS) {    # preserve order
         $self->_check_single_blocker($blocker);
     }
 
