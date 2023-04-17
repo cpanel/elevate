@@ -228,7 +228,10 @@ sub _check_yum_repos ($self) {
         my $check_last_known_repo = sub {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
-            if ( !$vetted{$current_repo_name} ) {
+
+            my $is_vetted = $vetted{$current_repo_name} || $vetted{ lc $current_repo_name };
+
+            if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
                 if ( my $total_pkg = scalar cpev::get_installed_rpms_in_repo($current_repo_name) ) {    # FIXME
                     ERROR(
