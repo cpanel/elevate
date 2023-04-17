@@ -848,7 +848,7 @@ sub run_stage_2 ($self) {
 
     $self->run_once('remove_kernelcare_if_needed');
 
-    $self->run_component_once( 'Grub2' => 'check_and_fix' );
+    $self->run_component_once( 'Grub2' => 'pre_elevate' );
 
     return REBOOT_NEEDED;
 }
@@ -1062,7 +1062,7 @@ sub run_stage_5 ($self) {
     File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
     Elevate::Motd->cleanup();
 
-    $self->run_component_once( 'Grub2' => 'final_check_and_fix' );
+    $self->run_component_once( 'Grub2' => 'post_elevate' );
 
     my $final_notifications = read_stage_file( 'final_notifications', [] );
     if (@$final_notifications) {
