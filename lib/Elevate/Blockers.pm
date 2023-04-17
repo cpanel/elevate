@@ -18,21 +18,20 @@ use cPstrict;
 # enforce packing these packages
 use Elevate::Blockers::Base ();
 
-use Elevate::Blockers::Databases   ();
-use Elevate::Blockers::DiskSpace   ();
-use Elevate::Blockers::Distros     ();
-use Elevate::Blockers::DNS         ();
-use Elevate::Blockers::EA4         ();
-use Elevate::Blockers::Grub2       ();
-use Elevate::Blockers::IsContainer ();
-use Elevate::Blockers::JetBackup   ();
-use Elevate::Blockers::NICs        ();
-use Elevate::Blockers::OVH         ();
-use Elevate::Blockers::Script      ();
-use Elevate::Blockers::SSH         ();
-use Elevate::Blockers::UpToDate    ();
-use Elevate::Blockers::WHM         ();
-use Elevate::Blockers::Yum         ();
+use Elevate::Blockers::Databases     ();
+use Elevate::Blockers::DiskSpace     ();
+use Elevate::Blockers::Distros       ();
+use Elevate::Blockers::DNS           ();
+use Elevate::Blockers::EA4           ();
+use Elevate::Blockers::Grub2         ();
+use Elevate::Blockers::IsContainer   ();
+use Elevate::Blockers::JetBackup     ();
+use Elevate::Blockers::NICs          ();
+use Elevate::Blockers::OVH           ();
+use Elevate::Blockers::ElevateScript ();
+use Elevate::Blockers::SSH           ();
+use Elevate::Blockers::WHM           ();
+use Elevate::Blockers::Yum           ();
 
 use Simple::Accessor qw(
   cpev
@@ -46,13 +45,15 @@ use Cpanel::JSON  ();
 # This is where you should add your blockers class
 # note: the order matters
 our @BLOCKERS = qw{
+
   IsContainer
-  UpToDate
+  ElevateScript
+
   DiskSpace
   WHM
   Distros
   DNS
-  Script
+
   Databases
   Yum
   SSH
