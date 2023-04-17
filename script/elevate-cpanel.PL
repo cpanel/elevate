@@ -217,6 +217,7 @@ use Elevate::Components::KernelCare ();
 use Elevate::Components::MySQL      ();
 use Elevate::Components::NixStats   ();
 use Elevate::Components::PECL       ();
+use Elevate::Components::PerlXS     ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -236,8 +237,7 @@ use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 
-use constant VALID_STAGES        => 5;
-use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
+use constant VALID_STAGES => 5;
 
 use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
 
@@ -1370,9 +1370,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
         }
     );
 
-    $self->purge_perl_xs(DISTRO_PERL_XS_PATH);
-    $self->purge_perl_xs( $Config{'installsitearch'} );
-
+    $self->run_component_once( 'PerlXS'     => 'pre_leapp' );
     $self->run_component_once( 'Imunify360' => 'pre_leapp' );
     $self->run_once('remove_wordpress_toolkit');
     $self->run_once('capture_influxdb_state');
@@ -1393,16 +1391,8 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_component_once( 'MySQL' => 'post_leapp' );
-
-    $self->run_once(
-        'restore_perl_xs' => sub {
-            restore_perl_xs(DISTRO_PERL_XS_PATH);
-            restore_perl_xs( $Config{'installsitearch'} );
-
-            return;
-        }
-    );
+    $self->run_component_once( 'MySQL'  => 'post_leapp' );
+    $self->run_component_once( 'PerlXS' => 'post_leapp' );
 
     $self->run_once(
         'restore_plugins' => sub {
@@ -1711,118 +1701,6 @@ sub post_upgrade_check ($self) {
     $self->ssystem_and_die(qw{/usr/local/cpanel/cpanel -V});
 
     return 0;
-}
-
-sub purge_perl_xs ( $self, $path ) {
-
-    return unless length $path && -d $path;
-
-    my @perl_modules;
-
-    File::Find::find(
-        sub {
-            return unless substr( $_, -3 ) eq '.pm';
-            return if -l $_;
-            return unless -f $_;
-
-            push @perl_modules, $File::Find::name;
-
-        },
-        $path
-    );
-
-    my $path_len = length($path);
-    @perl_modules = map { substr( $_, $path_len + 1 ) } sort { $a cmp $b } @perl_modules;
-
-    my $xspm_to_rpm = xspm_to_rpm();
-
-    my %rpms_to_restore;
-    my @modules_to_restore;
-    foreach my $file (@perl_modules) {
-
-        # We can only convert distro perl arch perl modules to RPM.
-        if ( $path eq DISTRO_PERL_XS_PATH && length $xspm_to_rpm->{$file} ) {
-            $rpms_to_restore{$file} = $xspm_to_rpm->{$file};
-        }
-        else {
-            push @modules_to_restore, $file;
-        }
-    }
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    my $stash = {};
-    if (%rpms_to_restore) {
-        INFO("The following `cpan` installed perl Modules will be removed and replaced with a $pretty_distro_name RPM after upgrade:");
-        foreach my $file ( sort { $rpms_to_restore{$a} cmp $rpms_to_restore{$b} || $a cmp $b } keys %rpms_to_restore ) {
-            INFO( sprintf( "  %20s => %s", $file, $rpms_to_restore{$file} ) );
-
-            my $files_in_rpm = $stash->{'restore'}->{$path}->{'rpm'}->{ $rpms_to_restore{$file} } //= [];
-            unless ( grep { $_ eq $file } @$files_in_rpm ) {    # Only if we've not stored this.
-                push @$files_in_rpm, $file;
-                unlink "$path/$file";
-            }
-        }
-        INFO(' ');
-    }
-
-    if (@modules_to_restore) {
-        WARN("The following modules will likely not be functional on $pretty_distro_name and will be disabled. You will need to restore these manually:");
-        my $to_restore = $stash->{'restore'}->{$path}->{'cpan'} //= [];
-        foreach my $file (@modules_to_restore) {
-            WARN("    $path/$file");
-            next if grep { $_ eq $file } @$to_restore;    # We've already stashed this.
-            push @$to_restore, $file;
-            rename "$path/$file", "$path/$file.o";
-        }
-    }
-
-    update_stage_file($stash);
-
-    return;
-}
-
-sub restore_perl_xs ($path) {
-    my $stash = read_stage_file();
-
-    if ( $path eq DISTRO_PERL_XS_PATH ) {
-        my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
-
-        if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
-            my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-            __PACKAGE__->ssystem(@cmd);
-        }
-    }
-
-    my $cpan_modules = $stash->{$path}->{'cpan'} // return;
-
-    # TODO: Let's restore this with /usr/bin/cpan!
-    my $msg = "The following XS modules will need to be re-installed:\n\n";
-    foreach my $module (@$cpan_modules) {
-        $msg .= "   $module\n";
-    }
-    Elevate::Notify::add_final_notification($msg);
-
-    return;
-}
-
-sub xspm_to_rpm () {
-    return {
-        'IO/Pty.pm'           => 'perl-IO-Tty',
-        'IO/Tty.pm'           => 'perl-IO-Tty',
-        'IO/Tty/Constant.pm'  => 'perl-IO-Tty',
-        'JSON/Syck.pm'        => 'perl-YAML-Syck',
-        'JSON/XS.pm'          => 'perl-JSON-XS',
-        'JSON/XS/Boolean.pm'  => 'perl-JSON-XS',
-        'YAML/Dumper/Syck.pm' => 'perl-YAML-Syck',
-        'YAML/Loader/Syck.pm' => 'perl-YAML-Syck',
-        'YAML/Syck.pm'        => 'perl-YAML-Syck',
-        'common/sense.pm'     => 'perl-common-sense',
-        'version.pm'          => 'perl-version',
-        'version/regex.pm'    => 'perl-version',
-        'version/vpp.pm'      => 'perl-version',
-        'version/vxs.pm'      => 'perl-version',
-    };
 }
 
 sub setup_answer_file {
