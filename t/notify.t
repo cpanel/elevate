@@ -21,8 +21,8 @@ use Cpanel::JSON;
 use cPstrict;
 
 my $notification;
-my $mock_cpev = Test::MockModule->new('cpev');
-$mock_cpev->redefine(
+my $mock_notify = Test::MockModule->new('Elevate::Notify');
+$mock_notify->redefine(
     send_notification => sub ( $title, $body, %opts ) {
         $notification = {
             title => $title,

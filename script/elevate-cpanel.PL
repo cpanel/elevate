@@ -642,7 +642,7 @@ EOS
         }
     }
 
-    send_notification( qq[Successfully updated to $pretty_distro_name] => $msg, is_success => 1 );
+    Elevate::Notify::send_notification( qq[Successfully updated to $pretty_distro_name] => $msg, is_success => 1 );
 
     return;
 }
@@ -669,42 +669,7 @@ $error
 EOS
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    send_notification( qq[Fail to update to $pretty_distro_name] => $msg );
-
-    return;
-}
-
-sub send_notification ( $subject, $msg, %opts ) {
-
-    eval {
-        _send_notification( $subject, $msg, %opts );
-        1;
-    }
-      or warn "Fail to send notification: $@";
-
-    return;
-}
-
-sub _send_notification ( $subject, $msg, %opts ) {
-
-    my $is_success = delete $opts{is_success};
-
-    # note: no need to use one iContact::Class this is a one shot message
-    require Cpanel::iContact;
-
-    INFO("Sending notification: $subject");
-
-    my $log   = $is_success ? \&INFO : \&ERROR;
-    my @lines = split( "\n", $msg );
-    foreach my $line (@lines) {
-        $log->($line);
-    }
-
-    Cpanel::iContact::icontact(
-        'application' => 'elevate',
-        'subject'     => $subject,
-        'message'     => $msg,
-    );
+    Elevate::Notify::send_notification( qq[Fail to update to $pretty_distro_name] => $msg );
 
     return;
 }
