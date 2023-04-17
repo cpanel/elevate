@@ -32,7 +32,6 @@ BEGIN {
       ssystem
       ssystem_and_die
       ssystem_capture_output
-      run_once
     };
 
     foreach my $subname (@_DELEGATE_TO_CPEV) {
@@ -43,6 +42,22 @@ BEGIN {
             return $sub->( $cpev, @args );
         }
     }
+}
+
+sub run_once ( $self, $subname ) {
+
+    my $cpev     = $self->cpev;
+    my $run_once = $cpev->can('run_once') or die qq[cpev does not support 'run_once'];
+
+    my $label = ref($self) . "::$subname";
+
+    my $sub = $self->can($subname) or die qq[$self does not support '$subname'];
+
+    my $code = sub {
+        return $sub->($self);
+    };
+
+    return $run_once->( $cpev, $label, $code );
 }
 
 1;
