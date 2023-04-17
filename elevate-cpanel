@@ -605,6 +605,7 @@ EOS
     }
 
     sub _blocker_non_bind_powerdns ( $self, $nameserver = '' ) {
+
         if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
             my $pretty_distro_name = $self->upgrade_to_pretty_name();
             return $self->has_blocker( <<~"EOS");
@@ -2410,8 +2411,6 @@ EOS
     }
 
     sub _build_latest_version ($self) {
-        use Test::More;
-        note "running: _build_latest_version";
         my $response = Cpanel::HTTP::Client->new->get( $self->base_url() . 'version' );
         return undef if !$response->success;
         my $version = $response->content // '';
@@ -3691,9 +3690,7 @@ sub run_stage_4 ($self) {
         }
     );
 
-    ## FIXME
-    $self->run_once('restore_ea4_profile');
-    $self->run_once('restore_ea_addons');
+    $self->run_component_once( 'EA4' => 'restore' );
 
     $self->run_once(
         upcp => sub {
