@@ -31,6 +31,7 @@ use                            # hide
 
 use parent qw{
   Elevate::Roles::Run
+  Elevate::SystemctlService
 };
 
 sub _build_name {
@@ -102,56 +103,9 @@ sub install ($self) {
     }
 }
 
-sub is_active ( $self, $service = undef ) {
-
-    # cannot trust: `systemctl is-active` with a one-shot service
-
-    $service //= $self->name;
-
-    my $is_active;
-    Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-active}, $service );
-    $is_active = 1 if $? == 0;
-
-    my $info = Cpanel::RestartSrv::Systemd::get_service_info_via_systemd($service);
-    $info->{'ActiveState'} //= '';
-    $info->{'SubState'}    //= '';
-
-    $is_active = 1 if $info->{'ActiveState'} eq 'activating' && $info->{'SubState'} eq 'start';
-
-    if ( $is_active && $info->{'SubState'} ne 'exited' ) {
-        return 1;
-    }
-
-    return 0;
-}
-
-sub is_enabled ( $self, $service = undef ) {
-
-    $service //= $self->name;
-
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/bin/systemctl is-enabled}, $service ) // '';
-    chomp $out;
-
-    return 1 if $out eq 'enabled';
-
-    return 0;
-}
-
-sub restart ($self) {
-    return $self->ssystem( qw{/usr/bin/systemctl restart}, $self->name );
-}
-
-sub remove ($self) {
-
-    $self->ssystem( '/usr/bin/systemctl', 'stop', $self->name );
-    $self->disable;
-
-    return;
-}
-
 sub disable ($self) {
 
-    $self->ssystem( '/usr/bin/systemctl', 'disable', $self->name );
+    $self->SUPER::disable;
     unlink $self->file;
 
     return;

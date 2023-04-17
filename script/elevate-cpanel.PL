@@ -210,14 +210,15 @@ use Elevate::Components::Base  ();
 use Elevate::Components::EA4   ();
 use Elevate::Components::Grub2 ();
 
-use Elevate::Fetch      ();
-use Elevate::Logger     ();
-use Elevate::Motd       ();
-use Elevate::Notify     ();
-use Elevate::Roles::Run ();                 # used as parent, but ensure fatpack
-use Elevate::Script     ();
-use Elevate::Service    ();
-use Elevate::Usage      ();
+use Elevate::Fetch            ();
+use Elevate::Logger           ();
+use Elevate::Motd             ();
+use Elevate::Notify           ();
+use Elevate::Roles::Run       ();           # used as parent, but ensure fatpack
+use Elevate::Script           ();
+use Elevate::Service          ();
+use Elevate::SystemctlService ();
+use Elevate::Usage            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 7;
@@ -1433,11 +1434,13 @@ sub disable_all_cpanel_services ($self) {
       /;
     my @disabled_services;
 
-    foreach my $service (@cpanel_services) {
-        next unless $self->service->is_enabled($service);
+    foreach my $name (@cpanel_services) {
+        my $service = Elevate::SystemctlService->new( name => $name );
 
-        $self->ssystem( qw{/usr/bin/systemctl disable --now}, $service );
-        push @disabled_services, $service;
+        next unless $service->is_enabled;
+        $service->disable;
+
+        push @disabled_services, $name;
     }
     update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
 
@@ -2087,12 +2090,13 @@ sub remove_nixstats ($self) {
         $to_restore->{$backup} = $f;
     }
 
-    my $service = q[nixstatsagent];
+    my $service_name = q[nixstatsagent];
+    my $service      = Elevate::SystemctlService->new( name => $service_name );
 
-    my $is_enabled = $self->service->is_enabled($service);
+    my $is_enabled = $service->is_enabled;
 
-    $self->ssystem( qw{/usr/bin/systemctl disable}, $service ) if $is_enabled;
-    $self->ssystem( qw{/usr/bin/systemctl stop},    $service );
+    $service->disable if $is_enabled;
+    $service->stop;
 
     my $pip;
 
