@@ -1,5 +1,15 @@
 package Elevate::Blockers::Script;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Script
+
+Blocker to check if the script is run from the correct location.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

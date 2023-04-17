@@ -1,5 +1,15 @@
 package Elevate::Components::Grub2;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Components::Grub2
+
+Logic to update and fix grub2 configuration.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

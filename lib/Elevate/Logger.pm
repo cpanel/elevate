@@ -1,5 +1,15 @@
 package Elevate::Logger;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Logger
+
+Wrapper around Log4perl to initialize the elevate custom logger.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

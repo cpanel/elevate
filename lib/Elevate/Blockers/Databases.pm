@@ -1,5 +1,15 @@
 package Elevate::Blockers::Databases;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Databases
+
+Blockers for datbase: MySQL, PostgreSQL...
+
+=cut
+
 use cPstrict;
 
 use Cpanel::OS            ();

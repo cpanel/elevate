@@ -1,5 +1,15 @@
 package Elevate::Blockers::NICs;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::NICs
+
+Blocker to check if the server is using multiple NICs.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

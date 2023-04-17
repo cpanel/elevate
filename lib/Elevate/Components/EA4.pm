@@ -1,5 +1,15 @@
 package Elevate::Components::EA4;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Components::EA4
+
+Perform am EA4 backup pre-elevate then restore it after the elevation process.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

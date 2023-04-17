@@ -1,5 +1,15 @@
 package Elevate::Service;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Service
+
+Class to manage the systemctl service used by the elevate process.
+
+=cut
+
 use cPstrict;
 
 use Cpanel::SafeRun::Simple     ();

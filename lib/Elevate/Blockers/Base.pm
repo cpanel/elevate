@@ -1,5 +1,15 @@
 package Elevate::Blockers::Base;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Base
+
+This is the base package used by all blockers.
+
+=cut
+
 use cPstrict;
 
 use Simple::Accessor qw(
@@ -40,7 +50,14 @@ BEGIN {
     }
 }
 
-# delegate to blockers
+=head2 $self->is_check_mode( @args )
+
+Check if the script is called using '--check'
+
+delegate to blockers
+
+=cut
+
 sub is_check_mode ( $self, @args ) {
     return $self->blockers->is_check_mode(@args);
 }
