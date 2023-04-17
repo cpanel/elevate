@@ -117,8 +117,7 @@ sub _merge_grub_directories_if_needed ($self) {
 
     my $log_file = Elevate::Constants::LOG_FILE;
 
-    # FIXME move add_final_notification to notification system
-    cpev::add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
+    Elevate::Notify::add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
         After converting "$grub_dir" from a directory to a symlink to
         "$grub2_dir", the upgrade process chose not to copy $skipped_copy
         entries from the old directory due to name conflicts, and it failed to

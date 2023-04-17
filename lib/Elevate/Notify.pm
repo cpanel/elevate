@@ -20,4 +20,20 @@ sub warn_skip_version_check {
     return;
 }
 
+sub add_final_notification ( $msg, $warn_now = 0 ) {
+    my $stage_info = cpev::read_stage_file();
+
+    return unless defined $msg && length $msg;
+
+    cpev::update_stage_file( { final_notifications => [$msg] } );    # stacked to the previously stored
+
+    if ($warn_now) {
+        foreach my $l ( split( "\n", $msg ) ) {
+            next unless length $l;
+            WARN($l);
+        }
+    }
+
+    return 1;
+}
 1;

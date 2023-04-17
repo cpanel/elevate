@@ -175,7 +175,7 @@ sub _restore_ea4_profile ($self) {
                 $msg .= sprintf( "- '%s'%s\n", $pkg, $type eq 'exp' ? ' ( package was Experimental in CentOS 7 )' : '' );
             }
             chomp $msg;
-            cpev::add_final_notification( $msg, 1 );    # FIXME
+            Elevate::Notify::add_final_notification( $msg, 1 );
         }
     }
 

@@ -49,16 +49,16 @@ is $notification, {
 
 $notification = {};
 
-ok cpev::add_final_notification("My First Notification"), 'add_final_notification';
+ok Elevate::Notify::add_final_notification("My First Notification"), 'add_final_notification';
 
 is cpev::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
-ok !cpev::add_final_notification(undef), q[cannot add_final_notification(undef)];
-ok !cpev::add_final_notification(''),    q[cannot add_final_notification('')];
+ok !Elevate::Notify::add_final_notification(undef), q[cannot add_final_notification(undef)];
+ok !Elevate::Notify::add_final_notification(''),    q[cannot add_final_notification('')];
 
 is cpev::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
-cpev::add_final_notification("My Second Notification\nwith two lines.");
+Elevate::Notify::add_final_notification("My Second Notification\nwith two lines.");
 
 is cpev::read_stage_file(), {
     final_notifications => [
