@@ -1,5 +1,15 @@
 package Elevate::Blockers::Distros;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Distros
+
+Blocker to check compatibility with current distribution.
+
+=cut
+
 use cPstrict;
 
 use Cpanel::OS ();

@@ -1,5 +1,15 @@
 package Elevate::Blockers::UpToDate;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::UpToDate
+
+Blocker to check if the script is uptodate.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

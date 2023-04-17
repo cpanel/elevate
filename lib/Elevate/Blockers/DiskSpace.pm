@@ -1,5 +1,15 @@
 package Elevate::Blockers::DiskSpace;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::DiskSpace
+
+Blocker to check disk space.
+
+=cut
+
 use cPstrict;
 
 use Cpanel::SafeRun::Simple ();

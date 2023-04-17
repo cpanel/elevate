@@ -1,5 +1,15 @@
 package Elevate::Blockers::WHM;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::WHM
+
+Blocker to check if cPanel&WHM state is compatible with the elevate process.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

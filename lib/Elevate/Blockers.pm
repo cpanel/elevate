@@ -1,5 +1,18 @@
 package Elevate::Blockers;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers
+
+This is providing the entry point and helpers to run
+one or more helpers.
+
+You should plug any new blockers in the class.
+
+=cut
+
 use cPstrict;
 
 # enforce packing these packages
@@ -30,6 +43,8 @@ use Simple::Accessor qw(
 use Log::Log4perl ();
 use Cpanel::JSON  ();
 
+# This is where you should add your blockers class
+# note: the order matters
 our @BLOCKERS = qw{
   IsContainer
   UpToDate

@@ -1,5 +1,15 @@
 package Elevate::Blockers::Grub2;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Grub2
+
+Blocker to check compatibility with Grub2 configuration.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

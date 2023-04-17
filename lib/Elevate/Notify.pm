@@ -1,5 +1,15 @@
 package Elevate::Notify;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Notify
+
+Helpers to display or send some notifications to the customer during the elevation process.
+
+=cut
+
 use cPstrict;
 
 use Log::Log4perl qw(:easy);

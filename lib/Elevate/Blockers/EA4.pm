@@ -1,5 +1,15 @@
 package Elevate::Blockers::EA4;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::EA4
+
+Blocker to check EasyApache profile compatibility.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

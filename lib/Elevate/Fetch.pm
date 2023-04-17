@@ -1,5 +1,15 @@
 package Elevate::Fetch;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Fetch
+
+Helper to fetch a script to a temporary location.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants   ();

@@ -1,5 +1,18 @@
 package Elevate::Components::Base;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Components::Base
+
+This is the base class to any components used by the elevate script.
+
+A component allows to group together some actions which need to be performed
+before / after the elevation process.
+
+=cut
+
 use cPstrict;
 
 use Simple::Accessor qw(

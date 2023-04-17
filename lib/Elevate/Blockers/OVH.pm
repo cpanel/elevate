@@ -1,5 +1,15 @@
 package Elevate::Blockers::OVH;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::OVH
+
+Custom Blocker for OVH to acknowledge 'proactive monitoring' is disabled.
+
+=cut
+
 use cPstrict;
 
 use Cpanel::Version::Tiny ();

@@ -1,5 +1,15 @@
 package Elevate::Blockers::Yum;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Yum
+
+Blocker to check if the Yum repositories are compliant with the elevate process.
+
+=cut
+
 use cPstrict;
 
 use Cpanel::OS ();
