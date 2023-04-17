@@ -189,23 +189,22 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
-use Elevate::Blockers::Base        ();
-use Elevate::Blockers              ();
-use Elevate::Blockers::Databases   ();
-use Elevate::Blockers::DiskSpace   ();
-use Elevate::Blockers::Distros     ();
-use Elevate::Blockers::DNS         ();
-use Elevate::Blockers::EA4         ();
-use Elevate::Blockers::Grub2       ();
-use Elevate::Blockers::IsContainer ();
-use Elevate::Blockers::JetBackup   ();
-use Elevate::Blockers::NICs        ();
-use Elevate::Blockers::OVH         ();    # using a constant
-use Elevate::Blockers::Script      ();
-use Elevate::Blockers::SSH         ();
-use Elevate::Blockers::UpToDate    ();
-use Elevate::Blockers::WHM         ();
-use Elevate::Blockers::Yum         ();    # using a constant
+use Elevate::Blockers::Base          ();
+use Elevate::Blockers                ();
+use Elevate::Blockers::Databases     ();
+use Elevate::Blockers::DiskSpace     ();
+use Elevate::Blockers::Distros       ();
+use Elevate::Blockers::DNS           ();
+use Elevate::Blockers::EA4           ();
+use Elevate::Blockers::ElevateScript ();
+use Elevate::Blockers::Grub2         ();
+use Elevate::Blockers::IsContainer   ();
+use Elevate::Blockers::JetBackup     ();
+use Elevate::Blockers::NICs          ();
+use Elevate::Blockers::OVH           ();    # using a constant
+use Elevate::Blockers::SSH           ();
+use Elevate::Blockers::WHM           ();
+use Elevate::Blockers::Yum           ();    # using a constant
 
 use Elevate::Components::Base  ();
 use Elevate::Components::EA4   ();
@@ -215,7 +214,7 @@ use Elevate::Fetch      ();
 use Elevate::Logger     ();
 use Elevate::Motd       ();
 use Elevate::Notify     ();
-use Elevate::Roles::Run ();               # used as parent, but ensure fatpack
+use Elevate::Roles::Run ();                 # used as parent, but ensure fatpack
 use Elevate::Script     ();
 use Elevate::Service    ();
 use Elevate::Usage      ();

@@ -11,35 +11,34 @@
 ## ----------------------------------------------------------------------------
 
 BEGIN {    # Suppress load of all of these at earliest point.
-    $INC{'Elevate/Constants.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Base.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Databases.pm'}   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DiskSpace.pm'}   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Distros.pm'}     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DNS.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/EA4.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Grub2.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/IsContainer.pm'} = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/JetBackup.pm'}   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/NICs.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/OVH.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Script.pm'}      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/SSH.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/UpToDate.pm'}    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/WHM.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Yum.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Base.pm'}      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/EA4.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Grub2.pm'}     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Fetch.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Logger.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Motd.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Notify.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Roles/Run.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Script.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Service.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Usage.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Constants.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Base.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Databases.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DiskSpace.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Distros.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DNS.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/EA4.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/ElevateScript.pm'} = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Grub2.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/IsContainer.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/JetBackup.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/NICs.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/OVH.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/SSH.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/WHM.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Yum.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Base.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/EA4.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Grub2.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Fetch.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Logger.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Motd.pm'}                   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Notify.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Roles/Run.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Script.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Service.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Usage.pm'}                  = 'script/elevate-cpanel.PL.static';
 }
 
 {    # --- BEGIN lib/Elevate/Constants.pm
@@ -152,21 +151,20 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Elevate::Blockers::Base ();
 
-    use Elevate::Blockers::Databases   ();
-    use Elevate::Blockers::DiskSpace   ();
-    use Elevate::Blockers::Distros     ();
-    use Elevate::Blockers::DNS         ();
-    use Elevate::Blockers::EA4         ();
-    use Elevate::Blockers::Grub2       ();
-    use Elevate::Blockers::IsContainer ();
-    use Elevate::Blockers::JetBackup   ();
-    use Elevate::Blockers::NICs        ();
-    use Elevate::Blockers::OVH         ();
-    use Elevate::Blockers::Script      ();
-    use Elevate::Blockers::SSH         ();
-    use Elevate::Blockers::UpToDate    ();
-    use Elevate::Blockers::WHM         ();
-    use Elevate::Blockers::Yum         ();
+    use Elevate::Blockers::Databases     ();
+    use Elevate::Blockers::DiskSpace     ();
+    use Elevate::Blockers::Distros       ();
+    use Elevate::Blockers::DNS           ();
+    use Elevate::Blockers::EA4           ();
+    use Elevate::Blockers::Grub2         ();
+    use Elevate::Blockers::IsContainer   ();
+    use Elevate::Blockers::JetBackup     ();
+    use Elevate::Blockers::NICs          ();
+    use Elevate::Blockers::OVH           ();
+    use Elevate::Blockers::ElevateScript ();
+    use Elevate::Blockers::SSH           ();
+    use Elevate::Blockers::WHM           ();
+    use Elevate::Blockers::Yum           ();
 
     use Simple::Accessor qw(
       cpev
@@ -178,13 +176,15 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Cpanel::JSON  ();
 
     our @BLOCKERS = qw{
+
       IsContainer
-      UpToDate
+      ElevateScript
+
       DiskSpace
       WHM
       Distros
       DNS
-      Script
+
       Databases
       Yum
       SSH
@@ -682,6 +682,66 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Blockers/EA4.pm
+
+{    # --- BEGIN lib/Elevate/Blockers/ElevateScript.pm
+
+    package Elevate::Blockers::ElevateScript;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+
+    # use Elevate::Blockers::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
+
+    use Cwd ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub check ($self) {
+
+        $self->_blocker_wrong_location;
+        $self->_is_up_to_date;
+
+        return;
+    }
+
+    sub _blocker_wrong_location ($self) {
+
+        my $running_from = Cwd::abs_path($0) // '';
+
+        return 0
+          if $running_from eq '/scripts/elevate-cpanel'
+          || $running_from eq '/usr/local/cpanel/scripts/elevate-cpanel';
+
+        return $self->has_blocker( <<~'EOS');
+        The script is not installed to the correct directory.
+        Please install it to /scripts/elevate-cpanel and run it again.
+        EOS
+
+        return 0;
+    }
+
+    sub _is_up_to_date ($self) {    # $self is a cpev object here
+
+        return if $self->getopt('skip-elevate-version-check');
+
+        my ( $should_block, $blocker_text ) = $self->cpev->script->is_out_of_date();
+        return unless $should_block;
+        $blocker_text //= '';
+
+        return $self->has_blocker( <<~"EOS");
+    $blocker_text
+
+    Pass the --skip-elevate-version-check flag to skip this check.
+    EOS
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Blockers/ElevateScript.pm
 
 {    # --- BEGIN lib/Elevate/Blockers/Grub2.pm
 
@@ -1184,46 +1244,6 @@ EOS
 
 }    # --- END lib/Elevate/Blockers/OVH.pm
 
-{    # --- BEGIN lib/Elevate/Blockers/Script.pm
-
-    package Elevate::Blockers::Script;
-
-    use cPstrict;
-
-    use Elevate::Constants ();
-
-    # use Elevate::Blockers::Base();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
-
-    use Cwd ();
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    sub check ($self) {
-
-        return $self->_blocker_wrong_location;
-    }
-
-    sub _blocker_wrong_location ($self) {
-
-        my $running_from = Cwd::abs_path($0) // '';
-
-        unless ( $running_from eq '/usr/local/cpanel/scripts/elevate-cpanel' ) {
-            return $self->has_blocker( <<~'EOS');
-        The script is not installed to the correct directory.
-        Please install it to /scripts/elevate-cpanel and run it again.
-        EOS
-        }
-
-        return 0;
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Blockers/Script.pm
-
 {    # --- BEGIN lib/Elevate/Blockers/SSH.pm
 
     package Elevate::Blockers::SSH;
@@ -1272,41 +1292,6 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Blockers/SSH.pm
-
-{    # --- BEGIN lib/Elevate/Blockers/UpToDate.pm
-
-    package Elevate::Blockers::UpToDate;
-
-    use cPstrict;
-
-    use Elevate::Constants ();
-    use Elevate::Fetch     ();
-
-    # use Elevate::Blockers::Base();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    sub check ($self) {    # $self is a cpev object here
-
-        return if $self->getopt('skip-elevate-version-check');
-
-        my ( $should_block, $blocker_text ) = $self->cpev->script->is_out_of_date();
-
-        return unless $should_block;
-
-        return $self->has_blocker( $blocker_text . <<~EOS);
-
-
-    Pass the --skip-elevate-version-check flag to skip this check.
-    EOS
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Blockers/UpToDate.pm
 
 {    # --- BEGIN lib/Elevate/Blockers/WHM.pm
 
@@ -2876,23 +2861,22 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
-use Elevate::Blockers::Base        ();
-use Elevate::Blockers              ();
-use Elevate::Blockers::Databases   ();
-use Elevate::Blockers::DiskSpace   ();
-use Elevate::Blockers::Distros     ();
-use Elevate::Blockers::DNS         ();
-use Elevate::Blockers::EA4         ();
-use Elevate::Blockers::Grub2       ();
-use Elevate::Blockers::IsContainer ();
-use Elevate::Blockers::JetBackup   ();
-use Elevate::Blockers::NICs        ();
-use Elevate::Blockers::OVH         ();    # using a constant
-use Elevate::Blockers::Script      ();
-use Elevate::Blockers::SSH         ();
-use Elevate::Blockers::UpToDate    ();
-use Elevate::Blockers::WHM         ();
-use Elevate::Blockers::Yum         ();    # using a constant
+use Elevate::Blockers::Base          ();
+use Elevate::Blockers                ();
+use Elevate::Blockers::Databases     ();
+use Elevate::Blockers::DiskSpace     ();
+use Elevate::Blockers::Distros       ();
+use Elevate::Blockers::DNS           ();
+use Elevate::Blockers::EA4           ();
+use Elevate::Blockers::ElevateScript ();
+use Elevate::Blockers::Grub2         ();
+use Elevate::Blockers::IsContainer   ();
+use Elevate::Blockers::JetBackup     ();
+use Elevate::Blockers::NICs          ();
+use Elevate::Blockers::OVH           ();    # using a constant
+use Elevate::Blockers::SSH           ();
+use Elevate::Blockers::WHM           ();
+use Elevate::Blockers::Yum           ();    # using a constant
 
 use Elevate::Components::Base  ();
 use Elevate::Components::EA4   ();
@@ -2902,7 +2886,7 @@ use Elevate::Fetch      ();
 use Elevate::Logger     ();
 use Elevate::Motd       ();
 use Elevate::Notify     ();
-use Elevate::Roles::Run ();               # used as parent, but ensure fatpack
+use Elevate::Roles::Run ();                 # used as parent, but ensure fatpack
 use Elevate::Script     ();
 use Elevate::Service    ();
 use Elevate::Usage      ();
