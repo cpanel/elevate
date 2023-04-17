@@ -831,7 +831,7 @@ sub run_stage_2 ($self) {
 
     my $sum = `/usr/bin/md5sum $0`;
     chomp $sum;
-    DEBUG( sprintf( "Running $0 (%s/%s)", -S $0, $sum ) );
+    DEBUG( sprintf( "Running $0 (%s/%s)", -s $0, $sum ) );
 
     $self->elevation_startup_marker($sum);
 
