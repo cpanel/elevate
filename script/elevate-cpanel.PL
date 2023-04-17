@@ -1007,9 +1007,7 @@ sub run_stage_4 ($self) {
         }
     );
 
-    ## FIXME
-    $self->run_once('restore_ea4_profile');
-    $self->run_once('restore_ea_addons');
+    $self->run_component_once( 'EA4' => 'restore' );
 
     $self->run_once(
         upcp => sub {

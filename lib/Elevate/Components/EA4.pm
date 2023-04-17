@@ -29,6 +29,7 @@ use Elevate::Blockers ();
 ## Call early so we can use a blocker based on existing ea4 profile
 ##
 
+# note: the backup process is triggered by Elevate::Blockers::EA4
 sub backup ($self) {
 
     $self->_backup_ea4_profile;
