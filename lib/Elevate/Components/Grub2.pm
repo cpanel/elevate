@@ -32,7 +32,7 @@ use constant GRUB_ENV_FILE => '/boot/grub2/grubenv';
 ## Call early so we can use a blocker based on existing ea4 profile
 ##
 
-sub pre_elevate ($self) {
+sub pre_leapp ($self) {
 
     $self->run_once('_update_grub2_workaround_if_needed');    # required part
     $self->run_once('_merge_grub_directories_if_needed');     # best-effort part
@@ -133,7 +133,7 @@ sub _merge_grub_directories_if_needed ($self) {
     return;
 }
 
-sub post_elevate ($self) {
+sub post_leapp ($self) {
 
     # for an autofixer
     # return unless -e q[/var/cpanel/version/elevate];

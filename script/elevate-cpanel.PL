@@ -852,7 +852,7 @@ sub run_stage_2 ($self) {
     Elevate::Motd->setup();
 
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
-    $self->run_component_once( 'Grub2'      => 'pre_elevate' );
+    $self->run_component_once( 'Grub2'      => 'pre_leapp' );
 
     return REBOOT_NEEDED;
 }
@@ -1066,7 +1066,7 @@ sub run_stage_5 ($self) {
     File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
     Elevate::Motd->cleanup();
 
-    $self->run_component_once( 'Grub2' => 'post_elevate' );
+    $self->run_component_once( 'Grub2' => 'post_leapp' );
 
     my $final_notifications = read_stage_file( 'final_notifications', [] );
     if (@$final_notifications) {
