@@ -27,7 +27,7 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
     note "checking _system_update_check";
 
     my $cpev = cpev->new;
-    my $yum  = cpev->get_blocker('Yum');
+    my $yum  = cpev->get_blocker('Repositories');
 
     my $status = 0;
     my @cmds;

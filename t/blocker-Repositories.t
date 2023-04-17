@@ -20,8 +20,8 @@ use cPstrict;
 require $FindBin::Bin . '/../elevate-cpanel';
 
 my $blockers = cpev->new->blockers;
-my $yum      = $blockers->_get_blocker_for('Yum');
-my $mock_yum = Test::MockModule->new('Elevate::Blockers::Yum');
+my $yum      = $blockers->_get_blocker_for('Repositories');
+my $mock_yum = Test::MockModule->new('Elevate::Blockers::Repositories');
 
 {
     note "system is up to date.";
@@ -30,7 +30,7 @@ my $mock_yum = Test::MockModule->new('Elevate::Blockers::Yum');
     is(
         $yum->_blocker_system_update(),
         {
-            id  => q[Elevate::Blockers::Yum::_blocker_system_update],
+            id  => q[Elevate::Blockers::Repositories::_blocker_system_update],
             msg => "System is not up to date",
         },
         q{Block if the system is not up to date.}
@@ -57,9 +57,9 @@ my $mocked_yum_repos_d = Test::MockFile->dir($path_yum_repos_d);
 #mkdir $path_yum_repos_d;
 is $yum->_check_yum_repos(), undef, "no blockers when directory is empty";
 
-ok scalar Elevate::Blockers::Yum::VETTED_YUM_REPO(), "VETTED_YUM_REPO populated";
+ok scalar Elevate::Blockers::Repositories::VETTED_YUM_REPO(), "VETTED_YUM_REPO populated";
 
-ok( grep( { 'MariaDB103' } Elevate::Blockers::Yum::VETTED_YUM_REPO() ), 'MariaDB103 is a valid repo' );
+ok( grep( { 'MariaDB103' } Elevate::Blockers::Repositories::VETTED_YUM_REPO() ), 'MariaDB103 is a valid repo' );
 
 my $mock_vetted_repo = Test::MockFile->file( "$path_yum_repos_d/MariaDB103.repo" => q[MariaDB103] );
 
@@ -185,7 +185,7 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
     my $errors_mock = Test::MockModule->new('Cpanel::SafeRun::Errors');
     $errors_mock->redefine( 'saferunonlyerrors' => sub { return $errors } );
 
-    is( $yum->_yum_is_stable(), 0, "Yum is not stable and emits STDERR output (but does not exit non-zero)" );
+    is( $yum->_yum_is_stable(), 0, "Repositories is not stable and emits STDERR output (but does not exit non-zero)" );
     message_seen( 'ERROR', 'yum appears to be unstable. Please address this before upgrading' );
     message_seen( 'ERROR', 'something is not right' );
     no_messages_seen();

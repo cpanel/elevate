@@ -31,7 +31,7 @@ use Elevate::Blockers::OVH           ();
 use Elevate::Blockers::ElevateScript ();
 use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
-use Elevate::Blockers::Yum           ();
+use Elevate::Blockers::Repositories  ();
 
 use Simple::Accessor qw(
   cpev
@@ -55,7 +55,7 @@ our @BLOCKERS = qw{
   DNS
 
   Databases
-  Yum
+  Repositories
   SSH
   JetBackup
   NICs
