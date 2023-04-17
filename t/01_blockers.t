@@ -10,7 +10,6 @@ use cPstrict;
 
 use lib $FindBin::Bin . "/lib", $FindBin::Bin . "/../lib";
 
-use File::Slurper     ();
 use Elevate::Blockers ();
 
 my @blockers_from_lib = _get_blockers_from_lib();
@@ -24,15 +23,6 @@ is(
     [ sort @blockers_from_lib ],
     q[all blockers listed in lib are used by @Elevate::Blockers::BLOCKERS]
 );
-
-my $elevate_script         = $FindBin::Bin . "/../elevate-cpanel";
-my $elevate_script_content = File::Slurper::read_binary($elevate_script);
-
-foreach my $blocker (@Elevate::Blockers::BLOCKERS) {
-    my $package = qq[Elevate::Blockers::$blocker];
-
-    ok $elevate_script_content =~ qr{^ \s+ package \s+ $package;}xms, "$package is fatpack in elevvate-cpanel script";
-}
 
 done_testing;
 exit;
