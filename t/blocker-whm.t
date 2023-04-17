@@ -85,11 +85,14 @@ my $whm  = $cpev->get_blocker('WHM');
     local $Cpanel::Version::Tiny::major_version = 100;
     local $Cpanel::Version::Tiny::VERSION_BUILD = '11.109.0.9999';
 
-    is(
+    like(
         $whm->_blocker_is_newer_than_lts(),
         {
             id  => q[Elevate::Blockers::WHM::_blocker_is_newer_than_lts],
-            msg => 'This version 11.109.0.9999 does not support upgrades to AlmaLinux 8. Please upgrade to cPanel version 102 or better.',
+            msg => qr{
+                    \QThis version 11.109.0.9999 does not support upgrades to AlmaLinux 8.\E \s+
+                    \QPlease upgrade to cPanel version 102 or better.\E
+                }xms,
         },
         q{cPanel version must be above the known LTS.}
     );
@@ -143,11 +146,15 @@ my $whm  = $cpev->get_blocker('WHM');
     delete $cpev->{_getopt};
     ok !$whm->getopt('skip-cpanel-version-check'), 'getopt on blocker';
     $Cpanel::Version::Tiny::VERSION_BUILD = '11.102.0.5';
-    is(
+    like(
         $whm->_blocker_cpanel_needs_update(),
         {
             id  => q[Elevate::Blockers::WHM::_blocker_cpanel_needs_update],
-            msg => 'This installation of cPanel (11.102.0.5) does not appear to be up to date. Please upgrade cPanel to a most recent version.',
+            msg => qr{
+                    \QThis installation of cPanel (11.102.0.5) does not appear to be up to date.\E
+                    \s+
+                    \QPlease upgrade cPanel to a most recent version.\E
+                }xms,
         },
         q{obsolete version generates a blocker.}
     );
