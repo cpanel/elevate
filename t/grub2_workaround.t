@@ -234,7 +234,7 @@ subtest 'Testing _merge_grub_directories_if_needed' => sub {
     my $cpev = cpev->new;
     my $g2   = $cpev->component('Grub2');
 
-    $g2->pre_elevate;
+    $g2->pre_leapp;
 
     is \@ran_once, [
         qw{

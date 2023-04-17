@@ -2000,7 +2000,7 @@ EOS
     use constant GRUB_EDITENV  => '/usr/bin/grub2-editenv';
     use constant GRUB_ENV_FILE => '/boot/grub2/grubenv';
 
-    sub pre_elevate ($self) {
+    sub pre_leapp ($self) {
 
         $self->run_once('_update_grub2_workaround_if_needed');    # required part
         $self->run_once('_merge_grub_directories_if_needed');     # best-effort part
@@ -2097,7 +2097,7 @@ EOS
         return;
     }
 
-    sub post_elevate ($self) {
+    sub post_leapp ($self) {
 
         my $proc_cmd_line = eval { File::Slurper::read_binary('/proc/cmdline') } // '';
         return unless $proc_cmd_line =~ m{net.ifnames=0};
@@ -2146,7 +2146,7 @@ EOS
     use Cwd        ();
     use File::Copy ();
 
-    # use Log::Log4perl qw(:easy);
+    # use Log::Log4perl  qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
     use Elevate::Fetch ();
 
@@ -3864,7 +3864,7 @@ sub run_stage_2 ($self) {
     Elevate::Motd->setup();
 
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
-    $self->run_component_once( 'Grub2'      => 'pre_elevate' );
+    $self->run_component_once( 'Grub2'      => 'pre_leapp' );
 
     return REBOOT_NEEDED;
 }
@@ -4078,7 +4078,7 @@ sub run_stage_5 ($self) {
     File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
     Elevate::Motd->cleanup();
 
-    $self->run_component_once( 'Grub2' => 'post_elevate' );
+    $self->run_component_once( 'Grub2' => 'post_leapp' );
 
     my $final_notifications = read_stage_file( 'final_notifications', [] );
     if (@$final_notifications) {
