@@ -214,6 +214,7 @@ use Elevate::Components::Grub2      ();
 use Elevate::Components::KernelCare ();
 use Elevate::Components::MySQL      ();
 use Elevate::Components::NixStats   ();
+use Elevate::Components::PECL       ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -1484,9 +1485,8 @@ EOS
 sub pre_leapp_update_backup_and_cleanup ($self) {
 
     $self->run_once('capture_imunify_features');
-    $self->run_component_once( 'EA4' => 'backup' );
-
-    $self->run_once('backup_pecl_packages');
+    $self->run_component_once( 'EA4'   => 'backup' );
+    $self->run_component_once( 'PECL'  => 'pre_leapp' );
     $self->run_component_once( 'MySQL' => 'pre_leapp' );
     $self->run_once('cleanup_mysql_packages');
     $self->run_once('disable_known_yum_repositories');
@@ -1557,7 +1557,7 @@ sub post_leapp_update_restore ($self) {
         }
     );
 
-    $self->run_once('check_pecl_packages');
+    $self->run_component_once( 'PECL' => 'post_leapp' );
     $self->run_once('reinstall_imunify_360');
     $self->run_once('reinstall_wordpress_toolkit');
     $self->run_once('reinstall_influxdb');
@@ -1590,110 +1590,6 @@ sub kernel_check ($self) {
     Elevate::Notify::add_final_notification($msg);
 
     return;
-}
-
-sub backup_pecl_packages {
-    my @ea_versions = qw{ea-php70 ea-php71 ea-php72 ea-php73 ea-php74 ea-php80};
-
-    foreach my $v (@ea_versions) {
-        _store_pecl_for( qq[/opt/cpanel/$v/root/usr/bin/pecl], $v );
-    }
-
-    _store_pecl_for( q[/usr/local/cpanel/3rdparty/bin/pecl], 'cpanel' );
-
-    return;
-}
-
-sub check_pecl_packages {
-
-    my $pecl = read_stage_file('pecl');
-
-    return unless ref $pecl && scalar keys $pecl->%*;
-
-    foreach my $v ( sort keys $pecl->%* ) {
-        my $previously_installed = $pecl->{$v};
-
-        return unless ref $previously_installed && scalar keys $previously_installed->%*;
-
-        my $bin;
-        if ( $v eq 'cpanel' ) {
-            $bin = q[/usr/local/cpanel/3rdparty/bin/pecl];
-        }
-        else {
-            $bin = qq[/opt/cpanel/$v/root/usr/bin/pecl];
-        }
-
-        my $currently_installed = _get_pecl_installed_for($bin) // {};
-
-        my $final_notification;
-
-        my $displayed_header = 0;
-        foreach my $pkg ( sort keys $previously_installed->%* ) {
-            next if $currently_installed->{$pkg};
-
-            # for now do not check the version
-
-            if ( !$displayed_header ) {
-                $displayed_header = 1;
-                WARN( q[*] x 20 );
-
-                $final_notification = <<~"EOS";
-                WARNING: Missing pecl package(s) for $bin
-                Please reinstall these packages:
-                EOS
-
-                foreach my $l ( split( "\n", $final_notification ) ) {
-                    next unless length $l;
-                    WARN($l);
-                }
-
-                WARN( q[*] x 20 );
-            }
-
-            WARN("- $pkg");
-            $final_notification .= qq[- $pkg\n];
-        }
-
-        Elevate::Notify::add_final_notification($final_notification);
-
-        WARN('#') if $displayed_header;
-    }
-
-    return;
-}
-
-sub _store_pecl_for ( $bin, $name ) {
-    my $list = _get_pecl_installed_for($bin);
-
-    remove_from_stage_file("pecl.$name");
-
-    return unless ref $list && scalar keys $list->%*;
-
-    update_stage_file( { pecl => { $name => $list } } );
-
-    return;
-}
-
-sub _get_pecl_installed_for ($bin) {
-
-    return unless -x $bin;
-
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( $bin, 'list' ) // '';
-    return if $?;
-
-    my @lines = split( /\n/, $out );
-    return unless scalar @lines >= 4;
-
-    shift @lines for 1 .. 3;    # remove the header
-
-    my $installed;
-
-    foreach my $l (@lines) {
-        my ( $package, $v, $state ) = split( /\s+/, $l, 3 );
-        $installed->{$package} = $v;
-    }
-
-    return $installed;
 }
 
 sub clear_cpanel_caches ($self) {
