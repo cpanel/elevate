@@ -213,6 +213,7 @@ use Elevate::Components::EA4        ();
 use Elevate::Components::Grub2      ();
 use Elevate::Components::KernelCare ();
 use Elevate::Components::MySQL      ();
+use Elevate::Components::NixStats   ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -231,7 +232,6 @@ use constant VERSION => 7;
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
-use constant ELEVATE_BACKUP_DIR   => "/root/.elevate.backup";
 
 use constant VALID_STAGES        => 5;
 use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
@@ -245,7 +245,7 @@ use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recomme
 
 use constant IMUNIFY_AGENT          => '/usr/bin/imunify360-agent';
 use constant IMUNIFY_LICENSE_FILE   => '/var/imunify360/license.json';
-use constant IMUNIFY_LICENSE_BACKUP => ELEVATE_BACKUP_DIR . '/imunify-backup-license.json';
+use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . '/imunify-backup-license.json';
 
 # XXX TODO verify that imunify reponames are in fact correct.
 # As of now they are straight up guesses.
@@ -1046,7 +1046,8 @@ sub run_stage_5 ($self) {
     $self->service->disable;
     unlink Elevate::Constants::PID_FILE;
     unlink CHKSRVD_SUSPEND_FILE;
-    File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
+    my $el_backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR;
+    File::Path::remove_tree($el_backup_dir) if -d $el_backup_dir;
     Elevate::Motd->cleanup();
 
     $self->run_component_once( 'Grub2' => 'post_leapp' );
@@ -1514,7 +1515,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_once('remove_wordpress_toolkit');
     $self->run_once('capture_influxdb_state');
     $self->run_once('capture_jetbackup_state');
-    $self->run_once('remove_nixstats');
+    $self->run_component_once( 'NixStats' => 'pre_leapp' );
     $self->run_once('pre_install_check_litespeed');
 
     return;
@@ -1563,9 +1564,8 @@ sub post_leapp_update_restore ($self) {
     $self->run_once('reinstall_jetbackup');
     $self->run_once('kernel_check');
     $self->run_component_once( 'KernelCare' => 'post_leapp' );
-    $self->run_once('restore_kernel_care');
     $self->run_once('restore_imunify_features');
-    $self->run_once('restore_nixstats');
+    $self->run_component_once( 'NixStats' => 'post_leapp' );
     $self->run_once('post_install_check_litespeed');
     $self->run_once('reinstall_digital_ocean_droplet_agent');
 
@@ -1873,127 +1873,6 @@ sub reinstall_influxdb ($self) {
     return unless read_stage_file('reinstall')->{'influxdb'};
     INFO("Re-installing telegraf for influxdb");
     $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
-
-    return;
-}
-
-sub has_nixstats {
-    return -e q[/etc/systemd/system/nixstatsagent.service] || -e q[/usr/local/bin/nixstatsagent];
-}
-
-sub remove_nixstats ($self) {
-
-    return unless has_nixstats();
-
-    INFO("Removing nixstats");
-
-    my $backup_dir = ELEVATE_BACKUP_DIR . "/nixstats";
-
-    File::Path::make_path($backup_dir);
-    die "Fail to create backup directory: $backup_dir" unless -d $backup_dir;
-
-    my @to_backup = qw{ /etc/nixstats-token.ini /etc/nixstats.ini };
-
-    # files we need to restore later
-    my $to_restore = {};
-
-    foreach my $f (@to_backup) {
-        next unless -f $f;
-        my $name   = File::Basename::basename($f);
-        my $backup = "$backup_dir/$name";
-        File::Copy::move( $f, $backup );
-
-        $to_restore->{$backup} = $f;
-    }
-
-    my $service_name = q[nixstatsagent];
-    my $service      = Elevate::SystemctlService->new( name => $service_name );
-
-    my $is_enabled = $service->is_enabled;
-
-    $service->disable if $is_enabled;
-    $service->stop;
-
-    my $pip;
-
-    if ( -x q[/usr/bin/pip3] ) {
-        $pip = q[/usr/bin/pip3];
-    }
-    elsif ( -x q[/usr/bin/pip] ) {
-        $pip = q[/usr/bin/pip];
-    }
-
-    if ($pip) {
-        $self->ssystem( $pip, qw{uninstall -y nixstatsagent} );
-    }
-    else {
-        ERROR("Cannot remove nixstatsagent: cannot find pip binary");
-    }
-
-    my $data = {
-        service_enabled => $is_enabled,
-        to_restore      => $to_restore,
-    };
-
-    update_stage_file( { 'reinstall' => { 'nixstats' => $data } } );
-
-    return;
-}
-
-sub restore_nixstats ($self) {
-    my $data = read_stage_file('reinstall')->{'nixstats'};
-    return unless ref $data;
-
-    INFO("Restoring nixstats");
-
-    # we reinstall nixstats using a non existing user id
-    #   this avoid adding some polution to their account
-    #   by creating a server we are then going to replace just after
-    # alternatively we could use the user from the nixstats-token.ini file
-    my $user = q[deadbeefdeadbeefdeadbeef];
-
-    my $installer_script = Elevate::Fetch::script( 'https://www.nixstats.com/nixstatsagent.sh', 'nixstatsagent' );
-
-    $self->ssystem( '/usr/bin/bash', $installer_script, $user );
-
-    unlink $installer_script;
-
-    if ( !-x q[/usr/local/bin/nixstatsagent] ) {
-        ERROR("Missing nixstatsagent binary: /usr/local/bin/nixstatsagent");
-    }
-
-    my $service = q[nixstatsagent];
-
-    # Stopping the agent
-    $self->ssystem( qw{/usr/bin/systemctl stop}, $service );
-
-    # Restoring backup files
-    my $to_restore = $data->{to_restore};
-
-    foreach my $src ( sort keys %$to_restore ) {
-        my $destination = $to_restore->{$src};
-
-        File::Copy::copy( $src, $destination );
-    }
-
-    # restoring the state of the service before elevation
-    if ( $data->{service_enabled} ) {
-        $self->ssystem( qw{/usr/bin/systemctl enable}, $service );
-    }
-    else {    # leave it disabled
-        $self->ssystem( qw{/usr/bin/systemctl disable}, $service );
-    }
-
-    # do not really need to start/stop the daemon, we are about to reboot
-    #   but start it for sanity purpose
-
-    $self->ssystem( qw{/usr/bin/systemctl start}, $service );
-    if ( $? == 0 ) {
-        INFO("nixstatsagent restored");
-    }
-    else {
-        Elevate::Notify::add_final_notification( "Failed to start nixstatsagent.service", 1 );
-    }
 
     return;
 }

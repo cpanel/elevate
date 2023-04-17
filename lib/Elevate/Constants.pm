@@ -26,4 +26,6 @@ use constant DEFAULT_GRUB_FILE => '/etc/default/grub';
 
 use constant YUM_REPOS_D => q[/etc/yum.repos.d];
 
+use constant ELEVATE_BACKUP_DIR => "/root/.elevate.backup";
+
 1;
