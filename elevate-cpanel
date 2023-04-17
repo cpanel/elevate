@@ -46,8 +46,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     package Elevate::Constants;
 
-    use constant MINIMUM_LTS_SUPPORTED      => 102;
-    use constant MINIMUM_CENTOS_7_SUPPORTED => 9;
+    use constant MINIMUM_LTS_SUPPORTED => 102;
 
     use constant SERVICE_DIR  => '/etc/systemd/system/';
     use constant SERVICE_NAME => 'elevate-cpanel.service';
@@ -517,7 +516,7 @@ EOS
 
     use Cpanel::OS ();
 
-    use Elevate::Constants ();
+    use constant MINIMUM_CENTOS_7_SUPPORTED => 9;
 
     # use Elevate::Blockers::Base();
     our @ISA;
@@ -552,9 +551,14 @@ EOS
     }
 
     sub _blocker_is_old_centos7 ($self) {
-        if ( Cpanel::OS::minor() < Elevate::Constants::MINIMUM_CENTOS_7_SUPPORTED ) {
+        if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {
             my $pretty_distro_name = $self->upgrade_to_pretty_name();
-            return $self->has_blocker( sprintf( 'You need to run CentOS 7.%s and later to upgrade %s. You are currently using %s', Elevate::Constants::MINIMUM_CENTOS_7_SUPPORTED, $pretty_distro_name, Cpanel::OS::display_name() ) );
+            return $self->has_blocker(
+                sprintf(
+                    'You need to run CentOS 7.%s and later to upgrade %s. You are currently using %s',    #
+                    MINIMUM_CENTOS_7_SUPPORTED, $pretty_distro_name, Cpanel::OS::display_name()           #
+                )
+            );
         }
 
         return 0;

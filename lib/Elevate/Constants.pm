@@ -14,8 +14,7 @@ if their usage is self contained.
 
 =cut
 
-use constant MINIMUM_LTS_SUPPORTED      => 102;
-use constant MINIMUM_CENTOS_7_SUPPORTED => 9;
+use constant MINIMUM_LTS_SUPPORTED => 102;
 
 use constant SERVICE_DIR  => '/etc/systemd/system/';
 use constant SERVICE_NAME => 'elevate-cpanel.service';
