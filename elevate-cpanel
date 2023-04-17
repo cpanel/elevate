@@ -39,6 +39,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Roles/Run.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Script.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Service.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Usage.pm'}                = 'script/elevate-cpanel.PL.static';
 }
 
 {    # --- BEGIN lib/Elevate/Constants.pm
@@ -2597,6 +2598,90 @@ EOS
 
 }    # --- END lib/Elevate/Service.pm
 
+{    # --- BEGIN lib/Elevate/Usage.pm
+
+    package Elevate::Usage;
+
+    use cPstrict;
+
+    use Getopt::Long ();
+
+    sub _OPTIONS {
+        return qw(
+          help
+          service start clean continue manual-reboots status log check:s
+          skip-cpanel-version-check skip-elevate-version-check
+          update version
+          upgrade-to=s
+        );
+    }
+
+    sub init ( $self, @args ) {
+
+        $self->{_getopt} = {};
+
+        Getopt::Long::GetOptionsFromArray(
+            \@args,
+            $self->{_getopt},
+            _OPTIONS()
+        ) or return $self->help( "Invalid Option", 1 );
+
+        return $self->full_help() if $self->getopt('help');
+    }
+
+    sub getopt ( $self, $k ) {
+        return $self->{_getopt}->{$k};
+    }
+
+    sub help ( $self, $msg = undef, $exit_status = undef ) {
+        say $self->_help($msg);
+        exit( $exit_status // 0 );
+    }
+
+    sub full_help ( $self, $msg = undef, $exit_status = undef ) {
+
+        my $out = $self->_help( $msg, 2 );
+        my ( $short_help, $extra ) = split( qr{^.+STAGES}m, $out );
+        chomp $short_help for 1 .. 2;
+        say $short_help;
+
+        exit( $exit_status // 0 );
+    }
+
+    sub _help ( $class, $msg = undef, $verbosity = undef ) {
+
+        my $val;
+        open my $wfh, '>', \$val or die "Failed to open to a scalar: $!";
+
+        $msg .= "\n" if length $msg;
+
+        local $Pod::Usage::Formatter;
+        $Pod::Usage::Formatter = 'Pod::Text::Termcap' if _stdout_is_terminal();
+
+        require 'Pod/Usage.pm';    ##no critic qw(RequireBarewordIncludes)
+
+        my $pod_path = $0;
+
+        'Pod::Usage'->can('pod2usage')->(
+            -exitval   => 'NOEXIT',
+            -message   => $msg,
+            -verbose   => $verbosity,
+            -noperldoc => 1,
+            -output    => $wfh,
+            -input     => $pod_path,
+        );
+
+        warn "No POD for “$class” in “$pod_path”!" if !$val;
+
+        return $val;
+    }
+
+    sub _stdout_is_terminal() { return -t \*STDOUT }
+
+    1;
+
+}    # --- END lib/Elevate/Usage.pm
+
 package main;
 
 # Copyright 2023 cPanel L.L.C.
@@ -2817,6 +2902,7 @@ use Elevate::Notify     ();
 use Elevate::Roles::Run ();               # used as parent, but ensure fatpack
 use Elevate::Script     ();
 use Elevate::Service    ();
+use Elevate::Usage      ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 7;
@@ -2861,17 +2947,8 @@ use Simple::Accessor qw{
 # after Simple::Accessor
 use parent qw{
   Elevate::Roles::Run
-  Cpanel::HelpfulScript
+  Elevate::Usage
 };
-
-sub _OPTIONS {
-    return qw(
-      service start clean continue manual-reboots status log check:s
-      skip-cpanel-version-check skip-elevate-version-check
-      update version
-      upgrade-to=s
-    );
-}
 
 exit( __PACKAGE__->run(@ARGV) // 0 ) unless caller;
 
@@ -2893,12 +2970,9 @@ sub _build_script ($self) {
 
 sub _init ( $self_or_pkg, @args ) {
 
-    my $self    = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
-    my $getopts = __PACKAGE__->SUPER::new(@args);                        # HelpfulScript
-    foreach my $k ( keys %$getopts ) {
-        $self->{$k} = $getopts->{$k};
-    }
+    my $self = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
 
+    Elevate::Usage::init( $self, @args );
     Elevate::Logger::init($self);
 
     return $self;
@@ -2936,15 +3010,11 @@ sub run ( $pkg, @args ) {
 
     if ( $stage == 0 ) {
         print_box("Please re-run this script with --start if you would like to begin the upgrade process");
-        my $out = $self->full_help();
-        my ( $short_help, $extra ) = split( qr{^.+STAGES}m, $out );
-        chomp $short_help for 1 .. 2;
-        say $short_help;
-        return 1;
+        return $self->full_help(1);    # exit
     }
 
     if ( $self->getopt('start') || $self->getopt('log') ) {
-        1;    # these options are exclusive
+        1;                             # these options are exclusive
     }
     elsif ( $self->getopt('continue') ) {
         $self->continue_elevation();
