@@ -70,7 +70,7 @@ subtest 'Testing _grub2_workaround_state' => sub {
     return;
 };
 
-subtest 'Testing update_grub2_workaround_if_needed' => sub {
+subtest 'Testing _update_grub2_workaround_if_needed' => sub {
     {
         my $cpev_mock = Test::MockModule->new('cpev');
         my $g2_mock   = Test::MockModule->new('Elevate::Components::Grub2');
@@ -87,7 +87,7 @@ subtest 'Testing update_grub2_workaround_if_needed' => sub {
             GRUB2_PREFIX_RHEL   => sub { die "GRUB2_PREFIX_RHEL referenced unexpectedly!" },
         );
 
-        try_ok { $g2->update_grub2_workaround_if_needed() } "calling the function short-circuits when workaround update is not requested";
+        try_ok { $g2->_update_grub2_workaround_if_needed() } "calling the function short-circuits when workaround update is not requested";
     }
 
     subtest "needs workaround, clean run" => sub {
@@ -122,7 +122,7 @@ subtest 'Testing update_grub2_workaround_if_needed' => sub {
         {
             no warnings qw(once);
             local *CORE::GLOBAL::time = sub { return $now };
-            try_ok { $g2->update_grub2_workaround_if_needed() } "calling the function doesn't die";
+            try_ok { $g2->_update_grub2_workaround_if_needed() } "calling the function doesn't die";
         }
 
         ok( -l "$mocked_boot/grub",      "postcondition: /boot/grub is symlink" );
@@ -161,7 +161,7 @@ subtest 'Testing update_grub2_workaround_if_needed' => sub {
         ok( -d "$mocked_boot/grub",       "precondition: /boot/grub is a directory" );
         ok( !-e "$mocked_boot/grub-$now", "precondition: /boot/grub-$now (backup directory) does not exist" );
 
-        try_ok { $g2->update_grub2_workaround_if_needed() } "calling the function doesn't die";
+        try_ok { $g2->_update_grub2_workaround_if_needed() } "calling the function doesn't die";
 
         ok( -l "$mocked_boot/grub",      "postcondition: /boot/grub is symlink" );
         ok( -d "$mocked_boot/grub-$now", "postcondition: /boot/grub-$now is a directory" );
@@ -170,7 +170,7 @@ subtest 'Testing update_grub2_workaround_if_needed' => sub {
     };
 };
 
-subtest 'Testing merge_grub_directories_if_needed' => sub {
+subtest 'Testing _merge_grub_directories_if_needed' => sub {
 
     my $cpev_mock = Test::MockModule->new('cpev');
     my $g2_mock   = Test::MockModule->new('Elevate::Components::Grub2');
@@ -187,7 +187,7 @@ subtest 'Testing merge_grub_directories_if_needed' => sub {
             GRUB2_PREFIX_RHEL   => sub { die "GRUB2_PREFIX_RHEL referenced unexpectedly!" },
         );
 
-        try_ok { $g2->merge_grub_directories_if_needed() } "calling the function short-circuits when workaround update is not requested";
+        try_ok { $g2->_merge_grub_directories_if_needed() } "calling the function short-circuits when workaround update is not requested";
     }
 
     my $now = CORE::time();
@@ -211,7 +211,7 @@ subtest 'Testing merge_grub_directories_if_needed' => sub {
     ok( -f "$mocked_boot/grub2/grub.cfg",       "precondition: /boot/grub2/grub.cfg is a regular file" );
     ok( !-e "$mocked_boot/grub2/splash.xpm.gz", "precondition: detritus in /boot/grub-$now isn't present in /boot/grub2" );
 
-    try_ok { $g2->merge_grub_directories_if_needed() } "calling the function doesn't die";
+    try_ok { $g2->_merge_grub_directories_if_needed() } "calling the function doesn't die";
 
     ok( -f "$mocked_boot/grub2/grub.cfg",      "postcondition: /boot/grub2/grub.cfg is still a regular file" );
     ok( -f "$mocked_boot/grub2/splash.xpm.gz", "postcondition: detritus is now present in /boot/grub2" );
@@ -219,7 +219,7 @@ subtest 'Testing merge_grub_directories_if_needed' => sub {
     return;
 };
 
-subtest 'Testing merge_grub_directories_if_needed' => sub {
+subtest 'Testing _merge_grub_directories_if_needed' => sub {
 
     my @ran_once;
     my $g2_mock = Test::MockModule->new('Elevate::Components::Grub2');
@@ -234,12 +234,12 @@ subtest 'Testing merge_grub_directories_if_needed' => sub {
     my $cpev = cpev->new;
     my $g2   = $cpev->component('Grub2');
 
-    $g2->check_and_fix;
+    $g2->pre_elevate;
 
     is \@ran_once, [
         qw{
-          update_grub2_workaround_if_needed
-          merge_grub_directories_if_needed
+          _update_grub2_workaround_if_needed
+          _merge_grub_directories_if_needed
         }
       ],
       'run_once expected components';
