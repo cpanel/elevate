@@ -20,7 +20,21 @@ use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
 
+# still used by disable_known_yum_repositories function
 use constant DISABLE_MYSQL_YUM_REPOS => qw{
+  Mysql57.repo
+  Mysql80.repo
+
+  MariaDB102.repo
+  MariaDB103.repo
+  MariaDB105.repo
+  MariaDB106.repo
+
+  mysql-community.repo
+};
+
+# FIXME use some RegExp...
+use constant VETTED_MYSQL_YUM_REPO_IDS => qw{
   mysql-connectors-community
   mysql-tools-community
   mysql55-community
@@ -95,7 +109,7 @@ use constant VETTED_YUM_REPO => qw{
   imunify360-rollout-4
   imunify360
   imunify360-ea-php-hardened
-}, DISABLE_MYSQL_YUM_REPOS;
+}, VETTED_MYSQL_YUM_REPO_IDS;
 
 sub check ($self) {
     my $ok = 1;
