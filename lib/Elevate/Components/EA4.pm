@@ -38,10 +38,10 @@ sub backup ($self) {
     return;
 }
 
-sub restore ($self) {    # restore_ea4_profile
+sub restore ($self) {
 
-    $self->run_once('restore_ea4_profile');
-    $self->run_once('restore_ea_addons');
+    $self->run_once('_restore_ea4_profile');
+    $self->run_once('_restore_ea_addons');
 
     return;
 }
