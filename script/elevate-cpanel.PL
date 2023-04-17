@@ -1537,7 +1537,8 @@ EOS
 sub pre_leapp_update_backup_and_cleanup ($self) {
 
     $self->run_once('capture_imunify_features');
-    $self->run_once('backup_ea_addons');
+    $self->run_component_once( 'EA4' => 'backup' );
+
     $self->run_once('backup_pecl_packages');
     $self->run_once('cleanup_mysql_packages');
     $self->run_once('disable_known_yum_repositories');

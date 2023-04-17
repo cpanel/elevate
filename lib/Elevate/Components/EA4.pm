@@ -32,8 +32,8 @@ use Elevate::Blockers ();
 # note: the backup process is triggered by Elevate::Blockers::EA4
 sub backup ($self) {
 
-    $self->_backup_ea4_profile;
-    $self->_backup_ea_addons;
+    $self->run_once("_backup_ea4_profile");
+    $self->run_once("_backup_ea_addons");
 
     return;
 }
