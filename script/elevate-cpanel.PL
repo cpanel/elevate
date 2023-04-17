@@ -208,10 +208,11 @@ use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
 
 # - fatpack Components
-use Elevate::Components::Base  ();
-use Elevate::Components::EA4   ();
-use Elevate::Components::Grub2 ();
-use Elevate::Components::MySQL ();
+use Elevate::Components::Base       ();
+use Elevate::Components::EA4        ();
+use Elevate::Components::Grub2      ();
+use Elevate::Components::KernelCare ();
+use Elevate::Components::MySQL      ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -850,9 +851,8 @@ sub run_stage_2 ($self) {
 
     Elevate::Motd->setup();
 
-    $self->run_once('remove_kernelcare_if_needed');
-
-    $self->run_component_once( 'Grub2' => 'pre_elevate' );
+    $self->run_component_once( 'KernelCare' => 'pre_leapp' );
+    $self->run_component_once( 'Grub2'      => 'pre_elevate' );
 
     return REBOOT_NEEDED;
 }
@@ -1287,46 +1287,6 @@ sub monitor_imunify_feature_install ( $feature, $log_file ) {
     return 0;
 }
 
-sub remove_kernelcare_if_needed ($self) {
-
-    return unless -x q[/usr/bin/kcarectl];
-
-    # This environment variable signals to the KernelCare RPM scriptlets not to deregister on package removal.
-    local $ENV{KCARE_KEEP_REGISTRATION} = '1';
-    $self->remove_rpms_from_repos('kernelcare');
-
-    update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
-
-    return 1;
-}
-
-sub restore_kernel_care ($self) {
-    return unless read_stage_file('reinstall')->{'kernelcare'};
-
-    INFO("Restoring kernelcare");
-
-    INFO("Retrieving kernelcare installer");
-    my $installer_script = Elevate::Fetch::script( 'https://kernelcare.com/installer', 'kernelcare_installer' );
-
-    my $conf_file = q[/etc/sysconfig/kcare/kcare.conf];
-    if ( -e $conf_file . q[.rpmsave] ) {
-        INFO("Restoring Configuration file: $conf_file");
-
-        # restore configuration file before installing it
-        File::Copy::copy( $conf_file . q[.rpmsave], $conf_file );
-    }
-
-    INFO("Running kernelcare installer");
-    $self->ssystem_and_die( '/usr/bin/bash' => $installer_script );
-
-    unlink $installer_script;
-
-    INFO("Updating kernelcare");
-    $self->ssystem(qw{ /usr/bin/kcarectl --update });
-
-    return;
-}
-
 sub _sanity_check {
     return 1 if -x $0;
 
@@ -1619,6 +1579,7 @@ sub post_leapp_update_restore ($self) {
     $self->run_once('reinstall_influxdb');
     $self->run_once('reinstall_jetbackup');
     $self->run_once('kernel_check');
+    $self->run_component_once( 'KernelCare' => 'post_leapp' );
     $self->run_once('restore_kernel_care');
     $self->run_once('restore_imunify_features');
     $self->run_once('restore_nixstats');
