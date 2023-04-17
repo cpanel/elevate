@@ -40,7 +40,9 @@ sub _warning_if_postgresql_installed ($self) {
     return 2;
 }
 
-sub _blocker_old_mysql ( $self, $mysql_version = '' ) {
+sub _blocker_old_mysql ( $self, $mysql_version = undef ) {
+
+    $mysql_version //= $self->cpconf->{'mysql-version'} // '';
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
 

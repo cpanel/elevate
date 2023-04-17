@@ -70,6 +70,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Simple::Accessor qw(
       blockers
+      cpconf
     );
 
     # use Log::Log4perl qw(:easy);
@@ -104,6 +105,10 @@ BEGIN {    # Suppress load of all of these at earliest point.
                 return $sub->( $cpev, @args );
             }
         }
+    }
+
+    sub _build_cpconf ($self) {
+        return Cpanel::Config::LoadCpConf::loadcpconf() // {};
     }
 
     sub is_check_mode ( $self, @args ) {
@@ -280,8 +285,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub _check_all_blockers ($self) {    # sub _blockers_check ($self) {
 
-        my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
-
         foreach my $blocker (@BLOCKERS) {    # preserve order
             $self->_check_single_blocker($blocker);
         }
@@ -344,7 +347,9 @@ BEGIN {    # Suppress load of all of these at earliest point.
         return 2;
     }
 
-    sub _blocker_old_mysql ( $self, $mysql_version = '' ) {
+    sub _blocker_old_mysql ( $self, $mysql_version = undef ) {
+
+        $mysql_version //= $self->cpconf->{'mysql-version'} // '';
 
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
 
