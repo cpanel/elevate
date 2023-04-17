@@ -189,6 +189,7 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
+# - fatpack blockers
 use Elevate::Blockers::Base          ();
 use Elevate::Blockers                ();
 use Elevate::Blockers::Databases     ();
@@ -206,15 +207,17 @@ use Elevate::Blockers::Repositories  ();    # using a constant
 use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
 
+# - fatpack Components
 use Elevate::Components::Base  ();
 use Elevate::Components::EA4   ();
 use Elevate::Components::Grub2 ();
+use Elevate::Components::MySQL ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
 use Elevate::Motd             ();
 use Elevate::Notify           ();
-use Elevate::Roles::Run       ();           # used as parent, but ensure fatpack
+use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
 use Elevate::Script           ();
 use Elevate::Service          ();
 use Elevate::SystemctlService ();
@@ -1284,13 +1287,13 @@ sub monitor_imunify_feature_install ( $feature, $log_file ) {
     return 0;
 }
 
-sub remove_kernelcare_if_needed {
+sub remove_kernelcare_if_needed ($self) {
 
     return unless -x q[/usr/bin/kcarectl];
 
     # This environment variable signals to the KernelCare RPM scriptlets not to deregister on package removal.
     local $ENV{KCARE_KEEP_REGISTRATION} = '1';
-    remove_rpms_from_repos('kernelcare');
+    $self->remove_rpms_from_repos('kernelcare');
 
     update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
 
@@ -1540,6 +1543,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'EA4' => 'backup' );
 
     $self->run_once('backup_pecl_packages');
+    $self->run_component_once( 'MySQL' => 'pre_leapp' );
     $self->run_once('cleanup_mysql_packages');
     $self->run_once('disable_known_yum_repositories');
 
@@ -1573,142 +1577,6 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     return;
 }
 
-sub cleanup_mysql_packages {
-
-    my $mysql_version = read_stage_file( 'mysql-version', '' );
-    return unless length $mysql_version;
-
-    INFO("# Cleanup MySQL packages ; using version $mysql_version");
-
-    update_stage_file( { 'mysql-version' => $mysql_version } );
-
-    # make sure all packages from unsupported repo are removed
-    #
-    # we cannot only remove the packages for the current MySQL versions
-    # some packages can also installed from other repo
-
-    cleanup_mysql_57_packages();
-    cleanup_mysql_80_packages();
-    cleanup_mysql_102_packages();
-    cleanup_mysql_103_packages();
-    cleanup_mysql_105_packages();
-    cleanup_mysql_106_packages();
-
-    return;
-}
-
-sub reinstall_mysql_packages {
-
-    my $mysql_version = read_stage_file( 'mysql-version', '' ) or return;
-
-    INFO("Restoring MySQL $mysql_version");
-
-    my ( $major, $minor ) = split( /\./, $mysql_version );
-
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
-    die qq[Fail to restore MySQL $mysql_version] if $?;
-
-    if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
-        my $id = $1;
-
-        INFO("Restoring MySQL via upgrade_id $id");
-        INFO('Waiting for MySQL installation');
-
-        my $status = '';
-
-        my $c = 0;
-
-        while (1) {
-            $c   = ( $c + 1 ) % 10;
-            $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-            die qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
-
-            if ( $out =~ m{\sstate:\s*inprogress} ) {
-                print ".";
-                print "\n" if $c == 0;
-                sleep 5;
-                next;
-            }
-
-            if ( $out =~ m{\sstate:\s*(\w+)} ) {
-                $status = $1;
-            }
-            last;
-        }
-
-        print "\n" if $c;    # clear the last "." from above
-
-        if ( $status eq 'success' ) {
-            INFO("MySQL $mysql_version restored");
-        }
-        else {
-            FATAL("Failed to restore MySQL $mysql_version: upgrade $id status '$status'");
-            FATAL("$out");
-            die 'Failed to restore MySQL';
-        }
-    }
-    else {
-        die qq[Cannot find upgrade_id from start_background_mysql_upgrade:\n$out];
-    }
-
-    return;
-}
-
-sub cleanup_mysql_57_packages {
-    my @repos = qw{
-      Mysql-connectors-community
-      Mysql-tools-community
-      Mysql57-community
-      Mysql-tools-preview
-    };
-
-    remove_rpms_from_repos(@repos);
-
-    return;
-}
-
-sub cleanup_mysql_80_packages {
-
-    my @repos = qw{
-      Mysql-connectors-community
-      Mysql-tools-community
-      Mysql80-community
-      Mysql-tools-preview
-    };
-
-    remove_rpms_from_repos(@repos);
-
-    return;
-}
-
-sub cleanup_mysql_102_packages {
-
-    remove_rpms_from_repos('MariaDB102');
-
-    return;
-}
-
-sub cleanup_mysql_103_packages {
-
-    remove_rpms_from_repos('MariaDB103');
-
-    return;
-}
-
-sub cleanup_mysql_105_packages {
-
-    remove_rpms_from_repos('MariaDB105');
-
-    return;
-}
-
-sub cleanup_mysql_106_packages {
-
-    remove_rpms_from_repos('MariaDB106');
-
-    return;
-}
-
 sub post_leapp_update_restore ($self) {
 
     INFO('Removing leapp from excludes in /etc/yum.conf');
@@ -1719,7 +1587,7 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_once('reinstall_mysql_packages');
+    $self->run_component_once( 'MySQL' => 'post_leapp' );
 
     $self->run_once(
         'restore_perl_xs' => sub {
@@ -1989,7 +1857,10 @@ sub get_installed_rpms_in_repo (@repo_list) {
     return @to_remove;
 }
 
-sub remove_rpms_from_repos (@repo_list) {
+sub remove_rpms_from_repos ( $self, @repo_list ) {
+
+    die qq[remove_rpms_from_repos: Not a method call - $self, @repo_list] unless ref $self;
+
     my @to_remove = get_installed_rpms_in_repo(@repo_list);
 
     return unless @to_remove;
@@ -2183,7 +2054,7 @@ sub restore_nixstats ($self) {
     return;
 }
 
-sub remove_wordpress_toolkit {
+sub remove_wordpress_toolkit ($self) {
     return unless Cpanel::Pkgr::is_installed('wp-toolkit-cpanel');
 
     INFO("Removing Wordpress Toolkit");
@@ -2195,7 +2066,7 @@ sub remove_wordpress_toolkit {
     DEBUG($output) if $output;
 
     yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
-    remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
+    $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
     update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
 
@@ -2287,7 +2158,7 @@ sub remove_imunify_360 ($self) {
     unlink $installer_script;
 
     # Cleanup any lingering packages.
-    remove_rpms_from_repos('imunify');
+    $self->remove_rpms_from_repos('imunify');
 
     return;
 }

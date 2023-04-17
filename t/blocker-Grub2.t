@@ -24,6 +24,8 @@ my $blockers = Elevate::Blockers->new( cpev => $cpev );
 
 my $mock_g2 = Test::MockModule->new('Elevate::Blockers::Grub2');
 
+my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
+
 {
     note "checking _blocker_blscfg: GRUB_ENABLE_BLSCFG state check";
 
@@ -71,11 +73,19 @@ my $mock_g2 = Test::MockModule->new('Elevate::Blockers::Grub2');
         "uncertainty about whether GRUB2 workaround is present/needed blocks"
     );
 
+    my $mock_cpev = Test::MockModule->new('cpev');
+
+    #$grub2 = $blockers->_get_blocker_for('Grub2');
     my $stash = undef;
     $mock_g2->redefine(
         _grub2_workaround_state => Elevate::Blockers::Grub2::GRUB2_WORKAROUND_OLD,
-        update_stage_file       => sub ( $, $data ) { $stash = $data },
+
+        #update_stage_file       => sub ( $, $data ) { $stash = $data },
     );
+    $mock_cpev->redefine(
+        update_stage_file => sub ($data) { $stash = $data },
+    );
+
     is( $grub2->_blocker_grub2_workaround(),                       0, 'Blockers still pass...' );
     is( $stash->{'grub2_workaround'}->{'needs_workaround_update'}, 1, "...but we found the GRUB2 workaround and need to update it" );
 }
