@@ -1,10 +1,10 @@
-package Elevate::Blockers::Yum;
+package Elevate::Blockers::Repositories;
 
 =encoding utf-8
 
 =head1 NAME
 
-Elevate::Blockers::Yum
+Elevate::Blockers::Repositories
 
 Blocker to check if the Yum repositories are compliant with the elevate process.
 

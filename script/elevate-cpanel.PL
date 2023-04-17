@@ -202,9 +202,9 @@ use Elevate::Blockers::IsContainer   ();
 use Elevate::Blockers::JetBackup     ();
 use Elevate::Blockers::NICs          ();
 use Elevate::Blockers::OVH           ();    # using a constant
+use Elevate::Blockers::Repositories  ();    # using a constant
 use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
-use Elevate::Blockers::Yum           ();    # using a constant
 
 use Elevate::Components::Base  ();
 use Elevate::Components::EA4   ();
@@ -1447,7 +1447,7 @@ sub disable_all_cpanel_services ($self) {
 sub disable_known_yum_repositories {
 
     # remove all MySQL repos
-    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::Blockers::Yum::DISABLE_MYSQL_YUM_REPOS;
+    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::Blockers::Repositories::DISABLE_MYSQL_YUM_REPOS;
 
     foreach my $f (@repo_files) {
         next unless -e $f;
