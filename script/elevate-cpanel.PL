@@ -623,23 +623,6 @@ sub check_status ($self) {
     return;
 }
 
-sub add_final_notification ( $msg, $warn_now = 0 ) {
-    my $stage_info = read_stage_file();
-
-    return unless defined $msg && length $msg;
-
-    update_stage_file( { final_notifications => [$msg] } );    # stacked to the previously stored
-
-    if ($warn_now) {
-        foreach my $l ( split( "\n", $msg ) ) {
-            next unless length $l;
-            WARN($l);
-        }
-    }
-
-    return 1;
-}
-
 sub _notify_success ($self) {
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
@@ -1078,7 +1061,7 @@ sub run_stage_5 ($self) {
         foreach my $msg ( reverse @$final_notifications ) {
             $final_notice .= "\n$msg\n";
         }
-        add_final_notification( $final_notice, 1 );
+        Elevate::Notify::add_final_notification( $final_notice, 1 );
     }
 
     $self->elevation_success_marker();
@@ -1282,7 +1265,7 @@ sub monitor_imunify_feature_install ( $feature, $log_file ) {
         sleep 5;
     }
 
-    add_final_notification( "Imunify failed to install feature $feature", 1 );
+    Elevate::Notify::add_final_notification( "Imunify failed to install feature $feature", 1 );
 
     return 0;
 }
@@ -1604,7 +1587,7 @@ sub kernel_check ($self) {
 
     $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
 
-    add_final_notification($msg);
+    Elevate::Notify::add_final_notification($msg);
 
     return;
 }
@@ -1671,7 +1654,7 @@ sub check_pecl_packages {
             $final_notification .= qq[- $pkg\n];
         }
 
-        add_final_notification($final_notification);
+        Elevate::Notify::add_final_notification($final_notification);
 
         WARN('#') if $displayed_header;
     }
@@ -2009,7 +1992,7 @@ sub restore_nixstats ($self) {
         INFO("nixstatsagent restored");
     }
     else {
-        add_final_notification( "Failed to start nixstatsagent.service", 1 );
+        Elevate::Notify::add_final_notification( "Failed to start nixstatsagent.service", 1 );
     }
 
     return;
@@ -2239,7 +2222,7 @@ sub restore_perl_xs ($path) {
     foreach my $module (@$cpan_modules) {
         $msg .= "   $module\n";
     }
-    add_final_notification($msg);
+    Elevate::Notify::add_final_notification($msg);
 
     return;
 }
