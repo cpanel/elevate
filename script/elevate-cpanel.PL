@@ -210,6 +210,7 @@ use Elevate::Blockers::WHM           ();
 # - fatpack Components
 use Elevate::Components::ArchRPMs     ();
 use Elevate::Components::Base         ();
+use Elevate::Components::DigitalOcean ();
 use Elevate::Components::EA4          ();
 use Elevate::Components::Grub2        ();
 use Elevate::Components::Imunify      ();
@@ -1360,20 +1361,20 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_component_once( 'MySQL'      => 'post_leapp' );
-    $self->run_component_once( 'PerlXS'     => 'post_leapp' );
-    $self->run_component_once( 'ArchRPMs'   => 'post_leapp' );
-    $self->run_component_once( 'PECL'       => 'post_leapp' );
-    $self->run_component_once( 'Imunify360' => 'post_leapp' );
-    $self->run_component_once( 'WPToolkit'  => 'post_leapp' );
-    $self->run_component_once( 'InfluxDB'   => 'post_leapp' );
-    $self->run_component_once( 'JetBackup'  => 'post_leapp' );
-    $self->run_component_once( 'Kernel'     => 'post_leapp' );
-    $self->run_component_once( 'KernelCare' => 'post_leapp' );
-    $self->run_component_once( 'Imunify'    => 'post_leapp' );
-    $self->run_component_once( 'NixStats'   => 'post_leapp' );
-    $self->run_component_once( 'LiteSpeed'  => 'post_leapp' );
-    $self->run_once('reinstall_digital_ocean_droplet_agent');
+    $self->run_component_once( 'MySQL'        => 'post_leapp' );
+    $self->run_component_once( 'PerlXS'       => 'post_leapp' );
+    $self->run_component_once( 'ArchRPMs'     => 'post_leapp' );
+    $self->run_component_once( 'PECL'         => 'post_leapp' );
+    $self->run_component_once( 'Imunify360'   => 'post_leapp' );
+    $self->run_component_once( 'WPToolkit'    => 'post_leapp' );
+    $self->run_component_once( 'InfluxDB'     => 'post_leapp' );
+    $self->run_component_once( 'JetBackup'    => 'post_leapp' );
+    $self->run_component_once( 'Kernel'       => 'post_leapp' );
+    $self->run_component_once( 'KernelCare'   => 'post_leapp' );
+    $self->run_component_once( 'Imunify'      => 'post_leapp' );
+    $self->run_component_once( 'NixStats'     => 'post_leapp' );
+    $self->run_component_once( 'LiteSpeed'    => 'post_leapp' );
+    $self->run_component_once( 'DigitalOcean' => 'post_leapp' );
 
     return;
 }
@@ -1477,15 +1478,6 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
     __PACKAGE__->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
-
-    return;
-}
-
-sub reinstall_digital_ocean_droplet_agent ($self) {
-    return unless Cpanel::Pkgr::is_installed('droplet-agent');
-    return unless -f '/etc/yum.repos.d/droplet-agent.repo';
-
-    $self->ssystem(qw{/usr/bin/yum -y reinstall droplet-agent});
 
     return;
 }
