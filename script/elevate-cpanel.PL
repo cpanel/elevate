@@ -434,7 +434,22 @@ sub upgrade_to_pretty_name ($self) {    # used by output messages
 sub monitor_upgrade {
     my $stage = get_stage();
 
-    INFO( "# Monitoring existing upgrade (stage=$stage) process via: tail -f " . Elevate::Constants::LOG_FILE );
+    my $tail_msg = q[tail -f ] . Elevate::Constants::LOG_FILE;
+
+    my $status = read_stage_file( 'status', 'unknown' );
+
+    if ( $status eq 'success' ) {
+        Elevate::Logger::INFO_nolog("# Upgrade was successful. Showing the last lines of the update log.");
+    }
+    elsif ( $status eq 'running' ) {
+        INFO("# Monitoring existing upgrade (stage=$stage) process via: $tail_msg");
+    }
+    elsif ( $status eq 'failed' ) {
+        ERROR("# Upgrade process failed at stage=$stage");
+    }
+    else {
+        WARN("# Monitoring upgrade file (stage=$stage) process via: $tail_msg");
+    }
 
     exec( qw{/usr/bin/tail -n40 -F }, Elevate::Constants::LOG_FILE );
 }

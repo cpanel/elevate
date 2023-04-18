@@ -18,6 +18,15 @@ use Term::ANSIColor ();
 
 use Log::Log4perl qw(:easy);
 
+my %colors = (
+    TRACE => 'cyan',
+    DEBUG => 'bold white',
+    INFO  => 'green',
+    WARN  => 'yellow',
+    ERROR => 'red',
+    FATAL => 'bold red',
+);
+
 sub init ( $self, $debug_level = 'DEBUG' ) {
     my $log_file = Elevate::Constants::LOG_FILE;
 
@@ -44,19 +53,41 @@ sub init ( $self, $debug_level = 'DEBUG' ) {
         EOF
     }
 
-    my %colors = (
-        TRACE => 'cyan',
-        DEBUG => 'bold white',
-        INFO  => 'green',
-        WARN  => 'yellow',
-        ERROR => 'red',
-        FATAL => 'bold red',
-    );
-
     Log::Log4perl::Layout::PatternLayout::add_global_cspec( 's' => sub { Term::ANSIColor::color( $colors{ $_[3] } ) } );
     Log::Log4perl::Layout::PatternLayout::add_global_cspec( 'u' => sub { Term::ANSIColor::color('reset') } );
 
     Log::Log4perl->init( \$config );
+
+    return;
+}
+
+sub INFO_nolog ($msg) {
+
+    return _nolog( $msg, 'INFO' );
+}
+
+sub ERROR_nolog ($msg) {
+
+    return _nolog( $msg, 'ERROR' );
+}
+
+sub WARN_nolog ($msg) {
+
+    return _nolog( $msg, 'WARN' );
+}
+
+sub _nolog ( $msg, $type = 'DEBUG' ) {
+
+    return unless length $msg;
+
+    print '# -------------------------> [';
+    print Term::ANSIColor::color( $colors{$type} );
+    print $type;
+    print Term::ANSIColor::color('reset');
+    print '] ';
+    print Term::ANSIColor::color('bold white');
+    say $msg;
+    print Term::ANSIColor::color('reset');
 
     return;
 }
