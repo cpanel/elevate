@@ -47,13 +47,16 @@ build:
 clean:
 	rm -f tags
 
-release: version := $(shell dc -f version -e '1 + p')
-release:
-	echo -n $(version) > version
-	sed -i -re "/^#<<V/,+1 s/VERSION => [0-9]*;/VERSION => $(version);/" elevate-cpanel
-	$(GIT) commit -m "Release version $(version)" -- version elevate-cpanel
+release: build
 	$(GIT) tag -f $(RELEASE_TAG)
-	$(GIT) tag -f v$(version)
+	@VERSION="`cat version`" $(GIT) tag -f v$VERSION
 	$(GIT) push origin
 	$(GIT) push --force origin tag $(RELEASE_TAG)
-	$(GIT) push --force origin tag v$(version)
+	@VERSION="`cat version`" $(GIT) push --force origin tag v$VERSION
+	$(MAKE) bump_version
+
+bump_version: version := $(shell dc -f version -e '1 + p')
+bump_version:
+	echo -n $(version) > version
+	$(GIT) add version
+	$(GIT) commit -m "Bump version to $(version) after release"
