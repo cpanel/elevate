@@ -11,43 +11,44 @@
 ## ----------------------------------------------------------------------------
 
 BEGIN {    # Suppress load of all of these at earliest point.
-    $INC{'Elevate/Constants.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Base.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Databases.pm'}     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DiskSpace.pm'}     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Distros.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DNS.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/EA4.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/ElevateScript.pm'} = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Grub2.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/IsContainer.pm'}   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/JetBackup.pm'}     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/NICs.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/OVH.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Repositories.pm'}  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/SSH.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/WHM.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Base.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/EA4.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Grub2.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Imunify.pm'}     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Imunify360.pm'}  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/KernelCare.pm'}  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/MySQL.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/NixStats.pm'}    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PECL.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PerlXS.pm'}      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/WPToolkit.pm'}   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Fetch.pm'}                  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Logger.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Motd.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Notify.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Roles/Run.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Script.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Service.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/SystemctlService.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Usage.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Constants.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Base.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Databases.pm'}      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DiskSpace.pm'}      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Distros.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DNS.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/EA4.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/ElevateScript.pm'}  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Grub2.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/IsContainer.pm'}    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/JetBackup.pm'}      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/NICs.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/OVH.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Repositories.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/SSH.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/WHM.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Base.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/EA4.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Grub2.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Imunify.pm'}      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Imunify360.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/KernelCare.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/MySQL.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/NixStats.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PECL.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PerlXS.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Repositories.pm'} = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/WPToolkit.pm'}    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Fetch.pm'}                   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Logger.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Motd.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Notify.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Roles/Run.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Script.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Service.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/SystemctlService.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Usage.pm'}                   = 'script/elevate-cpanel.PL.static';
 }
 
 {    # --- BEGIN lib/Elevate/Constants.pm
@@ -3065,6 +3066,57 @@ EOS
 
 }    # --- END lib/Elevate/Components/PerlXS.pm
 
+{    # --- BEGIN lib/Elevate/Components/Repositories.pm
+
+    package Elevate::Components::Repositories;
+
+    use cPstrict;
+
+    use Elevate::Constants              ();
+    use Elevate::Blockers::Repositories ();
+
+    use Cpanel::SafeRun::Simple ();
+    use Cwd                     ();
+    use File::Copy              ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_leapp ($self) {
+
+        $self->run_once("_disable_known_yum_repositories");
+
+        return;
+    }
+
+    sub _disable_known_yum_repositories {
+
+        my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ }    #
+          Elevate::Blockers::Repositories::DISABLE_MYSQL_YUM_REPOS;
+
+        foreach my $f (@repo_files) {
+            next unless -e $f;
+            if ( -l $f ) {
+                unlink $f;
+                next;
+            }
+
+            File::Copy::move( $f, "$f.off" ) or die qq[Fail to disable repo $f];
+        }
+
+        Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/Repositories.pm
+
 {    # --- BEGIN lib/Elevate/Components/WPToolkit.pm
 
     package Elevate::Components::WPToolkit;
@@ -4034,17 +4086,18 @@ use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
 
 # - fatpack Components
-use Elevate::Components::Base       ();
-use Elevate::Components::EA4        ();
-use Elevate::Components::Grub2      ();
-use Elevate::Components::Imunify    ();
-use Elevate::Components::Imunify360 ();
-use Elevate::Components::KernelCare ();
-use Elevate::Components::MySQL      ();
-use Elevate::Components::NixStats   ();
-use Elevate::Components::PECL       ();
-use Elevate::Components::PerlXS     ();
-use Elevate::Components::WPToolkit  ();
+use Elevate::Components::Base         ();
+use Elevate::Components::EA4          ();
+use Elevate::Components::Grub2        ();
+use Elevate::Components::Imunify      ();
+use Elevate::Components::Imunify360   ();
+use Elevate::Components::KernelCare   ();
+use Elevate::Components::MySQL        ();
+use Elevate::Components::NixStats     ();
+use Elevate::Components::PECL         ();
+use Elevate::Components::PerlXS       ();
+use Elevate::Components::Repositories ();
+use Elevate::Components::WPToolkit    ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -5084,26 +5137,6 @@ sub disable_all_cpanel_services ($self) {
     return;
 }
 
-sub disable_known_yum_repositories {
-
-    # remove all MySQL repos
-    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::Blockers::Repositories::DISABLE_MYSQL_YUM_REPOS;
-
-    foreach my $f (@repo_files) {
-        next unless -e $f;
-        if ( -l $f ) {
-            unlink $f;
-            next;
-        }
-
-        File::Copy::move( $f, "$f.off" ) or die qq[Fail to disable repo $f];
-    }
-
-    Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
-
-    return;
-}
-
 sub _do_leapp_upgrade ($self) {
 
     INFO("Running leapp upgrade");
@@ -5173,11 +5206,11 @@ EOS
 # remove and store
 sub pre_leapp_update_backup_and_cleanup ($self) {
 
-    $self->run_component_once( 'Imunify' => 'pre_leapp' );
-    $self->run_component_once( 'EA4'     => 'pre_leapp' );
-    $self->run_component_once( 'PECL'    => 'pre_leapp' );
-    $self->run_component_once( 'MySQL'   => 'pre_leapp' );
-    $self->run_once('disable_known_yum_repositories');
+    $self->run_component_once( 'Imunify'      => 'pre_leapp' );
+    $self->run_component_once( 'EA4'          => 'pre_leapp' );
+    $self->run_component_once( 'PECL'         => 'pre_leapp' );
+    $self->run_component_once( 'MySQL'        => 'pre_leapp' );
+    $self->run_component_once( 'Repositories' => 'pre_leapp' );
 
     $self->run_once(
         arch_rpms => sub {
