@@ -1874,6 +1874,7 @@ EOS
 
     use cPstrict;
 
+    use Cpanel::Pkgr       ();
     use Elevate::Constants ();
 
     use Cwd ();
@@ -3998,7 +3999,7 @@ EOS
 
     sub disable ($self) {
 
-        $self->SUPER::disable;
+        $self->SUPER::disable( 'now' => 0 );
         unlink $self->file;
 
         return;
@@ -4093,9 +4094,14 @@ EOS
         return;
     }
 
-    sub disable ($self) {
+    sub disable ( $self, %opts ) {
 
-        $self->ssystem( '/usr/bin/systemctl', qw{ disable --now}, $self->name );
+        my $now = $opts{'now'} // 1;    # by default disable it now...
+
+        my @args = qw{ disable };
+        push @args, '--now' if $now;
+
+        $self->ssystem( '/usr/bin/systemctl', @args, $self->name );
 
         return;
     }

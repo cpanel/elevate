@@ -105,7 +105,7 @@ sub install ($self) {
 
 sub disable ($self) {
 
-    $self->SUPER::disable;
+    $self->SUPER::disable( 'now' => 0 );
     unlink $self->file;
 
     return;

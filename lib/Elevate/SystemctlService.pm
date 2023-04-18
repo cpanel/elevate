@@ -91,9 +91,14 @@ sub stop ($self) {
     return;
 }
 
-sub disable ($self) {
+sub disable ( $self, %opts ) {
 
-    $self->ssystem( '/usr/bin/systemctl', qw{ disable --now}, $self->name );
+    my $now = $opts{'now'} // 1;    # by default disable it now...
+
+    my @args = qw{ disable };
+    push @args, '--now' if $now;
+
+    $self->ssystem( '/usr/bin/systemctl', @args, $self->name );
 
     return;
 }
