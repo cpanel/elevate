@@ -1335,34 +1335,34 @@ EOS
 
     use constant VETTED_YUM_REPO => qw{
       base
-      updates
-      extras
-      centosplus
-      cr
       c7-media
-      fasttrack
-      EA4
-      epel-testing
-      epel
       centos-kernel
       centos-kernel-experimental
-      wp-toolkit-cpanel
-      wp-toolkit-thirdparties
+      centosplus
+      cp-dev-tools
       cpanel-addons-production-feed
       cpanel-plugins
+      cr
+      droplet-agent
+      EA4
       elasticsearch
-      cp-dev-tools
       elevate
       elevate-source
-      influxdb
-      droplet-agent
-      kernelcare
+      epel
+      epel-testing
+      extras
+      fasttrack
+      imunify360
+      imunify360-ea-php-hardened
       imunify360-rollout-1
       imunify360-rollout-2
       imunify360-rollout-3
       imunify360-rollout-4
-      imunify360
-      imunify360-ea-php-hardened
+      influxdb
+      kernelcare
+      updates
+      wp-toolkit-cpanel
+      wp-toolkit-thirdparties
     }, VETTED_MYSQL_YUM_REPO_IDS;
 
     sub check ($self) {
