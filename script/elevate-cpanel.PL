@@ -1113,7 +1113,7 @@ sub run_once ( $self, $label, $code = undef ) {
 
     die unless ref $code eq 'CODE';
 
-    my $current_stage = get_stage() or die q[Unknown stage id];
+    my $current_stage = get_stage() or Carp::confess(qq[run_once: Unknown stage id to run '$label']);
     my $stage_name    = 'stage' . $current_stage;
 
     my $stash = read_stage_file();
