@@ -38,6 +38,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/JetBackup.pm'}    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/LiteSpeed.pm'}    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/KernelCare.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Kernel.pm'}       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/MySQL.pm'}        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/NixStats.pm'}     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/PECL.pm'}         = 'script/elevate-cpanel.PL.static';
@@ -2681,6 +2682,61 @@ EOS
 
 }    # --- END lib/Elevate/Components/KernelCare.pm
 
+{    # --- BEGIN lib/Elevate/Components/Kernel.pm
+
+    package Elevate::Components::Kernel;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+
+    use Cwd ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_leapp ($self) {
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+
+        $self->run_once('_kernel_check');
+
+        return;
+    }
+
+    sub _kernel_check ($self) {
+
+        my @kernel_rpms = `/usr/bin/rpm -qa`;
+        @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
+
+        return unless @kernel_rpms;
+        chomp @kernel_rpms;
+
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+        my $msg = "The following kernels should probably be removed as they will not function on $pretty_distro_name:\n\n";
+        foreach my $kernel (@kernel_rpms) {
+            $msg .= "    $kernel\n";
+        }
+
+        $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
+
+        Elevate::Notify::add_final_notification($msg);
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/Kernel.pm
+
 {    # --- BEGIN lib/Elevate/Components/MySQL.pm
 
     package Elevate::Components::MySQL;
@@ -4315,6 +4371,7 @@ use Elevate::Components::InfluxDB     ();
 use Elevate::Components::JetBackup    ();
 use Elevate::Components::LiteSpeed    ();
 use Elevate::Components::KernelCare   ();
+use Elevate::Components::Kernel       ();
 use Elevate::Components::MySQL        ();
 use Elevate::Components::NixStats     ();
 use Elevate::Components::PECL         ();
@@ -5464,32 +5521,12 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'WPToolkit'  => 'post_leapp' );
     $self->run_component_once( 'InfluxDB'   => 'post_leapp' );
     $self->run_component_once( 'JetBackup'  => 'post_leapp' );
-    $self->run_once('kernel_check');
+    $self->run_component_once( 'Kernel'     => 'post_leapp' );
     $self->run_component_once( 'KernelCare' => 'post_leapp' );
     $self->run_component_once( 'Imunify'    => 'post_leapp' );
     $self->run_component_once( 'NixStats'   => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'  => 'post_leapp' );
     $self->run_once('reinstall_digital_ocean_droplet_agent');
-
-    return;
-}
-
-sub kernel_check ($self) {
-    my @kernel_rpms = `/usr/bin/rpm -qa`;
-    @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
-    return unless @kernel_rpms;
-    chomp @kernel_rpms;
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    my $msg = "The following kernels should probably be removed as they will not function on $pretty_distro_name:\n\n";
-    foreach my $kernel (@kernel_rpms) {
-        $msg .= "    $kernel\n";
-    }
-
-    $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
-
-    Elevate::Notify::add_final_notification($msg);
 
     return;
 }
