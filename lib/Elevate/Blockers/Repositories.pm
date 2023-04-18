@@ -1,4 +1,14 @@
-package Elevate::Blockers::Yum;
+package Elevate::Blockers::Repositories;
+
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Repositories
+
+Blocker to check if the Yum repositories are compliant with the elevate process.
+
+=cut
 
 use cPstrict;
 
@@ -10,45 +20,48 @@ use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
 
+# still used by disable_known_yum_repositories function
 use constant DISABLE_MYSQL_YUM_REPOS => qw{
-  mysql-connectors-community
-  mysql-tools-community
-  mysql55-community
-  mysql56-community
-  mysql57-community
-  mysql80-community
-  mysql-tools-preview
+  Mysql57.repo
+  Mysql80.repo
+
+  MariaDB102.repo
+  MariaDB103.repo
+  MariaDB105.repo
+  MariaDB106.repo
+
+  mysql-community.repo
+};
+
+# FIXME use some RegExp...
+use constant VETTED_MYSQL_YUM_REPO_IDS => qw{
   mysql-cluster-7.5-community
-  mysql-cluster-7.6-community
-  mysql-connectors-community-source
-  mysql-tools-community-source
-  mysql55-community-source
-  mysql56-community-source
-  mysql57-community-source
-  mysql80-community-source
-  mysql-tools-preview-source
   mysql-cluster-7.5-community-source
-  mysql-cluster-7.6-community-source
-  mysql57-community-source
-  mysql80-community-source
-  mysql-connectors-community-source
-  mysql-tools-community-source
-  mysql-tools-preview-source
   mysql-cluster-7.5-community-source
-  mysql-cluster-7.6-community-source
-  mysql-cluster-8.0-community-source
-  mysql57-community
-  mysql80-community
-  mysql-connectors-community
-  mysql-tools-community
-  mysql-tools-preview
-  mysql-cluster-7.5-community
   mysql-cluster-7.6-community
+  mysql-cluster-7.6-community-source
+  mysql-cluster-7.6-community-source
   mysql-cluster-8.0-community
-  mysql80-community-debuginfo
-  mysql-connectors-community-debuginfo
-  mysql-tools-community-debuginfo
   mysql-cluster-8.0-community-debuginfo
+  mysql-cluster-8.0-community-source
+  mysql-connectors-community
+  mysql-connectors-community-debuginfo
+  mysql-connectors-community-source
+  mysql-connectors-community-source
+  mysql-tools-community
+  mysql-tools-community-debuginfo
+  mysql-tools-community-source
+  mysql-tools-preview
+  mysql-tools-preview-source
+  mysql55-community
+  mysql55-community-source
+  mysql56-community
+  mysql56-community-source
+  mysql57-community
+  mysql57-community-source
+  mysql80-community
+  mysql80-community-debuginfo
+  mysql80-community-source
   MariaDB102
   MariaDB103
   MariaDB105
@@ -57,35 +70,35 @@ use constant DISABLE_MYSQL_YUM_REPOS => qw{
 
 use constant VETTED_YUM_REPO => qw{
   base
-  updates
-  extras
-  centosplus
-  cr
   c7-media
-  fasttrack
-  EA4
-  epel-testing
-  epel
   centos-kernel
   centos-kernel-experimental
-  wp-toolkit-cpanel
-  wp-toolkit-thirdparties
+  centosplus
+  cp-dev-tools
   cpanel-addons-production-feed
   cpanel-plugins
+  cr
+  droplet-agent
+  EA4
   elasticsearch
-  cp-dev-tools
   elevate
   elevate-source
-  influxdb
-  droplet-agent
-  kernelcare
+  epel
+  epel-testing
+  extras
+  fasttrack
+  imunify360
+  imunify360-ea-php-hardened
   imunify360-rollout-1
   imunify360-rollout-2
   imunify360-rollout-3
   imunify360-rollout-4
-  imunify360
-  imunify360-ea-php-hardened
-}, DISABLE_MYSQL_YUM_REPOS;
+  influxdb
+  kernelcare
+  updates
+  wp-toolkit-cpanel
+  wp-toolkit-thirdparties
+}, VETTED_MYSQL_YUM_REPO_IDS;
 
 sub check ($self) {
     my $ok = 1;
@@ -218,7 +231,10 @@ sub _check_yum_repos ($self) {
         my $check_last_known_repo = sub {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
-            if ( !$vetted{$current_repo_name} ) {
+
+            my $is_vetted = $vetted{$current_repo_name} || $vetted{ lc $current_repo_name };
+
+            if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
                 if ( my $total_pkg = scalar cpev::get_installed_rpms_in_repo($current_repo_name) ) {    # FIXME
                     ERROR(

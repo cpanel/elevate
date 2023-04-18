@@ -1,5 +1,15 @@
 package Elevate::Script;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Script
+
+Object to fetch and check the elevate script.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();
@@ -21,8 +31,6 @@ sub _build_base_url ($self) {
 }
 
 sub _build_latest_version ($self) {
-    use Test::More;
-    note "running: _build_latest_version";
     my $response = Cpanel::HTTP::Client->new->get( $self->base_url() . 'version' );
     return undef if !$response->success;
     my $version = $response->content // '';

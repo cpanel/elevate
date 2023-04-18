@@ -1,5 +1,15 @@
 package Elevate::Blockers::SSH;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::SSH
+
+Blocker to check if the SSH configuration is compliant with the elevate process.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

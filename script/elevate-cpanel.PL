@@ -189,35 +189,53 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
-use Elevate::Blockers::Base        ();
-use Elevate::Blockers              ();
-use Elevate::Blockers::Databases   ();
-use Elevate::Blockers::DiskSpace   ();
-use Elevate::Blockers::Distros     ();
-use Elevate::Blockers::DNS         ();
-use Elevate::Blockers::EA4         ();
-use Elevate::Blockers::Grub2       ();
-use Elevate::Blockers::IsContainer ();
-use Elevate::Blockers::JetBackup   ();
-use Elevate::Blockers::NICs        ();
-use Elevate::Blockers::OVH         ();    # using a constant
-use Elevate::Blockers::Script      ();
-use Elevate::Blockers::SSH         ();
-use Elevate::Blockers::UpToDate    ();
-use Elevate::Blockers::WHM         ();
-use Elevate::Blockers::Yum         ();    # using a constant
+# - fatpack blockers
+use Elevate::Blockers::Base          ();
+use Elevate::Blockers                ();
+use Elevate::Blockers::Databases     ();
+use Elevate::Blockers::DiskSpace     ();
+use Elevate::Blockers::Distros       ();
+use Elevate::Blockers::DNS           ();
+use Elevate::Blockers::EA4           ();
+use Elevate::Blockers::ElevateScript ();
+use Elevate::Blockers::Grub2         ();
+use Elevate::Blockers::IsContainer   ();
+use Elevate::Blockers::JetBackup     ();
+use Elevate::Blockers::NICs          ();
+use Elevate::Blockers::OVH           ();    # using a constant
+use Elevate::Blockers::Repositories  ();    # using a constant
+use Elevate::Blockers::SSH           ();
+use Elevate::Blockers::WHM           ();
 
-use Elevate::Components::Base  ();
-use Elevate::Components::EA4   ();
-use Elevate::Components::Grub2 ();
+# - fatpack Components
+use Elevate::Components::ArchRPMs     ();
+use Elevate::Components::Base         ();
+use Elevate::Components::DigitalOcean ();
+use Elevate::Components::EA4          ();
+use Elevate::Components::Grub2        ();
+use Elevate::Components::Imunify      ();
+use Elevate::Components::Imunify360   ();
+use Elevate::Components::InfluxDB     ();
+use Elevate::Components::JetBackup    ();
+use Elevate::Components::LiteSpeed    ();
+use Elevate::Components::KernelCare   ();
+use Elevate::Components::Kernel       ();
+use Elevate::Components::MySQL        ();
+use Elevate::Components::NixStats     ();
+use Elevate::Components::PECL         ();
+use Elevate::Components::PerlXS       ();
+use Elevate::Components::Repositories ();
+use Elevate::Components::WPToolkit    ();
 
-use Elevate::Fetch      ();
-use Elevate::Logger     ();
-use Elevate::Motd       ();
-use Elevate::Notify     ();
-use Elevate::Roles::Run ();               # used as parent, but ensure fatpack
-use Elevate::Script     ();
-use Elevate::Service    ();
+use Elevate::Fetch            ();
+use Elevate::Logger           ();
+use Elevate::Motd             ();
+use Elevate::Notify           ();
+use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
+use Elevate::Script           ();
+use Elevate::Service          ();
+use Elevate::SystemctlService ();
+use Elevate::Usage            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 7;
@@ -226,10 +244,8 @@ use constant VERSION => 7;
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
-use constant ELEVATE_BACKUP_DIR   => "/root/.elevate.backup";
 
-use constant VALID_STAGES        => 5;
-use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
+use constant VALID_STAGES => 5;
 
 use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
 
@@ -237,10 +253,6 @@ use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
 use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
 
 use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recommendations];
-
-use constant IMUNIFY_AGENT          => '/usr/bin/imunify360-agent';
-use constant IMUNIFY_LICENSE_FILE   => '/var/imunify360/license.json';
-use constant IMUNIFY_LICENSE_BACKUP => ELEVATE_BACKUP_DIR . '/imunify-backup-license.json';
 
 # XXX TODO verify that imunify reponames are in fact correct.
 # As of now they are straight up guesses.
@@ -262,17 +274,8 @@ use Simple::Accessor qw{
 # after Simple::Accessor
 use parent qw{
   Elevate::Roles::Run
-  Cpanel::HelpfulScript
+  Elevate::Usage
 };
-
-sub _OPTIONS {
-    return qw(
-      service start clean continue manual-reboots status log check:s
-      skip-cpanel-version-check skip-elevate-version-check
-      update version
-      upgrade-to=s
-    );
-}
 
 exit( __PACKAGE__->run(@ARGV) // 0 ) unless caller;
 
@@ -294,12 +297,9 @@ sub _build_script ($self) {
 
 sub _init ( $self_or_pkg, @args ) {
 
-    my $self    = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
-    my $getopts = __PACKAGE__->SUPER::new(@args);                        # HelpfulScript
-    foreach my $k ( keys %$getopts ) {
-        $self->{$k} = $getopts->{$k};
-    }
+    my $self = ref $self_or_pkg ? $self_or_pkg : $self_or_pkg->new;
 
+    Elevate::Usage::init( $self, @args );
     Elevate::Logger::init($self);
 
     return $self;
@@ -337,15 +337,11 @@ sub run ( $pkg, @args ) {
 
     if ( $stage == 0 ) {
         print_box("Please re-run this script with --start if you would like to begin the upgrade process");
-        my $out = $self->full_help();
-        my ( $short_help, $extra ) = split( qr{^.+STAGES}m, $out );
-        chomp $short_help for 1 .. 2;
-        say $short_help;
-        return 1;
+        return $self->full_help(1);    # exit
     }
 
     if ( $self->getopt('start') || $self->getopt('log') ) {
-        1;    # these options are exclusive
+        1;                             # these options are exclusive
     }
     elsif ( $self->getopt('continue') ) {
         $self->continue_elevation();
@@ -438,7 +434,22 @@ sub upgrade_to_pretty_name ($self) {    # used by output messages
 sub monitor_upgrade {
     my $stage = get_stage();
 
-    INFO( "# Monitoring existing upgrade (stage=$stage) process via: tail -f " . Elevate::Constants::LOG_FILE );
+    my $tail_msg = q[Running: tail -f ] . Elevate::Constants::LOG_FILE;
+
+    my $status = read_stage_file( 'status', 'unknown' );
+
+    if ( $status eq 'success' ) {
+        Elevate::Logger::INFO_nolog("# Upgrade was successful. Showing the last lines of the update log.");
+    }
+    elsif ( $status eq 'running' ) {
+        Elevate::Logger::INFO_nolog("# Monitoring existing upgrade (stage=$stage) ; $tail_msg");
+    }
+    elsif ( $status eq 'failed' ) {
+        Elevate::Logger::ERROR_nolog("# Upgrade process failed at stage=$stage ; $tail_msg");
+    }
+    else {
+        Elevate::Logger::WARN_nolog("# Monitoring upgrade file (stage=$stage) ; $tail_msg");
+    }
 
     exec( qw{/usr/bin/tail -n40 -F }, Elevate::Constants::LOG_FILE );
 }
@@ -523,18 +534,35 @@ EOS
 
 sub continue_elevation ($self) {
 
+    my $status = read_stage_file( 'status', 'unknown' );
+    if ( $status eq 'success' ) {
+        Elevate::Logger::INFO_nolog("Elevate process was successful. No process to continue.");
+        return;
+    }
+
     if ( $self->service->is_active ) {
-        WARN( "The service " . $self->service->name . " is still running. Please wait for it to finish before restarting it." );
+        Elevate::Logger::WARN_nolog( "The service " . $self->service->name . " is still running. Please wait for it to finish before restarting it." );
         return;
     }
 
     # check that no process is running and remove the pidfile for the other
     $self->check_and_create_pidfile()->remove_pid_file;
 
+    my $stage = get_stage();
+    if ( $stage == 0 ) {
+        Elevate::Logger::ERROR_nolog("Looks like no elevate process was started. Please consider running: /scripts/elevate-cpanel --start");
+        return;
+    }
+    elsif ( $stage == 1 ) {
+        Elevate::Logger::INFO_nolog("Continuing elevate process from stage 1 (service not setup yet)");
+        $self->run_stage_1();
+        return;
+    }
+
     my $pid = fork();
     LOGDIE(qq[Failed to fork: $!]) unless defined $pid;
     if ($pid) {
-        INFO("Restarting install process");
+        Elevate::Logger::INFO_nolog("Restarting install process (stage=$stage)");
         return 1;
     }
     else {
@@ -611,7 +639,7 @@ sub check_status ($self) {
     my $stage = get_stage();
 
     if ( !$stage ) {
-        ERROR('Elevation process has not started yet.');
+        Elevate::Logger::ERROR_nolog('Elevation process has not started yet.');
         return;
     }
 
@@ -634,23 +662,6 @@ sub check_status ($self) {
     return;
 }
 
-sub add_final_notification ( $msg, $warn_now = 0 ) {
-    my $stage_info = read_stage_file();
-
-    return unless defined $msg && length $msg;
-
-    update_stage_file( { final_notifications => [$msg] } );    # stacked to the previously stored
-
-    if ($warn_now) {
-        foreach my $l ( split( "\n", $msg ) ) {
-            next unless length $l;
-            WARN($l);
-        }
-    }
-
-    return 1;
-}
-
 sub _notify_success ($self) {
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
@@ -669,7 +680,7 @@ EOS
         }
     }
 
-    send_notification( qq[Successfully updated to $pretty_distro_name] => $msg, is_success => 1 );
+    Elevate::Notify::send_notification( qq[Successfully updated to $pretty_distro_name] => $msg, is_success => 1 );
 
     return;
 }
@@ -696,42 +707,7 @@ $error
 EOS
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    send_notification( qq[Fail to update to $pretty_distro_name] => $msg );
-
-    return;
-}
-
-sub send_notification ( $subject, $msg, %opts ) {
-
-    eval {
-        _send_notification( $subject, $msg, %opts );
-        1;
-    }
-      or warn "Fail to send notification: $@";
-
-    return;
-}
-
-sub _send_notification ( $subject, $msg, %opts ) {
-
-    my $is_success = delete $opts{is_success};
-
-    # note: no need to use one iContact::Class this is a one shot message
-    require Cpanel::iContact;
-
-    INFO("Sending notification: $subject");
-
-    my $log   = $is_success ? \&INFO : \&ERROR;
-    my @lines = split( "\n", $msg );
-    foreach my $line (@lines) {
-        $log->($line);
-    }
-
-    Cpanel::iContact::icontact(
-        'application' => 'elevate',
-        'subject'     => $subject,
-        'message'     => $msg,
-    );
+    Elevate::Notify::send_notification( qq[Fail to update to $pretty_distro_name] => $msg );
 
     return;
 }
@@ -846,7 +822,7 @@ sub run_stage_2 ($self) {
 
     my $sum = `/usr/bin/md5sum $0`;
     chomp $sum;
-    DEBUG( sprintf( "Running $0 (%s/%s)", -S $0, $sum ) );
+    DEBUG( sprintf( "Running $0 (%s/%s)", -s $0, $sum ) );
 
     $self->elevation_startup_marker($sum);
 
@@ -862,9 +838,8 @@ sub run_stage_2 ($self) {
 
     Elevate::Motd->setup();
 
-    $self->run_once('remove_kernelcare_if_needed');
-
-    $self->run_component_once( 'Grub2' => 'check_and_fix' );
+    $self->run_component_once( 'KernelCare' => 'pre_leapp' );
+    $self->run_component_once( 'Grub2'      => 'pre_leapp' );
 
     return REBOOT_NEEDED;
 }
@@ -1022,9 +997,7 @@ sub run_stage_4 ($self) {
         }
     );
 
-    ## FIXME
-    $self->run_once('restore_ea4_profile');
-    $self->run_once('restore_ea_addons');
+    $self->run_component_once( 'EA4' => 'post_leapp' );
 
     $self->run_once(
         upcp => sub {
@@ -1077,35 +1050,41 @@ sub run_stage_5 ($self) {
     $self->service->disable;
     unlink Elevate::Constants::PID_FILE;
     unlink CHKSRVD_SUSPEND_FILE;
-    File::Path::remove_tree(ELEVATE_BACKUP_DIR) if -d ELEVATE_BACKUP_DIR;
+    my $el_backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR;
+    File::Path::remove_tree($el_backup_dir) if -d $el_backup_dir;
     Elevate::Motd->cleanup();
 
-    $self->run_component_once( 'Grub2' => 'final_check_and_fix' );
-
-    my $final_notifications = read_stage_file( 'final_notifications', [] );
-    if (@$final_notifications) {
-
-        print_box("Final Notifications");
-
-        my $final_notice = "The following recommendations should now be reviewed for further action:";
-
-        foreach my $msg ( reverse @$final_notifications ) {
-            $final_notice .= "\n$msg\n";
-        }
-        add_final_notification( $final_notice, 1 );
-    }
+    $self->run_component_once( 'Grub2' => 'post_leapp' );
 
     $self->elevation_success_marker();
-
     $self->restore_outdated_services();
 
     INFO("Updating all packages before final reboot");
     $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
 
+    $self->_show_final_notifications();
+
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
     return REBOOT_NEEDED;
+}
+
+sub _show_final_notifications ($self) {
+
+    my $final_notifications = read_stage_file( 'final_notifications', [] );
+    return unless scalar @$final_notifications;
+
+    print_box("Final Notifications");
+
+    my $final_notice = "The following recommendations should now be reviewed for further action:";
+
+    foreach my $msg ( reverse @$final_notifications ) {
+        $final_notice .= "\n$msg\n";
+    }
+    Elevate::Notify::add_final_notification( $final_notice, 1 );
+
+    return;
 }
 
 sub _bq_now () {
@@ -1174,11 +1153,11 @@ sub run_once ( $self, $label, $code = undef ) {
 
     die unless defined $label;
 
-    $code //= cpev->can($label) or die qq[Missing function '$label'];
+    $code //= cpev->can($label) or Carp::confess(qq[Missing function '$label']);
 
     die unless ref $code eq 'CODE';
 
-    my $current_stage = get_stage() or die q[Unknown stage id];
+    my $current_stage = get_stage() // 0;
     my $stage_name    = 'stage' . $current_stage;
 
     my $stash = read_stage_file();
@@ -1200,147 +1179,6 @@ sub run_once ( $self, $label, $code = undef ) {
     return;
 }
 
-sub capture_imunify_features {
-    -x IMUNIFY_AGENT or return;
-
-    my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
-    my @features = map { s/\s+//g; $_ } grep { m/\S/ } split( "\n", $output );
-
-    if ( -f IMUNIFY_LICENSE_FILE ) {
-        File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
-    }
-
-    update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
-
-    return;
-}
-
-sub restore_imunify_features {
-
-    return unless my $features = read_stage_file('reinstall')->{'imunify_features'};
-
-    File::Copy::move( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
-
-    return unless ref $features eq 'ARRAY';
-    return unless @$features;
-
-    INFO("Restoring imunify 360 features.");
-    foreach my $feature (@$features) {
-        INFO("Restoring imunify360 $feature");
-        my $log_file = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features install }, $feature );
-        $log_file or next;
-        chomp $log_file;
-        next unless $log_file =~ m/\S/;
-
-        monitor_imunify_feature_install( $feature, $log_file );
-    }
-
-    return;
-}
-
-sub imunify_feature_install_status ($feature) {
-    my $install_status = eval {
-        my $json = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features status}, $feature, '--json' ) // '{}';
-        Cpanel::JSON::Load($json);
-    } // {};
-
-    my $status = $install_status->{'items'}->{'status'} // '';
-
-    return $status if $status =~ m/^(installed|installing|not_installed)$/i;
-    return $install_status->{'items'}->{'message'} || "$feature is unknown";
-}
-
-# Wait 20 mins for the pid to finish.
-sub monitor_imunify_feature_install ( $feature, $log_file ) {
-
-    my $start = time;
-    while ( time - $start < 30 ) {
-        my $status = imunify_feature_install_status($feature);
-        last if ( $status eq 'installed' || $status eq 'installing' && -e $log_file );
-    }
-
-    open( my $fh, '<', $log_file ) or do {
-        my $status = imunify_feature_install_status($feature);
-        WARN("Could not open $log_file for monitoring ($!). The install of $feature is in state: $status");
-        return;
-    };
-
-    DEBUG("Monitoring $log_file for completion");
-
-    # Tail the log file and monitor status of the install by making agent queries.
-    $start = time;
-    my $partial_line = '';
-    while ( time - $start < 60 * 20 ) {    # abort after 20 minutes.
-
-        # Tail the file for new information.
-        while ( my $read = <$fh> ) {
-            my $partial_line .= $read;
-            if ( length $read && substr( $partial_line, -1, 1 ) eq "\n" ) {
-                INFO($partial_line);
-                $partial_line = '';
-            }
-        }
-
-        # This takes 1.5 seconds to query every time.
-        my $status = imunify_feature_install_status($feature);
-        if ( $status eq 'installed' ) {
-            INFO("Restore of $feature complete.");
-            return 1;
-        }
-        if ( $status ne 'installing' ) {
-            FATAL("Failed to install imunify 360 feature $feature ($status)");
-            FATAL("See $log_file for more information");
-            return 0;
-        }
-
-        sleep 5;
-    }
-
-    add_final_notification( "Imunify failed to install feature $feature", 1 );
-
-    return 0;
-}
-
-sub remove_kernelcare_if_needed {
-
-    return unless -x q[/usr/bin/kcarectl];
-
-    # This environment variable signals to the KernelCare RPM scriptlets not to deregister on package removal.
-    local $ENV{KCARE_KEEP_REGISTRATION} = '1';
-    remove_rpms_from_repos('kernelcare');
-
-    update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
-
-    return 1;
-}
-
-sub restore_kernel_care ($self) {
-    return unless read_stage_file('reinstall')->{'kernelcare'};
-
-    INFO("Restoring kernelcare");
-
-    INFO("Retrieving kernelcare installer");
-    my $installer_script = Elevate::Fetch::script( 'https://kernelcare.com/installer', 'kernelcare_installer' );
-
-    my $conf_file = q[/etc/sysconfig/kcare/kcare.conf];
-    if ( -e $conf_file . q[.rpmsave] ) {
-        INFO("Restoring Configuration file: $conf_file");
-
-        # restore configuration file before installing it
-        File::Copy::copy( $conf_file . q[.rpmsave], $conf_file );
-    }
-
-    INFO("Running kernelcare installer");
-    $self->ssystem_and_die( '/usr/bin/bash' => $installer_script );
-
-    unlink $installer_script;
-
-    INFO("Updating kernelcare");
-    $self->ssystem(qw{ /usr/bin/kcarectl --update });
-
-    return;
-}
-
 sub _sanity_check {
     return 1 if -x $0;
 
@@ -1348,7 +1186,7 @@ sub _sanity_check {
 
     return 1 if -x $0;
 
-    ERROR("The script $0 is not executable, please fix it before running it again.");
+    Elevate::Logger::ERROR_nolog("The script $0 is not executable, please fix it before running it again.");
 
     return;
 }
@@ -1451,33 +1289,15 @@ sub disable_all_cpanel_services ($self) {
       /;
     my @disabled_services;
 
-    foreach my $service (@cpanel_services) {
-        next unless $self->service->is_enabled($service);
+    foreach my $name (@cpanel_services) {
+        my $service = Elevate::SystemctlService->new( name => $name );
 
-        $self->ssystem( qw{/usr/bin/systemctl disable --now}, $service );
-        push @disabled_services, $service;
+        next unless $service->is_enabled;
+        $service->disable;
+
+        push @disabled_services, $name;
     }
     update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
-
-    return;
-}
-
-sub disable_known_yum_repositories {
-
-    # remove all MySQL repos
-    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::Blockers::Yum::DISABLE_MYSQL_YUM_REPOS;
-
-    foreach my $f (@repo_files) {
-        next unless -e $f;
-        if ( -l $f ) {
-            unlink $f;
-            next;
-        }
-
-        File::Copy::move( $f, "$f.off" ) or die qq[Fail to disable repo $f];
-    }
-
-    Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
 
     return;
 }
@@ -1551,174 +1371,19 @@ EOS
 # remove and store
 sub pre_leapp_update_backup_and_cleanup ($self) {
 
-    $self->run_once('capture_imunify_features');
-    $self->run_once('backup_ea_addons');
-    $self->run_once('backup_pecl_packages');
-    $self->run_once('cleanup_mysql_packages');
-    $self->run_once('disable_known_yum_repositories');
-
-    $self->run_once(
-        arch_rpms => sub {
-
-            # Backup arch rpms which we're going to remove and are provided by yum.
-            my @installed_arch_cpanel_plugins;
-
-            my $installed    = yum_list();
-            my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
-            foreach my $repo (@cpanel_repos) {
-                push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
-            }
-
-            update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } ) if @installed_arch_cpanel_plugins;
-            return;
-        }
-    );
-
-    $self->purge_perl_xs(DISTRO_PERL_XS_PATH);
-    $self->purge_perl_xs( $Config{'installsitearch'} );
-
-    $self->run_once('remove_imunify_360');
-    $self->run_once('remove_wordpress_toolkit');
-    $self->run_once('capture_influxdb_state');
-    $self->run_once('capture_jetbackup_state');
-    $self->run_once('remove_nixstats');
-    $self->run_once('pre_install_check_litespeed');
-
-    return;
-}
-
-sub cleanup_mysql_packages {
-
-    my $mysql_version = read_stage_file( 'mysql-version', '' );
-    return unless length $mysql_version;
-
-    INFO("# Cleanup MySQL packages ; using version $mysql_version");
-
-    update_stage_file( { 'mysql-version' => $mysql_version } );
-
-    # make sure all packages from unsupported repo are removed
-    #
-    # we cannot only remove the packages for the current MySQL versions
-    # some packages can also installed from other repo
-
-    cleanup_mysql_57_packages();
-    cleanup_mysql_80_packages();
-    cleanup_mysql_102_packages();
-    cleanup_mysql_103_packages();
-    cleanup_mysql_105_packages();
-    cleanup_mysql_106_packages();
-
-    return;
-}
-
-sub reinstall_mysql_packages {
-
-    my $mysql_version = read_stage_file( 'mysql-version', '' ) or return;
-
-    INFO("Restoring MySQL $mysql_version");
-
-    my ( $major, $minor ) = split( /\./, $mysql_version );
-
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
-    die qq[Fail to restore MySQL $mysql_version] if $?;
-
-    if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
-        my $id = $1;
-
-        INFO("Restoring MySQL via upgrade_id $id");
-        INFO('Waiting for MySQL installation');
-
-        my $status = '';
-
-        my $c = 0;
-
-        while (1) {
-            $c   = ( $c + 1 ) % 10;
-            $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-            die qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
-
-            if ( $out =~ m{\sstate:\s*inprogress} ) {
-                print ".";
-                print "\n" if $c == 0;
-                sleep 5;
-                next;
-            }
-
-            if ( $out =~ m{\sstate:\s*(\w+)} ) {
-                $status = $1;
-            }
-            last;
-        }
-
-        print "\n" if $c;    # clear the last "." from above
-
-        if ( $status eq 'success' ) {
-            INFO("MySQL $mysql_version restored");
-        }
-        else {
-            FATAL("Failed to restore MySQL $mysql_version: upgrade $id status '$status'");
-            FATAL("$out");
-            die 'Failed to restore MySQL';
-        }
-    }
-    else {
-        die qq[Cannot find upgrade_id from start_background_mysql_upgrade:\n$out];
-    }
-
-    return;
-}
-
-sub cleanup_mysql_57_packages {
-    my @repos = qw{
-      Mysql-connectors-community
-      Mysql-tools-community
-      Mysql57-community
-      Mysql-tools-preview
-    };
-
-    remove_rpms_from_repos(@repos);
-
-    return;
-}
-
-sub cleanup_mysql_80_packages {
-
-    my @repos = qw{
-      Mysql-connectors-community
-      Mysql-tools-community
-      Mysql80-community
-      Mysql-tools-preview
-    };
-
-    remove_rpms_from_repos(@repos);
-
-    return;
-}
-
-sub cleanup_mysql_102_packages {
-
-    remove_rpms_from_repos('MariaDB102');
-
-    return;
-}
-
-sub cleanup_mysql_103_packages {
-
-    remove_rpms_from_repos('MariaDB103');
-
-    return;
-}
-
-sub cleanup_mysql_105_packages {
-
-    remove_rpms_from_repos('MariaDB105');
-
-    return;
-}
-
-sub cleanup_mysql_106_packages {
-
-    remove_rpms_from_repos('MariaDB106');
+    $self->run_component_once( 'Imunify'      => 'pre_leapp' );
+    $self->run_component_once( 'EA4'          => 'pre_leapp' );
+    $self->run_component_once( 'PECL'         => 'pre_leapp' );
+    $self->run_component_once( 'MySQL'        => 'pre_leapp' );
+    $self->run_component_once( 'Repositories' => 'pre_leapp' );
+    $self->run_component_once( 'ArchRPMs'     => 'pre_leapp' );
+    $self->run_component_once( 'PerlXS'       => 'pre_leapp' );
+    $self->run_component_once( 'Imunify360'   => 'pre_leapp' );
+    $self->run_component_once( 'WPToolkit'    => 'pre_leapp' );
+    $self->run_component_once( 'InfluxDB'     => 'pre_leapp' );
+    $self->run_component_once( 'JetBackup'    => 'pre_leapp' );
+    $self->run_component_once( 'NixStats'     => 'pre_leapp' );
+    $self->run_component_once( 'LiteSpeed'    => 'pre_leapp' );
 
     return;
 }
@@ -1733,169 +1398,22 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_once('reinstall_mysql_packages');
-
-    $self->run_once(
-        'restore_perl_xs' => sub {
-            restore_perl_xs(DISTRO_PERL_XS_PATH);
-            restore_perl_xs( $Config{'installsitearch'} );
-
-            return;
-        }
-    );
-
-    $self->run_once(
-        'restore_plugins' => sub {
-
-            # Restore YUM arch plugins.
-            my $stash            = read_stage_file();
-            my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
-            if (@$yum_arch_plugins) {
-                INFO('Restoring cPanel yum-based-plugins');
-                $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
-            }
-
-            return;
-        }
-    );
-
-    $self->run_once('check_pecl_packages');
-    $self->run_once('reinstall_imunify_360');
-    $self->run_once('reinstall_wordpress_toolkit');
-    $self->run_once('reinstall_influxdb');
-    $self->run_once('reinstall_jetbackup');
-    $self->run_once('kernel_check');
-    $self->run_once('restore_kernel_care');
-    $self->run_once('restore_imunify_features');
-    $self->run_once('restore_nixstats');
-    $self->run_once('post_install_check_litespeed');
-    $self->run_once('reinstall_digital_ocean_droplet_agent');
+    $self->run_component_once( 'MySQL'        => 'post_leapp' );
+    $self->run_component_once( 'PerlXS'       => 'post_leapp' );
+    $self->run_component_once( 'ArchRPMs'     => 'post_leapp' );
+    $self->run_component_once( 'PECL'         => 'post_leapp' );
+    $self->run_component_once( 'Imunify360'   => 'post_leapp' );
+    $self->run_component_once( 'WPToolkit'    => 'post_leapp' );
+    $self->run_component_once( 'InfluxDB'     => 'post_leapp' );
+    $self->run_component_once( 'JetBackup'    => 'post_leapp' );
+    $self->run_component_once( 'Kernel'       => 'post_leapp' );
+    $self->run_component_once( 'KernelCare'   => 'post_leapp' );
+    $self->run_component_once( 'Imunify'      => 'post_leapp' );
+    $self->run_component_once( 'NixStats'     => 'post_leapp' );
+    $self->run_component_once( 'LiteSpeed'    => 'post_leapp' );
+    $self->run_component_once( 'DigitalOcean' => 'post_leapp' );
 
     return;
-}
-
-sub kernel_check ($self) {
-    my @kernel_rpms = `/usr/bin/rpm -qa`;
-    @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
-    return unless @kernel_rpms;
-    chomp @kernel_rpms;
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    my $msg = "The following kernels should probably be removed as they will not function on $pretty_distro_name:\n\n";
-    foreach my $kernel (@kernel_rpms) {
-        $msg .= "    $kernel\n";
-    }
-
-    $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
-
-    add_final_notification($msg);
-
-    return;
-}
-
-sub backup_pecl_packages {
-    my @ea_versions = qw{ea-php70 ea-php71 ea-php72 ea-php73 ea-php74 ea-php80};
-
-    foreach my $v (@ea_versions) {
-        _store_pecl_for( qq[/opt/cpanel/$v/root/usr/bin/pecl], $v );
-    }
-
-    _store_pecl_for( q[/usr/local/cpanel/3rdparty/bin/pecl], 'cpanel' );
-
-    return;
-}
-
-sub check_pecl_packages {
-
-    my $pecl = read_stage_file('pecl');
-
-    return unless ref $pecl && scalar keys $pecl->%*;
-
-    foreach my $v ( sort keys $pecl->%* ) {
-        my $previously_installed = $pecl->{$v};
-
-        return unless ref $previously_installed && scalar keys $previously_installed->%*;
-
-        my $bin;
-        if ( $v eq 'cpanel' ) {
-            $bin = q[/usr/local/cpanel/3rdparty/bin/pecl];
-        }
-        else {
-            $bin = qq[/opt/cpanel/$v/root/usr/bin/pecl];
-        }
-
-        my $currently_installed = _get_pecl_installed_for($bin) // {};
-
-        my $final_notification;
-
-        my $displayed_header = 0;
-        foreach my $pkg ( sort keys $previously_installed->%* ) {
-            next if $currently_installed->{$pkg};
-
-            # for now do not check the version
-
-            if ( !$displayed_header ) {
-                $displayed_header = 1;
-                WARN( q[*] x 20 );
-
-                $final_notification = <<~"EOS";
-                WARNING: Missing pecl package(s) for $bin
-                Please reinstall these packages:
-                EOS
-
-                foreach my $l ( split( "\n", $final_notification ) ) {
-                    next unless length $l;
-                    WARN($l);
-                }
-
-                WARN( q[*] x 20 );
-            }
-
-            WARN("- $pkg");
-            $final_notification .= qq[- $pkg\n];
-        }
-
-        add_final_notification($final_notification);
-
-        WARN('#') if $displayed_header;
-    }
-
-    return;
-}
-
-sub _store_pecl_for ( $bin, $name ) {
-    my $list = _get_pecl_installed_for($bin);
-
-    remove_from_stage_file("pecl.$name");
-
-    return unless ref $list && scalar keys $list->%*;
-
-    update_stage_file( { pecl => { $name => $list } } );
-
-    return;
-}
-
-sub _get_pecl_installed_for ($bin) {
-
-    return unless -x $bin;
-
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( $bin, 'list' ) // '';
-    return if $?;
-
-    my @lines = split( /\n/, $out );
-    return unless scalar @lines >= 4;
-
-    shift @lines for 1 .. 3;    # remove the header
-
-    my $installed;
-
-    foreach my $l (@lines) {
-        my ( $package, $v, $state ) = split( /\s+/, $l, 3 );
-        $installed->{$package} = $v;
-    }
-
-    return $installed;
 }
 
 sub clear_cpanel_caches ($self) {
@@ -1920,30 +1438,13 @@ sub clear_cpanel_caches ($self) {
     return;
 }
 
-sub _fetch_imunify_installer ($product) {
-
-    $product =~ s/Plus/+/;
-    my %installer_scripts = (
-        'imunifyAV'  => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
-        'imunifyAV+' => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
-        'imunify360' => 'https://www.repo.imunify360.cloudlinux.com/defence360/i360deploy.sh',
-    );
-
-    my $installer_url = $installer_scripts{$product} or do {
-        ERROR("Unknown product type $product");
-        return;
-    };
-
-    return Elevate::Fetch::script( $installer_url, 'imunify_installer' );
-}
-
 sub tmp_dir ($self) {
     return $self->{tmp} //= File::Temp->newdir();    # auto cleanup on destroy
 }
 
 my $yum_list_cache;
 
-sub yum_list ( $invalidate_cache = 0 ) {
+sub yum_list ( $invalidate_cache = 0 ) {    # FIXME isolate to its own namespace
     return $yum_list_cache if !$invalidate_cache && $yum_list_cache;
 
     my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror(qw{/usr/bin/yum list installed});
@@ -2003,7 +1504,10 @@ sub get_installed_rpms_in_repo (@repo_list) {
     return @to_remove;
 }
 
-sub remove_rpms_from_repos (@repo_list) {
+sub remove_rpms_from_repos ( $self, @repo_list ) {
+
+    die qq[remove_rpms_from_repos: Not a method call - $self, @repo_list] unless ref $self;
+
     my @to_remove = get_installed_rpms_in_repo(@repo_list);
 
     return unless @to_remove;
@@ -2011,307 +1515,6 @@ sub remove_rpms_from_repos (@repo_list) {
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
     __PACKAGE__->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
-
-    return;
-}
-
-sub backup_3rdparty_file ($file) {
-    my $target = "$file.elevate_backup";
-    return File::Copy::copy( $file, $target );
-}
-
-sub capture_jetbackup_state {
-    remove_from_stage_file('reinstall.jetbackup');
-
-    return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
-
-    my $repos = yum_list();
-    my $jetbackup_tier =
-        $repos->{'jetapps-stable'} ? 'jetapps-stable'
-      : $repos->{'jetapps-edge'}   ? 'jetapps-edge'
-      : $repos->{'jetapps-beta'}   ? 'jetapps-beta'
-      :                              'jetapps-stable';    # Just give up and choose stable if you can't guess.
-    INFO("Jetbackup tier '$jetbackup_tier' detected. Not removing jetbackup. Will re-install it after elevate.");
-    my @reinstall = get_installed_rpms_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
-    unshift @reinstall, $jetbackup_tier;
-
-    my $data = {
-        tier     => $jetbackup_tier,
-        packages => \@reinstall,
-    };
-
-    update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
-
-    return;
-}
-
-sub reinstall_jetbackup ($self) {
-    my $data = read_stage_file('reinstall')->{'jetbackup'};
-    return unless ref $data && ref $data->{packages};
-
-    INFO("Re-installing jetbackup.");
-
-    my $tier     = $data->{tier};
-    my @packages = $data->{packages}->@*;
-    $self->ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
-
-    return;
-}
-
-sub capture_influxdb_state {
-    remove_from_stage_file('reinstall.influxdb');
-
-    return unless Cpanel::Pkgr::is_installed('telegraf');
-    INFO("Not removing influxdb. Will re-install it after elevate.");
-    update_stage_file( { 'reinstall' => { 'influxdb' => 1 } } );
-
-    return;
-}
-
-sub reinstall_influxdb ($self) {
-    return unless read_stage_file('reinstall')->{'influxdb'};
-    INFO("Re-installing telegraf for influxdb");
-    $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
-
-    return;
-}
-
-sub has_nixstats {
-    return -e q[/etc/systemd/system/nixstatsagent.service] || -e q[/usr/local/bin/nixstatsagent];
-}
-
-sub remove_nixstats ($self) {
-
-    return unless has_nixstats();
-
-    INFO("Removing nixstats");
-
-    my $backup_dir = ELEVATE_BACKUP_DIR . "/nixstats";
-
-    File::Path::make_path($backup_dir);
-    die "Fail to create backup directory: $backup_dir" unless -d $backup_dir;
-
-    my @to_backup = qw{ /etc/nixstats-token.ini /etc/nixstats.ini };
-
-    # files we need to restore later
-    my $to_restore = {};
-
-    foreach my $f (@to_backup) {
-        next unless -f $f;
-        my $name   = File::Basename::basename($f);
-        my $backup = "$backup_dir/$name";
-        File::Copy::move( $f, $backup );
-
-        $to_restore->{$backup} = $f;
-    }
-
-    my $service = q[nixstatsagent];
-
-    my $is_enabled = $self->service->is_enabled($service);
-
-    $self->ssystem( qw{/usr/bin/systemctl disable}, $service ) if $is_enabled;
-    $self->ssystem( qw{/usr/bin/systemctl stop},    $service );
-
-    my $pip;
-
-    if ( -x q[/usr/bin/pip3] ) {
-        $pip = q[/usr/bin/pip3];
-    }
-    elsif ( -x q[/usr/bin/pip] ) {
-        $pip = q[/usr/bin/pip];
-    }
-
-    if ($pip) {
-        $self->ssystem( $pip, qw{uninstall -y nixstatsagent} );
-    }
-    else {
-        ERROR("Cannot remove nixstatsagent: cannot find pip binary");
-    }
-
-    my $data = {
-        service_enabled => $is_enabled,
-        to_restore      => $to_restore,
-    };
-
-    update_stage_file( { 'reinstall' => { 'nixstats' => $data } } );
-
-    return;
-}
-
-sub restore_nixstats ($self) {
-    my $data = read_stage_file('reinstall')->{'nixstats'};
-    return unless ref $data;
-
-    INFO("Restoring nixstats");
-
-    # we reinstall nixstats using a non existing user id
-    #   this avoid adding some polution to their account
-    #   by creating a server we are then going to replace just after
-    # alternatively we could use the user from the nixstats-token.ini file
-    my $user = q[deadbeefdeadbeefdeadbeef];
-
-    my $installer_script = Elevate::Fetch::script( 'https://www.nixstats.com/nixstatsagent.sh', 'nixstatsagent' );
-
-    $self->ssystem( '/usr/bin/bash', $installer_script, $user );
-
-    unlink $installer_script;
-
-    if ( !-x q[/usr/local/bin/nixstatsagent] ) {
-        ERROR("Missing nixstatsagent binary: /usr/local/bin/nixstatsagent");
-    }
-
-    my $service = q[nixstatsagent];
-
-    # Stopping the agent
-    $self->ssystem( qw{/usr/bin/systemctl stop}, $service );
-
-    # Restoring backup files
-    my $to_restore = $data->{to_restore};
-
-    foreach my $src ( sort keys %$to_restore ) {
-        my $destination = $to_restore->{$src};
-
-        File::Copy::copy( $src, $destination );
-    }
-
-    # restoring the state of the service before elevation
-    if ( $data->{service_enabled} ) {
-        $self->ssystem( qw{/usr/bin/systemctl enable}, $service );
-    }
-    else {    # leave it disabled
-        $self->ssystem( qw{/usr/bin/systemctl disable}, $service );
-    }
-
-    # do not really need to start/stop the daemon, we are about to reboot
-    #   but start it for sanity purpose
-
-    $self->ssystem( qw{/usr/bin/systemctl start}, $service );
-    if ( $? == 0 ) {
-        INFO("nixstatsagent restored");
-    }
-    else {
-        add_final_notification( "Failed to start nixstatsagent.service", 1 );
-    }
-
-    return;
-}
-
-sub remove_wordpress_toolkit {
-    return unless Cpanel::Pkgr::is_installed('wp-toolkit-cpanel');
-
-    INFO("Removing Wordpress Toolkit");
-
-    INFO("Removing the rpm wp-toolkit-cpanel (--noscripts)");
-    backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
-    backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
-    my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
-    DEBUG($output) if $output;
-
-    yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
-    remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
-
-    update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
-
-    return;
-}
-
-sub reinstall_wordpress_toolkit ($self) {
-    return unless read_stage_file('reinstall')->{'wordpress_toolkit'};
-
-    INFO("Restoring Wordpress Toolkit");
-    my $installer_script = Elevate::Fetch::script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );
-
-    $self->ssystem( '/usr/bin/bash', $installer_script );
-    unlink $installer_script;
-
-    return;
-}
-
-sub pre_install_check_litespeed ($self) {
-
-    remove_from_stage_file('reinstall.litespeed');
-
-    my $ls_cfg_dir = q[/usr/local/lsws/conf];
-    return unless -d $ls_cfg_dir;
-
-    INFO("LiteSpeed is installed");
-
-    # check if the license is valid before updating
-    $self->ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
-    my $has_valid_license = $? == 0 ? 1 : 0;
-
-    my $data = {
-        has_valid_license => $has_valid_license,
-    };
-
-    update_stage_file( { 'reinstall' => { 'litespeed' => $data } } );
-
-    return;
-}
-
-sub post_install_check_litespeed ($self) {
-    my $data = read_stage_file('reinstall')->{'litespeed'};
-    return unless ref $data;
-
-    INFO("Checking LiteSpeed");
-
-    # check the current license
-    if ( $data->{has_valid_license} ) {
-        $self->ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
-        ERROR("LiteSpeed license is not valid. Check /usr/local/lsws/conf/serial.no") if $? != 0;
-    }
-
-    $self->ssystem(qw{/usr/bin/systemctl restart lsws});
-
-    return;
-}
-
-sub reinstall_digital_ocean_droplet_agent ($self) {
-    return unless Cpanel::Pkgr::is_installed('droplet-agent');
-    return unless -f '/etc/yum.repos.d/droplet-agent.repo';
-
-    $self->ssystem(qw{/usr/bin/yum -y reinstall droplet-agent});
-
-    return;
-}
-
-sub remove_imunify_360 ($self) {
-
-    # One of these 2 rpms should be in place or imunify isn't really functioning.
-    my $im360 = Cpanel::Pkgr::is_installed('imunify360-firewall');
-    my $imav  = Cpanel::Pkgr::is_installed('imunify-antivirus');
-    return unless $im360 || $imav;
-
-    my $agent_bin = IMUNIFY_AGENT;
-    return unless -x $agent_bin;
-    my $license_data = eval { Cpanel::JSON::Load(`$agent_bin version --json 2>&1`) } // {};
-    return unless $license_data->{'license'}->{'status'};    # Must be true.
-
-    my $product_type = $license_data->{'license'}->{'license_type'};
-
-    INFO("Removing $product_type prior to upgrade.");
-
-    update_stage_file( { 'reinstall' => { 'imunify' => $product_type } } );
-    INFO("Product $product_type detected. Uninstalling before upgrade for later restore");
-
-    my $installer_script = _fetch_imunify_installer($product_type) or return;
-
-    $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' );
-    unlink $installer_script;
-
-    # Cleanup any lingering packages.
-    remove_rpms_from_repos('imunify');
-
-    return;
-}
-
-sub reinstall_imunify_360 ($self) {
-    my $product_type = read_stage_file('reinstall')->{'imunify'} or return;
-
-    my $installer_script = _fetch_imunify_installer($product_type) or return;
-
-    $self->ssystem( '/usr/bin/bash', $installer_script );
-    unlink $installer_script;
 
     return;
 }
@@ -2330,118 +1533,6 @@ sub post_upgrade_check ($self) {
     $self->ssystem_and_die(qw{/usr/local/cpanel/cpanel -V});
 
     return 0;
-}
-
-sub purge_perl_xs ( $self, $path ) {
-
-    return unless length $path && -d $path;
-
-    my @perl_modules;
-
-    File::Find::find(
-        sub {
-            return unless substr( $_, -3 ) eq '.pm';
-            return if -l $_;
-            return unless -f $_;
-
-            push @perl_modules, $File::Find::name;
-
-        },
-        $path
-    );
-
-    my $path_len = length($path);
-    @perl_modules = map { substr( $_, $path_len + 1 ) } sort { $a cmp $b } @perl_modules;
-
-    my $xspm_to_rpm = xspm_to_rpm();
-
-    my %rpms_to_restore;
-    my @modules_to_restore;
-    foreach my $file (@perl_modules) {
-
-        # We can only convert distro perl arch perl modules to RPM.
-        if ( $path eq DISTRO_PERL_XS_PATH && length $xspm_to_rpm->{$file} ) {
-            $rpms_to_restore{$file} = $xspm_to_rpm->{$file};
-        }
-        else {
-            push @modules_to_restore, $file;
-        }
-    }
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    my $stash = {};
-    if (%rpms_to_restore) {
-        INFO("The following `cpan` installed perl Modules will be removed and replaced with a $pretty_distro_name RPM after upgrade:");
-        foreach my $file ( sort { $rpms_to_restore{$a} cmp $rpms_to_restore{$b} || $a cmp $b } keys %rpms_to_restore ) {
-            INFO( sprintf( "  %20s => %s", $file, $rpms_to_restore{$file} ) );
-
-            my $files_in_rpm = $stash->{'restore'}->{$path}->{'rpm'}->{ $rpms_to_restore{$file} } //= [];
-            unless ( grep { $_ eq $file } @$files_in_rpm ) {    # Only if we've not stored this.
-                push @$files_in_rpm, $file;
-                unlink "$path/$file";
-            }
-        }
-        INFO(' ');
-    }
-
-    if (@modules_to_restore) {
-        WARN("The following modules will likely not be functional on $pretty_distro_name and will be disabled. You will need to restore these manually:");
-        my $to_restore = $stash->{'restore'}->{$path}->{'cpan'} //= [];
-        foreach my $file (@modules_to_restore) {
-            WARN("    $path/$file");
-            next if grep { $_ eq $file } @$to_restore;    # We've already stashed this.
-            push @$to_restore, $file;
-            rename "$path/$file", "$path/$file.o";
-        }
-    }
-
-    update_stage_file($stash);
-
-    return;
-}
-
-sub restore_perl_xs ($path) {
-    my $stash = read_stage_file();
-
-    if ( $path eq DISTRO_PERL_XS_PATH ) {
-        my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
-
-        if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
-            my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-            __PACKAGE__->ssystem(@cmd);
-        }
-    }
-
-    my $cpan_modules = $stash->{$path}->{'cpan'} // return;
-
-    # TODO: Let's restore this with /usr/bin/cpan!
-    my $msg = "The following XS modules will need to be re-installed:\n\n";
-    foreach my $module (@$cpan_modules) {
-        $msg .= "   $module\n";
-    }
-    add_final_notification($msg);
-
-    return;
-}
-
-sub xspm_to_rpm () {
-    return {
-        'IO/Pty.pm'           => 'perl-IO-Tty',
-        'IO/Tty.pm'           => 'perl-IO-Tty',
-        'IO/Tty/Constant.pm'  => 'perl-IO-Tty',
-        'JSON/Syck.pm'        => 'perl-YAML-Syck',
-        'JSON/XS.pm'          => 'perl-JSON-XS',
-        'JSON/XS/Boolean.pm'  => 'perl-JSON-XS',
-        'YAML/Dumper/Syck.pm' => 'perl-YAML-Syck',
-        'YAML/Loader/Syck.pm' => 'perl-YAML-Syck',
-        'YAML/Syck.pm'        => 'perl-YAML-Syck',
-        'common/sense.pm'     => 'perl-common-sense',
-        'version.pm'          => 'perl-version',
-        'version/regex.pm'    => 'perl-version',
-        'version/vpp.pm'      => 'perl-version',
-        'version/vxs.pm'      => 'perl-version',
-    };
 }
 
 sub setup_answer_file {
