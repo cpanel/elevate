@@ -208,17 +208,18 @@ use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
 
 # - fatpack Components
-use Elevate::Components::Base       ();
-use Elevate::Components::EA4        ();
-use Elevate::Components::Grub2      ();
-use Elevate::Components::Imunify    ();
-use Elevate::Components::Imunify360 ();
-use Elevate::Components::KernelCare ();
-use Elevate::Components::MySQL      ();
-use Elevate::Components::NixStats   ();
-use Elevate::Components::PECL       ();
-use Elevate::Components::PerlXS     ();
-use Elevate::Components::WPToolkit  ();
+use Elevate::Components::Base         ();
+use Elevate::Components::EA4          ();
+use Elevate::Components::Grub2        ();
+use Elevate::Components::Imunify      ();
+use Elevate::Components::Imunify360   ();
+use Elevate::Components::KernelCare   ();
+use Elevate::Components::MySQL        ();
+use Elevate::Components::NixStats     ();
+use Elevate::Components::PECL         ();
+use Elevate::Components::PerlXS       ();
+use Elevate::Components::Repositories ();
+use Elevate::Components::WPToolkit    ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -1258,26 +1259,6 @@ sub disable_all_cpanel_services ($self) {
     return;
 }
 
-sub disable_known_yum_repositories {
-
-    # remove all MySQL repos
-    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::Blockers::Repositories::DISABLE_MYSQL_YUM_REPOS;
-
-    foreach my $f (@repo_files) {
-        next unless -e $f;
-        if ( -l $f ) {
-            unlink $f;
-            next;
-        }
-
-        File::Copy::move( $f, "$f.off" ) or die qq[Fail to disable repo $f];
-    }
-
-    Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
-
-    return;
-}
-
 sub _do_leapp_upgrade ($self) {
 
     INFO("Running leapp upgrade");
@@ -1347,11 +1328,11 @@ EOS
 # remove and store
 sub pre_leapp_update_backup_and_cleanup ($self) {
 
-    $self->run_component_once( 'Imunify' => 'pre_leapp' );
-    $self->run_component_once( 'EA4'     => 'pre_leapp' );
-    $self->run_component_once( 'PECL'    => 'pre_leapp' );
-    $self->run_component_once( 'MySQL'   => 'pre_leapp' );
-    $self->run_once('disable_known_yum_repositories');
+    $self->run_component_once( 'Imunify'      => 'pre_leapp' );
+    $self->run_component_once( 'EA4'          => 'pre_leapp' );
+    $self->run_component_once( 'PECL'         => 'pre_leapp' );
+    $self->run_component_once( 'MySQL'        => 'pre_leapp' );
+    $self->run_component_once( 'Repositories' => 'pre_leapp' );
 
     $self->run_once(
         arch_rpms => sub {
