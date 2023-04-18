@@ -216,6 +216,7 @@ use Elevate::Components::Imunify      ();
 use Elevate::Components::Imunify360   ();
 use Elevate::Components::InfluxDB     ();
 use Elevate::Components::JetBackup    ();
+use Elevate::Components::LiteSpeed    ();
 use Elevate::Components::KernelCare   ();
 use Elevate::Components::MySQL        ();
 use Elevate::Components::NixStats     ();
@@ -1343,7 +1344,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'InfluxDB'     => 'pre_leapp' );
     $self->run_component_once( 'JetBackup'    => 'pre_leapp' );
     $self->run_component_once( 'NixStats'     => 'pre_leapp' );
-    $self->run_once('pre_install_check_litespeed');
+    $self->run_component_once( 'LiteSpeed'    => 'pre_leapp' );
 
     return;
 }
@@ -1370,7 +1371,7 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'KernelCare' => 'post_leapp' );
     $self->run_component_once( 'Imunify'    => 'post_leapp' );
     $self->run_component_once( 'NixStats'   => 'post_leapp' );
-    $self->run_once('post_install_check_litespeed');
+    $self->run_component_once( 'LiteSpeed'  => 'post_leapp' );
     $self->run_once('reinstall_digital_ocean_droplet_agent');
 
     return;
@@ -1495,45 +1496,6 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
     __PACKAGE__->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
-
-    return;
-}
-
-sub pre_install_check_litespeed ($self) {
-
-    remove_from_stage_file('reinstall.litespeed');
-
-    my $ls_cfg_dir = q[/usr/local/lsws/conf];
-    return unless -d $ls_cfg_dir;
-
-    INFO("LiteSpeed is installed");
-
-    # check if the license is valid before updating
-    $self->ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
-    my $has_valid_license = $? == 0 ? 1 : 0;
-
-    my $data = {
-        has_valid_license => $has_valid_license,
-    };
-
-    update_stage_file( { 'reinstall' => { 'litespeed' => $data } } );
-
-    return;
-}
-
-sub post_install_check_litespeed ($self) {
-    my $data = read_stage_file('reinstall')->{'litespeed'};
-    return unless ref $data;
-
-    INFO("Checking LiteSpeed");
-
-    # check the current license
-    if ( $data->{has_valid_license} ) {
-        $self->ssystem(qw{/usr/local/lsws/bin/lshttpd -V});
-        ERROR("LiteSpeed license is not valid. Check /usr/local/lsws/conf/serial.no") if $? != 0;
-    }
-
-    $self->ssystem(qw{/usr/bin/systemctl restart lsws});
 
     return;
 }
