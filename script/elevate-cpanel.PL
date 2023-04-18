@@ -958,7 +958,7 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'EA4' => 'restore' );
+    $self->run_component_once( 'EA4' => 'post_leapp' );
 
     $self->run_once(
         upcp => sub {
@@ -1109,11 +1109,11 @@ sub run_once ( $self, $label, $code = undef ) {
 
     die unless defined $label;
 
-    $code //= cpev->can($label) or die qq[Missing function '$label'];
+    $code //= cpev->can($label) or Carp::confess(qq[Missing function '$label']);
 
     die unless ref $code eq 'CODE';
 
-    my $current_stage = get_stage() or Carp::confess(qq[run_once: Unknown stage id to run '$label']);
+    my $current_stage = get_stage() // 0;
     my $stage_name    = 'stage' . $current_stage;
 
     my $stash = read_stage_file();
@@ -1348,7 +1348,7 @@ EOS
 sub pre_leapp_update_backup_and_cleanup ($self) {
 
     $self->run_component_once( 'Imunify' => 'pre_leapp' );
-    $self->run_component_once( 'EA4'     => 'backup' );
+    $self->run_component_once( 'EA4'     => 'pre_leapp' );
     $self->run_component_once( 'PECL'    => 'pre_leapp' );
     $self->run_component_once( 'MySQL'   => 'pre_leapp' );
     $self->run_once('cleanup_mysql_packages');

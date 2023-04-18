@@ -30,15 +30,23 @@ use Elevate::Blockers ();
 ##
 
 # note: the backup process is triggered by Elevate::Blockers::EA4
-sub backup ($self) {
+sub backup ($self) {    # run by the check (should be a dry run mode)
 
-    $self->run_once("_backup_ea4_profile");
-    $self->run_once("_backup_ea_addons");
+    $self->_backup_ea4_profile;
+    $self->_backup_ea_addons;
 
     return;
 }
 
-sub restore ($self) {
+sub pre_leapp ($self) {    # run to perform the backup
+
+    $self->run_once('_backup_ea4_profile');
+    $self->run_once('_backup_ea_addons');
+
+    return;
+}
+
+sub post_leapp ($self) {
 
     $self->run_once('_restore_ea4_profile');
     $self->run_once('_restore_ea_addons');
