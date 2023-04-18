@@ -28,6 +28,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/Repositories.pm'}   = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/SSH.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/WHM.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/ArchRPMs.pm'}     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Base.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/EA4.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Grub2.pm'}        = 'script/elevate-cpanel.PL.static';
@@ -1756,6 +1757,56 @@ EOS
 
 }    # --- END lib/Elevate/Blockers/WHM.pm
 
+{    # --- BEGIN lib/Elevate/Components/ArchRPMs.pm
+
+    package Elevate::Components::ArchRPMs;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+
+    use Cwd ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_leapp ($self) {
+
+        my @installed_arch_cpanel_plugins;
+
+        my $installed    = cpev::yum_list();
+        my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
+        foreach my $repo (@cpanel_repos) {
+            push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
+        }
+
+        return unless @installed_arch_cpanel_plugins;
+
+        cpev::update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } );
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+
+        my $stash            = cpev::read_stage_file();
+        my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
+        return unless scalar @$yum_arch_plugins;
+
+        INFO('Restoring cPanel yum-based-plugins');
+        $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/ArchRPMs.pm
+
 {    # --- BEGIN lib/Elevate/Components/Base.pm
 
     package Elevate::Components::Base;
@@ -3079,7 +3130,7 @@ EOS
     use Cwd                     ();
     use File::Copy              ();
 
-    # use Log::Log4perl qw(:easy);
+    # use Log::Log4perl           qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
     # use Elevate::Components::Base();
@@ -4086,6 +4137,7 @@ use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
 
 # - fatpack Components
+use Elevate::Components::ArchRPMs     ();
 use Elevate::Components::Base         ();
 use Elevate::Components::EA4          ();
 use Elevate::Components::Grub2        ();
@@ -5211,27 +5263,10 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'PECL'         => 'pre_leapp' );
     $self->run_component_once( 'MySQL'        => 'pre_leapp' );
     $self->run_component_once( 'Repositories' => 'pre_leapp' );
-
-    $self->run_once(
-        arch_rpms => sub {
-
-            # Backup arch rpms which we're going to remove and are provided by yum.
-            my @installed_arch_cpanel_plugins;
-
-            my $installed    = yum_list();
-            my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
-            foreach my $repo (@cpanel_repos) {
-                push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
-            }
-
-            update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } ) if @installed_arch_cpanel_plugins;
-            return;
-        }
-    );
-
-    $self->run_component_once( 'PerlXS'     => 'pre_leapp' );
-    $self->run_component_once( 'Imunify360' => 'pre_leapp' );
-    $self->run_component_once( 'WPToolkit'  => 'pre_leapp' );
+    $self->run_component_once( 'ArchRPMs'     => 'pre_leapp' );
+    $self->run_component_once( 'PerlXS'       => 'pre_leapp' );
+    $self->run_component_once( 'Imunify360'   => 'pre_leapp' );
+    $self->run_component_once( 'WPToolkit'    => 'pre_leapp' );
     $self->run_once('capture_influxdb_state');
     $self->run_once('capture_jetbackup_state');
     $self->run_component_once( 'NixStats' => 'pre_leapp' );
@@ -5250,24 +5285,9 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_component_once( 'MySQL'  => 'post_leapp' );
-    $self->run_component_once( 'PerlXS' => 'post_leapp' );
-
-    $self->run_once(
-        'restore_plugins' => sub {
-
-            # Restore YUM arch plugins.
-            my $stash            = read_stage_file();
-            my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
-            if (@$yum_arch_plugins) {
-                INFO('Restoring cPanel yum-based-plugins');
-                $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
-            }
-
-            return;
-        }
-    );
-
+    $self->run_component_once( 'MySQL'      => 'post_leapp' );
+    $self->run_component_once( 'PerlXS'     => 'post_leapp' );
+    $self->run_component_once( 'ArchRPMs'   => 'post_leapp' );
     $self->run_component_once( 'PECL'       => 'post_leapp' );
     $self->run_component_once( 'Imunify360' => 'post_leapp' );
     $self->run_component_once( 'WPToolkit'  => 'post_leapp' );
