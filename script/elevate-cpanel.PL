@@ -214,6 +214,7 @@ use Elevate::Components::EA4          ();
 use Elevate::Components::Grub2        ();
 use Elevate::Components::Imunify      ();
 use Elevate::Components::Imunify360   ();
+use Elevate::Components::InfluxDB     ();
 use Elevate::Components::JetBackup    ();
 use Elevate::Components::KernelCare   ();
 use Elevate::Components::MySQL        ();
@@ -1339,9 +1340,9 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'PerlXS'       => 'pre_leapp' );
     $self->run_component_once( 'Imunify360'   => 'pre_leapp' );
     $self->run_component_once( 'WPToolkit'    => 'pre_leapp' );
-    $self->run_once('capture_influxdb_state');
-    $self->run_component_once( 'JetBackup' => 'pre_leapp' );
-    $self->run_component_once( 'NixStats'  => 'pre_leapp' );
+    $self->run_component_once( 'InfluxDB'     => 'pre_leapp' );
+    $self->run_component_once( 'JetBackup'    => 'pre_leapp' );
+    $self->run_component_once( 'NixStats'     => 'pre_leapp' );
     $self->run_once('pre_install_check_litespeed');
 
     return;
@@ -1363,8 +1364,8 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'PECL'       => 'post_leapp' );
     $self->run_component_once( 'Imunify360' => 'post_leapp' );
     $self->run_component_once( 'WPToolkit'  => 'post_leapp' );
-    $self->run_once('reinstall_influxdb');
-    $self->run_component_once( 'JetBackup' => 'post_leapp' );
+    $self->run_component_once( 'InfluxDB'   => 'post_leapp' );
+    $self->run_component_once( 'JetBackup'  => 'post_leapp' );
     $self->run_once('kernel_check');
     $self->run_component_once( 'KernelCare' => 'post_leapp' );
     $self->run_component_once( 'Imunify'    => 'post_leapp' );
@@ -1494,24 +1495,6 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
     __PACKAGE__->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
-
-    return;
-}
-
-sub capture_influxdb_state {
-    remove_from_stage_file('reinstall.influxdb');
-
-    return unless Cpanel::Pkgr::is_installed('telegraf');
-    INFO("Not removing influxdb. Will re-install it after elevate.");
-    update_stage_file( { 'reinstall' => { 'influxdb' => 1 } } );
-
-    return;
-}
-
-sub reinstall_influxdb ($self) {
-    return unless read_stage_file('reinstall')->{'influxdb'};
-    INFO("Re-installing telegraf for influxdb");
-    $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
 
     return;
 }
