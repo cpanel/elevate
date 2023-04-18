@@ -218,6 +218,7 @@ use Elevate::Components::MySQL      ();
 use Elevate::Components::NixStats   ();
 use Elevate::Components::PECL       ();
 use Elevate::Components::PerlXS     ();
+use Elevate::Components::WPToolkit  ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -1372,7 +1373,7 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
 
     $self->run_component_once( 'PerlXS'     => 'pre_leapp' );
     $self->run_component_once( 'Imunify360' => 'pre_leapp' );
-    $self->run_once('remove_wordpress_toolkit');
+    $self->run_component_once( 'WPToolkit'  => 'pre_leapp' );
     $self->run_once('capture_influxdb_state');
     $self->run_once('capture_jetbackup_state');
     $self->run_component_once( 'NixStats' => 'pre_leapp' );
@@ -1411,7 +1412,7 @@ sub post_leapp_update_restore ($self) {
 
     $self->run_component_once( 'PECL'       => 'post_leapp' );
     $self->run_component_once( 'Imunify360' => 'post_leapp' );
-    $self->run_once('reinstall_wordpress_toolkit');
+    $self->run_component_once( 'WPToolkit'  => 'post_leapp' );
     $self->run_once('reinstall_influxdb');
     $self->run_once('reinstall_jetbackup');
     $self->run_once('kernel_check');
@@ -1472,7 +1473,7 @@ sub tmp_dir ($self) {
 
 my $yum_list_cache;
 
-sub yum_list ( $invalidate_cache = 0 ) {
+sub yum_list ( $invalidate_cache = 0 ) {    # FIXME isolate to its own namespace
     return $yum_list_cache if !$invalidate_cache && $yum_list_cache;
 
     my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror(qw{/usr/bin/yum list installed});
@@ -1547,11 +1548,6 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
     return;
 }
 
-sub backup_3rdparty_file ($file) {
-    my $target = "$file.elevate_backup";
-    return File::Copy::copy( $file, $target );
-}
-
 sub capture_jetbackup_state {
     remove_from_stage_file('reinstall.jetbackup');
 
@@ -1604,37 +1600,6 @@ sub reinstall_influxdb ($self) {
     return unless read_stage_file('reinstall')->{'influxdb'};
     INFO("Re-installing telegraf for influxdb");
     $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
-
-    return;
-}
-
-sub remove_wordpress_toolkit ($self) {
-    return unless Cpanel::Pkgr::is_installed('wp-toolkit-cpanel');
-
-    INFO("Removing Wordpress Toolkit");
-
-    INFO("Removing the rpm wp-toolkit-cpanel (--noscripts)");
-    backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
-    backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
-    my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
-    DEBUG($output) if $output;
-
-    yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
-    $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
-
-    update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
-
-    return;
-}
-
-sub reinstall_wordpress_toolkit ($self) {
-    return unless read_stage_file('reinstall')->{'wordpress_toolkit'};
-
-    INFO("Restoring Wordpress Toolkit");
-    my $installer_script = Elevate::Fetch::script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );
-
-    $self->ssystem( '/usr/bin/bash', $installer_script );
-    unlink $installer_script;
 
     return;
 }
