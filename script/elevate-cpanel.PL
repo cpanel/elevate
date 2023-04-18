@@ -442,13 +442,13 @@ sub monitor_upgrade {
         Elevate::Logger::INFO_nolog("# Upgrade was successful. Showing the last lines of the update log.");
     }
     elsif ( $status eq 'running' ) {
-        INFO("# Monitoring existing upgrade (stage=$stage) process via: $tail_msg");
+        Elevate::Logger::INFO_nolog("# Monitoring existing upgrade (stage=$stage) process via: $tail_msg");
     }
     elsif ( $status eq 'failed' ) {
-        ERROR("# Upgrade process failed at stage=$stage");
+        Elevate::Logger::ERROR_nolog("# Upgrade process failed at stage=$stage");
     }
     else {
-        WARN("# Monitoring upgrade file (stage=$stage) process via: $tail_msg");
+        Elevate::Logger::WARN_nolog("# Monitoring upgrade file (stage=$stage) process via: $tail_msg");
     }
 
     exec( qw{/usr/bin/tail -n40 -F }, Elevate::Constants::LOG_FILE );
@@ -534,18 +534,35 @@ EOS
 
 sub continue_elevation ($self) {
 
+    my $status = read_stage_file( 'status', 'unknown' );
+    if ( $status eq 'success' ) {
+        Elevate::Logger::INFO_nolog("Elevate process was successful. No process to continue.");
+        return;
+    }
+
     if ( $self->service->is_active ) {
-        WARN( "The service " . $self->service->name . " is still running. Please wait for it to finish before restarting it." );
+        Elevate::Logger::WARN_nolog( "The service " . $self->service->name . " is still running. Please wait for it to finish before restarting it." );
         return;
     }
 
     # check that no process is running and remove the pidfile for the other
     $self->check_and_create_pidfile()->remove_pid_file;
 
+    my $stage = get_stage();
+    if ( $stage == 0 ) {
+        Elevate::Logger::ERROR_nolog("Looks like no elevate process was started. Please consider running: /scripts/elevate-cpanel --start");
+        return;
+    }
+    elsif ( $stage == 1 ) {
+        Elevate::Logger::INFO_nolog("Continuing elevate process from stage 1 (service not setup yet)");
+        $self->run_stage_1();
+        return;
+    }
+
     my $pid = fork();
     LOGDIE(qq[Failed to fork: $!]) unless defined $pid;
     if ($pid) {
-        INFO("Restarting install process");
+        Elevate::Logger::INFO_nolog("Restarting install process (stage=$stage)");
         return 1;
     }
     else {
