@@ -35,7 +35,8 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 				       script/$@.PL
 	@mv script/$@.PL.static $@
 	@MARKER="`cat maint/marker`" perl -pi -e 's|^(#!/usr/local/cpanel/3rdparty/bin/perl)|$$1\n\n$$ENV{MARKER}\n|' $@
-	@perltidy $@ && mv $@.tdy $@
+	@VERSION="`cat version`" perl -pi -e 's/(^use constant VERSION =>) 1;/$$1 $$ENV{VERSION};/' $@
+	@perltidy -b -bext="/" $@
 	@chmod +x $@
 	perl -cw elevate-cpanel
 
