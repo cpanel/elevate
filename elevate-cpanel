@@ -5177,7 +5177,6 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'EA4'     => 'pre_leapp' );
     $self->run_component_once( 'PECL'    => 'pre_leapp' );
     $self->run_component_once( 'MySQL'   => 'pre_leapp' );
-    $self->run_once('cleanup_mysql_packages');
     $self->run_once('disable_known_yum_repositories');
 
     $self->run_once(
