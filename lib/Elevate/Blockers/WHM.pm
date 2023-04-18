@@ -1,5 +1,15 @@
 package Elevate::Blockers::WHM;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::WHM
+
+Blocker to check if cPanel&WHM state is compatible with the elevate process.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();
@@ -56,7 +66,12 @@ sub _blocker_cpanel_needs_update ($self) {
     if ( !$self->getopt('skip-cpanel-version-check') ) {
         my $tiers_obj = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
         if ( !grep { Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $_ ) } $tiers_obj->get_flattened_hash()->@{qw/edge current release stable lts/} ) {
-            return $self->has_blocker("This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date. Please upgrade cPanel to a most recent version.");
+            my $hint = '';
+            $hint = q[hint: You can skip this check using --skip-cpanel-version-check] if $Cpanel::Version::Tiny::VERSION_BUILD =~ 9999;
+            return $self->has_blocker( <<~"EOS" );
+            This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.
+            Please upgrade cPanel to a most recent version. $hint
+            EOS
         }
     }
     else {

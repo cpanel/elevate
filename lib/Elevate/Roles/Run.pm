@@ -1,5 +1,25 @@
 package Elevate::Roles::Run;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Roles::Run
+
+This is providing the helper to run commands.
+
+=over 4
+
+=item * ssystem_capture_output
+
+=item * ssystem
+
+=item * ssystem_and_die
+
+=back
+
+=cut
+
 use cPstrict;
 
 use Cpanel::IOCallbackWriteLine ();

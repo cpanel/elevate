@@ -1,25 +1,37 @@
 package Elevate::Blockers;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers
+
+This is providing the entry point and helpers to run
+one or more helpers.
+
+You should plug any new blockers in the class.
+
+=cut
+
 use cPstrict;
 
 # enforce packing these packages
 use Elevate::Blockers::Base ();
 
-use Elevate::Blockers::Databases   ();
-use Elevate::Blockers::DiskSpace   ();
-use Elevate::Blockers::Distros     ();
-use Elevate::Blockers::DNS         ();
-use Elevate::Blockers::EA4         ();
-use Elevate::Blockers::Grub2       ();
-use Elevate::Blockers::IsContainer ();
-use Elevate::Blockers::JetBackup   ();
-use Elevate::Blockers::NICs        ();
-use Elevate::Blockers::OVH         ();
-use Elevate::Blockers::Script      ();
-use Elevate::Blockers::SSH         ();
-use Elevate::Blockers::UpToDate    ();
-use Elevate::Blockers::WHM         ();
-use Elevate::Blockers::Yum         ();
+use Elevate::Blockers::Databases     ();
+use Elevate::Blockers::DiskSpace     ();
+use Elevate::Blockers::Distros       ();
+use Elevate::Blockers::DNS           ();
+use Elevate::Blockers::EA4           ();
+use Elevate::Blockers::Grub2         ();
+use Elevate::Blockers::IsContainer   ();
+use Elevate::Blockers::JetBackup     ();
+use Elevate::Blockers::NICs          ();
+use Elevate::Blockers::OVH           ();
+use Elevate::Blockers::ElevateScript ();
+use Elevate::Blockers::SSH           ();
+use Elevate::Blockers::WHM           ();
+use Elevate::Blockers::Repositories  ();
 
 use Simple::Accessor qw(
   cpev
@@ -27,19 +39,23 @@ use Simple::Accessor qw(
   blockers
 );
 
-use Log::Log4perl ();
+use Log::Log4perl qw(:easy);
 use Cpanel::JSON  ();
 
+# This is where you should add your blockers class
+# note: the order matters
 our @BLOCKERS = qw{
+
   IsContainer
-  UpToDate
+  ElevateScript
+
   DiskSpace
   WHM
   Distros
   DNS
-  Script
+
   Databases
-  Yum
+  Repositories
   SSH
   JetBackup
   NICs
@@ -132,9 +148,7 @@ sub save ( $self, $path, $stash ) {
 
 sub _check_all_blockers ($self) {    # sub _blockers_check ($self) {
 
-    my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
-
-    foreach my $blocker (qw{UpToDate DiskSpace WHM }) {    # preserve order
+    foreach my $blocker (@BLOCKERS) {    # preserve order
         $self->_check_single_blocker($blocker);
     }
 

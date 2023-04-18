@@ -1,5 +1,15 @@
 package Elevate::Components::EA4;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Components::EA4
+
+Perform am EA4 backup pre-elevate then restore it after the elevation process.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();
@@ -19,7 +29,8 @@ use Elevate::Blockers ();
 ## Call early so we can use a blocker based on existing ea4 profile
 ##
 
-sub backup ($self) {
+# note: the backup process is triggered by Elevate::Blockers::EA4
+sub backup ($self) {    # run by the check (should be a dry run mode)
 
     $self->_backup_ea4_profile;
     $self->_backup_ea_addons;
@@ -27,10 +38,18 @@ sub backup ($self) {
     return;
 }
 
-sub restore ($self) {    # restore_ea4_profile
+sub pre_leapp ($self) {    # run to perform the backup
 
-    $self->run_once('restore_ea4_profile');
-    $self->run_once('restore_ea_addons');
+    $self->run_once('_backup_ea4_profile');
+    $self->run_once('_backup_ea_addons');
+
+    return;
+}
+
+sub post_leapp ($self) {
+
+    $self->run_once('_restore_ea4_profile');
+    $self->run_once('_restore_ea_addons');
 
     return;
 }
@@ -164,7 +183,7 @@ sub _restore_ea4_profile ($self) {
                 $msg .= sprintf( "- '%s'%s\n", $pkg, $type eq 'exp' ? ' ( package was Experimental in CentOS 7 )' : '' );
             }
             chomp $msg;
-            cpev::add_final_notification( $msg, 1 );    # FIXME
+            Elevate::Notify::add_final_notification( $msg, 1 );
         }
     }
 

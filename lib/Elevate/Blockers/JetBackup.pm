@@ -1,5 +1,15 @@
 package Elevate::Blockers::JetBackup;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::JetBackup
+
+Blocker to check if JetBackup is supported.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();

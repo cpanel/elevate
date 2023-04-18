@@ -1,5 +1,15 @@
 package Elevate::Blockers::IsContainer;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::IsContainer
+
+Blocker to check if this is run on a container.
+
+=cut
+
 use cPstrict;
 
 use parent        qw{Elevate::Blockers::Base};

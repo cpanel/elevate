@@ -1,5 +1,15 @@
 package Elevate::Motd;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Motd
+
+Logic to setup then remove motd for elevate.
+
+=cut
+
 use cPstrict;
 
 sub setup {

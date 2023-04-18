@@ -1,10 +1,20 @@
 package Elevate::Blockers::Distros;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Blockers::Distros
+
+Blocker to check compatibility with current distribution.
+
+=cut
+
 use cPstrict;
 
 use Cpanel::OS ();
 
-use Elevate::Constants ();
+use constant MINIMUM_CENTOS_7_SUPPORTED => 9;
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -36,9 +46,14 @@ sub _blocker_is_non_centos7 ($self) {
 }
 
 sub _blocker_is_old_centos7 ($self) {
-    if ( Cpanel::OS::minor() < Elevate::Constants::MINIMUM_CENTOS_7_SUPPORTED ) {
+    if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        return $self->has_blocker( sprintf( 'You need to run CentOS 7.%s and later to upgrade %s. You are currently using %s', Elevate::Constants::MINIMUM_CENTOS_7_SUPPORTED, $pretty_distro_name, Cpanel::OS::display_name() ) );
+        return $self->has_blocker(
+            sprintf(
+                'You need to run CentOS 7.%s and later to upgrade %s. You are currently using %s',    #
+                MINIMUM_CENTOS_7_SUPPORTED, $pretty_distro_name, Cpanel::OS::display_name()           #
+            )
+        );
     }
 
     return 0;

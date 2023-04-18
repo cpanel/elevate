@@ -1,5 +1,15 @@
 package Elevate::Components::Grub2;
 
+=encoding utf-8
+
+=head1 NAME
+
+Elevate::Components::Grub2
+
+Logic to update and fix grub2 configuration.
+
+=cut
+
 use cPstrict;
 
 use Elevate::Constants ();
@@ -22,10 +32,10 @@ use constant GRUB_ENV_FILE => '/boot/grub2/grubenv';
 ## Call early so we can use a blocker based on existing ea4 profile
 ##
 
-sub check_and_fix ($self) {
+sub pre_leapp ($self) {
 
-    $self->run_once('update_grub2_workaround_if_needed');    # required part
-    $self->run_once('merge_grub_directories_if_needed');     # best-effort part
+    $self->run_once('_update_grub2_workaround_if_needed');    # required part
+    $self->run_once('_merge_grub_directories_if_needed');     # best-effort part
 
     return;
 }
@@ -33,7 +43,7 @@ sub check_and_fix ($self) {
 sub GRUB2_PREFIX_DEBIAN { return '/boot/grub' }     # FIXME deduplicate & move to constant
 sub GRUB2_PREFIX_RHEL   { return '/boot/grub2' }    # FIXME deduplicate & move to constant
 
-sub update_grub2_workaround_if_needed ($self) {
+sub _update_grub2_workaround_if_needed ($self) {
 
     my $grub2_info = cpev::read_stage_file('grub2_workaround');
     return unless $grub2_info->{'needs_workaround_update'};
@@ -59,7 +69,7 @@ sub update_grub2_workaround_if_needed ($self) {
     return;
 }
 
-sub merge_grub_directories_if_needed ($self) {
+sub _merge_grub_directories_if_needed ($self) {
 
     my $grub2_info = cpev::read_stage_file('grub2_workaround');
     return unless $grub2_info->{'needs_workaround_update'};
@@ -107,8 +117,7 @@ sub merge_grub_directories_if_needed ($self) {
 
     my $log_file = Elevate::Constants::LOG_FILE;
 
-    # FIXME move add_final_notification to notification system
-    cpev::add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
+    Elevate::Notify::add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
         After converting "$grub_dir" from a directory to a symlink to
         "$grub2_dir", the upgrade process chose not to copy $skipped_copy
         entries from the old directory due to name conflicts, and it failed to
@@ -123,7 +132,7 @@ sub merge_grub_directories_if_needed ($self) {
     return;
 }
 
-sub final_check_and_fix ($self) {
+sub post_leapp ($self) {
 
     # for an autofixer
     # return unless -e q[/var/cpanel/version/elevate];

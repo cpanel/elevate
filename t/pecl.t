@@ -26,6 +26,7 @@ use cPstrict;
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
 my $mock_elevate = Test::MockModule->new('cpev');
+my $mock_pecl    = Test::MockModule->new('Elevate::Components::PECL');
 
 my $mock_stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
 
@@ -41,11 +42,14 @@ $mock_saferun->redefine(
 
 my $pecl_bin = Test::MockFile->file( '/my/pecl/bin', '', { mode => 0700 } );
 
-is cpev::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - empty list';
+my $cpev = cpev->new;
+my $pecl = $cpev->component('PECL');
+
+is Elevate::Components::PECL::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - empty list';
 
 $list_output = qq[(no packages installed from channel pecl.php.net)\n];
 
-is cpev::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - no packages installed';
+is Elevate::Components::PECL::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - no packages installed';
 
 $list_output = <<'EOS';
 Installed packages, channel pecl.php.net:
@@ -54,7 +58,7 @@ Package Version State
 imagick 3.5.1   stable
 EOS
 
-is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
+is Elevate::Components::PECL::_get_pecl_installed_for('/my/pecl/bin'), {
     imagick => q[3.5.1],
   },
   '_get_pecl_installed_for - imagick';
@@ -67,7 +71,7 @@ ds      1.4.0   stable
 imagick 3.5.1   stable
 EOS
 
-is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
+is Elevate::Components::PECL::_get_pecl_installed_for('/my/pecl/bin'), {
     ds      => q[1.4.0],
     imagick => q[3.5.1],
   },
@@ -77,14 +81,14 @@ is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
 
     is cpev::read_stage_file(), {}, "stage file is empty";
 
-    $mock_elevate->redefine( _get_pecl_installed_for => sub { { module_one => 1.2 } } );
+    $mock_pecl->redefine( _get_pecl_installed_for => sub { { module_one => 1.2 } } );
 
-    cpev::_store_pecl_for( '/whatever', 'cpanel' );
+    Elevate::Components::PECL::_store_pecl_for( '/whatever', 'cpanel' );
 
     is cpev::read_stage_file(), { pecl => { cpanel => { module_one => 1.2 } } }, "stage file: store pecl for cpanel";
 
-    $mock_elevate->redefine( _get_pecl_installed_for => sub { { xyz => 5.6 } } );
-    cpev::_store_pecl_for( '/whatever', 'ea-php80' );
+    $mock_pecl->redefine( _get_pecl_installed_for => sub { { xyz => 5.6 } } );
+    Elevate::Components::PECL::_store_pecl_for( '/whatever', 'ea-php80' );
 
     is cpev::read_stage_file(), {
         pecl => {
@@ -97,7 +101,7 @@ is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
 }
 
 {
-    $mock_elevate->redefine( _get_pecl_installed_for => undef );
+    $mock_pecl->redefine( _get_pecl_installed_for => undef );
     $mock_elevate->redefine(
         _read_stage_file => sub {
             return {
@@ -114,7 +118,7 @@ is cpev::_get_pecl_installed_for('/my/pecl/bin'), {
 
     clear_messages_seen();
 
-    cpev::check_pecl_packages();
+    $pecl->_check_pecl_packages();
 
     message_seen_lines( 'WARN', <<'EOS' );
 ********************
@@ -126,14 +130,14 @@ Please reinstall these packages:
 #
 EOS
 
-    $mock_elevate->redefine(
+    $mock_pecl->redefine(
         _get_pecl_installed_for => sub {
             return { module_one => 1.2 },;
         }
     );
 
     clear_messages_seen();
-    cpev::check_pecl_packages();
+    $pecl->_check_pecl_packages();
 
     message_seen_lines( 'WARN', <<'EOS' );
 ********************
