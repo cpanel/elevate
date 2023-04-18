@@ -218,6 +218,7 @@ use Elevate::Components::InfluxDB     ();
 use Elevate::Components::JetBackup    ();
 use Elevate::Components::LiteSpeed    ();
 use Elevate::Components::KernelCare   ();
+use Elevate::Components::Kernel       ();
 use Elevate::Components::MySQL        ();
 use Elevate::Components::NixStats     ();
 use Elevate::Components::PECL         ();
@@ -1367,32 +1368,12 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'WPToolkit'  => 'post_leapp' );
     $self->run_component_once( 'InfluxDB'   => 'post_leapp' );
     $self->run_component_once( 'JetBackup'  => 'post_leapp' );
-    $self->run_once('kernel_check');
+    $self->run_component_once( 'Kernel'     => 'post_leapp' );
     $self->run_component_once( 'KernelCare' => 'post_leapp' );
     $self->run_component_once( 'Imunify'    => 'post_leapp' );
     $self->run_component_once( 'NixStats'   => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'  => 'post_leapp' );
     $self->run_once('reinstall_digital_ocean_droplet_agent');
-
-    return;
-}
-
-sub kernel_check ($self) {
-    my @kernel_rpms = `/usr/bin/rpm -qa`;
-    @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
-    return unless @kernel_rpms;
-    chomp @kernel_rpms;
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-    my $msg = "The following kernels should probably be removed as they will not function on $pretty_distro_name:\n\n";
-    foreach my $kernel (@kernel_rpms) {
-        $msg .= "    $kernel\n";
-    }
-
-    $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
-
-    Elevate::Notify::add_final_notification($msg);
 
     return;
 }
