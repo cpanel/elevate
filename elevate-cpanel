@@ -1301,10 +1301,8 @@ EOS
 
     use constant VETTED_MYSQL_YUM_REPO_IDS => qw{
       mysql-cluster-7.5-community
-      mysql-cluster-7.5-community
       mysql-cluster-7.5-community-source
       mysql-cluster-7.5-community-source
-      mysql-cluster-7.6-community
       mysql-cluster-7.6-community
       mysql-cluster-7.6-community-source
       mysql-cluster-7.6-community-source
@@ -1312,31 +1310,22 @@ EOS
       mysql-cluster-8.0-community-debuginfo
       mysql-cluster-8.0-community-source
       mysql-connectors-community
-      mysql-connectors-community
       mysql-connectors-community-debuginfo
       mysql-connectors-community-source
       mysql-connectors-community-source
       mysql-tools-community
-      mysql-tools-community
       mysql-tools-community-debuginfo
       mysql-tools-community-source
-      mysql-tools-community-source
       mysql-tools-preview
-      mysql-tools-preview
-      mysql-tools-preview-source
       mysql-tools-preview-source
       mysql55-community
       mysql55-community-source
       mysql56-community
       mysql56-community-source
       mysql57-community
-      mysql57-community
       mysql57-community-source
-      mysql57-community-source
-      mysql80-community
       mysql80-community
       mysql80-community-debuginfo
-      mysql80-community-source
       mysql80-community-source
       MariaDB102
       MariaDB103
