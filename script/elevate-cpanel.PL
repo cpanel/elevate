@@ -214,6 +214,7 @@ use Elevate::Components::EA4          ();
 use Elevate::Components::Grub2        ();
 use Elevate::Components::Imunify      ();
 use Elevate::Components::Imunify360   ();
+use Elevate::Components::JetBackup    ();
 use Elevate::Components::KernelCare   ();
 use Elevate::Components::MySQL        ();
 use Elevate::Components::NixStats     ();
@@ -1339,8 +1340,8 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'Imunify360'   => 'pre_leapp' );
     $self->run_component_once( 'WPToolkit'    => 'pre_leapp' );
     $self->run_once('capture_influxdb_state');
-    $self->run_once('capture_jetbackup_state');
-    $self->run_component_once( 'NixStats' => 'pre_leapp' );
+    $self->run_component_once( 'JetBackup' => 'pre_leapp' );
+    $self->run_component_once( 'NixStats'  => 'pre_leapp' );
     $self->run_once('pre_install_check_litespeed');
 
     return;
@@ -1363,7 +1364,7 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'Imunify360' => 'post_leapp' );
     $self->run_component_once( 'WPToolkit'  => 'post_leapp' );
     $self->run_once('reinstall_influxdb');
-    $self->run_once('reinstall_jetbackup');
+    $self->run_component_once( 'JetBackup' => 'post_leapp' );
     $self->run_once('kernel_check');
     $self->run_component_once( 'KernelCare' => 'post_leapp' );
     $self->run_component_once( 'Imunify'    => 'post_leapp' );
@@ -1493,44 +1494,6 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
     __PACKAGE__->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
-
-    return;
-}
-
-sub capture_jetbackup_state {
-    remove_from_stage_file('reinstall.jetbackup');
-
-    return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
-
-    my $repos = yum_list();
-    my $jetbackup_tier =
-        $repos->{'jetapps-stable'} ? 'jetapps-stable'
-      : $repos->{'jetapps-edge'}   ? 'jetapps-edge'
-      : $repos->{'jetapps-beta'}   ? 'jetapps-beta'
-      :                              'jetapps-stable';    # Just give up and choose stable if you can't guess.
-    INFO("Jetbackup tier '$jetbackup_tier' detected. Not removing jetbackup. Will re-install it after elevate.");
-    my @reinstall = get_installed_rpms_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
-    unshift @reinstall, $jetbackup_tier;
-
-    my $data = {
-        tier     => $jetbackup_tier,
-        packages => \@reinstall,
-    };
-
-    update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
-
-    return;
-}
-
-sub reinstall_jetbackup ($self) {
-    my $data = read_stage_file('reinstall')->{'jetbackup'};
-    return unless ref $data && ref $data->{packages};
-
-    INFO("Re-installing jetbackup.");
-
-    my $tier     = $data->{tier};
-    my @packages = $data->{packages}->@*;
-    $self->ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
 
     return;
 }
