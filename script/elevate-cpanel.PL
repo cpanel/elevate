@@ -434,7 +434,7 @@ sub upgrade_to_pretty_name ($self) {    # used by output messages
 sub monitor_upgrade {
     my $stage = get_stage();
 
-    my $tail_msg = q[tail -f ] . Elevate::Constants::LOG_FILE;
+    my $tail_msg = q[Running: tail -f ] . Elevate::Constants::LOG_FILE;
 
     my $status = read_stage_file( 'status', 'unknown' );
 
@@ -442,13 +442,13 @@ sub monitor_upgrade {
         Elevate::Logger::INFO_nolog("# Upgrade was successful. Showing the last lines of the update log.");
     }
     elsif ( $status eq 'running' ) {
-        Elevate::Logger::INFO_nolog("# Monitoring existing upgrade (stage=$stage) process via: $tail_msg");
+        Elevate::Logger::INFO_nolog("# Monitoring existing upgrade (stage=$stage) ; $tail_msg");
     }
     elsif ( $status eq 'failed' ) {
-        Elevate::Logger::ERROR_nolog("# Upgrade process failed at stage=$stage");
+        Elevate::Logger::ERROR_nolog("# Upgrade process failed at stage=$stage ; $tail_msg");
     }
     else {
-        Elevate::Logger::WARN_nolog("# Monitoring upgrade file (stage=$stage) process via: $tail_msg");
+        Elevate::Logger::WARN_nolog("# Monitoring upgrade file (stage=$stage) ; $tail_msg");
     }
 
     exec( qw{/usr/bin/tail -n40 -F }, Elevate::Constants::LOG_FILE );
@@ -639,7 +639,7 @@ sub check_status ($self) {
     my $stage = get_stage();
 
     if ( !$stage ) {
-        ERROR('Elevation process has not started yet.');
+        Elevate::Logger::ERROR_nolog('Elevation process has not started yet.');
         return;
     }
 
@@ -1186,7 +1186,7 @@ sub _sanity_check {
 
     return 1 if -x $0;
 
-    ERROR("The script $0 is not executable, please fix it before running it again.");
+    Elevate::Logger::ERROR_nolog("The script $0 is not executable, please fix it before running it again.");
 
     return;
 }
