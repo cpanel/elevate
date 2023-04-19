@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::Fetch     ();
+use Elevate::Notify    ();
 
 use Cpanel::JSON ();
 use Cpanel::Pkgr ();
@@ -92,17 +93,24 @@ sub _reinstall_imunify_360 ($self) {
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
-    if ( $self->ssystem( '/usr/bin/bash', $installer_script ) != 0 ) {
-        ERROR("Fail to reinstall $product_type.");
+    if ( $self->ssystem( '/usr/bin/bash', $installer_script ) == 0 ) {
+        INFO("Successfully reinstalled $product_type.");
     }
+    else {
+        my $installer_url = _script_url_for_product($product_type);
+        my $msg           = "Fail to reinstall $product_type. Please reinstall it manually using $installer_url.";
+        ERROR($msg);
+        Elevate::Notify::add_final_notification($msg);
+    }
+
     unlink $installer_script;
 
     return;
 }
 
-sub _fetch_imunify_installer ($product) {
-
+sub _script_url_for_product ($product) {
     $product =~ s/Plus/+/i;
+
     my %installer_scripts = (
         'imunifyAV'  => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
         'imunifyAV+' => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
@@ -114,6 +122,12 @@ sub _fetch_imunify_installer ($product) {
         return;
     };
 
+    return $installer_url;
+}
+
+sub _fetch_imunify_installer ($product) {
+
+    my $installer_url = _script_url_for_product($product) or return;
     return Elevate::Fetch::script( $installer_url, 'imunify_installer' );
 }
 
