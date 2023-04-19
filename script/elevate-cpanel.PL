@@ -1143,6 +1143,7 @@ sub run_component_once ( $self, $name, $function ) {
       or die qq[Missing functon $function from component '$name'];
 
     my $run = sub {
+        DEBUG("Running '$function' from $name component.");
         return $sub->($component);
     };
 
