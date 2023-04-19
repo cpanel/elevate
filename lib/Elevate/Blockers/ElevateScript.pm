@@ -50,12 +50,16 @@ sub _is_up_to_date ($self) {    # $self is a cpev object here
 
     return if $self->getopt('skip-elevate-version-check');
 
-    my ( $should_block, $blocker_text ) = $self->cpev->script->is_out_of_date();
-    return unless $should_block;
-    $blocker_text //= '';
+    my ( $should_block, $message ) = $self->cpev->script->is_out_of_date();
+    $message //= '';
+
+    if ( !$should_block ) {
+        WARN($message) if length $message;
+        return;
+    }
 
     return $self->has_blocker( <<~"EOS");
-    $blocker_text
+    $message
 
     Pass the --skip-elevate-version-check flag to skip this check.
     EOS
