@@ -1,8 +1,13 @@
-.PHONY: test cover tags clean release build sanity
+.PHONY: all test cover tags clean release build sanity
 
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
 PERL_BIN=/usr/local/cpanel/3rdparty/perl/536/bin
+
+all:
+	$(MAKE) build
+	$(MAKE) test
+	$(MAKE) cover
 
 sanity:
 	@for file in $$(find lib -type f -name "*.pm" | sort); do \
