@@ -39,25 +39,28 @@ sub _build_latest_version ($self) {
 }
 
 sub is_out_of_date ($self) {
-    my ( $should_block, $blocker_text ) = ( 0, undef );
+    my ( $should_block, $message );
 
     my ( $latest_version, $self_version ) = ( $self->latest_version(), cpev::VERSION() );
 
     if ( !defined $latest_version ) {
         $should_block = 1;
-        $blocker_text = "The script could not fetch information about the latest version.";
+        $message      = "The script could not fetch information about the latest version.";
     }
-    else {
-        $should_block = $latest_version == $self_version ? 0 : 1;
-        $blocker_text = <<~EOS if $should_block;
-            This script (version $self_version) does not appear to be the newest available release ($latest_version).
-            Run this script with the --update option:
+    elsif ( $self_version > $latest_version ) {
+        $message = qq[You are using a development version of elevate-cpanel. Latest version available is v$latest_version.];
+    }
+    elsif ( $self_version < $latest_version ) {
+        $should_block = 1;
+        $message      = <<~EOS;
+        This script (version $self_version) does not appear to be the newest available release ($latest_version).
+        Run this script with the --update option:
 
-            /scripts/elevate-cpanel --update
-            EOS
+        /scripts/elevate-cpanel --update
+        EOS
     }
 
-    return ( $should_block, $blocker_text );
+    return ( $should_block, $message );
 }
 
 sub fetch ($self) {

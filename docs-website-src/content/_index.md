@@ -7,6 +7,8 @@ layout: single
 
 # Welcome to the cPanel ELevate Project!
 
+Read more from the [Elevate website](https://cpanel.github.io/elevate/).
+
 ## Goal
 
 The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` [CentOS&nbsp;7](https://centos.org) server installation to [AlmaLinux&nbsp;8](https://almalinux.org) or [Rocky&nbsp;Linux&nbsp;8](https://rockylinux.org).
