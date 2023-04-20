@@ -754,12 +754,16 @@ EOS
 
         return if $self->getopt('skip-elevate-version-check');
 
-        my ( $should_block, $blocker_text ) = $self->cpev->script->is_out_of_date();
-        return unless $should_block;
-        $blocker_text //= '';
+        my ( $should_block, $message ) = $self->cpev->script->is_out_of_date();
+        $message //= '';
+
+        if ( !$should_block ) {
+            WARN($message) if length $message;
+            return;
+        }
 
         return $self->has_blocker( <<~"EOS");
-    $blocker_text
+    $message
 
     Pass the --skip-elevate-version-check flag to skip this check.
     EOS
@@ -2384,8 +2388,10 @@ EOS
 
     use Elevate::Constants ();
     use Elevate::Fetch     ();
+    use Elevate::Notify    ();
 
     use Cpanel::JSON ();
+    use Cpanel::Pkgr ();
     use Cwd          ();
 
     # use Log::Log4perl qw(:easy);
@@ -2397,7 +2403,7 @@ EOS
 
     sub pre_leapp ($self) {
 
-        $self->run_once("_remove_imunify_360");
+        $self->run_once('_remove_imunify_360');
 
         return;
     }
@@ -2409,28 +2415,45 @@ EOS
         return;
     }
 
+    sub is_installed ($self) {
+
+        return Cpanel::Pkgr::is_installed('imunify360-firewall')
+          || Cpanel::Pkgr::is_installed('imunify-antivirus');
+    }
+
     sub _remove_imunify_360 ($self) {
 
-        my $im360 = Cpanel::Pkgr::is_installed('imunify360-firewall');
-        my $imav  = Cpanel::Pkgr::is_installed('imunify-antivirus');
-        return unless $im360 || $imav;
+        return unless $self->is_installed;
 
         my $agent_bin = Elevate::Constants::IMUNIFY_AGENT;
         return unless -x $agent_bin;
+
         my $license_data = eval { Cpanel::JSON::Load(`$agent_bin version --json 2>&1`) } // {};
-        return unless $license_data->{'license'}->{'status'};    # Must be true.
+        if (   !ref $license_data->{'license'}
+            || !$license_data->{'license'}->{'status'} ) {
+            WARN("Imunify360: Cannot detect license. Skipping upgrade.");
+            return;
+        }
 
-        my $product_type = $license_data->{'license'}->{'license_type'};
+        my $product_type = $license_data->{'license'}->{'license_type'} or do {
+            WARN("Imunify360: No license type detected. Skipping upgrade.");
+            return;
+        };
 
-        INFO("Removing $product_type prior to upgrade.");
+        INFO("Imunify360: Removing $product_type prior to upgrade.");
+        INFO("Imunify360: Product $product_type detected. Uninstalling before upgrade for later restore.");
 
-        cpev::update_stage_file( { 'reinstall' => { 'imunify' => $product_type } } );
-        INFO("Product $product_type detected. Uninstalling before upgrade for later restore");
-
-        my $installer_script = _fetch_imunify_installer($product_type) or return;
-
-        $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' );
+        my $installer_script = _fetch_imunify_installer($product_type) or do {
+            FATAL("Imunify360: Fail to fetch script for $product_type. Skipping upgrade.");
+            die;
+        };
+        if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
+            FATAL("Imunify360: Fail to uninstall $product_type.");
+            die;
+        }
         unlink $installer_script;
+
+        cpev::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
 
         $self->remove_rpms_from_repos('imunify');
 
@@ -2438,19 +2461,30 @@ EOS
     }
 
     sub _reinstall_imunify_360 ($self) {
-        my $product_type = cpev::read_stage_file('reinstall')->{'imunify'} or return;
+        my $product_type = cpev::read_stage_file('reinstall')->{'imunify360'} or return;
+
+        INFO("Reinstalling $product_type");
 
         my $installer_script = _fetch_imunify_installer($product_type) or return;
 
-        $self->ssystem( '/usr/bin/bash', $installer_script );
+        if ( $self->ssystem( '/usr/bin/bash', $installer_script ) == 0 ) {
+            INFO("Successfully reinstalled $product_type.");
+        }
+        else {
+            my $installer_url = _script_url_for_product($product_type);
+            my $msg           = "Fail to reinstall $product_type. Please reinstall it manually using $installer_url.";
+            ERROR($msg);
+            Elevate::Notify::add_final_notification($msg);
+        }
+
         unlink $installer_script;
 
         return;
     }
 
-    sub _fetch_imunify_installer ($product) {
+    sub _script_url_for_product ($product) {
+        $product =~ s/Plus/+/i;
 
-        $product =~ s/Plus/+/;
         my %installer_scripts = (
             'imunifyAV'  => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
             'imunifyAV+' => 'https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh',
@@ -2458,10 +2492,16 @@ EOS
         );
 
         my $installer_url = $installer_scripts{$product} or do {
-            ERROR("Unknown product type $product");
+            ERROR( "_fetch_imunify_installer: Unknown product type '$product'. Known products are: " . join( ', ', sort keys %installer_scripts ) );
             return;
         };
 
+        return $installer_url;
+    }
+
+    sub _fetch_imunify_installer ($product) {
+
+        my $installer_url = _script_url_for_product($product) or return;
         return Elevate::Fetch::script( $installer_url, 'imunify_installer' );
     }
 
@@ -3893,25 +3933,28 @@ EOS
     }
 
     sub is_out_of_date ($self) {
-        my ( $should_block, $blocker_text ) = ( 0, undef );
+        my ( $should_block, $message );
 
         my ( $latest_version, $self_version ) = ( $self->latest_version(), cpev::VERSION() );
 
         if ( !defined $latest_version ) {
             $should_block = 1;
-            $blocker_text = "The script could not fetch information about the latest version.";
+            $message      = "The script could not fetch information about the latest version.";
         }
-        else {
-            $should_block = $latest_version == $self_version ? 0 : 1;
-            $blocker_text = <<~EOS if $should_block;
-            This script (version $self_version) does not appear to be the newest available release ($latest_version).
-            Run this script with the --update option:
+        elsif ( $self_version > $latest_version ) {
+            $message = qq[You are using a development version of elevate-cpanel. Latest version available is v$latest_version.];
+        }
+        elsif ( $self_version < $latest_version ) {
+            $should_block = 1;
+            $message      = <<~EOS;
+        This script (version $self_version) does not appear to be the newest available release ($latest_version).
+        Run this script with the --update option:
 
-            /scripts/elevate-cpanel --update
-            EOS
+        /scripts/elevate-cpanel --update
+        EOS
         }
 
-        return ( $should_block, $blocker_text );
+        return ( $should_block, $message );
     }
 
     sub fetch ($self) {
@@ -4174,9 +4217,9 @@ EOS
 
         my $out = $self->_help( $msg, 2 );
         my ( $short_help, $extra ) = split( qr{^.+STAGES}m, $out );
-        chomp $short_help for 1 .. 2;
-        say $short_help;
-
+        my @lines = split "\n", $short_help;
+        shift @lines for 1 .. 2;
+        say foreach @lines;
         exit( $exit_status // 0 );
     }
 
@@ -4349,6 +4392,10 @@ The elevation process can take several long minutes and requires multiple reboot
 Some reboots are expected to be longer than normal.
 
 Please do not interrupt the reboots and elevation process.
+
+=head1 SEE ALSO
+
+    Read more from https://cpanel.github.io/elevate/
 
 =cut
 
@@ -4552,12 +4599,21 @@ sub run ( $pkg, @args ) {
     my $stage = get_stage();
 
     if ( $stage == 0 ) {
-        print_box("Please re-run this script with --start if you would like to begin the upgrade process");
-        return $self->full_help(1);    # exit
+        print_box_no_log( <<~EOS );
+        Please re-run this script with
+
+            --help  to know more about this script
+            --check to check if your server is ready to upgrade
+            --start if you would like to begin the upgrade process
+
+            Read more from https://cpanel.github.io/elevate/
+
+        EOS
+        return 0;
     }
 
     if ( $self->getopt('start') || $self->getopt('log') ) {
-        1;                             # these options are exclusive
+        1;    # these options are exclusive
     }
     elsif ( $self->getopt('continue') ) {
         $self->continue_elevation();
@@ -5359,6 +5415,7 @@ sub run_component_once ( $self, $name, $function ) {
       or die qq[Missing functon $function from component '$name'];
 
     my $run = sub {
+        DEBUG("Running '$function' from $name component.");
         return $sub->($component);
     };
 
@@ -5414,6 +5471,19 @@ sub print_box ($message) {
     INFO("* $message");
     INFO("*");
     INFO( "*" x 90 );
+
+    return;
+}
+
+sub print_box_no_log ($message) {
+
+    say( "#" x 90 );
+    say("#");
+    foreach my $line ( split( "\n", $message ) ) {
+        say("# $line");
+    }
+    say("#");
+    say( "#" x 90 );
 
     return;
 }
