@@ -134,6 +134,10 @@ Some reboots are expected to be longer than normal.
 
 Please do not interrupt the reboots and elevation process.
 
+=head1 SEE ALSO
+
+    Read more from https://cpanel.github.io/elevate/
+
 =cut
 
 use cPstrict;
@@ -336,12 +340,21 @@ sub run ( $pkg, @args ) {
     my $stage = get_stage();
 
     if ( $stage == 0 ) {
-        print_box("Please re-run this script with --start if you would like to begin the upgrade process");
-        return $self->full_help(1);    # exit
+        print_box_no_log( <<~EOS );
+        Please re-run this script with
+
+            --help  to know more about this script
+            --check to check if your server is ready to upgrade
+            --start if you would like to begin the upgrade process
+
+            Read more from https://cpanel.github.io/elevate/
+
+        EOS
+        return 0;
     }
 
     if ( $self->getopt('start') || $self->getopt('log') ) {
-        1;                             # these options are exclusive
+        1;    # these options are exclusive
     }
     elsif ( $self->getopt('continue') ) {
         $self->continue_elevation();
@@ -1199,6 +1212,19 @@ sub print_box ($message) {
     INFO("* $message");
     INFO("*");
     INFO( "*" x 90 );
+
+    return;
+}
+
+sub print_box_no_log ($message) {
+
+    say( "#" x 90 );
+    say("#");
+    foreach my $line ( split( "\n", $message ) ) {
+        say("# $line");
+    }
+    say("#");
+    say( "#" x 90 );
 
     return;
 }

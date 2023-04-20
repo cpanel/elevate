@@ -66,9 +66,9 @@ sub full_help ( $self, $msg = undef, $exit_status = undef ) {
 
     my $out = $self->_help( $msg, 2 );
     my ( $short_help, $extra ) = split( qr{^.+STAGES}m, $out );
-    chomp $short_help for 1 .. 2;
-    say $short_help;
-
+    my @lines = split "\n", $short_help;
+    shift @lines for 1 .. 2;
+    say foreach @lines;
     exit( $exit_status // 0 );
 }
 
