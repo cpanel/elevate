@@ -69,11 +69,11 @@ sub _remove_imunify_360 ($self) {
     INFO("Imunify360: Product $product_type detected. Uninstalling before upgrade for later restore.");
 
     my $installer_script = _fetch_imunify_installer($product_type) or do {
-        FATAL("Imunify360: Fail to fetch script for $product_type. Skipping upgrade.");
+        FATAL("Imunify360: Failed to fetch script for $product_type. Skipping upgrade.");
         die;
     };
     if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
-        FATAL("Imunify360: Fail to uninstall $product_type.");
+        FATAL("Imunify360: Failed to uninstall $product_type.");
         die;
     }
     unlink $installer_script;
@@ -98,7 +98,7 @@ sub _reinstall_imunify_360 ($self) {
     }
     else {
         my $installer_url = _script_url_for_product($product_type);
-        my $msg           = "Fail to reinstall $product_type. Please reinstall it manually using $installer_url.";
+        my $msg           = "Failed to reinstall $product_type. Please reinstall it manually using $installer_url.";
         ERROR($msg);
         Elevate::Notify::add_final_notification($msg);
     }

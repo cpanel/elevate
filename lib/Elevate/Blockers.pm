@@ -138,7 +138,7 @@ sub is_check_mode ($) {
 
 sub save ( $self, $path, $stash ) {
 
-    open( my $fh, '>', $path ) or LOGDIE( "Fail to open " . $path . ": $!" );
+    open( my $fh, '>', $path ) or LOGDIE( "Failed to open " . $path . ": $!" );
 
     print {$fh} Cpanel::JSON::pretty_canonical_dump($stash);
     close $fh;

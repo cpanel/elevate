@@ -49,7 +49,7 @@ sub _remove_nixstats ($self) {
     my $backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR . "/nixstats";
 
     File::Path::make_path($backup_dir);
-    die "Fail to create backup directory: $backup_dir" unless -d $backup_dir;
+    die "Failed to create backup directory: $backup_dir" unless -d $backup_dir;
 
     my @to_backup = qw{ /etc/nixstats-token.ini /etc/nixstats.ini };
 
