@@ -43,7 +43,7 @@ sub send_notification ( $subject, $msg, %opts ) {
         _send_notification( $subject, $msg, %opts );
         1;
     }
-      or warn "Fail to send notification: $@";
+      or warn "Failed to send notification: $@";
 
     return;
 }
