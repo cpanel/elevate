@@ -47,7 +47,7 @@ sub _disk_space_check ($self) {
     my $cmd    = join( ' ', @df_cmd );
 
     my $result = Cpanel::SafeRun::Simple::saferunnoerror(@df_cmd) // '';
-    die qq[Fail checking disk space using: $cmd\n] if $?;
+    die qq[Failed to check disk space using: $cmd\n] if $?;
 
     my ( $header, @out ) = split( "\n", $result );
 

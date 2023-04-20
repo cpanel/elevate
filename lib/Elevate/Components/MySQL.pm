@@ -66,7 +66,7 @@ sub _reinstall_mysql_packages {
     my ( $major, $minor ) = split( /\./, $mysql_version );
 
     my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
-    die qq[Fail to restore MySQL $mysql_version] if $?;
+    die qq[Failed to restore MySQL $mysql_version] if $?;
 
     if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
         my $id = $1;
@@ -81,7 +81,7 @@ sub _reinstall_mysql_packages {
         while (1) {
             $c   = ( $c + 1 ) % 10;
             $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-            die qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
+            die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
 
             if ( $out =~ m{\sstate:\s*inprogress} ) {
                 print ".";
