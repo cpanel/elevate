@@ -2255,6 +2255,7 @@ EOS
     INIT { Log::Log4perl->import(qw{:easy}); }
 
     use Cpanel::JSON            ();
+    use Cpanel::Pkgr            ();
     use Cpanel::SafeRun::Simple ();
     use File::Copy              ();
 
@@ -2269,6 +2270,7 @@ EOS
     sub pre_leapp ($self) {
 
         $self->run_once("_capture_imunify_features");
+        $self->run_once("_capture_imunify_packages");
 
         return;
     }
@@ -2276,6 +2278,32 @@ EOS
     sub post_leapp ($self) {
 
         $self->run_once('_restore_imunify_features');
+
+        $self->run_once("_restore_imunify_packages");
+
+        return;
+    }
+
+    sub _capture_imunify_packages ($self) {
+        my $installed = cpev::yum_list();
+        my @packages  = sort grep { m/^imunify-/ } keys %$installed;
+
+        return unless scalar @packages;
+
+        cpev::update_stage_file( { 'reinstall' => { 'imunify_packages' => \@packages } } );
+
+        return;
+    }
+
+    sub _restore_imunify_packages ($self) {
+
+        return unless my $packages = cpev::read_stage_file('reinstall')->{'imunify_packages'};
+
+        foreach my $pkg (@$packages) {
+            next unless Cpanel::Pkgr::is_installed($pkg);
+            INFO("Try to reinstall Imunify package: $pkg");
+            $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+        }
 
         return;
     }

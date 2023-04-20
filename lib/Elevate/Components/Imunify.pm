@@ -19,6 +19,7 @@ use Cwd           ();
 use Log::Log4perl qw(:easy);
 
 use Cpanel::JSON            ();
+use Cpanel::Pkgr            ();
 use Cpanel::SafeRun::Simple ();
 use File::Copy              ();
 
@@ -31,6 +32,7 @@ use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . 
 sub pre_leapp ($self) {
 
     $self->run_once("_capture_imunify_features");
+    $self->run_once("_capture_imunify_packages");
 
     return;
 }
@@ -38,6 +40,36 @@ sub pre_leapp ($self) {
 sub post_leapp ($self) {
 
     $self->run_once('_restore_imunify_features');
+
+    # this is happening after Imunify360 component
+    $self->run_once("_restore_imunify_packages");
+
+    return;
+}
+
+sub _capture_imunify_packages ($self) {
+
+    # only capture the imunify packages
+    my @packages = grep { m/^imunify-/ } cpev::get_installed_rpms_in_repo(qw{ imunify imunify360 });
+
+    return unless scalar @packages;
+
+    cpev::update_stage_file( { 'reinstall' => { 'imunify_packages' => \@packages } } );
+
+    return;
+}
+
+sub _restore_imunify_packages ($self) {
+
+    # try to reinstall missing Imunify packages which were previously installed
+
+    return unless my $packages = cpev::read_stage_file('reinstall')->{'imunify_packages'};
+
+    foreach my $pkg (@$packages) {
+        next unless Cpanel::Pkgr::is_installed($pkg);
+        INFO("Try to reinstall Imunify package: $pkg");
+        $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+    }
 
     return;
 }
