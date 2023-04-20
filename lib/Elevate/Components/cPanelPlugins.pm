@@ -1,10 +1,10 @@
-package Elevate::Components::ArchRPMs;
+package Elevate::Components::cPanelPlugins;
 
 =encoding utf-8
 
 =head1 NAME
 
-Elevate::Components::ArchRPMs
+Elevate::Components::cPanelPlugins
 
 Remove and reinstall some arch RPMs. (plugins)
 
