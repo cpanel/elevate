@@ -2444,12 +2444,12 @@ EOS
         INFO("Imunify360: Product $product_type detected. Uninstalling before upgrade for later restore.");
 
         my $installer_script = _fetch_imunify_installer($product_type) or do {
-            FATAL("Imunify360: Failed to fetch script for $product_type. Skipping upgrade.");
-            die;
+            WARN("Imunify360: Failed to fetch script for $product_type. Skipping upgrade.");
+            return;
         };
         if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
-            FATAL("Imunify360: Failed to uninstall $product_type.");
-            die;
+            WARN("Imunify360: Failed to uninstall $product_type.");
+            return;
         }
         unlink $installer_script;
 
