@@ -42,7 +42,7 @@ sub _disable_known_yum_repositories {
             next;
         }
 
-        File::Copy::move( $f, "$f.off" ) or die qq[Fail to disable repo $f];
+        File::Copy::move( $f, "$f.off" ) or die qq[Failed to disable repo $f];
     }
 
     Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});

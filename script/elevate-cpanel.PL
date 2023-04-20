@@ -720,7 +720,7 @@ $error
 EOS
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    Elevate::Notify::send_notification( qq[Fail to update to $pretty_distro_name] => $msg );
+    Elevate::Notify::send_notification( qq[Failed to update to $pretty_distro_name] => $msg );
 
     return;
 }
@@ -1248,7 +1248,7 @@ sub setup_outdated_services ($self) {
 
     my $dirname = File::Basename::dirname(IGNORE_OUTDATED_SERVICES_FILE);
     if ( !-d $dirname ) {
-        mkdir($dirname) or die qq[Fail to create directory $dirname - $!];
+        mkdir($dirname) or die qq[Failed to create directory $dirname - $!];
     }
     File::Slurper::write_binary( IGNORE_OUTDATED_SERVICES_FILE, $content );
 
@@ -1574,7 +1574,7 @@ sub setup_answer_file {
         return;
     }
 
-    open( my $fh, '>', $leapp_answers ) or die qq[Fail to setup leapp anserfile.userchoices: $!];
+    open( my $fh, '>', $leapp_answers ) or die qq[Failed to setup leapp anserfile.userchoices: $!];
     print {$fh} <<~'EOF';
         [remove_pam_pkcs11_module_check]
         confirm = True
@@ -1598,7 +1598,7 @@ sub _read_stage_file {    # can be mocked during unit tests
 }
 
 sub save_stage_file ($stash) {
-    open( my $fh, '>', ELEVATE_STAGE_FILE ) or LOGDIE( "Fail to open " . ELEVATE_STAGE_FILE . ": $!" );
+    open( my $fh, '>', ELEVATE_STAGE_FILE ) or LOGDIE( "Failed to open " . ELEVATE_STAGE_FILE . ": $!" );
     print {$fh} Cpanel::JSON::pretty_canonical_dump($stash);
     close $fh;
 

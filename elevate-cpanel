@@ -294,7 +294,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub save ( $self, $path, $stash ) {
 
-        open( my $fh, '>', $path ) or LOGDIE( "Fail to open " . $path . ": $!" );
+        open( my $fh, '>', $path ) or LOGDIE( "Failed to open " . $path . ": $!" );
 
         print {$fh} Cpanel::JSON::pretty_canonical_dump($stash);
         close $fh;
@@ -481,7 +481,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         my $cmd    = join( ' ', @df_cmd );
 
         my $result = Cpanel::SafeRun::Simple::saferunnoerror(@df_cmd) // '';
-        die qq[Fail checking disk space using: $cmd\n] if $?;
+        die qq[Failed to check disk space using: $cmd\n] if $?;
 
         my ( $header, @out ) = split( "\n", $result );
 
@@ -2444,11 +2444,11 @@ EOS
         INFO("Imunify360: Product $product_type detected. Uninstalling before upgrade for later restore.");
 
         my $installer_script = _fetch_imunify_installer($product_type) or do {
-            FATAL("Imunify360: Fail to fetch script for $product_type. Skipping upgrade.");
+            FATAL("Imunify360: Failed to fetch script for $product_type. Skipping upgrade.");
             die;
         };
         if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
-            FATAL("Imunify360: Fail to uninstall $product_type.");
+            FATAL("Imunify360: Failed to uninstall $product_type.");
             die;
         }
         unlink $installer_script;
@@ -2472,7 +2472,7 @@ EOS
         }
         else {
             my $installer_url = _script_url_for_product($product_type);
-            my $msg           = "Fail to reinstall $product_type. Please reinstall it manually using $installer_url.";
+            my $msg           = "Failed to reinstall $product_type. Please reinstall it manually using $installer_url.";
             ERROR($msg);
             Elevate::Notify::add_final_notification($msg);
         }
@@ -2863,7 +2863,7 @@ EOS
         my ( $major, $minor ) = split( /\./, $mysql_version );
 
         my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
-        die qq[Fail to restore MySQL $mysql_version] if $?;
+        die qq[Failed to restore MySQL $mysql_version] if $?;
 
         if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
             my $id = $1;
@@ -2878,7 +2878,7 @@ EOS
             while (1) {
                 $c   = ( $c + 1 ) % 10;
                 $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-                die qq[Fail to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
+                die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
 
                 if ( $out =~ m{\sstate:\s*inprogress} ) {
                     print ".";
@@ -3017,7 +3017,7 @@ EOS
         my $backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR . "/nixstats";
 
         File::Path::make_path($backup_dir);
-        die "Fail to create backup directory: $backup_dir" unless -d $backup_dir;
+        die "Failed to create backup directory: $backup_dir" unless -d $backup_dir;
 
         my @to_backup = qw{ /etc/nixstats-token.ini /etc/nixstats.ini };
 
@@ -3447,7 +3447,7 @@ EOS
                 next;
             }
 
-            File::Copy::move( $f, "$f.off" ) or die qq[Fail to disable repo $f];
+            File::Copy::move( $f, "$f.off" ) or die qq[Failed to disable repo $f];
         }
 
         Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
@@ -3779,7 +3779,7 @@ EOS
             _send_notification( $subject, $msg, %opts );
             1;
         }
-          or warn "Fail to send notification: $@";
+          or warn "Failed to send notification: $@";
 
         return;
     }
@@ -4979,7 +4979,7 @@ $error
 EOS
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    Elevate::Notify::send_notification( qq[Fail to update to $pretty_distro_name] => $msg );
+    Elevate::Notify::send_notification( qq[Failed to update to $pretty_distro_name] => $msg );
 
     return;
 }
@@ -5507,7 +5507,7 @@ sub setup_outdated_services ($self) {
 
     my $dirname = File::Basename::dirname(IGNORE_OUTDATED_SERVICES_FILE);
     if ( !-d $dirname ) {
-        mkdir($dirname) or die qq[Fail to create directory $dirname - $!];
+        mkdir($dirname) or die qq[Failed to create directory $dirname - $!];
     }
     File::Slurper::write_binary( IGNORE_OUTDATED_SERVICES_FILE, $content );
 
@@ -5833,7 +5833,7 @@ sub setup_answer_file {
         return;
     }
 
-    open( my $fh, '>', $leapp_answers ) or die qq[Fail to setup leapp anserfile.userchoices: $!];
+    open( my $fh, '>', $leapp_answers ) or die qq[Failed to setup leapp anserfile.userchoices: $!];
     print {$fh} <<~'EOF';
         [remove_pam_pkcs11_module_check]
         confirm = True
@@ -5857,7 +5857,7 @@ sub _read_stage_file {    # can be mocked during unit tests
 }
 
 sub save_stage_file ($stash) {
-    open( my $fh, '>', ELEVATE_STAGE_FILE ) or LOGDIE( "Fail to open " . ELEVATE_STAGE_FILE . ": $!" );
+    open( my $fh, '>', ELEVATE_STAGE_FILE ) or LOGDIE( "Failed to open " . ELEVATE_STAGE_FILE . ": $!" );
     print {$fh} Cpanel::JSON::pretty_canonical_dump($stash);
     close $fh;
 
