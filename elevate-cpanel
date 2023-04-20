@@ -28,13 +28,12 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/Repositories.pm'}    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/SSH.pm'}             = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/WHM.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/cPanelPlugins.pm'} = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Base.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/cPanelPlugins.pm'} = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/DigitalOcean.pm'}  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/EA4.pm'}           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Grub2.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Imunify.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Imunify360.pm'}    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/InfluxDB.pm'}      = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/JetBackup.pm'}     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/LiteSpeed.pm'}     = 'script/elevate-cpanel.PL.static';
@@ -1755,56 +1754,6 @@ EOS
 
 }    # --- END lib/Elevate/Blockers/WHM.pm
 
-{    # --- BEGIN lib/Elevate/Components/cPanelPlugins.pm
-
-    package Elevate::Components::cPanelPlugins;
-
-    use cPstrict;
-
-    use Elevate::Constants ();
-
-    use Cwd ();
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    # use Elevate::Components::Base();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::Components::Base); }
-
-    sub pre_leapp ($self) {
-
-        my @installed_arch_cpanel_plugins;
-
-        my $installed    = cpev::yum_list();
-        my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
-        foreach my $repo (@cpanel_repos) {
-            push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
-        }
-
-        return unless @installed_arch_cpanel_plugins;
-
-        cpev::update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } );
-
-        return;
-    }
-
-    sub post_leapp ($self) {
-
-        my $stash            = cpev::read_stage_file();
-        my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
-        return unless scalar @$yum_arch_plugins;
-
-        INFO('Restoring cPanel yum-based-plugins');
-        $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
-
-        return;
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Components/cPanelPlugins.pm
-
 {    # --- BEGIN lib/Elevate/Components/Base.pm
 
     package Elevate::Components::Base;
@@ -1860,6 +1809,56 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Components/Base.pm
+
+{    # --- BEGIN lib/Elevate/Components/cPanelPlugins.pm
+
+    package Elevate::Components::cPanelPlugins;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+
+    use Cwd ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_leapp ($self) {
+
+        my @installed_arch_cpanel_plugins;
+
+        my $installed    = cpev::yum_list();
+        my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
+        foreach my $repo (@cpanel_repos) {
+            push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
+        }
+
+        return unless @installed_arch_cpanel_plugins;
+
+        cpev::update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } );
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+
+        my $stash            = cpev::read_stage_file();
+        my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
+        return unless scalar @$yum_arch_plugins;
+
+        INFO('Restoring cPanel yum-based-plugins');
+        $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/cPanelPlugins.pm
 
 {    # --- BEGIN lib/Elevate/Components/DigitalOcean.pm
 
@@ -2247,6 +2246,7 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::Fetch     ();
     use Elevate::Notify    ();
 
     use Cwd ();
@@ -2255,8 +2255,10 @@ EOS
     INIT { Log::Log4perl->import(qw{:easy}); }
 
     use Cpanel::JSON            ();
+    use Cpanel::Pkgr            ();
     use Cpanel::SafeRun::Simple ();
     use File::Copy              ();
+    use Cwd                     ();
 
     # use Elevate::Components::Base();
     our @ISA;
@@ -2268,14 +2270,44 @@ EOS
 
     sub pre_leapp ($self) {
 
+        return unless $self->is_installed;
+
         $self->run_once("_capture_imunify_features");
+        $self->run_once("_capture_imunify_packages");
+        $self->run_once('_remove_imunify_360');
 
         return;
     }
 
     sub post_leapp ($self) {
 
+        $self->run_once('_reinstall_imunify_360');
         $self->run_once('_restore_imunify_features');
+        $self->run_once("_restore_imunify_packages");
+
+        return;
+    }
+
+    sub _capture_imunify_packages ($self) {
+
+        my @packages = grep { m/^imunify-/ } cpev::get_installed_rpms_in_repo(qw{ imunify imunify360 });
+
+        return unless scalar @packages;
+
+        cpev::update_stage_file( { 'reinstall' => { 'imunify_packages' => \@packages } } );
+
+        return;
+    }
+
+    sub _restore_imunify_packages ($self) {
+
+        return unless my $packages = cpev::read_stage_file('reinstall')->{'imunify_packages'};
+
+        foreach my $pkg (@$packages) {
+            next unless Cpanel::Pkgr::is_installed($pkg);
+            INFO("Try to reinstall Imunify package: $pkg");
+            $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+        }
 
         return;
     }
@@ -2376,46 +2408,14 @@ EOS
 
         return 0;
     }
-    1;
-
-}    # --- END lib/Elevate/Components/Imunify.pm
-
-{    # --- BEGIN lib/Elevate/Components/Imunify360.pm
-
-    package Elevate::Components::Imunify360;
-
-    use cPstrict;
-
-    use Elevate::Constants ();
-    use Elevate::Fetch     ();
-    use Elevate::Notify    ();
-
-    use Cpanel::JSON ();
-    use Cpanel::Pkgr ();
-    use Cwd          ();
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    # use Elevate::Components::Base();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::Components::Base); }
-
-    sub pre_leapp ($self) {
-
-        $self->run_once('_remove_imunify_360');
-
-        return;
-    }
-
-    sub post_leapp ($self) {
-
-        $self->run_once('_reinstall_imunify_360');
-
-        return;
-    }
 
     sub is_installed ($self) {
+
+        return unless -x Elevate::Constants::IMUNIFY_AGENT;
+        return 1;
+    }
+
+    sub has_360_installed ($self) {
 
         return Cpanel::Pkgr::is_installed('imunify360-firewall')
           || Cpanel::Pkgr::is_installed('imunify-antivirus');
@@ -2423,11 +2423,9 @@ EOS
 
     sub _remove_imunify_360 ($self) {
 
-        return unless $self->is_installed;
+        return unless $self->has_360_installed;
 
-        my $agent_bin = Elevate::Constants::IMUNIFY_AGENT;
-        return unless -x $agent_bin;
-
+        my $agent_bin    = Elevate::Constants::IMUNIFY_AGENT;
         my $license_data = eval { Cpanel::JSON::Load(`$agent_bin version --json 2>&1`) } // {};
         if (   !ref $license_data->{'license'}
             || !$license_data->{'license'}->{'status'} ) {
@@ -2507,7 +2505,7 @@ EOS
 
     1;
 
-}    # --- END lib/Elevate/Components/Imunify360.pm
+}    # --- END lib/Elevate/Components/Imunify.pm
 
 {    # --- BEGIN lib/Elevate/Components/InfluxDB.pm
 
@@ -4471,24 +4469,23 @@ use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
 
 # - fatpack Components
-use Elevate::Components::cPanelPlugins ();
-use Elevate::Components::Base          ();
-use Elevate::Components::DigitalOcean  ();
-use Elevate::Components::EA4           ();
-use Elevate::Components::Grub2         ();
-use Elevate::Components::Imunify       ();
-use Elevate::Components::Imunify360    ();
-use Elevate::Components::InfluxDB      ();
-use Elevate::Components::JetBackup     ();
-use Elevate::Components::LiteSpeed     ();
-use Elevate::Components::KernelCare    ();
-use Elevate::Components::Kernel        ();
-use Elevate::Components::MySQL         ();
-use Elevate::Components::NixStats      ();
-use Elevate::Components::PECL          ();
-use Elevate::Components::PerlXS        ();
-use Elevate::Components::Repositories  ();
-use Elevate::Components::WPToolkit     ();
+use Elevate::Components::Base ();
+use Elevate::Components::cPanelPlugins();
+use Elevate::Components::DigitalOcean ();
+use Elevate::Components::EA4          ();
+use Elevate::Components::Grub2        ();
+use Elevate::Components::Imunify      ();
+use Elevate::Components::InfluxDB     ();
+use Elevate::Components::JetBackup    ();
+use Elevate::Components::LiteSpeed    ();
+use Elevate::Components::KernelCare   ();
+use Elevate::Components::Kernel       ();
+use Elevate::Components::MySQL        ();
+use Elevate::Components::NixStats     ();
+use Elevate::Components::PECL         ();
+use Elevate::Components::PerlXS       ();
+use Elevate::Components::Repositories ();
+use Elevate::Components::WPToolkit    ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -5664,7 +5661,6 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'Repositories'  => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins' => 'pre_leapp' );
     $self->run_component_once( 'PerlXS'        => 'pre_leapp' );
-    $self->run_component_once( 'Imunify360'    => 'pre_leapp' );
     $self->run_component_once( 'WPToolkit'     => 'pre_leapp' );
     $self->run_component_once( 'InfluxDB'      => 'pre_leapp' );
     $self->run_component_once( 'JetBackup'     => 'pre_leapp' );
@@ -5688,7 +5684,6 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'PerlXS'        => 'post_leapp' );
     $self->run_component_once( 'cPanelPlugins' => 'post_leapp' );
     $self->run_component_once( 'PECL'          => 'post_leapp' );
-    $self->run_component_once( 'Imunify360'    => 'post_leapp' );
     $self->run_component_once( 'WPToolkit'     => 'post_leapp' );
     $self->run_component_once( 'InfluxDB'      => 'post_leapp' );
     $self->run_component_once( 'JetBackup'     => 'post_leapp' );

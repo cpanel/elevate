@@ -212,24 +212,23 @@ use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
 
 # - fatpack Components
-use Elevate::Components::cPanelPlugins ();
-use Elevate::Components::Base          ();
-use Elevate::Components::DigitalOcean  ();
-use Elevate::Components::EA4           ();
-use Elevate::Components::Grub2         ();
-use Elevate::Components::Imunify       ();
-use Elevate::Components::Imunify360    ();
-use Elevate::Components::InfluxDB      ();
-use Elevate::Components::JetBackup     ();
-use Elevate::Components::LiteSpeed     ();
-use Elevate::Components::KernelCare    ();
-use Elevate::Components::Kernel        ();
-use Elevate::Components::MySQL         ();
-use Elevate::Components::NixStats      ();
-use Elevate::Components::PECL          ();
-use Elevate::Components::PerlXS        ();
-use Elevate::Components::Repositories  ();
-use Elevate::Components::WPToolkit     ();
+use Elevate::Components::Base ();
+use Elevate::Components::cPanelPlugins();
+use Elevate::Components::DigitalOcean ();
+use Elevate::Components::EA4          ();
+use Elevate::Components::Grub2        ();
+use Elevate::Components::Imunify      ();
+use Elevate::Components::InfluxDB     ();
+use Elevate::Components::JetBackup    ();
+use Elevate::Components::LiteSpeed    ();
+use Elevate::Components::KernelCare   ();
+use Elevate::Components::Kernel       ();
+use Elevate::Components::MySQL        ();
+use Elevate::Components::NixStats     ();
+use Elevate::Components::PECL         ();
+use Elevate::Components::PerlXS       ();
+use Elevate::Components::Repositories ();
+use Elevate::Components::WPToolkit    ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -1405,7 +1404,6 @@ sub pre_leapp_update_backup_and_cleanup ($self) {
     $self->run_component_once( 'Repositories'  => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins' => 'pre_leapp' );
     $self->run_component_once( 'PerlXS'        => 'pre_leapp' );
-    $self->run_component_once( 'Imunify360'    => 'pre_leapp' );
     $self->run_component_once( 'WPToolkit'     => 'pre_leapp' );
     $self->run_component_once( 'InfluxDB'      => 'pre_leapp' );
     $self->run_component_once( 'JetBackup'     => 'pre_leapp' );
@@ -1429,7 +1427,6 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'PerlXS'        => 'post_leapp' );
     $self->run_component_once( 'cPanelPlugins' => 'post_leapp' );
     $self->run_component_once( 'PECL'          => 'post_leapp' );
-    $self->run_component_once( 'Imunify360'    => 'post_leapp' );
     $self->run_component_once( 'WPToolkit'     => 'post_leapp' );
     $self->run_component_once( 'InfluxDB'      => 'post_leapp' );
     $self->run_component_once( 'JetBackup'     => 'post_leapp' );
