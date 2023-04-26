@@ -65,5 +65,6 @@ release: build
 bump_version: version := $(shell dc -f version -e '1 + p')
 bump_version:
 	echo -n $(version) > version
-	$(GIT) add version
+	$(MAKE) build;
+	$(GIT) add version elevate-cpanel
 	$(GIT) commit -m "Bump version to $(version) after release"
