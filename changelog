@@ -1,3 +1,7 @@
+2023-04-26 - version 8
+There are no user facing changes in this release. We have re-designed the development
+process to make it faster and easier for us to develop this product.
+
 2023-04-10 - version 7
  - Fix issue #151: Do not block on installed repos if no packages are installed from them.
  - Remove source, debuginfo and vault entries from vetted repos.
