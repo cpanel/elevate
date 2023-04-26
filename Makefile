@@ -3,6 +3,7 @@
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
 PERL_BIN=/usr/local/cpanel/3rdparty/perl/536/bin
+VERSION=`cat version`
 
 all:
 	$(MAKE) build
@@ -38,11 +39,11 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 				       --no-file-path-tiny \
 				       --leave-broken \
 				       script/$@.PL
-	@mv script/$@.PL.static $@
-	@MARKER="`cat maint/marker`" perl -pi -e 's|^(#!/usr/local/cpanel/3rdparty/bin/perl)|$$1\n\n$$ENV{MARKER}\n|' $@
-	@VERSION="`cat version`" perl -pi -e 's/(^use constant VERSION =>) 1;/$$1 $$ENV{VERSION};/' $@
-	@perltidy -b -bext="/" $@
-	@chmod +x $@
+	mv script/$@.PL.static $@
+	MARKER="`cat maint/marker`" perl -pi -e 's|^(#!/usr/local/cpanel/3rdparty/bin/perl)|$$1\n\n$$ENV{MARKER}\n|' $@
+	perl -pi -e 's/(^use constant VERSION =>) 1;/$$1 $$ENV{VERSION};/' $@
+	perltidy -b -bext="/" $@
+	chmod +x $@
 	perl -cw elevate-cpanel
 
 build:
@@ -53,12 +54,13 @@ clean:
 	rm -f tags
 
 release: build
-	$(GIT) tag -f $(RELEASE_TAG)
-	@VERSION="`cat version`" $(GIT) tag -f v$VERSION
+	$(GIT) tag -f $(RELEASE_TAG)	
+	$(GIT) tag -f v${VERSION}
 	$(GIT) push origin
 	$(GIT) push --force origin tag $(RELEASE_TAG)
-	@VERSION="`cat version`" $(GIT) push --force origin tag v$VERSION
+	$(GIT) push --force origin tag v${VERSION}
 	$(MAKE) bump_version
+	$(GIT) push origin main
 
 bump_version: version := $(shell dc -f version -e '1 + p')
 bump_version:
