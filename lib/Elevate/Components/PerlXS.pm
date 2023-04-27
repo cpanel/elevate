@@ -34,8 +34,8 @@ sub pre_leapp ($self) {
 
 sub post_leapp ($self) {
 
-    restore_perl_xs(DISTRO_PERL_XS_PATH);
-    restore_perl_xs( $Config{'installsitearch'} );
+    $self->restore_perl_xs(DISTRO_PERL_XS_PATH);
+    $self->restore_perl_xs( $Config{'installsitearch'} );
 
     return;
 }
@@ -109,7 +109,7 @@ sub purge_perl_xs ( $self, $path ) {
     return;
 }
 
-sub restore_perl_xs ($path) {
+sub restore_perl_xs ( $self, $path ) {
     my $stash = cpev::read_stage_file();
 
     if ( $path eq DISTRO_PERL_XS_PATH ) {
@@ -117,7 +117,7 @@ sub restore_perl_xs ($path) {
 
         if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
             my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-            __PACKAGE__->ssystem(@cmd);
+            $self->ssystem(@cmd);
         }
     }
 
