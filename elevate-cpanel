@@ -4498,7 +4498,7 @@ use Elevate::SystemctlService ();
 use Elevate::Usage            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 9;
+use constant VERSION => 10;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
