@@ -5795,7 +5795,7 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
 
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
-    __PACKAGE__->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
+    $self->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
 
     return;
 }
