@@ -1,3 +1,6 @@
+2023-04-27 - version 9
+- Fix for #243. restore XS was crashing post upgrade.
+
 2023-04-26 - version 8
 There are no user facing changes in this release. We have re-designed the development
 process to make it faster and easier for us to develop this product.
