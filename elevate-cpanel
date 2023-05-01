@@ -831,8 +831,8 @@ EOS
 
         /scripts/elevate-cpanel --check
 
-        If your GRUB2 configuration has not been customized, consider reporting
-        this limitation to cPanel Support:
+        If your GRUB2 configuration has not been customized, you may want
+        to consider reaching out to cPanel Support for assistance:
         https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
         EOS
         }
@@ -1396,9 +1396,6 @@ EOS
             One or more enabled YUM repo are currently unsupported and have installed packages.
             You should disable these repositories and remove packages installed from them
             before continuing the update.
-
-            Consider reporting this limitation to cPanel Support:
-            https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
             EOS
             }
 
