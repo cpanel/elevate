@@ -128,7 +128,8 @@ sub _blocker_invalid_yum_repos ($self) {
             You should disable these repositories and remove packages installed from them
             before continuing the update.
 
-            Consider reporting this limitation to https://github.com/cpanel/elevate/issues
+            Consider reporting this limitation to cPanel Support:
+            https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
             EOS
         }
 
