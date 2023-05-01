@@ -60,6 +60,7 @@ our @BLOCKERS = qw{
   JetBackup
   NICs
   EA4
+  BootKernel
   Grub2
   OVH
 };

@@ -51,6 +51,9 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
   * **MariaDB**: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8 / Rocky 8.
 * Some **EA4 packages** are not supported on AlmaLinux 8 / Rocky 8.
   * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8 / Rocky 8. You would need to remove these packages before the upgrading to AlmaLinux 8 / Rocky 8. Doing so might impact your system users. Proceed with caution.
+* The system **must** be able to control the boot process by changing the GRUB2 configuration.
+  * The reason for this is that the framework which performs the upgrade of distro-provided software needs to be able to run a custom early boot environment (initrd) in order to safely upgrade the distro.
+  * We check for this by seeing whether the kernel the system is currently running is the same version as that which the system believes is the default boot option.
 
 # Other Known Issues
 
