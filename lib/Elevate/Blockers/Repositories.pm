@@ -127,8 +127,6 @@ sub _blocker_invalid_yum_repos ($self) {
             One or more enabled YUM repo are currently unsupported and have installed packages.
             You should disable these repositories and remove packages installed from them
             before continuing the update.
-
-            Consider reporting this limitation to https://github.com/cpanel/elevate/issues
             EOS
         }
 
