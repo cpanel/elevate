@@ -62,7 +62,8 @@ sub _blocker_grub2_workaround ($self) {
         /scripts/elevate-cpanel --check
 
         If your GRUB2 configuration has not been customized, consider reporting
-        this limitation to https://github.com/cpanel/elevate/issues
+        this limitation to cPanel Support:
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
         EOS
     }
 
