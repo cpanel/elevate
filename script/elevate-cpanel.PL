@@ -196,6 +196,7 @@ use Cpanel::Yum::Vars           ();
 # - fatpack blockers
 use Elevate::Blockers::Base          ();
 use Elevate::Blockers                ();
+use Elevate::Blockers::BootKernel    ();
 use Elevate::Blockers::Databases     ();
 use Elevate::Blockers::DiskSpace     ();
 use Elevate::Blockers::Distros       ();
