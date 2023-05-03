@@ -61,11 +61,25 @@ This upgrade will potentially take 30-90 minutes to upgrade all of the software.
 
 Before updating, please check that you met all the pre requirements:
 
-* You will need to have console access available to your machine
-* You should back up your server before attempting this upgrade
+* You will need some kind of interactive shell access as the root user.
+  * Having more than one form available is **strongly** recommended, in case a problem during the upgrade prevents use of the primary access method.
+  * Examples of acceptable forms of access include:
+    * root SSH access to the system itself,
+    * direct physical console access,
+    * IPMI remote console access,
+    * access to the virtual console through the hypervisor, or
+    * use of a custom system which is based on one of these methods and is made available by your server provider.
+* You should back up your server before attempting this upgrade. The upgrade process tries to detect conditions which will result in a broken system should the process proceed, but this is not perfect.
+  * We strongly recommend that this backup take the form of a whole-system image or snapshot.
+    * Recovery in this case consists of reloading the system from that image or snapshot, like any other restoration from backup under such a system.
+  * Backups only in the form of individual cPanel accounts will protect data managed by cPanel but **will not** protect programs or data not managed by cPanel or allow you to minimize downtime in case of catastrophic failure which results from the upgrade process. The cPanel Backup system is an example of this kind of system.
+    * Recovery in this case consists of wiping the existing system, installing the target operating system, installing cPanel on the new operating system, rebuilding all system customizations in a way that is compatible with the new operating system, and restoring the cPanel accounts from the backup.
+    * If this is your only backup option, and uptime is a critical consideration, we recommend performing a migration to a new system using the [Transfer Tool](https://docs.cpanel.net/whm/transfers/transfer-tool/) instead of upgrading in-place using ELevate, as this will give you more control over the transition in the event of a failure.
+  * If you do not know how much of your system your backup service covers, contact the provider of that service for further information.
 * Ensure your server is up to date: `yum update`
-* Ensure you are using the last stable version of cPanel & WHM
-* Use a version of MySQL/MariaDB compliant with Almalinux 8.
+* Ensure you are using the last stable version of cPanel & WHM.
+* Use a version of MySQL/MariaDB compliant with the target distro.
+* In case of issues during the upgrade process, [write down the information needed to open a support request with cPanel](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/#support-request-requirements), since this informaton may become unavailable from the system itself.
 
 Additional checks can be performed by [downloading the script](#download-the-elevate-cpanel-script)
 and then [running pre-checks](#pre-upgrade-checks).
