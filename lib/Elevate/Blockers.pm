@@ -28,6 +28,7 @@ use Elevate::Blockers::IsContainer   ();
 use Elevate::Blockers::JetBackup     ();
 use Elevate::Blockers::NICs          ();
 use Elevate::Blockers::OVH           ();
+use Elevate::Blockers::Python        ();
 use Elevate::Blockers::ElevateScript ();
 use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
@@ -63,6 +64,7 @@ our @BLOCKERS = qw{
   BootKernel
   Grub2
   OVH
+  Python
 };
 
 use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';

@@ -26,6 +26,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/JetBackup.pm'}       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/NICs.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/OVH.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Python.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Repositories.pm'}    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/SSH.pm'}             = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/WHM.pm'}             = 'script/elevate-cpanel.PL.static';
@@ -186,6 +187,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Blockers::JetBackup     ();
     use Elevate::Blockers::NICs          ();
     use Elevate::Blockers::OVH           ();
+    use Elevate::Blockers::Python        ();
     use Elevate::Blockers::ElevateScript ();
     use Elevate::Blockers::SSH           ();
     use Elevate::Blockers::WHM           ();
@@ -220,6 +222,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       BootKernel
       Grub2
       OVH
+      Python
     };
 
     use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
@@ -1327,6 +1330,33 @@ EOS
 
 }    # --- END lib/Elevate/Blockers/OVH.pm
 
+{    # --- BEGIN lib/Elevate/Blockers/Python.pm
+
+    package Elevate::Blockers::Python;
+
+    use cPstrict;
+
+    # use Elevate::Blockers::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
+
+    use Cpanel::Pkgr ();
+
+    sub check ($self) {
+        my $pkg = Cpanel::Pkgr::what_provides('python36');
+        return unless $pkg && Cpanel::Pkgr::is_installed($pkg);
+        return $self->has_blocker( <<~"END" );
+    python36 packages have been detected as installed.
+    These can interfere with the elevation process.
+    Please remove these packages before elevation:
+    yum remove python36*
+    END
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Blockers/Python.pm
+
 {    # --- BEGIN lib/Elevate/Blockers/Repositories.pm
 
     package Elevate::Blockers::Repositories;
@@ -1452,7 +1482,7 @@ EOS
             EOS
             }
 
-            if ( !Elevate::Blockers::Base->is_check_mode() ) {    # autofix when --check is not used
+            if ( !$self->is_check_mode() ) {    # autofix when --check is not used
                 $self->_autofix_yum_repos();
 
                 $status_hr = $self->_check_yum_repos();
@@ -4517,6 +4547,7 @@ use Elevate::Blockers::IsContainer   ();
 use Elevate::Blockers::JetBackup     ();
 use Elevate::Blockers::NICs          ();
 use Elevate::Blockers::OVH           ();    # using a constant
+use Elevate::Blockers::Python        ();
 use Elevate::Blockers::Repositories  ();    # using a constant
 use Elevate::Blockers::SSH           ();
 use Elevate::Blockers::WHM           ();
