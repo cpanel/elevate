@@ -9,7 +9,6 @@ use lib "$FindBin::Bin/../lib";
 use Test2::Bundle::Extended;
 use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
-use Test::Cpanel::Policy;
 use Test::MockModule qw{strict};
 
 use Elevate::Blockers::Python ();
