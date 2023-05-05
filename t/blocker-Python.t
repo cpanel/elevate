@@ -36,10 +36,10 @@ $mocks{'Elevate::Blockers::Base'}->redefine(
 my $expected = {
     'id'  => 'Elevate::Blockers::Python::check',
     'msg' => <<~"END",
-    python36 packages have been detected as installed.
-    These can interfere with the elevation process.
-    Please remove these packages before elevation:
-    yum remove python36*
+    A package providing python36 has been detected as installed.
+    This can interfere with the elevation process.
+    Please remove it before elevation:
+    yum remove python3
     END
 };
 is( $obj->check, $expected, "Got expected blocker returned when found" );
