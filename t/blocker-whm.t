@@ -103,6 +103,48 @@ my $whm  = $cpev->get_blocker('WHM');
 }
 
 {
+    note "cPanel & WHM license";
+
+    my ( $mock_license, $mock_localip, $mock_publicip ) = map { Test::MockModule->new($_) } qw(
+      Cpanel::License
+      Cpanel::DIp::MainIP
+      Cpanel::NAT
+    );
+
+    $mock_license->redefine( is_licensed => 1 );
+    $mock_localip->redefine( getmainip   => sub { die "called unexpectedly" } );
+    $mock_publicip->redefine( get_public_ip => sub { die "called unexpectedly" } );
+
+    my $result;
+    try_ok { $result = $whm->_blocker_cpanel_needs_license() } "License check short-circuited when license present";
+    is $result, 0, "License check passed the blocker";
+
+    $mock_license->redefine( is_licensed => 0 );
+    $mock_localip->redefine( getmainip   => 'no one cares' );
+    $mock_publicip->redefine( get_public_ip => '192.0.2.1' );
+
+    like(
+        $whm->_blocker_cpanel_needs_license(),
+        {
+            id  => q[Elevate::Blockers::WHM::_blocker_cpanel_needs_license],
+            msg => qr{for the IP address \Q192.0.2.1\E}m,
+        },
+        "Blocker message mentions used IP address when check fails",
+    );
+
+    $mock_publicip->redefine( get_public_ip => '' );
+
+    like(
+        $whm->_blocker_cpanel_needs_license(),
+        {
+            id  => q[Elevate::Blockers::WHM::_blocker_cpanel_needs_license],
+            msg => qr{cPanel cannot determine which}m,
+        },
+        "Blocker message handles case where even public IP lookup fails",
+    );
+}
+
+{
     note "cPanel & WHM latest version.";
     clear_messages_seen();
 
