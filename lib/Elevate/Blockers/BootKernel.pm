@@ -20,14 +20,14 @@ use parent qw{Elevate::Blockers::Base};
 use Elevate::Constants ();
 
 use Cpanel::Kernel::Status ();
-use Cpanel::Exception ();
+use Cpanel::Exception      ();
 
 use Try::Tiny;
 
 sub check ($self) {
     my $ok = 0;
     try {
-        my ($running_version, $boot_version) = Cpanel::Kernel::Status::reboot_status()->@{ 'running_version', 'boot_version' };
+        my ( $running_version, $boot_version ) = Cpanel::Kernel::Status::reboot_status()->@{ 'running_version', 'boot_version' };
         $ok = $running_version eq $boot_version;
 
         $self->has_blocker( <<~EOS ) if !$ok;
@@ -49,8 +49,10 @@ sub check ($self) {
     }
     catch {
         my $ex = $_;
-        $self->has_blocker("Unable to determine running and boot kernels due to the following error:\n" . Cpanel::Exception::get_string($ex));
+        $self->has_blocker( "Unable to determine running and boot kernels due to the following error:\n" . Cpanel::Exception::get_string($ex) );
     };
 
     return $ok ? 1 : 0;
 }
+
+1;

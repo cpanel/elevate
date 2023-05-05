@@ -344,7 +344,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Cpanel::Kernel::Status ();
 
-    # use Cpanel::Exception ();
+    # use Cpanel::Exception      ();
 
     use Try::Tiny;
 
@@ -378,6 +378,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         return $ok ? 1 : 0;
     }
+
+    1;
 
 }    # --- END lib/Elevate/Blockers/BootKernel.pm
 
