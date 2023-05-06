@@ -130,7 +130,7 @@ sub _blocker_invalid_yum_repos ($self) {
             EOS
         }
 
-        if ( !Elevate::Blockers::Base->is_check_mode() ) {    # autofix when --check is not used
+        if ( !$self->is_check_mode() ) {    # autofix when --check is not used
             $self->_autofix_yum_repos();
 
             # perform a second check to make sure we are in good shape
