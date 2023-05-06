@@ -344,7 +344,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Cpanel::Kernel::Status ();
 
-    # use Cpanel::Exception ();
+    # use Cpanel::Exception      ();
 
     use Try::Tiny;
 
@@ -378,6 +378,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         return $ok ? 1 : 0;
     }
+
+    1;
 
 }    # --- END lib/Elevate/Blockers/BootKernel.pm
 
@@ -1716,6 +1718,7 @@ EOS
 
     use Cpanel::Version::Tiny ();
     use Cpanel::Update::Tiers ();
+    use Cpanel::License       ();
     use Cpanel::Pkgr          ();
 
     # use Elevate::Blockers::Base();
@@ -1732,6 +1735,7 @@ EOS
         $ok = 0 unless $self->_blocker_is_missing_cpanel_whm;
         $ok = 0 unless $self->_blocker_is_invalid_cpanel_whm;
         $ok = 0 unless $self->_blocker_is_newer_than_lts;
+        $ok = 0 unless $self->_blocker_cpanel_needs_license;
         $ok = 0 unless $self->_blocker_cpanel_needs_update;
         $ok = 0 unless $self->_blocker_is_sandbox;
         $ok = 0 unless $self->_blocker_is_calendar_installed;
@@ -1762,6 +1766,39 @@ EOS
         }
 
         return 0;
+    }
+
+    sub _blocker_cpanel_needs_license ($self) {
+        return 0 if Cpanel::License::is_licensed( skip_max_user_check => 1 );
+
+        require Cpanel::DIp::MainIP;
+        require Cpanel::NAT;
+
+        my $localip  = Cpanel::DIp::MainIP::getmainip()     // '';
+        my $publicip = Cpanel::NAT::get_public_ip($localip) // '';
+
+        my $ip_msg = "";
+
+        if ($publicip) {
+            $ip_msg = <<~EOS;
+        cPanel expects to find a license for the IP address $publicip.
+        Verify whether that IP address is licensed using the following site:
+
+        https://verify.cpanel.net/
+        EOS
+        }
+        else {
+            $ip_msg = <<~'EOS';
+        Additionally, cPanel cannot determine which IP address is being used for licensing.
+        EOS
+        }
+
+        return $self->has_blocker( <<~EOS );
+    cPanel does not detect a valid license for itself on the system at this
+    time. This could cause problems during the update.
+
+    $ip_msg
+    EOS
     }
 
     sub _blocker_cpanel_needs_update ($self) {
