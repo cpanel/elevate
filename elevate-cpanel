@@ -88,6 +88,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use cPstrict;
 
+    use Carp;
+
     use Simple::Accessor qw(
       blockers
       cpconf
@@ -100,7 +102,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         if ( $0 =~ qr{\bt/} ) {
             return Elevate::Blockers->new;
         }
-        die q[Missing blockers];
+        Carp::confess(q[Missing blockers]);
     }
 
     sub cpev ($self) {
