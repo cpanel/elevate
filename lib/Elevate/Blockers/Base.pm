@@ -12,6 +12,8 @@ This is the base package used by all blockers.
 
 use cPstrict;
 
+use Carp;
+
 use Simple::Accessor qw(
   blockers
   cpconf
@@ -23,7 +25,7 @@ sub _build_blockers {
     if ( $0 =~ qr{\bt/} ) {
         return Elevate::Blockers->new;
     }
-    die q[Missing blockers];
+    Carp::confess(q[Missing blockers]);
 }
 
 sub cpev ($self) {
