@@ -1,3 +1,8 @@
+2023-05-08 - version 11
+- Block use of this product if cPanel unlicensed.
+- Add blocker for presence of python36 RPMs.
+- Bugfix due to bad caller of Base in InvalidYumRepo check. Fixes #252
+
 2023-05-03 - version 10
 - Fix more bad ssystem calls
 - Block if the running and boot kernels differ
