@@ -100,8 +100,10 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub _build_blockers {
         if ( $0 =~ qr{\bt/} ) {
+
             return Elevate::Blockers->new;
         }
+
         Carp::confess(q[Missing blockers]);
     }
 
@@ -4621,7 +4623,7 @@ use Elevate::SystemctlService ();
 use Elevate::Usage            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 11;
+use constant VERSION => 12;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
