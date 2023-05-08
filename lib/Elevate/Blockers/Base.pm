@@ -23,8 +23,12 @@ use Log::Log4perl qw(:easy);
 
 sub _build_blockers {
     if ( $0 =~ qr{\bt/} ) {
+
+        # only for testing
         return Elevate::Blockers->new;
     }
+
+    # outside unit tests we should always be initialized with an 'Elevate::Blockers' object
     Carp::confess(q[Missing blockers]);
 }
 
