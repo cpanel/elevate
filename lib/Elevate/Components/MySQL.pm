@@ -12,13 +12,12 @@ Capture and reinstall MySQL packages.
 
 use cPstrict;
 
-use Elevate::Constants ();
-
-use Cwd           ();
+use File::Copy    ();
 use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
+my $cnf_file = '/etc/my.cnf';
 sub pre_leapp ($self) {
 
     $self->run_once("_cleanup_mysql_packages");
@@ -42,6 +41,9 @@ sub _cleanup_mysql_packages ($self) {
 
     cpev::update_stage_file( { 'mysql-version' => $mysql_version } );
 
+    # Stash current config so we can restore it later.
+    File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
+
     # make sure all packages from unsupported repo are removed
     #
     # we cannot only remove the packages for the current MySQL versions
@@ -64,6 +66,11 @@ sub _reinstall_mysql_packages {
     INFO("Restoring MySQL $mysql_version");
 
     my ( $major, $minor ) = split( /\./, $mysql_version );
+
+    # Try to restore any .rpmsave'd configs before we reinstall
+    # It *should be here* given we put it there, so no need to do a -f/-s check
+    INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
+    File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
 
     my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
     die qq[Failed to restore MySQL $mysql_version] if $?;

@@ -2931,9 +2931,7 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants ();
-
-    use Cwd ();
+    use File::Copy ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -2941,6 +2939,8 @@ EOS
     # use Elevate::Components::Base();
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    my $cnf_file = '/etc/my.cnf';
 
     sub pre_leapp ($self) {
 
@@ -2965,6 +2965,8 @@ EOS
 
         cpev::update_stage_file( { 'mysql-version' => $mysql_version } );
 
+        File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
+
         $self->_cleanup_mysql_57_packages();
         $self->_cleanup_mysql_80_packages();
         $self->_cleanup_mysql_102_packages();
@@ -2982,6 +2984,9 @@ EOS
         INFO("Restoring MySQL $mysql_version");
 
         my ( $major, $minor ) = split( /\./, $mysql_version );
+
+        INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
+        File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
 
         my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
         die qq[Failed to restore MySQL $mysql_version] if $?;
