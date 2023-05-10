@@ -78,6 +78,11 @@ sub install ($self) {
         # want to run it once per boot time
         RemainAfterExit=yes
         ExecStart=/usr/local/cpanel/scripts/elevate-cpanel --service
+        Environment="LANG=C"
+        Environment="LANGUAGE=C"
+        Environment="LC_ALL=C"
+        Environment="LC_MESSAGES=C"
+        Environment="LC_CTYPE=C"
 
         [Install]
         WantedBy=multi-user.target
