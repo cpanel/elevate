@@ -14,4 +14,4 @@ NOTE:
  * If an error occurs during the elevation process, once you have fixed it, you can resume
 the update process by running: `/scripts/elevate-cpanel --continue`
 
-If you would still like to report your issue here, please include as much information as possible about the failure.
+*We cannot provide support on individual server issues. We have to refer you to technical support.*
