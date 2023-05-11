@@ -194,43 +194,45 @@ use Cpanel::Yum::Vars           ();
 
 # FatPack these packages
 # - fatpack blockers
-use Elevate::Blockers::Base          ();
-use Elevate::Blockers                ();
-use Elevate::Blockers::BootKernel    ();
-use Elevate::Blockers::Databases     ();
-use Elevate::Blockers::DiskSpace     ();
-use Elevate::Blockers::Distros       ();
-use Elevate::Blockers::DNS           ();
-use Elevate::Blockers::EA4           ();
-use Elevate::Blockers::ElevateScript ();
-use Elevate::Blockers::Grub2         ();
-use Elevate::Blockers::IsContainer   ();
-use Elevate::Blockers::JetBackup     ();
-use Elevate::Blockers::NICs          ();
-use Elevate::Blockers::OVH           ();    # using a constant
-use Elevate::Blockers::Python        ();
-use Elevate::Blockers::Repositories  ();    # using a constant
-use Elevate::Blockers::SSH           ();
-use Elevate::Blockers::WHM           ();
+use Elevate::Blockers::Base             ();
+use Elevate::Blockers                   ();
+use Elevate::Blockers::AbsoluteSymlinks ();
+use Elevate::Blockers::BootKernel       ();
+use Elevate::Blockers::Databases        ();
+use Elevate::Blockers::DiskSpace        ();
+use Elevate::Blockers::Distros          ();
+use Elevate::Blockers::DNS              ();
+use Elevate::Blockers::EA4              ();
+use Elevate::Blockers::ElevateScript    ();
+use Elevate::Blockers::Grub2            ();
+use Elevate::Blockers::IsContainer      ();
+use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::NICs             ();
+use Elevate::Blockers::OVH              ();    # using a constant
+use Elevate::Blockers::Python           ();
+use Elevate::Blockers::Repositories     ();    # using a constant
+use Elevate::Blockers::SSH              ();
+use Elevate::Blockers::WHM              ();
 
 # - fatpack Components
-use Elevate::Components::Base ();
-use Elevate::Components::cPanelPlugins();
-use Elevate::Components::DigitalOcean ();
-use Elevate::Components::EA4          ();
-use Elevate::Components::Grub2        ();
-use Elevate::Components::Imunify      ();
-use Elevate::Components::InfluxDB     ();
-use Elevate::Components::JetBackup    ();
-use Elevate::Components::LiteSpeed    ();
-use Elevate::Components::KernelCare   ();
-use Elevate::Components::Kernel       ();
-use Elevate::Components::MySQL        ();
-use Elevate::Components::NixStats     ();
-use Elevate::Components::PECL         ();
-use Elevate::Components::PerlXS       ();
-use Elevate::Components::Repositories ();
-use Elevate::Components::WPToolkit    ();
+use Elevate::Components::Base             ();
+use Elevate::Components::AbsoluteSymlinks ();
+use Elevate::Components::cPanelPlugins    ();
+use Elevate::Components::DigitalOcean     ();
+use Elevate::Components::EA4              ();
+use Elevate::Components::Grub2            ();
+use Elevate::Components::Imunify          ();
+use Elevate::Components::InfluxDB         ();
+use Elevate::Components::JetBackup        ();
+use Elevate::Components::LiteSpeed        ();
+use Elevate::Components::KernelCare       ();
+use Elevate::Components::Kernel           ();
+use Elevate::Components::MySQL            ();
+use Elevate::Components::NixStats         ();
+use Elevate::Components::PECL             ();
+use Elevate::Components::PerlXS           ();
+use Elevate::Components::Repositories     ();
+use Elevate::Components::WPToolkit        ();
 
 use Elevate::Fetch            ();
 use Elevate::Logger           ();
@@ -1399,18 +1401,19 @@ EOS
 # remove and store
 sub pre_leapp_update_backup_and_cleanup ($self) {
 
-    $self->run_component_once( 'Imunify'       => 'pre_leapp' );
-    $self->run_component_once( 'EA4'           => 'pre_leapp' );
-    $self->run_component_once( 'PECL'          => 'pre_leapp' );
-    $self->run_component_once( 'MySQL'         => 'pre_leapp' );
-    $self->run_component_once( 'Repositories'  => 'pre_leapp' );
-    $self->run_component_once( 'cPanelPlugins' => 'pre_leapp' );
-    $self->run_component_once( 'PerlXS'        => 'pre_leapp' );
-    $self->run_component_once( 'WPToolkit'     => 'pre_leapp' );
-    $self->run_component_once( 'InfluxDB'      => 'pre_leapp' );
-    $self->run_component_once( 'JetBackup'     => 'pre_leapp' );
-    $self->run_component_once( 'NixStats'      => 'pre_leapp' );
-    $self->run_component_once( 'LiteSpeed'     => 'pre_leapp' );
+    $self->run_component_once( 'Imunify'          => 'pre_leapp' );
+    $self->run_component_once( 'EA4'              => 'pre_leapp' );
+    $self->run_component_once( 'PECL'             => 'pre_leapp' );
+    $self->run_component_once( 'MySQL'            => 'pre_leapp' );
+    $self->run_component_once( 'Repositories'     => 'pre_leapp' );
+    $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );
+    $self->run_component_once( 'PerlXS'           => 'pre_leapp' );
+    $self->run_component_once( 'WPToolkit'        => 'pre_leapp' );
+    $self->run_component_once( 'InfluxDB'         => 'pre_leapp' );
+    $self->run_component_once( 'JetBackup'        => 'pre_leapp' );
+    $self->run_component_once( 'NixStats'         => 'pre_leapp' );
+    $self->run_component_once( 'LiteSpeed'        => 'pre_leapp' );
+    $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
 
     return;
 }
