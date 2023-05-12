@@ -35,7 +35,15 @@ sub pre_leapp {
     foreach my $link (keys(%links)) {
         my $updated = substr( $links{$link}, 1 );
 
+        # Now, this has probably .01% of collision chance, but let's get even
+        # more paranoid by checking existence and rerolling.
+        # Presumably if we can't find something by 10k tries, it just isn't
+        # happening no matter how hard we want it.
         my $rand_uid = Cpanel::UUID::random_uuid();
+        my $tries = 0;
+        while( -e "$link-$rand_uid" && $tries++ < 10000 ) {
+            $rand_uid = Cpanel::UUID::random_uuid();
+        }
         symlink( $updated, "$link-$rand_uid" ) or die "Can't create symlink $link-$rand_uid to $updated: $!";
         File::Copy::move( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
     }
