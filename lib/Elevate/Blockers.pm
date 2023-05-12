@@ -18,21 +18,22 @@ use cPstrict;
 # enforce packing these packages
 use Elevate::Blockers::Base ();
 
-use Elevate::Blockers::Databases     ();
-use Elevate::Blockers::DiskSpace     ();
-use Elevate::Blockers::Distros       ();
-use Elevate::Blockers::DNS           ();
-use Elevate::Blockers::EA4           ();
-use Elevate::Blockers::Grub2         ();
-use Elevate::Blockers::IsContainer   ();
-use Elevate::Blockers::JetBackup     ();
-use Elevate::Blockers::NICs          ();
-use Elevate::Blockers::OVH           ();
-use Elevate::Blockers::Python        ();
-use Elevate::Blockers::ElevateScript ();
-use Elevate::Blockers::SSH           ();
-use Elevate::Blockers::WHM           ();
-use Elevate::Blockers::Repositories  ();
+use Elevate::Blockers::AbsoluteSymlinks ();
+use Elevate::Blockers::Databases        ();
+use Elevate::Blockers::DiskSpace        ();
+use Elevate::Blockers::Distros          ();
+use Elevate::Blockers::DNS              ();
+use Elevate::Blockers::EA4              ();
+use Elevate::Blockers::Grub2            ();
+use Elevate::Blockers::IsContainer      ();
+use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::NICs             ();
+use Elevate::Blockers::OVH              ();
+use Elevate::Blockers::Python           ();
+use Elevate::Blockers::ElevateScript    ();
+use Elevate::Blockers::SSH              ();
+use Elevate::Blockers::WHM              ();
+use Elevate::Blockers::Repositories     ();
 
 use Simple::Accessor qw(
   cpev
@@ -65,6 +66,7 @@ our @BLOCKERS = qw{
   Grub2
   OVH
   Python
+  AbsoluteSymlinks
 };
 
 use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
