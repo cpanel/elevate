@@ -12,7 +12,7 @@ This is the base package used by all blockers.
 
 use cPstrict;
 
-use Carp;
+use Carp ();
 
 use Simple::Accessor qw(
   blockers
@@ -50,8 +50,8 @@ BEGIN {
     foreach my $subname (@_DELEGATE_TO_CPEV) {
         no strict 'refs';
         *$subname = sub ( $self, @args ) {
-            my $cpev = $self->cpev;
-            my $sub  = $cpev->can($subname) or die qq[cpev does not support $subname];
+            my $cpev = $self->cpev          or Carp::confess(qq[Cannot find cpev object to call function $subname]);
+            my $sub  = $cpev->can($subname) or Carp::confess(qq[cpev does not support $subname]);
             return $sub->( $cpev, @args );
         }
     }
