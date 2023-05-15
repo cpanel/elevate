@@ -39,8 +39,12 @@ BEGIN {
         no strict 'refs';
         *$subname = sub ( $self, @args ) {
             my $cpev = $self->cpev;
-            my $sub  = $cpev->can($subname) or die qq[cpev does not support $subname];
-            return $sub->( $cpev, @args );
+            if(defined $cpev) {
+              my $sub  = $cpev->can($subname) or die qq[cpev does not support $subname];
+              return $sub->( $cpev, @args );
+            } else {
+              die "cpev $subname not available";
+            }
         }
     }
 }
