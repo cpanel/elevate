@@ -97,12 +97,13 @@ sub check ($self) {    # do_check - main  entry point
         Please fix the detected issues before performing the elevation process.
         EOS
     }
-    elsif (defined $flavor) {
+    elsif ( defined $flavor ) {
         INFO( <<~'EOS' );
         There is no known blockers to start the elevation process.
         You can consider running:
             /scripts/elevate-cpanel --start --upgrade-to=$flavor
         EOS
+    }
     else {
         INFO( <<~'EOS' );
         There is no known blockers to start the elevation process.
