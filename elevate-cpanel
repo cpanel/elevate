@@ -254,9 +254,17 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
+        my $flavor = $self->getopt('upgrade-to');
         if ($has_blockers) {
             WARN( <<~'EOS' );
         Please fix the detected issues before performing the elevation process.
+        EOS
+        }
+        elsif ( defined $flavor ) {
+            INFO( <<~'EOS' );
+        There is no known blockers to start the elevation process.
+        You can consider running:
+            /scripts/elevate-cpanel --start --upgrade-to=$flavor
         EOS
         }
         else {
@@ -1994,6 +2002,10 @@ EOS
             my $updated = substr( $links{$link}, 1 );
 
             my $rand_uid = Cpanel::UUID::random_uuid();
+            my $tries    = 0;
+            while ( -e "$link-$rand_uid" && $tries++ < 10000 ) {
+                $rand_uid = Cpanel::UUID::random_uuid();
+            }
             symlink( $updated, "$link-$rand_uid" )       or die "Can't create symlink $link-$rand_uid to $updated: $!";
             File::Copy::move( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
         }
