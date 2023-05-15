@@ -15,6 +15,7 @@ before / after the elevation process.
 
 use cPstrict;
 
+use Carp             ();
 use Simple::Accessor qw(
   cpev
 );
@@ -38,8 +39,8 @@ BEGIN {
     foreach my $subname (@_DELEGATE_TO_CPEV) {
         no strict 'refs';
         *$subname = sub ( $self, @args ) {
-            my $cpev = $self->cpev;
-            my $sub  = $cpev->can($subname) or die qq[cpev does not support $subname];
+            my $cpev = $self->cpev          or Carp::confess(qq[Cannot find cpev to call $subname]);
+            my $sub  = $cpev->can($subname) or Carp::confess(qq[cpev does not support $subname]);
             return $sub->( $cpev, @args );
         }
     }
@@ -48,11 +49,11 @@ BEGIN {
 sub run_once ( $self, $subname ) {
 
     my $cpev     = $self->cpev;
-    my $run_once = $cpev->can('run_once') or die qq[cpev does not support 'run_once'];
+    my $run_once = $cpev->can('run_once') or Carp::confess(qq[cpev does not support 'run_once']);
 
     my $label = ref($self) . "::$subname";
 
-    my $sub = $self->can($subname) or die qq[$self does not support '$subname'];
+    my $sub = $self->can($subname) or Carp::confess(qq[$self does not support '$subname']);
 
     my $code = sub {
         return $sub->($self);
