@@ -1,3 +1,12 @@
+2023-05-16 - version 12
+- #170 - preserve and restore /etc/my.cnf after LEAPP upgrade and mysql restore.
+- Fix MOTD message being blank due to fatpacker stripping it out.
+- Assure LANG=C on all elevate systems.
+- Add logic to autofix absolute symlinks in / which blocks leapp upgrades.
+- If we run check-upgrade to a specific flavor, suggest to run the correct command.
+- Fix bad getopt caller, that is delegated to cpev.
+- Improved error message when calling missing functions.
+
 2023-05-08 - version 11
 - Block use of this product if cPanel unlicensed.
 - Add blocker for presence of python36 RPMs.
