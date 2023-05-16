@@ -6,6 +6,7 @@
 - If we run check-upgrade to a specific flavor, suggest to run the correct command.
 - Fix bad getopt caller, that is delegated to cpev.
 - Improved error message when calling missing functions.
+- Impose maximum LTS version, change version recommendation to v110.
 
 2023-05-08 - version 11
 - Block use of this product if cPanel unlicensed.
