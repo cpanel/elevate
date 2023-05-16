@@ -91,7 +91,7 @@ my $whm  = $cpev->get_blocker('WHM');
             id  => q[Elevate::Blockers::WHM::_blocker_is_newer_than_lts],
             msg => qr{
                     \QThis version 11.109.0.9999 does not support upgrades to AlmaLinux 8.\E \s+
-                    \QPlease upgrade to cPanel version 102 or better.\E
+                    \QPlease ensure the cPanel version is 110.\E
                 }xms,
         },
         q{cPanel version must be above the known LTS.}

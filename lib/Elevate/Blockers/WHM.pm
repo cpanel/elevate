@@ -56,9 +56,17 @@ sub _blocker_is_invalid_cpanel_whm ($self) {
 }
 
 sub _blocker_is_newer_than_lts ($self) {
-    if ( $Cpanel::Version::Tiny::major_version <= Elevate::Constants::MINIMUM_LTS_SUPPORTED - 2 ) {
+    my $major = $Cpanel::Version::Tiny::major_version;
+    if ( $major <= Elevate::Constants::MINIMUM_LTS_SUPPORTED - 2 || $major > Elevate::Constants::MAXIMUM_LTS_SUPPORTED ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        return $self->has_blocker( sprintf( "This version %s does not support upgrades to %s. Please upgrade to cPanel version %s or better.", $Cpanel::Version::Tiny::VERSION_BUILD, $pretty_distro_name, Elevate::Constants::MINIMUM_LTS_SUPPORTED ) );
+        return $self->has_blocker(
+            sprintf(
+                "This version %s does not support upgrades to %s. Please ensure the cPanel version is %s.",
+                $Cpanel::Version::Tiny::VERSION_BUILD,
+                $pretty_distro_name,
+                Elevate::Constants::MAXIMUM_LTS_SUPPORTED,
+            )
+        );
     }
 
     return 0;
