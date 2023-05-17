@@ -93,6 +93,10 @@ use constant VETTED_YUM_REPO => qw{
   imunify360-rollout-2
   imunify360-rollout-3
   imunify360-rollout-4
+  imunify360-rollout-5
+  imunify360-rollout-6
+  imunify360-rollout-7
+  imunify360-rollout-8
   influxdb
   kernelcare
   updates
