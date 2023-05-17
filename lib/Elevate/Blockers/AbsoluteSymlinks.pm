@@ -21,7 +21,7 @@ use parent qw{Elevate::Blockers::Base};
 sub check ($self) {
     my %links = Elevate::Components::AbsoluteSymlinks::get_abs_symlinks();
     WARN("Symlinks with absolute paths have been found in /:\n\t"
-        . join( ", ", sort keys(%links) )
+        . join( ", ", sort keys(%links) ) . "\n"
         ."This can cause problems during the leapp run, so\n"
         .'these will be corrected to be relative symlinks before elevation.'
     ) if %links;
