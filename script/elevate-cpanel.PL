@@ -954,6 +954,7 @@ Restore removed packages during the previous stage.
 
 sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
+    Cpanel::OS::clear_cache_after_cloudlinux_update(); # I didn't pick the "clear cache but don't die" name...
 
     if ( Cpanel::OS::major() != 8 ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
