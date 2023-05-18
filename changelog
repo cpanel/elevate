@@ -1,4 +1,4 @@
-2023-05-16 - version 12
+2023-05-18 - version 12
 - #170 - preserve and restore /etc/my.cnf after LEAPP upgrade and mysql restore.
 - Fix MOTD message being blank due to fatpacker stripping it out.
 - Assure LANG=C on all elevate systems.
@@ -7,6 +7,7 @@
 - Fix bad getopt caller, that is delegated to cpev.
 - Improved error message when calling missing functions.
 - Impose maximum LTS version, change version recommendation to v110.
+- Add new imunify repos to known list.
 
 2023-05-08 - version 11
 - Block use of this product if cPanel unlicensed.
