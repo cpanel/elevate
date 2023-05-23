@@ -1,6 +1,7 @@
 #!perl
 
 requires "Algorithm::Dependency::Ordered";
+requires "Config::Tiny";
 requires "File::Copy::Recursive";
 requires "File::Slurper";
 requires "Hash::Merge";
