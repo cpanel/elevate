@@ -94,6 +94,7 @@ sub check ($self) {    # do_check - main  entry point
     if ($has_blockers) {
         WARN( <<~'EOS' );
         Please fix the detected issues before performing the elevation process.
+        Read More: https://cpanel.github.io/elevate/blockers/
         EOS
     }
     else {
