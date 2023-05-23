@@ -59,7 +59,6 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
   * The "default" approach in `network-scripts` config files of specificying NICs by `DEVICE` can cause issues due to the above.
   * A more in-depth explanation of *why* this is a problem (and what to do about it) can be found at [freedesktop.org](https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/).
   * One way to prevent these isssues is to assign a name you want in the configuration and re-initialize NICs ahead of time.
-  * For more details on what others have done about this (with examples), see [here](https://github.com/cpanel/elevate/issues/166).
 
 # Other Known Issues
 
