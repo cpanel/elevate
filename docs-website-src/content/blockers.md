@@ -54,6 +54,11 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
 * The system **must** be able to control the boot process by changing the GRUB2 configuration.
   * The reason for this is that the framework which performs the upgrade of distro-provided software needs to be able to run a custom early boot environment (initrd) in order to safely upgrade the distro.
   * We check for this by seeing whether the kernel the system is currently running is the same version as that which the system believes is the default boot option.
+* Your machine has multiple network interface cards (NICs) using kernel-names (`ethX`).
+  * Since `ethX` style names are automatically assigned by the kernel, there is no guarantee that this name will remain the same upon upgrade to a new kernel version tier.
+  * The "default" approach in `network-scripts` config files of specificying NICs by `DEVICE` can cause issues due to the above.
+  * A more in-depth explanation of *why* this is a problem (and what to do about it) can be found at [freedesktop.org](https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/).
+  * One way to prevent these isssues is to assign a name you want in the configuration and re-initialize NICs ahead of time.
 
 # Other Known Issues
 
