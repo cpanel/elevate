@@ -5573,29 +5573,10 @@ sub run_stage_5 ($self) {
     INFO("Updating all packages before final reboot");
     $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
 
-    $self->_show_final_notifications();
-
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
     return REBOOT_NEEDED;
-}
-
-sub _show_final_notifications ($self) {
-
-    my $final_notifications = read_stage_file( 'final_notifications', [] );
-    return unless scalar @$final_notifications;
-
-    print_box("Final Notifications");
-
-    my $final_notice = "The following recommendations should now be reviewed for further action:";
-
-    foreach my $msg ( reverse @$final_notifications ) {
-        $final_notice .= "\n$msg\n";
-    }
-    Elevate::Notify::add_final_notification( $final_notice, 1 );
-
-    return;
 }
 
 sub _bq_now () {
