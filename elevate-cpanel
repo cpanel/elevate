@@ -240,7 +240,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub _build_blockers { [] }
 
-    sub check ($self) {    # do_check - main  entry point
+    sub check ( $self, %opts ) {    # do_check - main  entry point
 
         if ( $self->cpev->service->is_active ) {
             WARN("An elevation process is already in progress.");
@@ -251,7 +251,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         my $blocker_file = $self->cpev->getopt('check') || ELEVATE_BLOCKER_FILE;
 
-        my $has_blockers = $self->_has_blockers(1);
+        my $has_blockers = $self->_has_blockers( $opts{'dry_run'} );
 
         $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
@@ -4832,8 +4832,8 @@ sub run ( $pkg, @args ) {
         return $self->check_status();
     }
 
-    return $self->do_cleanup()      if $self->getopt('clean');
-    return $self->blockers->check() if defined $self->getopt('check');
+    return $self->do_cleanup()                      if $self->getopt('clean');
+    return $self->blockers->check( 'dry_run' => 1 ) if defined $self->getopt('check');
 
     my $stage = get_stage();
 
