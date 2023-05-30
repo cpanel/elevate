@@ -338,7 +338,7 @@ sub run ( $pkg, @args ) {
     }
 
     return $self->do_cleanup()      if $self->getopt('clean');
-    return $self->blockers->check() if defined $self->getopt('check');
+    return $self->blockers->check('dry_run' => 1) if defined $self->getopt('check');
 
     my $stage = get_stage();
 
