@@ -75,7 +75,7 @@ our $_CHECK_MODE;    # for now global so we can use the helper (move it later to
 
 sub _build_blockers { [] }
 
-sub check ($self) {    # do_check - main  entry point
+sub check ($self, %opts) {    # do_check - main  entry point
 
     if ( $self->cpev->service->is_active ) {
         WARN("An elevation process is already in progress.");
@@ -87,7 +87,7 @@ sub check ($self) {    # do_check - main  entry point
     # If no argument passed to --check, use default path:
     my $blocker_file = $self->cpev->getopt('check') || ELEVATE_BLOCKER_FILE;
 
-    my $has_blockers = $self->_has_blockers(1);
+    my $has_blockers = $self->_has_blockers($opts{'dry_run'});
 
     $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
