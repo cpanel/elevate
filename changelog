@@ -1,3 +1,9 @@
+2023-06-01 - version 13
+- Clear Cpanel::OS' $instance cache after upgrade to rocky 8. Fixes false positive failure.
+- Remove duped final_notifications display on final success.
+- Add documentation fixes for NIC rename advice
+- Pass through the "check only" mode status properly. - Fixes Linode upgrade failures.
+
 2023-05-18 - version 12
 - #170 - preserve and restore /etc/my.cnf after LEAPP upgrade and mysql restore.
 - Fix MOTD message being blank due to fatpacker stripping it out.
