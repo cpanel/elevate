@@ -3,6 +3,7 @@
 - Remove duped final_notifications display on final success.
 - Add documentation fixes for NIC rename advice
 - Pass through the "check only" mode status properly. - Fixes Linode upgrade failures.
+- Fix for "Wide character warning"
 
 2023-05-18 - version 12
 - #170 - preserve and restore /etc/my.cnf after LEAPP upgrade and mysql restore.
