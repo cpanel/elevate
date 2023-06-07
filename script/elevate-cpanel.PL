@@ -337,8 +337,8 @@ sub run ( $pkg, @args ) {
         return $self->check_status();
     }
 
-    return $self->do_cleanup()      if $self->getopt('clean');
-    return $self->blockers->check('dry_run' => 1) if defined $self->getopt('check');
+    return $self->do_cleanup()                      if $self->getopt('clean');
+    return $self->blockers->check( 'dry_run' => 1 ) if defined $self->getopt('check');
 
     my $stage = get_stage();
 
@@ -954,7 +954,7 @@ Restore removed packages during the previous stage.
 
 sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
-    Cpanel::OS::clear_cache_after_cloudlinux_update(); # I didn't pick the "clear cache but don't die" name...
+    Cpanel::OS::clear_cache_after_cloudlinux_update();    # I didn't pick the "clear cache but don't die" name...
 
     if ( Cpanel::OS::major() != 8 ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
