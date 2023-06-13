@@ -162,6 +162,7 @@ BEGIN {
 use Log::Log4perl qw(:easy);
 
 use Config;
+use Config::Tiny          ();
 use Carp                  ();
 use Errno                 ();
 use File::Basename        ();
@@ -337,8 +338,8 @@ sub run ( $pkg, @args ) {
         return $self->check_status();
     }
 
-    return $self->do_cleanup()      if $self->getopt('clean');
-    return $self->blockers->check('dry_run' => 1) if defined $self->getopt('check');
+    return $self->do_cleanup()                      if $self->getopt('clean');
+    return $self->blockers->check( 'dry_run' => 1 ) if defined $self->getopt('check');
 
     my $stage = get_stage();
 
@@ -954,7 +955,7 @@ Restore removed packages during the previous stage.
 
 sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
-    Cpanel::OS::clear_cache_after_cloudlinux_update(); # I didn't pick the "clear cache but don't die" name...
+    Cpanel::OS::clear_cache_after_cloudlinux_update();    # I didn't pick the "clear cache but don't die" name...
 
     if ( Cpanel::OS::major() != 8 ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
@@ -1548,22 +1549,27 @@ sub post_upgrade_check ($self) {
 
 sub setup_answer_file {
     my $leapp_dir = '/var/log/leapp';
-
     mkdir $leapp_dir unless -d $leapp_dir;
 
-    my $leapp_answers = $leapp_dir . '/answerfile.userchoices';
+    my $answerfile_path = $leapp_dir . '/answerfile';
+    system touch => $answerfile_path unless -e $answerfile_path;
 
-    if ( -f $leapp_answers && -s _ ) {
-        warn "Preserve leap answers file: ", $leapp_answers;
-        return;
+    my $do_write;    # no point in overwriting the file if nothing needs to change
+
+    my $ini_obj = Config::Tiny->read( $answerfile_path, 'utf8' );
+    LOGDIE( 'Failed to read leapp answerfile: ' . Config::Tiny->errstr ) unless $ini_obj;
+
+    my $SECTION = 'remove_pam_pkcs11_module_check';
+
+    if ( not defined $ini_obj->{$SECTION}->{'confirm'} or $ini_obj->{$SECTION}->{'confirm'} ne 'True' ) {
+        $do_write = 1;
+        $ini_obj->{$SECTION}->{'confirm'} = 'True';
     }
 
-    open( my $fh, '>', $leapp_answers ) or die qq[Failed to setup leapp anserfile.userchoices: $!];
-    print {$fh} <<~'EOF';
-        [remove_pam_pkcs11_module_check]
-        confirm = True
-        EOF
-    close $fh;
+    if ($do_write) {
+        $ini_obj->write( $answerfile_path, 'utf8' )    #
+          or LOGDIE( 'Failed to write leapp answerfile: ' . $ini_obj->errstr );
+    }
 
     return;
 }
