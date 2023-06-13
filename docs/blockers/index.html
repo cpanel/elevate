@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    
+    <title>cPanel elevate documentation | Known cPanel ELevate Blockers</title>
+    <link rel=icon href="https://cpanel.github.io/elevate/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="https://cpanel.github.io/elevate/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/style.css">
+</head><body><nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="https://cpanel.github.io/elevate">
+            <img src="https://cpanel.github.io/elevate/images/elevate-logo.svg" alt="cPanel elevate">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+            aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">
+                    
+                    Report an Issue
+                </a>
+                </li>
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate">
+                    
+                    Contribute
+                </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</nav>
+<div id="content">
+    <div class="container">
+        <ol class="d-none d-md-flex breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="https://cpanel.github.io/elevate">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                Known cPanel ELevate Blockers
+            </li>
+        </ol>
+    </div>
+</div>
+<br><div id="content">
+<div id="content">
+    <div class="container">
+
+        <div class="row"><div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button"
+                        href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">Issues</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate">Documentation</a></li>
+                
+                <a href="/elevate/#introduction">
+                    
+                    <li>Introduction</li>
+                </a>
+                
+                <a href="/elevate/#before-updating">
+                    
+                    <li>Before Updating</li>
+                </a>
+                
+                <a href="/elevate/#risks">
+                    
+                    <li>Risks</li>
+                </a>
+                
+                <a href="/elevate/#using-the-script">
+                    
+                    <li>Using the script</li>
+                </a>
+                
+                <a href="/elevate/#sumup-of-upgrade-process">
+                    
+                    <li>SumUp of upgrade process</li>
+                </a>
+                
+                <a href="/elevate/#copyright">
+                    
+                    <li>Copyright</li>
+                </a>
+                
+                <li>
+                    <a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/#faq">FAQ</a>
+                </li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/blockers">Known Blockers</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/whitepaper">White Paper</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div>
+<div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
+                    <h1 id="known-blockers">Known Blockers</h1>
+<p>The following is a list of install states which the script will intentionally prevent you from upgrading with. This is because the script cannot garantuee a successful upgrade with these conditions in place.</p>
+<h2 id="basic-checks">Basic checks</h2>
+<p>The following conditions are assumed to be in place any time you run this script:</p>
+<ul>
+<li>You have <strong>CentOS 7.9</strong> or greater installed.
+<ul>
+<li>We DO NOT support alternative RHEL 7 (including CloudLinux) variants.</li>
+</ul>
+</li>
+<li>You have cPanel version 102 or greater installed.</li>
+<li>You are logged in as <strong>root</strong>.</li>
+</ul>
+<h2 id="disk-space">Disk space</h2>
+<p>At any given time, the upgrade process may use at or more than 5 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:</p>
+<ul>
+<li><strong>/boot</strong>: 120 MB</li>
+<li><strong>/usr/local/cpanel</strong>: 1.5 GB</li>
+<li><strong>/var/lib</strong>: 5 GB</li>
+</ul>
+<h2 id="unsupported-software">Unsupported software</h2>
+<p>The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:</p>
+<ul>
+<li><strong>cPanel CCS Calendar Server</strong> - Requires Postgresql &lt; 10.0</li>
+<li><strong>Postgresql</strong> - ELevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.</li>
+</ul>
+<h2 id="things-you-need-to-upgrade-first">Things you need to upgrade first.</h2>
+<p>You can discover many of these issues by downloading <code>elevate-cpanel</code> and running <code>/scripts/elevate-cpanel --check</code>. Below is a summary of the major blockers people might encounter.</p>
+<ul>
+<li><strong>distro is up to date</strong>
+<ul>
+<li>We expect yum update to indicate there is nothing to do.</li>
+<li>Mitigation: <code>yum update</code></li>
+</ul>
+</li>
+<li><strong>cPanel is up to date</strong>
+<ul>
+<li>You will need to be on a version mentioned in the &ldquo;Latest cPanel &amp; WHM Builds (All Architectures)&rdquo; section at <a href="http://httpupdate.cpanel.net/">http://httpupdate.cpanel.net/</a></li>
+<li>Mitigation: <code>/usr/local/cpanel/scripts/upcp</code></li>
+</ul>
+</li>
+<li><strong>nameserver</strong>
+<ul>
+<li>cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8 / Rocky 8, it is preferred that you always be on PowerDNS.</li>
+<li>Mitigation: <code>/scripts/setupnameserver powerdns</code></li>
+</ul>
+</li>
+<li><strong>MySQL</strong>
+<ul>
+<li>99% of existing AlmaLinux 8 / Rocky 8 cPanel installs end up with MySQL 8. We recommend you upgrade your MySQL to 8.0 if possible.</li>
+<li><strong>MariaDB</strong>: If you have already switched to MariaDB, you have no way of reaching MySQL. Be sure you are on 10.3 or better before moving to AlmaLinux 8 / Rocky 8.</li>
+</ul>
+</li>
+<li>Some <strong>EA4 packages</strong> are not supported on AlmaLinux 8 / Rocky 8.
+<ul>
+<li>Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8 / Rocky 8. You would need to remove these packages before the upgrading to AlmaLinux 8 / Rocky 8. Doing so might impact your system users. Proceed with caution.</li>
+</ul>
+</li>
+<li>The system <strong>must</strong> be able to control the boot process by changing the GRUB2 configuration.
+<ul>
+<li>The reason for this is that the framework which performs the upgrade of distro-provided software needs to be able to run a custom early boot environment (initrd) in order to safely upgrade the distro.</li>
+<li>We check for this by seeing whether the kernel the system is currently running is the same version as that which the system believes is the default boot option.</li>
+</ul>
+</li>
+<li>Your machine has multiple network interface cards (NICs) using kernel-names (<code>ethX</code>).
+<ul>
+<li>Since <code>ethX</code> style names are automatically assigned by the kernel, there is no guarantee that this name will remain the same upon upgrade to a new kernel version tier.</li>
+<li>The &ldquo;default&rdquo; approach in <code>network-scripts</code> config files of specificying NICs by <code>DEVICE</code> can cause issues due to the above.</li>
+<li>A more in-depth explanation of <em>why</em> this is a problem (and what to do about it) can be found at <a href="https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/">freedesktop.org</a>.</li>
+<li>One way to prevent these isssues is to assign a name you want in the configuration and re-initialize NICs ahead of time.</li>
+</ul>
+</li>
+</ul>
+<h1 id="other-known-issues">Other Known Issues</h1>
+<p>The following is a list of other known issues that could prevent your server&rsquo;s successful elevation.</p>
+<h2 id="using-ovh-proactive-intervention-monitoring">Using OVH proactive intervention monitoring</h2>
+<p>If you are using a dedicated server hosted at OVH, you should <strong>disable the <code>proactive monitoring</code> before starting</strong> the elevation process.
+The proactive monitoring incorrectly detects an issue on your server during one of the reboots.
+Your server would then boot to a rescue mode, interrupting the elevation upgrade.</p>
+<p><a href="https://support.us.ovhcloud.com/hc/en-us/articles/115001821044-Overview-of-OVHcloud-Monitoring-on-Dedicated-Servers">Read more about OVH monitoring</a></p>
+
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div><script type="text/javascript" src="https://cpanel.github.io/elevate/js/copy-code.js"></script>
+<footer class="text-center mt-0">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-1">
+    <a href="//cpanel.com" title="cPanel, L.L.C." class="center-block cPanel-logo">
+    <img src="https://docs.cpanel.net/img/cpanel-logo.min.svg" title="cPanel, L.L.C." />
+    </a>
+    </div>
+    <div class="col-md-11 legal">
+    <p class="small">
+    &copy; 2023 cPanel L.L.C.
+    </p>
+    </div>
+    </div>
+    </div>
+    <div class="container-fluid trademark">
+    <div class="row">
+    <div class="col-sm-12 text-center">
+    <small>
+        cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
+        <br><i>page generated at Jun 13, 2023 at 20:04 (UTC)</i>
+    </small>
+    </div>
+    </div>
+    </div>
+</footer></body>
+</html>

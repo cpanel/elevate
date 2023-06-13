@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>cPanel ELevate CentOS 7 to AlmaLinux 8 on cPanel elevate documentation</title>
+    <link>https://cpanel.github.io/elevate/</link>
+    <description>Recent content in cPanel ELevate CentOS 7 to AlmaLinux 8 on cPanel elevate documentation</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 07 Dec 2022 08:53:47 -0500</lastBuildDate><atom:link href="https://cpanel.github.io/elevate/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Known cPanel ELevate Blockers</title>
+      <link>https://cpanel.github.io/elevate/blockers/</link>
+      <pubDate>Wed, 23 Mar 2022 16:13:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/blockers/</guid>
+      <description>Known Blockers The following is a list of install states which the script will intentionally prevent you from upgrading with. This is because the script cannot garantuee a successful upgrade with these conditions in place.
+Basic checks The following conditions are assumed to be in place any time you run this script:
+ You have CentOS 7.9 or greater installed.  We DO NOT support alternative RHEL 7 (including CloudLinux) variants.</description>
+    </item>
+    
+    <item>
+      <title>White Paper</title>
+      <link>https://cpanel.github.io/elevate/whitepaper/</link>
+      <pubDate>Tue, 15 Mar 2022 08:53:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/whitepaper/</guid>
+      <description>download a pdf version of this white paper
+Abstract cPanel, L.L.C. has embraced the ELevate project [1], an open-source initiative by the AlmaLinux OS Foundation (“AlmaLinux”) to help users perform upgrades between different Red Hat® Enterprise Linux® (RHEL)-derivative distributions. This white paper captures the relevant details in evaluating the ELevate process to upgrade a cPanel &amp;amp; WHM® server from a RHEL-derived distribution version 7.x to an AlmaLinux distribution version 8.x. The intended audience for this paper are the decision-makers who may be considering upgrading their cPanel &amp;amp; WHM servers to a different RHEL-based distribution.</description>
+    </item>
+    
+  </channel>
+</rss>
