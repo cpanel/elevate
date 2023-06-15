@@ -249,6 +249,24 @@ After addressing the reported issues, you can continue an existing elevation pro
 /scripts/elevate-cpanel --continue
 ```
 
+### The elevate process is locked on stage 1
+
+If you notice that the elevate process is locked on `stage 1` and you are looping
+on the advice:
+```
+You can consider running:
+   /scripts/elevate-cpanel --start
+```
+
+You can unlock the situation by using the `--clean` option.
+```
+# clean the previous state (do not run when an elevation process passed stage 2 or more)
+   /scripts/elevate-cpanel --clean
+
+# then restart the process
+   /scripts/elevate-cpanel --start
+```
+
 ### I need more help?
 
 You can report an issue to [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
