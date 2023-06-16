@@ -17,6 +17,13 @@ use Test::Elevate;
 
 use cPstrict;
 
+my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
+
+my $mock_os = Test::MockFile->symlink('linux|centos|7|9|0', '/var/cpanel/caches/Cpanel-OS');
+my $mock_os_custom = Test::MockFile->symlink(undef, '/var/cpanel/caches/Cpanel-OS.custom');
+my $mock_osr = Test::MockFile->file( '/etc/os-release',     '', { mtime => time - 100000 } );
+my $mock_rhr = Test::MockFile->file( '/etc/redhat-release', '', { mtime => time - 100000 } );
+
 my $cpev_mock = Test::MockModule->new('cpev');
 my $whm_mock  = Test::MockModule->new('Elevate::Blockers::WHM');
 

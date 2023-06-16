@@ -44,6 +44,11 @@ sub startup : Test(startup) ($self) {
 
     $self->{mock_httpd} = Test::MockModule->new('Cpanel::Config::Httpd');
 
+    $self->{mock_os} = Test::MockFile->symlink('linux|centos|7|9|0', '/var/cpanel/caches/Cpanel-OS');
+    $self->{mock_os_custom} = Test::MockFile->symlink(undef, '/var/cpanel/caches/Cpanel-OS.custom');
+    $self->{mock_osr} = Test::MockFile->file( '/etc/os-release',     '', { mtime => time - 100000 } );
+    $self->{mock_rhr} = Test::MockFile->file( '/etc/redhat-release', '', { mtime => time - 100000 } );
+
     return;
 }
 

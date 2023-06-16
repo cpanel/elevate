@@ -19,6 +19,11 @@ use cPstrict;
 
 require $FindBin::Bin . '/../elevate-cpanel';
 
+my $mock_os = Test::MockFile->symlink('linux|centos|7|9|0', '/var/cpanel/caches/Cpanel-OS');
+my $mock_os_custom = Test::MockFile->symlink(undef, '/var/cpanel/caches/Cpanel-OS.custom');
+my $mock_osr = Test::MockFile->file( '/etc/os-release',     '', { mtime => time - 100000 } );
+my $mock_rhr = Test::MockFile->file( '/etc/redhat-release', '', { mtime => time - 100000 } );
+
 my $blockers = cpev->new->blockers;
 my $ea4      = $blockers->_get_blocker_for('EA4');
 

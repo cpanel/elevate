@@ -35,6 +35,11 @@ $mock_notify->redefine(
 
 my $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
 
+my $mock_os = Test::MockFile->symlink('linux|centos|7|9|0', '/var/cpanel/caches/Cpanel-OS');
+my $mock_os_custom = Test::MockFile->symlink(undef, '/var/cpanel/caches/Cpanel-OS.custom');
+my $mock_osr = Test::MockFile->file( '/etc/os-release',     '', { mtime => time - 100000 } );
+my $mock_rhr = Test::MockFile->file( '/etc/redhat-release', '', { mtime => time - 100000 } );
+
 my $cpev = bless {}, 'cpev';
 
 $cpev->_notify_success();

@@ -18,6 +18,7 @@ use Cwd            ();
 use File::Copy     ();
 use Log::Log4perl  qw(:easy);
 use Elevate::Fetch ();
+use Cpanel::OS     ();
 
 use parent qw{Elevate::Components::Base};
 
@@ -38,6 +39,7 @@ sub post_leapp ($self) {
 sub _remove_kernelcare_if_needed ($self) {
 
     return unless -x q[/usr/bin/kcarectl];
+    return if Cpanel::OS::is_cloudlinux();
 
     # This environment variable signals to the KernelCare RPM scriptlets not to deregister on package removal.
     local $ENV{KCARE_KEEP_REGISTRATION} = '1';

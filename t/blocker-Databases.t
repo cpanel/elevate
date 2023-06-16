@@ -25,6 +25,11 @@ my $db   = $cpev->get_blocker('Databases');
 
 my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
+my $mock_os = Test::MockFile->symlink('linux|centos|7|9|0', '/var/cpanel/caches/Cpanel-OS');
+my $mock_os_custom = Test::MockFile->symlink(undef, '/var/cpanel/caches/Cpanel-OS.custom');
+my $mock_osr = Test::MockFile->file( '/etc/os-release',     '', { mtime => time - 100000 } );
+my $mock_rhr = Test::MockFile->file( '/etc/redhat-release', '', { mtime => time - 100000 } );
+
 {
     note "mysql upgrade in progress";
     my $mf_mysql_upgrade = Test::MockFile->file( q[/var/cpanel/mysql_upgrade_in_progress] => 1 );

@@ -22,7 +22,9 @@ my %mocks = map { $_ => Test::MockModule->new($_); } qw{
     Cpanel::Pkgr
     Elevate::Blockers
     Elevate::Blockers::Base
+    Cpanel::OS
 };
+$mocks{'Cpanel::OS'}->define( "is_cloudlinux" => 0 );
 $mocks{'Cpanel::Pkgr'}->redefine( "what_provides" => '', "is_installed" => 1 );
 my $obj = bless {}, 'Elevate::Blockers::Python';
 ok( !$obj->check(), "Returns early on no provider of python36" );
@@ -43,5 +45,8 @@ my $expected = {
     END
 };
 is( $obj->check, $expected, "Got expected blocker returned when found" );
+
+$mocks{'Cpanel::OS'}->redefine( "is_cloudlinux" => 1 );
+ok( !$obj->check, "Blocker passes on CloudLinux even with Python 3 present" );
 
 done_testing();

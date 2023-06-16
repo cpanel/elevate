@@ -36,10 +36,15 @@ sub check ($self) {
     return 0;
 }
 
+# Fall back to an ad-hoc check if we don't get a defined value from can_be_elevated:
+sub _distro_can_be_elevated () {
+    return eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() =~ m/^(?:centos|cloudlinux)$/ && Cpanel::OS::major() == 7 );
+}
+
 sub _blocker_is_non_centos7 ($self) {
-    unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
+    unless ( _distro_can_be_elevated() ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        return $self->has_blocker(qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name.]);
+        return $self->has_blocker(qq[This script is only designed to upgrade CentOS/CloudLinux 7 to $pretty_distro_name.]);
     }
 
     return 0;
@@ -50,7 +55,7 @@ sub _blocker_is_old_centos7 ($self) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         return $self->has_blocker(
             sprintf(
-                'You need to run CentOS 7.%s and later to upgrade %s. You are currently using %s',    #
+                'You need to run CentOS/CloudLinux 7.%s and later to upgrade to %s. You are currently using %s',    #
                 MINIMUM_CENTOS_7_SUPPORTED, $pretty_distro_name, Cpanel::OS::display_name()           #
             )
         );
@@ -67,11 +72,10 @@ sub _blocker_is_experimental_os ($self) {
     return 0;
 }
 
-# We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
 
-    if ( !( eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() eq 'centos' && Cpanel::OS::major() == 7 ) ) ) {
-        FATAL(qq[This script is designed to only run on CentOS 7 servers.\n]);
+    unless ( _distro_can_be_elevated() ) {
+        FATAL(qq[This script is designed to only run on CentOS or CloudLinux 7 servers.\n]);
         exit 1;
     }
 

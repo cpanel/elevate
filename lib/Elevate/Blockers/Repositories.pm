@@ -74,6 +74,10 @@ use constant VETTED_YUM_REPO => qw{
   centos-kernel
   centos-kernel-experimental
   centosplus
+  cl-ea4
+  cloudlinux-imunify360
+  cloudlinux-x86_64-server
+  cloudlinux-x86_64-server-updates
   cp-dev-tools
   cpanel-addons-production-feed
   cpanel-plugins
@@ -83,6 +87,8 @@ use constant VETTED_YUM_REPO => qw{
   elasticsearch
   elevate
   elevate-source
+  elevate-testing
+  elevate-testing-source
   epel
   epel-testing
   extras

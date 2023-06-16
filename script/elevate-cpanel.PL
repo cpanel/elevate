@@ -268,8 +268,9 @@ use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recomme
 use constant REBOOT_NEEDED => 4242;    # just one unique id
 
 # prefer string over integers so we can read the configuration file (no need for bitmask)
-use constant UPGRADE_TO_ALMALINUX => q[AlmaLinux];
-use constant UPGRADE_TO_ROCKY     => q[Rocky];
+use constant UPGRADE_TO_ALMALINUX  => q[AlmaLinux];
+use constant UPGRADE_TO_ROCKY      => q[Rocky];
+use constant UPGRADE_TO_CLOUDLINUX => q[CloudLinux];
 
 use Simple::Accessor qw{
   service
@@ -394,12 +395,25 @@ sub _parse_opt_upgrade_to ($self) {
     if ( !defined $self->getopt('start') && !defined $self->getopt('check') ) {
         die qq[--upgrade-to option is only supported with --start or --check\n];
     }
-    $flavor = lc $flavor;
-    if ( $flavor !~ m{^(?:almalinux|alma|rocky)$} ) {
-        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux' or 'rocky' are supported.\n];
-    }
 
-    $self->{upgrade_to} = $flavor eq 'rocky' ? UPGRADE_TO_ROCKY : UPGRADE_TO_ALMALINUX;
+    $flavor = lc $flavor;
+    $flavor = 'almalinux' if $flavor eq 'alma';    # normalize abbreviated form
+
+    if ( $flavor eq 'rocky' ) {
+        die qq[CloudLinux 7 can only be upgraded to CloudLinux 8. If Rocky Linux is wanted, convert CloudLinux 7 to CentOS 7 before running this script.] if Cpanel::OS::is_cloudlinux();
+        $self->{upgrade_to} = UPGRADE_TO_ROCKY;
+    }
+    elsif ( $flavor eq 'cloudlinux' ) {
+        die qq[CentOS 7 cannot be directly upgraded to CloudLinux 8. If CloudLinux is wanted, convert to CentOS 7 to CloudLinux 7 before running this script.] unless Cpanel::OS::is_cloudlinux();
+        $self->{upgrade_to} = UPGRADE_TO_CLOUDLINUX;
+    }
+    elsif ( $flavor eq 'almalinux' ) {
+        die qq[CloudLinux 7 can only be upgraded to CloudLinux 8. If AlmaLinux is wanted, convert CloudLinux 7 to CentOS 7 before running this script.] if Cpanel::OS::is_cloudlinux();
+        $self->{upgrade_to} = UPGRADE_TO_ALMALINUX;
+    }
+    else {
+        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux', 'rocky', or 'cloudlinux' are supported.\n];
+    }
 
     return;
 }
@@ -436,15 +450,20 @@ sub do_update ($self) {
 
 sub upgrade_to ($self) {    # main helper to know the upgrade_to distro
     return $self->{upgrade_to} if $self->{upgrade_to};
-    return read_stage_file( 'upgrade_to', UPGRADE_TO_ALMALINUX );    # default to AlmaLinux
+    return $self->{upgrade_to} = read_stage_file( 'upgrade_to', Cpanel::OS::is_cloudlinux() ? UPGRADE_TO_CLOUDLINUX : UPGRADE_TO_ALMALINUX );    # default to AlmaLinux unless CloudLinux is running
 }
 
 sub upgrade_to_rocky ($self) {
     return $self->upgrade_to() eq UPGRADE_TO_ROCKY;
 }
 
+sub upgrade_to_cloudlinux ($self) {
+    return $self->upgrade_to() eq UPGRADE_TO_CLOUDLINUX;
+}
+
 sub upgrade_to_pretty_name ($self) {    # used by output messages
     return q[Rocky Linux 8] if $self->upgrade_to_rocky;
+    return q[CloudLinux 8]  if $self->upgrade_to_cloudlinux;
     return q[AlmaLinux 8];
 }
 
@@ -886,12 +905,22 @@ sub run_stage_3 ($self) {
 
                         # provides leapp-data-almalinux & leapp-data-rocky
                         $self->ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+                        $self->ssystem_and_die(qw{/usr/bin/curl -o /etc/yum.repos.d/ELevate-testing.repo https://repo.almalinux.org/elevate/testing/elevate-testing.repo});
                     }
 
-                    my $leap_data_pkg = $self->upgrade_to_rocky() ? 'leapp-data-rocky' : 'leapp-data-almalinux';
+                    my $leapp_data_pkg;
+                    if ( $self->upgrade_to_rocky() ) {
+                        $leapp_data_pkg = 'leapp-data-rocky';
+                    }
+                    if ( $self->upgrade_to_cloudlinux() ) {
+                        $leapp_data_pkg = 'leapp-data-cloudlinux';
+                    }
+                    else {
+                        $leapp_data_pkg = 'leapp-data-almalinux';
+                    }
 
-                    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
-                        $self->ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
+                    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leapp_data_pkg) ) {
+                        $self->ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leapp_data_pkg );
                     }
                     if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
                         $self->ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
@@ -920,7 +949,7 @@ sub run_stage_3 ($self) {
             # remove all ea- packages
             $self->ssystem(q{/usr/bin/yum -y erase ea-*});
 
-            foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
+            foreach my $rpm (qw/ yum-plugin-fastestmirror /) {
                 next unless Cpanel::Pkgr::is_installed($rpm);
                 $self->ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
             }
@@ -1037,7 +1066,7 @@ sub run_stage_4 ($self) {
     $self->post_leapp_update_restore();
 
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
-      leapp leapp-data-almalinux leapp-data-rocky leapp-upgrade-el7toel8
+      leapp leapp-data-almalinux leapp-data-rocky leapp-data-cloudlinux leapp-upgrade-el7toel8
       python2-leapp alt-pcre802 alt-pcre802-devel};
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
 
@@ -1321,7 +1350,7 @@ sub _do_leapp_upgrade ($self) {
 
     my $ok = eval {
         local $ENV{LEAPP_OVL_SIZE} = 3000;
-        $self->ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
+        $self->ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade --nowarn} );
         1;
     };
 
@@ -1534,6 +1563,15 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
 sub post_upgrade_check ($self) {
 
     my $expect_distro = $self->upgrade_to_rocky() ? 'rocky' : 'almalinux';
+    if ( $self->upgrade_to_rocky() ) {
+        $expect_distro = 'rocky';
+    }
+    elsif ( $self->upgrade_to_cloudlinux() ) {
+        $expect_distro = 'cloudlinux';
+    }
+    else {
+        $expect_distro = 'almalinux';
+    }
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();

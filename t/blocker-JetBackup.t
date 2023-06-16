@@ -19,6 +19,13 @@ use cPstrict;
 
 note "checking _use_jetbackup4_or_earlier";
 
+my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
+
+my $mock_os = Test::MockFile->symlink('linux|centos|7|9|0', '/var/cpanel/caches/Cpanel-OS');
+my $mock_os_custom = Test::MockFile->symlink(undef, '/var/cpanel/caches/Cpanel-OS.custom');
+my $mock_osr = Test::MockFile->file( '/etc/os-release',     '', { mtime => time - 100000 } );
+my $mock_rhr = Test::MockFile->file( '/etc/redhat-release', '', { mtime => time - 100000 } );
+
 my $mock_pkgr = Test::MockModule->new('Cpanel::Pkgr');
 
 my $cpev = cpev->new;
