@@ -7,11 +7,11 @@ layout: single
 
 # Welcome to the cPanel ELevate Project!
 
-Read more from the [Elevate website](https://cpanel.github.io/elevate/).
+Read more from the [ELevate website](https://cpanel.github.io/elevate/).
 
 ## Goal
 
-The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` [CentOS&nbsp;7](https://centos.org) server installation to [AlmaLinux&nbsp;8](https://almalinux.org) or [Rocky&nbsp;Linux&nbsp;8](https://rockylinux.org).
+The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` [CentOS&nbsp;7](https://centos.org) server installation to [AlmaLinux&nbsp;8](https://almalinux.org) or [Rocky&nbsp;Linux&nbsp;8](https://rockylinux.org), or a [CloudLinux&nbsp;7](https://www.cloudlinux.com/) installation to CloudLinux&nbsp;8.
 
 ## Disclaimer
 
@@ -25,17 +25,17 @@ Please contact [cPanel Technical Support](https://docs.cpanel.net/knowledge-base
 - [Pull requests are welcome](https://github.com/cpanel/elevate/pulls)
     - Code contributions are subject to our [Contributor License Agreement](docs/cPanel-CLA.pdf)
 
-This project builds on the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of RedHat-based systems.
+This project builds on the [AlmaLinux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of Red Hat Enterprise Linux-based systems.
 
-The [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/) or [Rocky&nbsp;Linux&nbsp;8](https://rockylinux.org). However if you attempt use it directly on a CentOS 7-based [cPanel&nbsp;install](https://cpanel.net/), you will end up with a broken system.
+The [AlmaLinux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from a Linux distribution derived from Enterprise Linux 7, such as [CentOS&nbsp;7](https://centos.org/) to an appropriate EL8-based distribution. However, if you attempt use it directly on a system with [cPanel&nbsp;installed](https://cpanel.net/), you will end up with a broken system.
 
-This project was designed to be a wrapper around the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://cpanel.net/) with an aim to minimize outages.
+This project was designed to be a wrapper around the [AlmaLinux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://cpanel.net/) with an aim to minimize outages.
 
 ### Our current approach can be summarized as:
 
 1. [Check for blockers](https://cpanel.github.io/elevate/blockers/)
 2. `yum update && reboot`
-3. Analyze and remove software (not data) commonly installed on a cPanel system
+3. Analyze and remove software (but not data) commonly installed on a cPanel system
 4. [Execute AlmaLinux upgrade](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html)
 5. Re-install previously removed software detected prior to upgrade. This might include:
   * cPanel (upcp)
@@ -55,7 +55,7 @@ Failure states include but are not limited to:
 
 We recommend you back up (and ideally snapshot) your system so it can be easily restored before continuing.
 
-This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However there are small windows where the unexpected failures leading to some data loss may occur.
+This upgrade will potentially take 30-90 minutes to upgrade all of the software. During most of this time, the server will be degraded and non-functional. We attempt to disable most of the software so that external systems will re-try later rather than fail in an unexpected way. However, there are small windows where the unexpected failures leading to some data loss may occur.
 
 ## Before updating
 
@@ -96,7 +96,7 @@ and then [running pre-checks](#pre-upgrade-checks).
 * Manually installed PECL need re-build.
 * Cpanel::CachedCommand is wrong.
 * Cpanel::OS distro setting is wrong.
-* MySQL might now not be upgradable (MySQL versions < 8.0 are not normally present on A8).
+* MySQL might now not be upgradable (MySQL versions &lt; 8.0 are not normally present on A8).
 * The `nobody` user does not switch from UID 99 to UID 65534 even after upgrading to A8.
 
 ## Using the script
@@ -127,6 +127,12 @@ You can check if your system is ready to upgrade to **Rocky Linux 8** by running
 /scripts/elevate-cpanel --check --upgrade-to=rocky
 ```
 
+You can check if your system is ready to upgrade to **CloudLinux 8** by running:
+```bash
+# Check Rocky Linux 8 upgrade (dry run mode)
+/scripts/elevate-cpanel --check --upgrade-to=cloudlinux
+```
+
 ### To upgrade
 
 Once you have a backup of your server (**The cPanel elevate script does not back up before upgrading**), and have cleared upgrade blockers with Pre-upgrade checks, you can begin the migration.
@@ -147,6 +153,12 @@ You can upgrade to **Rocky Linux 8** by running:
 /scripts/elevate-cpanel --start --upgrade-to=rocky
 ```
 
+You can upgrade to **CloudLinux 8** by running:
+```bash
+# Start the migration to CloudLinux 8
+/scripts/elevate-cpanel --start --upgrade-to=cloudlinux
+```
+
 ### Command line options
 
 ```bash
@@ -157,11 +169,13 @@ You can upgrade to **Rocky Linux 8** by running:
 /scripts/elevate-cpanel --check # defaults to AlmaLinux
 /scripts/elevate-cpanel --check --upgrade-to=almalinux
 /scripts/elevate-cpanel --check --upgrade-to=rocky
+/scripts/elevate-cpanel --check --upgrade-to=cloudlinux
 
 # Start the migration
-/scripts/elevate-cpanel --start # defaults to AlmaLinux
+/scripts/elevate-cpanel --start # defaults to AlmaLinux on CentOS, and CloudLinux on CloudLinux
 /scripts/elevate-cpanel --start --upgrade-to=almalinux
 /scripts/elevate-cpanel --start --upgrade-to=rocky
+/scripts/elevate-cpanel --start --upgrade-to=cloudlinux
 
 ... # expect multiple reboots (~30 min)
 
@@ -195,7 +209,7 @@ Disable cPanel services and setup motd.
 Setup the `elevate-release-latest-el7` repo and install leapp packages.
 Prepare the cPanel packages for the update.
 
-Remove some known conflicting packages and backup some existing configurations. (these packages will be reinstalled druing the next stage).
+Remove some known conflicting packages and backup some existing configurations. (These packages will be reinstalled druing the next stage.)
 
 Provide answers to a few leapp questions.
 
@@ -205,10 +219,10 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 ### Stage 4
 
-At this stage we should now run Alamalinux 8 (or RockyLinux 8).
+At this stage we should now be running the new operating system.
 Update cPanel product for the new distro.
 
-Restore removed packages during the previous stage.
+Restore packages removed during the previous stage.
 
 ### Stage 5
 
