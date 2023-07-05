@@ -34,7 +34,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/Base.pm'}             = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/AbsoluteSymlinks.pm'} = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/cPanelPlugins.pm'}    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/DigitalOcean.pm'}     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/EA4.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Grub2.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Imunify.pm'}          = 'script/elevate-cpanel.PL.static';
@@ -1480,6 +1479,7 @@ EOS
       cpanel-addons-production-feed
       cpanel-plugins
       cr
+      digitalocean-agent
       droplet-agent
       EA4
       elasticsearch
@@ -2089,43 +2089,6 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Components/cPanelPlugins.pm
-
-{    # --- BEGIN lib/Elevate/Components/DigitalOcean.pm
-
-    package Elevate::Components::DigitalOcean;
-
-    use cPstrict;
-
-    use Cpanel::Pkgr       ();
-    use Elevate::Constants ();
-
-    use Cwd ();
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    # use Elevate::Components::Base();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::Components::Base); }
-
-    sub pre_leapp ($self) {
-
-        return;
-    }
-
-    sub post_leapp ($self) {
-
-        return unless Cpanel::Pkgr::is_installed('droplet-agent');
-        return unless -f '/etc/yum.repos.d/droplet-agent.repo';
-
-        $self->ssystem(qw{/usr/bin/yum -y reinstall droplet-agent});
-
-        return;
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Components/DigitalOcean.pm
 
 {    # --- BEGIN lib/Elevate/Components/EA4.pm
 
@@ -4735,7 +4698,6 @@ use Elevate::Blockers::WHM              ();
 use Elevate::Components::Base             ();
 use Elevate::Components::AbsoluteSymlinks ();
 use Elevate::Components::cPanelPlugins    ();
-use Elevate::Components::DigitalOcean     ();
 use Elevate::Components::EA4              ();
 use Elevate::Components::Grub2            ();
 use Elevate::Components::Imunify          ();
@@ -5939,7 +5901,6 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'Imunify'       => 'post_leapp' );
     $self->run_component_once( 'NixStats'      => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
-    $self->run_component_once( 'DigitalOcean'  => 'post_leapp' );
 
     return;
 }
