@@ -219,7 +219,6 @@ use Elevate::Blockers::WHM              ();
 use Elevate::Components::Base             ();
 use Elevate::Components::AbsoluteSymlinks ();
 use Elevate::Components::cPanelPlugins    ();
-use Elevate::Components::DigitalOcean     ();
 use Elevate::Components::EA4              ();
 use Elevate::Components::Grub2            ();
 use Elevate::Components::Imunify          ();
@@ -1423,7 +1422,6 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'Imunify'       => 'post_leapp' );
     $self->run_component_once( 'NixStats'      => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
-    $self->run_component_once( 'DigitalOcean'  => 'post_leapp' );
 
     return;
 }
