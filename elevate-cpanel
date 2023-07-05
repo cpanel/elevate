@@ -6077,13 +6077,14 @@ sub setup_answer_file {
 
     my $SECTION = 'remove_pam_pkcs11_module_check';
 
-    if ( not exists $ini_obj->{$SECTION}->{'confirm'} or $ini_obj->{$SECTION}->{'confirm'} ne 'True' ) {
+    if ( not defined $ini_obj->{$SECTION}->{'confirm'} or $ini_obj->{$SECTION}->{'confirm'} ne 'True' ) {
         $do_write = 1;
         $ini_obj->{$SECTION}->{'confirm'} = 'True';
     }
 
     if ($do_write) {
-        LOGDIE( 'Failed to write leapp answerfile: ' . $ini_obj->errstr ) unless $ini_obj->write( $answerfile_path, 'utf8' );
+        $ini_obj->write( $answerfile_path, 'utf8' )    #
+          or LOGDIE( 'Failed to write leapp answerfile: ' . $ini_obj->errstr );
     }
 
     return;
