@@ -62,6 +62,7 @@ sub _cleanup_mysql_packages ($self) {
 sub _reinstall_mysql_packages {
 
     my $mysql_version = cpev::read_stage_file( 'mysql-version', '' ) or return;
+    my $enabled = cpev::read_stage_file( 'mysql-enabled', '' ) or return;
 
     INFO("Restoring MySQL $mysql_version");
 
@@ -72,15 +73,10 @@ sub _reinstall_mysql_packages {
     INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
     File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
 
-    # Apparently the APITool is in fact unable to figure out that --output=json means I want JSON in this context,
-    # so just load the modules directly and do what the API does to gather the data I want.
-    require Cpanel::Services::Enabled;
-    my $enabled = Cpanel::Services::Enabled::is_enabled('mysql');
     if( !$enabled ) {
         INFO("MySQL is not enabled. This will cause the MySQL upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
         Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1} );
         # Pray it goes ok, as what exactly do you want me to do if this reports failure? May as well just move forward in this case without checking.
-
     }
 
     my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
@@ -100,7 +96,7 @@ sub _reinstall_mysql_packages {
             $c   = ( $c + 1 ) % 10;
             $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
             if($?) {
-                Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0} ) if !$enabled;
+                last if !$enabled;
                 die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id];
             }
 

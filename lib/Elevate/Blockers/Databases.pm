@@ -23,7 +23,7 @@ sub check ($self) {
     $self->_warning_if_postgresql_installed;
     my $ok = $self->_blocker_old_mysql;
     $ok = 0 unless $self->_blocker_mysql_upgrade_in_progress;
-
+    $self->_warning_mysql_not_enabled();
     return $ok;
 }
 
@@ -113,5 +113,17 @@ sub _blocker_mysql_upgrade_in_progress ($self) {
 
     return 0;
 }
+
+sub _warning_mysql_not_enabled ($self) {
+    require Cpanel::Services::Enabled;
+    my $enabled = Cpanel::Services::Enabled::is_enabled('mysql');
+
+    cpev::update_stage_file( { 'mysql-enabled' => $enabled } );
+    WARN("MySQL is disabled. This must be enabled for MySQL upgrade to succeed.\n"
+      . "We temporarily will enable it when it is needed to be enabled,\n"
+      . "but we reccomend starting the process with MySQL enabled."
+    ) if !$enabled;
+    return 0;
+ }
 
 1;
