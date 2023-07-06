@@ -445,7 +445,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         $self->_warning_if_postgresql_installed;
         my $ok = $self->_blocker_old_mysql;
         $ok = 0 unless $self->_blocker_mysql_upgrade_in_progress;
-
+        $self->_warning_mysql_not_enabled();
         return $ok;
     }
 
@@ -530,6 +530,15 @@ BEGIN {    # Suppress load of all of these at earliest point.
             return $self->has_blocker(q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.]);
         }
 
+        return 0;
+    }
+
+    sub _warning_mysql_not_enabled ($self) {
+        require Cpanel::Services::Enabled;
+        my $enabled = Cpanel::Services::Enabled::is_enabled('mysql');
+
+        cpev::update_stage_file( { 'mysql-enabled' => $enabled } );
+        WARN( "MySQL is disabled. This must be enabled for MySQL upgrade to succeed.\n" . "We temporarily will enable it when it is needed to be enabled,\n" . "but we reccomend starting the process with MySQL enabled." ) if !$enabled;
         return 0;
     }
 
@@ -3078,6 +3087,7 @@ EOS
     sub _reinstall_mysql_packages {
 
         my $mysql_version = cpev::read_stage_file( 'mysql-version', '' ) or return;
+        my $enabled       = cpev::read_stage_file( 'mysql-enabled', '' ) or return;
 
         INFO("Restoring MySQL $mysql_version");
 
@@ -3086,12 +3096,9 @@ EOS
         INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
         File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
 
-        require Cpanel::Services::Enabled;
-        my $enabled = Cpanel::Services::Enabled::is_enabled('mysql');
         if ( !$enabled ) {
             INFO("MySQL is not enabled. This will cause the MySQL upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
             Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1});
-
         }
 
         my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
@@ -3111,7 +3118,7 @@ EOS
                 $c   = ( $c + 1 ) % 10;
                 $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
                 if ($?) {
-                    Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0}) if !$enabled;
+                    last if !$enabled;
                     die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id];
                 }
 
