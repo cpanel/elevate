@@ -62,6 +62,7 @@ sub _cleanup_mysql_packages ($self) {
 sub _reinstall_mysql_packages {
 
     my $mysql_version = cpev::read_stage_file( 'mysql-version', '' ) or return;
+    my $enabled = cpev::read_stage_file( 'mysql-enabled', '' ) or return;
 
     INFO("Restoring MySQL $mysql_version");
 
@@ -71,6 +72,12 @@ sub _reinstall_mysql_packages {
     # It *should be here* given we put it there, so no need to do a -f/-s check
     INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
     File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
+
+    if( !$enabled ) {
+        INFO("MySQL is not enabled. This will cause the MySQL upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
+        Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1} );
+        # Pray it goes ok, as what exactly do you want me to do if this reports failure? May as well just move forward in this case without checking.
+    }
 
     my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
     die qq[Failed to restore MySQL $mysql_version] if $?;
@@ -88,7 +95,10 @@ sub _reinstall_mysql_packages {
         while (1) {
             $c   = ( $c + 1 ) % 10;
             $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-            die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id] if $?;
+            if($?) {
+                last if !$enabled;
+                die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id];
+            }
 
             if ( $out =~ m{\sstate:\s*inprogress} ) {
                 print ".";
@@ -104,6 +114,7 @@ sub _reinstall_mysql_packages {
         }
 
         print "\n" if $c;    # clear the last "." from above
+        Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0} ) if !$enabled;
 
         if ( $status eq 'success' ) {
             INFO("MySQL $mysql_version restored");
