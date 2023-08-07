@@ -82,6 +82,7 @@ use constant VETTED_YUM_REPO => qw{
   droplet-agent
   EA4
   elasticsearch
+  elasticsearch-7.x
   elevate
   elevate-source
   epel
