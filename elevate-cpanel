@@ -4527,7 +4527,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
        --clean                        Cleanup scripts and files created by elevate-cpanel
-       --upgrade-to=[rocky|almalinux] Update to AlmaLinux 8 or Rocky Linuyx 8
+       --upgrade-to=[rocky|almalinux] Update to AlmaLinux 8 or Rocky Linux 8
                                       [default to 'almalinux']
 
        --update                       Instruct the script to replace itself on disk with a downloaded copy of the latest version.
