@@ -34,7 +34,7 @@ my $mock = Test::MockModule->new('Elevate::Blockers::IsContainer');
         $isContainer->check(),
         {
             id  => q[Elevate::Blockers::IsContainer::check],
-            msg => "cPanel thinks that this is a container-like environment, which this script cannot support at this time.",
+            msg => "cPanel thinks that this is a container-like environment, consider running leapp manually using the --no-leapp option.",
         },
         q{Block if this is a container like environment.}
     );

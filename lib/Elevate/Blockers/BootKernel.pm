@@ -27,6 +27,9 @@ use Cpanel::JSON           ();
 use Try::Tiny;
 
 sub check ($self) {
+
+    return 1 unless $self->should_run_leapp;    # skip when --no-leapp is provided
+
     my $ok = 0;
     try {
         my ( $running_version, $boot_version ) = Cpanel::Kernel::Status::reboot_status()->@{ 'running_version', 'boot_version' };

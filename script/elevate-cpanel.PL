@@ -58,6 +58,10 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
        --skip-cpanel-version-check    Skip the check for whether cPanel is up to date.
                                       This option is intended only for testing!
 
+       --no-leapp                     Do not try to run leapp, and pause instead.
+                                      Once leapp has been run you should remove the file
+                                      /waiting_for_distro_upgrade
+
        --help                         Display this documentation.
 
 =head1 COMMON USAGE
@@ -121,6 +125,40 @@ the update process by running:
     /scripts/elevate-cpanel --continue
 
 =back
+
+=head2 Advanced Options
+
+=head3 Using an alternative tool to upgrade your distro
+
+By default, the elevate script runs the [leapp process](https://almalinux.org/elevate/)
+to upgrade you from 7 to 8. `Leapp` may not be compatible with your system.
+
+Using the `--no-leapp` option gives you a way to do the actual distro upgrade in your own way.
+This, for instance, can be used to allow `Virtuozzo` systems to upgrade cPanel systems, which are not supported by `Leapp`.
+
+A `--no-leapp` upgrade would look like:
+
+=over
+
+=item 1. User runs `/scripts/elevate-cpanel --start --no-leapp` which starts the upgrade process.
+
+=item 2. `elevate-cpanel` does all preparatory steps to upgrade the system prior to the distro upgrade.
+
+=item 3. Elevate will then create the file `/waiting_for_distro_upgrade` to indicate that the operating system is ready for an upgrade.
+
+=over
+
+=item * This is when you would use your distro upgrade tool.
+
+=item * When you have completed upgrading your system to 8, simply remove `/waiting_for_distro_upgrade` and reboot the system into normal multi-user mode.
+
+=back
+
+=item 4. Elevate will resume upon reboot and complete the upgrade just like it would have without `--no-leapp`
+
+=back
+
+NOTE: `--no-leapp` is not required for helper commands like `--continue` or `--status`
 
 =head1 WARNINGS
 
@@ -264,11 +302,14 @@ use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recomme
 # XXX TODO verify that imunify reponames are in fact correct.
 # As of now they are straight up guesses.
 
-use constant REBOOT_NEEDED => 4242;    # just one unique id
+use constant ACTION_REBOOT_NEEDED   => 4242;    # just one unique id
+use constant ACTION_PAUSE_REQUESTED => 4243;
 
 # prefer string over integers so we can read the configuration file (no need for bitmask)
 use constant UPGRADE_TO_ALMALINUX => q[AlmaLinux];
 use constant UPGRADE_TO_ROCKY     => q[Rocky];
+
+use constant PAUSE_ELEVATE_TOUCHFILE => q[/waiting_for_distro_upgrade];
 
 use Simple::Accessor qw{
   service
@@ -368,7 +409,7 @@ sub run ( $pkg, @args ) {
         return $self->run_service_and_notify();
     }
 
-    monitor_upgrade();
+    $self->monitor_upgrade();
 
     return 0;
 }
@@ -447,18 +488,18 @@ sub upgrade_to_pretty_name ($self) {    # used by output messages
     return q[AlmaLinux 8];
 }
 
-sub monitor_upgrade {
+sub monitor_upgrade ($self) {
     my $stage = get_stage();
 
     my $tail_msg = q[Running: tail -f ] . Elevate::Constants::LOG_FILE;
 
-    my $status = read_stage_file( 'status', 'unknown' );
+    my $status = $self->get_current_status();
 
     if ( $status eq 'success' ) {
         Elevate::Logger::INFO_nolog("# Upgrade was successful. Showing the last lines of the update log.");
     }
-    elsif ( $status eq 'running' ) {
-        Elevate::Logger::INFO_nolog("# Monitoring existing upgrade (stage=$stage) ; $tail_msg");
+    elsif ( $status eq 'running' || $status eq 'paused' ) {
+        Elevate::Logger::INFO_nolog("# Monitoring existing $status upgrade (stage=$stage) ; $tail_msg");
     }
     elsif ( $status eq 'failed' ) {
         Elevate::Logger::ERROR_nolog("# Upgrade process failed at stage=$stage ; $tail_msg");
@@ -502,6 +543,19 @@ sub start ($self) {
     if ( $self->getopt('manual-reboots') ) {
         WARN('Manual Reboot would be required between each stages');
         update_stage_file( { manual_reboots => 1 } );
+    }
+
+    if ( $self->getopt('no-leapp') ) {
+        my $touchfile = PAUSE_ELEVATE_TOUCHFILE;
+        WARN( <<~"EOS");
+        'leapp' checks and run are disabled.
+        Please wait for the file '$touchfile' to be created.
+        At that stage the elevation process is paused then you can upgrade from 7 to 8 on your own.
+
+        Once the system has been successfully upgraded from 7 to 8 you can then remove that file
+        to let the elevation process continue and update cPanel for the updated distribution.
+        EOS
+        update_stage_file( { no_leapp => 1 } );
     }
 
     # prefer over running step1: so status and notifications are enabled
@@ -550,7 +604,7 @@ EOS
 
 sub continue_elevation ($self) {
 
-    my $status = read_stage_file( 'status', 'unknown' );
+    my $status = $self->get_current_status();
     if ( $status eq 'success' ) {
         Elevate::Logger::INFO_nolog("Elevate process was successful. No process to continue.");
         return;
@@ -611,13 +665,18 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
 
     my $stage = get_stage();
 
-    update_stage_file( { status => q[running] } ) if $stage >= 2;
+    if ( $stage >= 2 ) {
+        my $status = $self->get_current_status();
+        update_stage_file( { status => q[running] } ) if $status ne 'paused';
+    }
 
-    my $out;
+    my $action_todo;
     my $ok = eval {
-        $out = $self->_run_service();
+        $action_todo = $self->_run_service();
         1;
     };
+
+    $action_todo //= 0;
 
     if ($ok) {
 
@@ -627,7 +686,12 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
             $self->_notify_success();
         }
 
-        $self->reboot() if $out == REBOOT_NEEDED;
+        if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
+            update_stage_file( { status => q[paused] } );
+        }
+        elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
+            $self->reboot();
+        }
     }
     else {
         my $error = $@ // q[Unknown error];
@@ -638,7 +702,7 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
         LOGDIE($error);
     }
 
-    return $out;
+    return $action_todo;
 }
 
 sub check_and_create_pidfile ($self) {
@@ -659,13 +723,19 @@ sub check_status ($self) {
         return;
     }
 
-    my $status = read_stage_file( 'status', 'unknown' );
+    my $status = $self->get_current_status();
+
+    my $max_stage = VALID_STAGES;
 
     if ( $status eq 'success' ) {
         say q[success];
     }
+    elsif ( $status eq 'paused' ) {
+        my $paused_file = PAUSE_ELEVATE_TOUCHFILE;
+        say qq[Paused at stage $stage / $max_stage please read more from $paused_file];
+    }
     elsif ( $status eq 'running' ) {
-        say qq[Running stage $stage / ] . VALID_STAGES;
+        say qq[Running stage $stage / $max_stage];
     }
     elsif ( $status eq 'failed' ) {
         say qq[Failed during stage $stage];
@@ -734,6 +804,8 @@ sub _run_service ($self) {
 
     print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
 
+    $self->_wait_on_pause();    # handle pause when requested
+
     # sanity check
     if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {
         WARN( "Detected " . Cpanel::OS::pretty_distro() . " while running stage $stage: swtiching to stage 4" );
@@ -749,6 +821,30 @@ sub _run_service ($self) {
       : $stage == 5 ? $self->run_stage_5()                                         # Final checks and cleanup
       :               die "Unknown stage '$stage'. I don't know how to proceed";
 
+}
+
+sub _wait_on_pause ($self) {
+
+    my $pause_file = PAUSE_ELEVATE_TOUCHFILE;
+    return unless -e $pause_file;
+
+    update_stage_file( { status => q[paused] } );
+
+    WARN( <<~"EOS" );
+    The elevation process is currently paused by $pause_file
+    Please read the file for more details.
+    EOS
+
+    while ( -e $pause_file ) {
+        sleep 5;
+    }
+
+    update_stage_file( { status => q[running] } );
+
+    my $stage = get_stage();
+    INFO("The pause file was removed. Continuing elevate process to stage $stage.");
+
+    return 1;
 }
 
 sub present_noc_recommendations () {
@@ -857,7 +953,7 @@ sub run_stage_2 ($self) {
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
 
-    return REBOOT_NEEDED;
+    return ACTION_REBOOT_NEEDED;
 }
 
 =head2 run_stage_3
@@ -880,7 +976,7 @@ sub run_stage_3 ($self) {
         prep_for_leapp => sub {
 
             $self->run_once(
-                install_pkgs => sub {
+                install_leapp => sub {
                     unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
 
                         # provides leapp-data-almalinux & leapp-data-rocky
@@ -892,13 +988,14 @@ sub run_stage_3 ($self) {
                     unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
                         $self->ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
                     }
+
                     if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
                         $self->ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
                     }
 
                     return;
                 }
-            );
+            ) if $self->should_run_leapp();
 
             $self->run_once(
                 rmod_ln => sub {
@@ -910,7 +1007,7 @@ sub run_stage_3 ($self) {
             );
 
             # We have to do this before removing the rpms.
-            $self->run_once('pre_leapp_update_backup_and_cleanup');
+            $self->run_once('run_final_components_pre_leapp');
 
             # remove all arch cpanel packages
             # This also potentially removes
@@ -924,23 +1021,43 @@ sub run_stage_3 ($self) {
                 $self->ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
             }
 
-            # Avoids having to do preupgrade.
-            setup_answer_file();
-
             return;
         }
     );
 
+    if ( !$self->should_run_leapp() ) {
+        return $self->_request_to_upgrade_distro_manually();
+    }
+
     $self->_do_leapp_upgrade();
 
-    WARN(<<'EOS');
-Rebooting for distro upgrade. This will take over 10 minutes to run.
-Do not interrupt power during this event or you will corrupt your system.
-EOS
+    WARN(<<~'EOS');
+        Rebooting for distro upgrade. This will take over 10 minutes to run.
+        Do not interrupt power during this event or you will corrupt your system.
+        EOS
 
-    return REBOOT_NEEDED;
+    return ACTION_REBOOT_NEEDED;
 
     # This takes a while because on reboot it's installing 800 packages
+}
+
+sub _request_to_upgrade_distro_manually ($self) {
+
+    my $pause_file = PAUSE_ELEVATE_TOUCHFILE;
+
+    my $txt = <<"EOS";
+The cPanel elevation process is currently paused.
+You should upgrade the distribution manually.
+
+After a successful upgrade, you can then remove the file
+    rm -f $pause_file
+to let the elevation process continue and update cPanel for the updated distribution.
+EOS
+
+    WARN($txt);
+    File::Slurper::write_text( $pause_file, $txt );
+
+    return ACTION_PAUSE_REQUESTED;
 }
 
 =head2 run_stage_4
@@ -1050,7 +1167,7 @@ sub run_stage_4 ($self) {
         }
     );
 
-    return REBOOT_NEEDED;
+    return ACTION_REBOOT_NEEDED;
 }
 
 =head2 run_stage_5
@@ -1082,7 +1199,7 @@ sub run_stage_5 ($self) {
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
-    return REBOOT_NEEDED;
+    return ACTION_REBOOT_NEEDED;
 }
 
 sub _bq_now () {
@@ -1316,6 +1433,10 @@ sub disable_all_cpanel_services ($self) {
 
 sub _do_leapp_upgrade ($self) {
 
+    return unless $self->should_run_leapp();
+
+    $self->run_once('setup_answer_file');
+
     INFO("Running leapp upgrade");
 
     my $ok = eval {
@@ -1381,8 +1502,9 @@ EOS
 }
 
 # remove and store
-sub pre_leapp_update_backup_and_cleanup ($self) {
+sub run_final_components_pre_leapp ($self) {
 
+    # order matters
     $self->run_component_once( 'Imunify'          => 'pre_leapp' );
     $self->run_component_once( 'EA4'              => 'pre_leapp' );
     $self->run_component_once( 'PECL'             => 'pre_leapp' );
@@ -1545,6 +1667,12 @@ sub post_upgrade_check ($self) {
     return 0;
 }
 
+=pod
+    > cat /var/log/leapp/answerfile
+    [remove_pam_pkcs11_module_check]
+    confirm=True
+=cut
+
 sub setup_answer_file {
     my $leapp_dir = '/var/log/leapp';
     mkdir $leapp_dir unless -d $leapp_dir;
@@ -1573,6 +1701,17 @@ sub setup_answer_file {
 }
 
 # TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.
+
+sub should_run_leapp ($self) {
+
+    # we store the no_leapp option, but prefer using a positive check instead
+    my $no_leapp = read_stage_file( 'no_leapp', 0 );
+    return !$no_leapp;
+}
+
+sub get_current_status ($self) {
+    return read_stage_file( 'status', 'unknown' );
+}
 
 sub read_stage_file ( $k = undef, $default = {} ) {
     my $stage_info = _read_stage_file() // {};
