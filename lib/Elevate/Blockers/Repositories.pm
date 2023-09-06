@@ -81,6 +81,7 @@ use constant VETTED_YUM_REPO => qw{
   digitalocean-agent
   droplet-agent
   EA4
+  EA4-c$releasever
   elasticsearch
   elasticsearch-7.x
   elevate
