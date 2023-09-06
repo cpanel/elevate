@@ -86,12 +86,16 @@ sub remove ($self) {
 
 sub stop ($self) {
 
+    return unless $self->is_active;
+
     $self->ssystem( '/usr/bin/systemctl', 'stop', $self->name );
 
     return;
 }
 
 sub disable ( $self, %opts ) {
+
+    return unless $self->is_enabled;
 
     my $now = $opts{'now'} // 1;    # by default disable it now...
 
