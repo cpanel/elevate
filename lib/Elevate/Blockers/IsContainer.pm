@@ -16,9 +16,13 @@ use parent        qw{Elevate::Blockers::Base};
 use Log::Log4perl qw(:easy);
 
 sub check ($self) {    # $self is a cpev object here
+
+    return 0 unless $self->should_run_leapp;
+
     if ( _is_container_envtype() ) {
-        return $self->has_blocker("cPanel thinks that this is a container-like environment, which this script cannot support at this time.");
+        return $self->has_blocker("cPanel thinks that this is a container-like environment, consider running leapp manually using the --no-leapp option.");
     }
+
     return 0;
 }
 
