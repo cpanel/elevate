@@ -21,6 +21,8 @@ use Elevate::Constants ();
 
 use Cpanel::Kernel::Status ();
 use Cpanel::Exception      ();
+use Cpanel::YAML           ();
+use Cpanel::JSON           ();
 
 use Try::Tiny;
 
@@ -49,10 +51,32 @@ sub check ($self) {
     }
     catch {
         my $ex = $_;
-        $self->has_blocker( "Unable to determine running and boot kernels due to the following error:\n" . Cpanel::Exception::get_string($ex) );
+        $self->has_blocker(
+            "Unable to determine running and boot kernels due to the following error:\n"    #
+              . _to_str($ex)
+        );
     };
 
     return $ok ? 1 : 0;
+}
+
+sub _to_str ($e) {
+    $e //= '';
+
+    my $str = Cpanel::Exception::get_string($e);
+
+    if ( length $str ) {
+
+        # can return a YAML or JSON object... handle both
+        my $hash = eval { Cpanel::YAML::Load($str) }    # parse yaml
+          // eval { Cpanel::JSON::Load($str) }          # or json output... we cannot predict
+          // {};
+        if ( ref $hash eq 'HASH' && $hash->{msg} ) {
+            $str = $hash->{msg};
+        }
+    }
+
+    return $str;
 }
 
 1;
