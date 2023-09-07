@@ -270,6 +270,8 @@ use Elevate::Components::NixStats         ();
 use Elevate::Components::PECL             ();
 use Elevate::Components::PerlXS           ();
 use Elevate::Components::Repositories     ();
+use Elevate::Components::RpmDB            ();
+use Elevate::Components::RmMod            ();
 use Elevate::Components::WPToolkit        ();
 
 use Elevate::Fetch            ();
@@ -997,28 +999,11 @@ sub run_stage_3 ($self) {
                 }
             ) if $self->should_run_leapp();
 
-            $self->run_once(
-                rmod_ln => sub {
-                    $self->ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
-                    return;
-                }
-            );
-
-            # We have to do this before removing the rpms.
-            $self->run_once('run_final_components_pre_leapp');
-
-            # remove all arch cpanel packages
-            # This also potentially removes
-            $self->ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
-
-            foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
-                next unless Cpanel::Pkgr::is_installed($rpm);
-                $self->ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
-            }
-
             return;
         }
     );
+
+    $self->run_once('run_final_components_pre_leapp');
 
     if ( !$self->should_run_leapp() ) {
         return $self->_request_to_upgrade_distro_manually();
@@ -1500,6 +1485,7 @@ EOS
 sub run_final_components_pre_leapp ($self) {
 
     # order matters
+    $self->run_component_once( 'RmMod'            => 'pre_leapp' );
     $self->run_component_once( 'Imunify'          => 'pre_leapp' );
     $self->run_component_once( 'EA4'              => 'pre_leapp' );
     $self->run_component_once( 'PECL'             => 'pre_leapp' );
@@ -1513,6 +1499,7 @@ sub run_final_components_pre_leapp ($self) {
     $self->run_component_once( 'NixStats'         => 'pre_leapp' );
     $self->run_component_once( 'LiteSpeed'        => 'pre_leapp' );
     $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
+    $self->run_component_once( 'RpmDB'            => 'pre_leapp' );    # remove the RPMs last
 
     return;
 }
