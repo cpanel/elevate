@@ -30,13 +30,20 @@ my $mock = Test::MockModule->new('Elevate::Blockers::IsContainer');
 
     #my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
     my $cpev = cpev->new( _abort_on_first_blocker => 1 );
+    my $msg  = <<~'EOS';
+    cPanel thinks that this is a container-like environment.
+    This cannot be upgraded by the native leapp tool.
+    Consider contacting your hypervisor provider for alternative solutions.
+    EOS
+
     is(
         $isContainer->check(),
         {
             id  => q[Elevate::Blockers::IsContainer::check],
-            msg => "cPanel thinks that this is a container-like environment, consider running leapp manually using the --no-leapp option.",
+            msg => $msg,
         },
         q{Block if this is a container like environment.}
+
     );
 
     $mock->redefine( '_is_container_envtype' => 0 );

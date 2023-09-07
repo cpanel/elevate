@@ -20,7 +20,11 @@ sub check ($self) {    # $self is a cpev object here
     return 0 unless $self->should_run_leapp;
 
     if ( _is_container_envtype() ) {
-        return $self->has_blocker("cPanel thinks that this is a container-like environment, consider running leapp manually using the --no-leapp option.");
+        return $self->has_blocker( <<~'EOS');
+        cPanel thinks that this is a container-like environment.
+        This cannot be upgraded by the native leapp tool.
+        Consider contacting your hypervisor provider for alternative solutions.
+        EOS
     }
 
     return 0;
