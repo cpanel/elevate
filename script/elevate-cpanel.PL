@@ -1013,9 +1013,6 @@ sub run_stage_3 ($self) {
             # This also potentially removes
             $self->ssystem(q{/usr/bin/rpm -e --justdb --nodeps `/usr/bin/rpm -qa | /usr/bin/egrep '^cpanel-.*\.x86_64'`});
 
-            # remove all ea- packages
-            $self->ssystem(q{/usr/bin/yum -y erase ea-*});
-
             foreach my $rpm (qw/ yum-plugin-fastestmirror epel-release/) {
                 next unless Cpanel::Pkgr::is_installed($rpm);
                 $self->ssystem( '/usr/bin/rpm', '-e', '--nodeps', $rpm );
