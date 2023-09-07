@@ -3087,6 +3087,7 @@ EOS
         if ( !$enabled ) {
             INFO("MySQL is not enabled. This will cause the MySQL upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
             Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1});
+
         }
 
         my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
@@ -3102,6 +3103,7 @@ EOS
 
             my $c = 0;
 
+            my $wait_more = 30;
             while (1) {
                 $c   = ( $c + 1 ) % 10;
                 $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
@@ -3120,6 +3122,12 @@ EOS
                 if ( $out =~ m{\sstate:\s*(\w+)} ) {
                     $status = $1;
                 }
+
+                if ( $status ne 'success' && --$wait_more > 0 ) {
+                    sleep 1;
+                    next;
+                }
+
                 last;
             }
 
