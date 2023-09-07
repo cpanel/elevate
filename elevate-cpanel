@@ -2052,7 +2052,16 @@ EOS
         return %links;
     }
 
-    sub pre_leapp {
+    sub pre_leapp ($self) {
+
+        $self->ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
+        $self->_absolute_symlinks;
+
+        return;
+    }
+
+    sub _absolute_symlinks ($self) {
+
         my %links = get_abs_symlinks();
         return unless %links;
         my $chdir = Cpanel::Chdir->new("/");
@@ -2070,7 +2079,8 @@ EOS
         return;
     }
 
-    sub post_leapp {
+    sub post_leapp ($self) {
+
         return;
     }
 
@@ -2172,6 +2182,14 @@ EOS
 
         $self->run_once('_restore_ea4_profile');
         $self->run_once('_restore_ea_addons');
+        $self->run_once('_cleanup_rpm_db');
+
+        return;
+    }
+
+    sub _cleanup_rpm_db ($self) {
+
+        $self->ssystem(q{/usr/bin/yum -y erase ea-*});
 
         return;
     }
@@ -5543,8 +5561,6 @@ sub run_stage_3 ($self) {
             $self->run_once(
                 rmod_ln => sub {
                     $self->ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
-                    $self->ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
-
                     return;
                 }
             );
