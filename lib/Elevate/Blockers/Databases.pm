@@ -119,11 +119,8 @@ sub _warning_mysql_not_enabled ($self) {
     my $enabled = Cpanel::Services::Enabled::is_enabled('mysql');
 
     cpev::update_stage_file( { 'mysql-enabled' => $enabled } );
-    WARN("MySQL is disabled. This must be enabled for MySQL upgrade to succeed.\n"
-      . "We temporarily will enable it when it is needed to be enabled,\n"
-      . "but we reccomend starting the process with MySQL enabled."
-    ) if !$enabled;
+    WARN( "MySQL is disabled. This must be enabled for MySQL upgrade to succeed.\n" . "We temporarily will enable it when it is needed to be enabled,\n" . "but we reccomend starting the process with MySQL enabled." ) if !$enabled;
     return 0;
- }
+}
 
 1;

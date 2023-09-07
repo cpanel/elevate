@@ -357,7 +357,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Elevate::Components::AbsoluteSymlinks ();
 
-    # use Log::Log4perl qw(:easy);
+    # use Log::Log4perl                         qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
     # use Elevate::Blockers::Base();
