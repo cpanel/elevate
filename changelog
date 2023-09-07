@@ -1,3 +1,14 @@
+2023-09-09 - version 14
+- Use leapp answerfile instead of userchoices. Fixes #216
+- Check MySQL status before starting upgrade. Fixes #287
+- Vet digitalocean-agent repo.
+- Vet elasticsearch-7.x repo.
+- Fixup BootKernel error message. Fixes #305
+- Add EA4-c$releasever to vetted repo list.
+- Improve stop and disable function in Systemctl logic. Fixes #309
+- cpanel-elevate stage 4 during mysql upgrade improved success detection. Fixes #311
+- Add support for non-leapp upgrades. Fixes #302
+
 2023-06-01 - version 13
 - Clear Cpanel::OS' $instance cache after upgrade to rocky 8. Fixes false positive failure.
 - Remove duped final_notifications display on final success.
