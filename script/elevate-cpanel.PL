@@ -974,51 +974,44 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 sub run_stage_3 ($self) {
 
-    $self->run_once(
-        prep_for_leapp => sub {
-
-            $self->run_once(
-                install_leapp => sub {
-                    unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
-
-                        # provides leapp-data-almalinux & leapp-data-rocky
-                        $self->ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
-                    }
-
-                    my $leap_data_pkg = $self->upgrade_to_rocky() ? 'leapp-data-rocky' : 'leapp-data-almalinux';
-
-                    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
-                        $self->ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
-                    }
-
-                    if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-                        $self->ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
-                    }
-
-                    return;
-                }
-            ) if $self->should_run_leapp();
-
-            return;
-        }
-    );
-
     $self->run_once('run_final_components_pre_leapp');
 
     if ( !$self->should_run_leapp() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
+    $self->run_once('_install_leapp');
     $self->_do_leapp_upgrade();
 
     WARN(<<~'EOS');
-        Rebooting for distro upgrade. This will take over 10 minutes to run.
-        Do not interrupt power during this event or you will corrupt your system.
-        EOS
+    Rebooting for distro upgrade. This will take over 10 minutes to run.
+    Do not interrupt power during this event or you will corrupt your system.
+    EOS
 
     return ACTION_REBOOT_NEEDED;
 
     # This takes a while because on reboot it's installing 800 packages
+}
+
+sub _install_leapp ($self) {
+
+    unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
+
+        # provides leapp-data-almalinux & leapp-data-rocky
+        $self->ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
+    }
+
+    my $leap_data_pkg = $self->upgrade_to_rocky() ? 'leapp-data-rocky' : 'leapp-data-almalinux';
+
+    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
+        $self->ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
+    }
+
+    if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
+        $self->ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
+    }
+
+    return;
 }
 
 sub _request_to_upgrade_distro_manually ($self) {
