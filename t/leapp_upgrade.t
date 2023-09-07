@@ -28,8 +28,14 @@ $mock_elevate->redefine(
         note "run: ", join( ' ', @args );
 
         return;
+    },
+    setup_answer_file => sub {    # cannot use Test::MockFile with system touch...
+        note "mocked setup_answer_file";
+        return;
     }
 );
+
+my $mock_elevate_file = Test::MockFile->file('/var/cpanel/elevate');
 
 ok( cpev->_do_leapp_upgrade(), '_do_leapp_upgrade succeeds' );
 

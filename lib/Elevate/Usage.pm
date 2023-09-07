@@ -21,6 +21,7 @@ sub _OPTIONS {
       skip-cpanel-version-check skip-elevate-version-check
       update version
       upgrade-to=s
+      no-leapp
     );
 }
 

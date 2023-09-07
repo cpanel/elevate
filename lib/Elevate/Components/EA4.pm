@@ -42,6 +42,7 @@ sub pre_leapp ($self) {    # run to perform the backup
 
     $self->run_once('_backup_ea4_profile');
     $self->run_once('_backup_ea_addons');
+    $self->run_once('_cleanup_rpm_db');
 
     return;
 }
@@ -50,6 +51,14 @@ sub post_leapp ($self) {
 
     $self->run_once('_restore_ea4_profile');
     $self->run_once('_restore_ea_addons');
+
+    return;
+}
+
+sub _cleanup_rpm_db ($self) {
+
+    # remove all ea- packages
+    $self->ssystem(q{/usr/bin/yum -y erase ea-*});
 
     return;
 }

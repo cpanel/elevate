@@ -43,6 +43,7 @@ BEGIN {
       update_stage_file
       upgrade_to_rocky
       upgrade_to_pretty_name
+      should_run_leapp
       ssystem
       ssystem_capture_output
     };
