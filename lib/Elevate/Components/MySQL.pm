@@ -12,12 +12,14 @@ Capture and reinstall MySQL packages.
 
 use cPstrict;
 
-use File::Copy    ();
-use Log::Log4perl qw(:easy);
+use File::Copy      ();
+use Log::Log4perl   qw(:easy);
+use Elevate::Notify ();
 
 use parent qw{Elevate::Components::Base};
 
 my $cnf_file = '/etc/my.cnf';
+
 sub pre_leapp ($self) {
 
     $self->run_once("_cleanup_mysql_packages");
@@ -62,7 +64,7 @@ sub _cleanup_mysql_packages ($self) {
 sub _reinstall_mysql_packages {
 
     my $mysql_version = cpev::read_stage_file( 'mysql-version', '' ) or return;
-    my $enabled = cpev::read_stage_file( 'mysql-enabled', '' ) or return;
+    my $enabled       = cpev::read_stage_file( 'mysql-enabled', '' ) or return;
 
     INFO("Restoring MySQL $mysql_version");
 
@@ -73,9 +75,10 @@ sub _reinstall_mysql_packages {
     INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
     File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
 
-    if( !$enabled ) {
+    if ( !$enabled ) {
         INFO("MySQL is not enabled. This will cause the MySQL upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
-        Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1} );
+        Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1});
+
         # Pray it goes ok, as what exactly do you want me to do if this reports failure? May as well just move forward in this case without checking.
     }
 
@@ -92,10 +95,11 @@ sub _reinstall_mysql_packages {
 
         my $c = 0;
 
+        my $wait_more = 30;
         while (1) {
             $c   = ( $c + 1 ) % 10;
             $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-            if($?) {
+            if ($?) {
                 last if !$enabled;
                 die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id];
             }
@@ -110,19 +114,30 @@ sub _reinstall_mysql_packages {
             if ( $out =~ m{\sstate:\s*(\w+)} ) {
                 $status = $1;
             }
+
+            # we cannot trust the whmapi1 call (race condition) CPANEL-43253
+            if ( $status ne 'success' && --$wait_more > 0 ) {
+                sleep 1;
+                next;
+            }
+
             last;
         }
 
-        print "\n" if $c;    # clear the last "." from above
-        Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0} ) if !$enabled;
+        print "\n"                                                                                                          if $c;          # clear the last "." from above
+        Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0}) if !$enabled;
 
         if ( $status eq 'success' ) {
             INFO("MySQL $mysql_version restored");
         }
         else {
-            FATAL("Failed to restore MySQL $mysql_version: upgrade $id status '$status'");
+            my $msg = "Failed to restore MySQL $mysql_version: upgrade $id status '$status'";
+
+            FATAL($msg);
             FATAL("$out");
-            die 'Failed to restore MySQL';
+
+            Elevate::Notify::add_final_notification($msg);
+            return;
         }
     }
     else {
