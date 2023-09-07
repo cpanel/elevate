@@ -14,7 +14,7 @@ use cPstrict;
 
 use parent qw{Elevate::Blockers::Base};
 
-use Cpanel::Pkgr  ();
+use Cpanel::Pkgr ();
 
 sub check ($self) {
     my $pkg = Cpanel::Pkgr::what_provides('python36');
