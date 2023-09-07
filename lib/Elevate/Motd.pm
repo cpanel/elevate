@@ -67,14 +67,15 @@ sub cleanup {
 
 # Looks ugly, but fatpacker will just strip out lines =~ m/^\s*#/
 sub _motd_notice_message {
-    return "# -----------------------------------------------------------------------------\n#\n".
-    "# /!\\ ELEVATE IN PROGRESS /!\\ \n#\n".
-    "# Do not make any changes until it's complete\n".
-    "# you can check the current process status by running:\n#\n".
-    "#\t\t/scripts/elevate-cpanel --status\n#\n".
-    "# Or monitor the progress by running:\n#\n".
-    "#\t\t/scripts/elevate-cpanel --log\n#\n".
-    "# -----------------------------------------------------------------------------\n";
+    return
+        "# -----------------------------------------------------------------------------\n#\n"
+      . "# /!\\ ELEVATE IN PROGRESS /!\\ \n#\n"
+      . "# Do not make any changes until it's complete\n"
+      . "# you can check the current process status by running:\n#\n"
+      . "#\t\t/scripts/elevate-cpanel --status\n#\n"
+      . "# Or monitor the progress by running:\n#\n"
+      . "#\t\t/scripts/elevate-cpanel --log\n#\n"
+      . "# -----------------------------------------------------------------------------\n";
 }
 
 sub _motd_file {    # allow us to mock it, we cannot use Test::MockFile GH #77 - https://github.com/cpanel/Test-MockFile/issues/77

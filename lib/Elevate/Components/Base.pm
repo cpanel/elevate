@@ -30,6 +30,7 @@ BEGIN {
       upgrade_to_rocky
       upgrade_to_pretty_name
       tmp_dir
+      should_run_leapp
       ssystem
       ssystem_and_die
       ssystem_capture_output
