@@ -12,8 +12,9 @@ Capture and reinstall MySQL packages.
 
 use cPstrict;
 
-use File::Copy    ();
-use Log::Log4perl qw(:easy);
+use File::Copy      ();
+use Log::Log4perl   qw(:easy);
+use Elevate::Notify ();
 
 use parent qw{Elevate::Components::Base};
 
@@ -130,9 +131,13 @@ sub _reinstall_mysql_packages {
             INFO("MySQL $mysql_version restored");
         }
         else {
-            FATAL("Failed to restore MySQL $mysql_version: upgrade $id status '$status'");
+            my $msg = "Failed to restore MySQL $mysql_version: upgrade $id status '$status'";
+
+            FATAL($msg);
             FATAL("$out");
-            die 'Failed to restore MySQL';
+
+            Elevate::Notify::add_final_notification($msg);
+            return;
         }
     }
     else {
