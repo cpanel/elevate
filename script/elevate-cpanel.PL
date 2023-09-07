@@ -1000,8 +1000,6 @@ sub run_stage_3 ($self) {
             $self->run_once(
                 rmod_ln => sub {
                     $self->ssystem( '/usr/sbin/rmmod', $_ ) foreach qw/floppy pata_acpi/;
-                    $self->ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
-
                     return;
                 }
             );
