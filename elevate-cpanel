@@ -5189,6 +5189,10 @@ sub start ($self) {
         update_stage_file( { manual_reboots => 1 } );
     }
 
+    if ( my $ovl_size = $ENV{LEAPP_OVL_SIZE} ) {
+        update_stage_file( { env => { LEAPP_OVL_SIZE => $ovl_size } } );
+    }
+
     if ( $self->getopt('no-leapp') ) {
         my $touchfile = PAUSE_ELEVATE_TOUCHFILE;
         WARN( <<~"EOS");
@@ -6055,7 +6059,7 @@ sub _do_leapp_upgrade ($self) {
     INFO("Running leapp upgrade");
 
     my $ok = eval {
-        local $ENV{LEAPP_OVL_SIZE} = 3000;
+        local $ENV{LEAPP_OVL_SIZE} = read_stage_file('env')->{'LEAPP_OVL_SIZE'} || 3000;
         $self->ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
         1;
     };
