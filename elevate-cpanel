@@ -5189,9 +5189,7 @@ sub start ($self) {
         update_stage_file( { manual_reboots => 1 } );
     }
 
-    if ( my $ovl_size = $ENV{LEAPP_OVL_SIZE} ) {
-        update_stage_file( { env => { LEAPP_OVL_SIZE => $ovl_size } } );
-    }
+    $self->_capture_env_variables();    # capture at startup
 
     if ( $self->getopt('no-leapp') ) {
         my $touchfile = PAUSE_ELEVATE_TOUCHFILE;
@@ -5208,6 +5206,15 @@ sub start ($self) {
 
     # prefer over running step1: so status and notifications are enabled
     return $self->run_service_and_notify();
+}
+
+sub _capture_env_variables ($self) {
+
+    if ( my $ovl_size = $ENV{LEAPP_OVL_SIZE} ) {
+        update_stage_file( { env => { LEAPP_OVL_SIZE => $ovl_size } } );
+    }
+
+    return;
 }
 
 # This code used to be in stage 1, but it makes more sense for it to take place before a stage has been set.
@@ -5276,6 +5283,8 @@ sub continue_elevation ($self) {
         $self->run_stage_1();
         return;
     }
+
+    $self->_capture_env_variables();    # capture env before restart
 
     my $pid = fork();
     LOGDIE(qq[Failed to fork: $!]) unless defined $pid;
