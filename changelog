@@ -1,3 +1,7 @@
+2023-11-29 - version 15
+- Enable powertools after upgrade
+- Disable cpanel-plugins repo after upgrade for initial dnf update
+
 2023-09-09 - version 14
 - Use leapp answerfile instead of userchoices. Fixes #216
 - Check MySQL status before starting upgrade. Fixes #287
