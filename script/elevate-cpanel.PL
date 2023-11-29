@@ -1082,12 +1082,15 @@ sub run_stage_4 ($self) {
             # no failures once already installed: no need to check for the epel-release version
             $self->ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
 
+            $self->ssystem(qw{/usr/bin/dnf config-manager --enable powertools});
+            $self->ssystem(qw{/usr/bin/dnf config-manager --enable epel});
+
             $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
             {
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
                 $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
             }
-            $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+            $self->ssystem(qw{/usr/bin/dnf -y --allowerasing --disablerepo cpanel-plugins update});
             $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
 
             return;
