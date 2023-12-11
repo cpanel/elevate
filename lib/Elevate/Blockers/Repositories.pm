@@ -78,6 +78,7 @@ use constant VETTED_YUM_REPO => qw{
   cpanel-addons-production-feed
   cpanel-plugins
   cr
+  ct-preset
   digitalocean-agent
   droplet-agent
   EA4

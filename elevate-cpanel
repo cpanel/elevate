@@ -1520,6 +1520,7 @@ EOS
       cpanel-addons-production-feed
       cpanel-plugins
       cr
+      ct-preset
       digitalocean-agent
       droplet-agent
       EA4
