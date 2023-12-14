@@ -30,8 +30,7 @@ At any given time, the upgrade process may use at or more than 5 GB. If you have
 
 The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:
 
-* **cPanel CCS Calendar Server** - Requires Postgresql < 10.0
-* **Postgresql** - ELevate upgrades you to Postgresql 10.x which makes it impossible to downgrade to a 9.x Postgresql.
+* **cPanel CCS Calendar Server** - Requires Postgresql older than 10.0
 
 ## Things you need to upgrade first.
 
@@ -63,6 +62,21 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
 # Other Known Issues
 
 The following is a list of other known issues that could prevent your server's successful elevation.
+
+## PostgreSQL
+
+If you are using the PostgreSQL software provided by your distro (which includes PostgreSQL as installed by cPanel), ELevate will upgrade the software packages. However, your PostgreSQL service is unlikely to start properly. The reason for this is that ELevate will **not** attempt to update the data directory being used by your PostgreSQL instance to store settings and databases; and PostgreSQL will detect this condition and refuse to start, to protect your data from corruption, until you have performed this update.
+
+To ensure that you are aware of this requirement, if it detects that one or more cPanel accounts have associated PostgreSQL databases, ELevate will block you from beginning the upgrade process until you have created a file at `/var/cpanel/acknowledge_postgresql_for_elevate`.
+
+### Updating the PostgreSQL data directory
+
+Once ELevate has completed, you should then perform the update to the PostgreSQL data directory. Although we defer to the information [in the PostgreSQL documentation itself](https://www.postgresql.org/docs/10/pgupgrade.html), and although [Red Hat has provided steps in their documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deploying_different_types_of_servers/using-databases#migrating-to-a-rhel-8-version-of-postgresql_using-postgresql) which should be mostly applicable to all distros derived from RHEL 8, we found that the following steps worked in our testing to update the PostgreSQL data directory. (Please note that these steps assume that your server's data directory is located at `/var/lib/pgsql/data`; your server may be different. You should also consider making a backup copy of your data directory before starting, because **cPanel cannot guarantee the correctness of these steps for any arbitrary PostgreSQL installation**.)
+
+1. Install the `postgresql-upgrade` package: `dnf install postgresql-upgrade`
+2. Within your PostgreSQL config file at `/var/lib/pgsql/data/postgresql.conf`, if there exists an active option `unix_socket_directories`, change that phrase to read `unix_socket_directory`. This is necessary to work around a difference between the CentOS 7 PostgreSQL 9.2 and the PostgreSQL 9.2 helpers packaged by your new operating system's `postgresql-upgrade` package.
+3. Invoke the `postgresql-setup` tool: `/usr/bin/postgresql-setup --upgrade`.
+4. In the root user's WHM, navigate to the "Configure PostgreSQL" area and click on "Install Config". This should restore the additions cPanel makes to the PostgreSQL access controls in order to allow phpPgAdmin to function.
 
 ## Using OVH proactive intervention monitoring
 

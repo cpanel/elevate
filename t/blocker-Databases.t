@@ -157,4 +157,89 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
 }
 
+{
+    note "PostgreSQL 9.2->10 acknowledgement";
+
+    my $pkgr_mock = Test::MockModule->new('Cpanel::Pkgr');
+    my %installed = ( 'postgresql-server' => 9.2 );
+    $pkgr_mock->redefine( 'is_installed'        => sub ($rpm) { return defined $installed{$rpm} ? 1 : 0 } );
+    $pkgr_mock->redefine( 'get_package_version' => sub ($rpm) { return $installed{$rpm} } );
+
+    my $mock_touchfile = Test::MockFile->file('/var/cpanel/acknowledge_postgresql_for_elevate');
+
+    my @mock_users = qw(cpuser1 cpuser2);
+    $db_mock->redefine( _has_mapped_postgresql_dbs => sub { return @mock_users } );
+
+    my $expected = {
+        id  => q[Elevate::Blockers::Databases::_blocker_acknowledge_postgresql_datadir],
+        msg => <<~'EOS'
+        One or more users on your system have associated PostgreSQL databases.
+        ELevate may upgrade the software packages associated with PostgreSQL
+        automatically, but if it does, it will *NOT* automatically update the
+        PostgreSQL data directory to work with the new version. Without an update
+        to the data directory, the upgraded PostgreSQL software will not start, in
+        order to ensure that your data does not become corrupted.
+
+        For more information about PostgreSQL upgrades, please consider the
+        following resources:
+
+        https://cpanel.github.io/elevate/blockers/#postgresql
+        https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deploying_different_types_of_servers/using-databases#migrating-to-a-rhel-8-version-of-postgresql_using-postgresql
+        https://www.postgresql.org/docs/10/pgupgrade.html
+
+        When you are ready to acknowledge that you have prepared to update the
+        PostgreSQL data directory, or that this warning does not apply to you,
+        please touch the following file to continue with the ELevate process:
+
+        > touch /var/cpanel/acknowledge_postgresql_for_elevate
+
+        The following user(s) have PostgreSQL databases associated with their cPanel accounts:
+        cpuser1
+        cpuser2
+        EOS
+    };
+    chomp $expected->{msg};
+    is(
+        $db->_blocker_acknowledge_postgresql_datadir(),
+        $expected,
+        "PostgreSQL with cPanel users having databases and without ACK touch file is a blocker"
+    );
+
+    %installed = ();
+    is( $db->_blocker_acknowledge_postgresql_datadir(), 0, "No blocker if no postgresql-server package" );
+    %installed = ( 'postgresql-server' => 9.2 );
+
+    $mock_touchfile->touch();
+    is( $db->_blocker_acknowledge_postgresql_datadir(), 0, "No blocker if touch file present" );
+    $mock_touchfile->unlink();
+
+    @mock_users = ();
+    is( $db->_blocker_acknowledge_postgresql_datadir(), 0, "No blocker if no users have PgSQL DBs" );
+    @mock_users = qw(cpuser1 cpuser2);
+}
+
+{
+    note "check for PostgreSQL databases";
+
+    my $mock_saferun = Test::MockModule->new('Cpanel::SafeRun::Simple');
+
+    $mock_saferun->redefine(
+        saferunnoerror => sub {
+            return $_[0] eq '/usr/local/cpanel/bin/whmapi1'
+              ? '{"metadata":{"command":"list_users","version":1,"reason":"OK","result":1},"data":{"users":["root","cpuser2","cpuser1"]}}'
+              : '{"apiversion":3,"module":"Postgresql","func":"list_databases","result":{"warnings":null,"data":[{"disk_usage":9001,"database":"dontcare","users":["dontcare"]}],"errors":null,"metadata":{"transformed":1},"status":1,"messages":null}}';
+        }
+    );
+
+    is(
+        [ $db->_has_mapped_postgresql_dbs() ],
+        bag {
+            item 'cpuser1';
+            item 'cpuser2';
+            end();
+        },
+        "_has_mapped_postgresql_dbs returns expected list of users"
+    );
+}
+
 done_testing();
