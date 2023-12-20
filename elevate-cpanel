@@ -146,16 +146,24 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub has_blocker ( $self, $msg, %others ) {
 
-        my ( undef, undef, undef, $id ) = caller(1);
-        $id ||= ref $self;
+        my $caller_id;
+        if ( $others{'blocker_id'} ) {
+            $caller_id = $others{'blocker_id'};
+        }
+        else {
+            ( undef, undef, undef, $caller_id ) = caller(1);
+            $caller_id ||= ref $self;
+        }
 
-        my $blocker = cpev::Blocker->new( id => $id, msg => $msg, %others );
+        my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others );
         die $blocker if $self->cpev->_abort_on_first_blocker;
 
-        WARN( <<~"EOS");
-    *** Elevation Blocker detected: ***
-    $msg
-    EOS
+        if ( !$others{'quiet'} ) {
+            WARN( <<~"EOS");
+        *** Elevation Blocker detected: ***
+        $msg
+        EOS
+        }
 
         $self->blockers->add_blocker($blocker);
 
@@ -1453,7 +1461,8 @@ EOS
 
     use cPstrict;
 
-    use Cpanel::OS ();
+    use Cpanel::OS   ();
+    use Cpanel::JSON ();
 
     use Elevate::Constants ();
 
@@ -1586,7 +1595,12 @@ EOS
                 $status_hr = $self->_check_yum_repos();
             }
 
-            $self->has_blocker( $msg, repos => $self->{_yum_repos_unsupported_with_packages} ) if _yum_status_hr_contains_blocker($status_hr);
+            return 0 unless _yum_status_hr_contains_blocker($status_hr);
+
+            for my $unsupported_repo ( @{ $self->{_yum_repos_unsupported_with_packages} } ) {
+                my $blocker_id = ref($self) . '::' . $unsupported_repo->{'name'};
+                $self->has_blocker( $unsupported_repo->{'json_report'}, 'blocker_id' => $blocker_id, 'quiet' => 1 );
+            }
         }
 
         return 0;
@@ -1674,7 +1688,8 @@ EOS
 
                 if ( !$is_vetted ) {
                     $status{'UNVETTED'} = 1;
-                    if ( my $total_pkg = scalar cpev::get_installed_rpms_in_repo($current_repo_name) ) {    # FIXME
+                    my @installed_packages = cpev::get_installed_rpms_in_repo($current_repo_name);
+                    if ( my $total_pkg = scalar @installed_packages ) {    # FIXME
                         ERROR(
                             sprintf(
                                 "%d package(s) installed from unsupported YUM repo '%s' from %s",
@@ -1682,7 +1697,13 @@ EOS
                                 $current_repo_name, $path
                             )
                         );
-                        push( $self->{_yum_repos_unsupported_with_packages}->@*, $current_repo_name );
+                        push(
+                            $self->{_yum_repos_unsupported_with_packages}->@*,
+                            {
+                                'name'        => $current_repo_name,
+                                'json_report' => Cpanel::JSON::Dump( { 'name' => $current_repo_name, 'path' => $path, 'packages' => \@installed_packages } )
+                            }
+                        );
                         $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
                     }
                     else {

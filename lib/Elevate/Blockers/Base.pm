@@ -80,17 +80,25 @@ sub is_check_mode ( $self, @args ) {
 #
 sub has_blocker ( $self, $msg, %others ) {
 
-    # get the function caller or the object type as id (used by tests)
-    my ( undef, undef, undef, $id ) = caller(1);
-    $id ||= ref $self;
+    my $caller_id;
+    if ( $others{'blocker_id'} ) {
+        $caller_id = $others{'blocker_id'};
+    }
+    else {
+        # get the function caller or the object type as id (used by tests)
+        ( undef, undef, undef, $caller_id ) = caller(1);
+        $caller_id ||= ref $self;
+    }
 
-    my $blocker = cpev::Blocker->new( id => $id, msg => $msg, %others );
+    my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others );
     die $blocker if $self->cpev->_abort_on_first_blocker;
 
-    WARN( <<~"EOS");
-    *** Elevation Blocker detected: ***
-    $msg
-    EOS
+    if ( !$others{'quiet'} ) {
+        WARN( <<~"EOS");
+        *** Elevation Blocker detected: ***
+        $msg
+        EOS
+    }
 
     $self->blockers->add_blocker($blocker);
 
