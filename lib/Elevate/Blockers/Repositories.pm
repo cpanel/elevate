@@ -12,7 +12,8 @@ Blocker to check if the Yum repositories are compliant with the elevate process.
 
 use cPstrict;
 
-use Cpanel::OS ();
+use Cpanel::OS   ();
+use Cpanel::JSON ();
 
 use Elevate::Constants ();
 
@@ -145,7 +146,12 @@ sub _blocker_invalid_yum_repos ($self) {
             $status_hr = $self->_check_yum_repos();
         }
 
-        $self->has_blocker( $msg, repos => $self->{_yum_repos_unsupported_with_packages} ) if _yum_status_hr_contains_blocker($status_hr);
+        return 0 unless _yum_status_hr_contains_blocker($status_hr);
+
+        for my $unsupported_repo ( @{ $self->{_yum_repos_unsupported_with_packages} } ) {
+            my $blocker_id = ref($self) . '::' . $unsupported_repo->{'name'};
+            $self->has_blocker( $unsupported_repo->{'json_report'}, 'blocker_id' => $blocker_id, 'quiet' => 1 );
+        }
     }
 
     return 0;
@@ -242,7 +248,8 @@ sub _check_yum_repos ($self) {
 
             if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
-                if ( my $total_pkg = scalar cpev::get_installed_rpms_in_repo($current_repo_name) ) {    # FIXME
+                my @installed_packages = cpev::get_installed_rpms_in_repo($current_repo_name);
+                if ( my $total_pkg = scalar @installed_packages ) {    # FIXME
                     ERROR(
                         sprintf(
                             "%d package(s) installed from unsupported YUM repo '%s' from %s",
@@ -250,7 +257,13 @@ sub _check_yum_repos ($self) {
                             $current_repo_name, $path
                         )
                     );
-                    push( $self->{_yum_repos_unsupported_with_packages}->@*, $current_repo_name );
+                    push(
+                        $self->{_yum_repos_unsupported_with_packages}->@*,
+                        {
+                            'name'        => $current_repo_name,
+                            'json_report' => Cpanel::JSON::Dump( { 'name' => $current_repo_name, 'path' => $path, 'packages' => \@installed_packages } )
+                        }
+                    );
                     $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
                 }
                 else {
