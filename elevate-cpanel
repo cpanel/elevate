@@ -1964,7 +1964,7 @@ EOS
                 $hint = q[hint: You can skip this check using --skip-cpanel-version-check] if $Cpanel::Version::Tiny::VERSION_BUILD =~ 9999;
                 return $self->has_blocker( <<~"EOS" );
             This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.
-            Please upgrade cPanel to a most recent version. $hint
+            Please upgrade cPanel to a more recent version. $hint
             EOS
             }
         }
