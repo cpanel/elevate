@@ -83,7 +83,7 @@ $cpev_mock->redefine( get_installed_rpms_in_repo => 1 );
 is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1 }, "Using an unknown enabled repo with installed packages detected";
 is $yum->{_yum_repos_unsupported_with_packages}[0],
     {
-        'json_report' => 'foo',
+        'json_report' => '{"name":"MyRepo","packages":["1"],"path":"/etc/yum.repos.d/Unknown.repo"}',
         'name'        => 'MyRepo'
     }
   ,
