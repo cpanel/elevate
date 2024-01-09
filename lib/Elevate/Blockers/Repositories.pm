@@ -261,7 +261,7 @@ sub _check_yum_repos ($self) {
                         $self->{_yum_repos_unsupported_with_packages}->@*,
                         {
                             'name'        => $current_repo_name,
-                            'json_report' => Cpanel::JSON::Dump( { 'name' => $current_repo_name, 'path' => $path, 'packages' => \@installed_packages } )
+                            'json_report' => Cpanel::JSON::canonical_dump( { 'name' => $current_repo_name, 'path' => $path, 'packages' => [ sort @installed_packages ] } )
                         }
                     );
                     $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
