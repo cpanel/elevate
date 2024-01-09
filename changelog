@@ -1,3 +1,6 @@
+2024-01-09 - version 18
+- #332 - Suppress additional checks when run with --check --no-leapp
+
 2023-12-20 - version 17
 - Encode blocked repos to assist with enabling support for future elevations
 
