@@ -1696,7 +1696,9 @@ sub setup_answer_file {
 sub should_run_leapp ($self) {
 
     # we store the no_leapp option, but prefer using a positive check instead
-    my $no_leapp = read_stage_file( 'no_leapp', 0 );
+    # we need to check to see if the no-leapp option is passed via CLI here too in order
+    # to allow users to run this script with the '--check --no-leapp' options
+    my $no_leapp = read_stage_file( 'no_leapp', 0 ) || $self->getopt('no-leapp');
     return !$no_leapp;
 }
 

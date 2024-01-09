@@ -32,7 +32,8 @@ $mock_elevate->redefine(
     setup_answer_file => sub {    # cannot use Test::MockFile with system touch...
         note "mocked setup_answer_file";
         return;
-    }
+    },
+    getopt => sub { return; },
 );
 
 my $mock_elevate_file = Test::MockFile->file('/var/cpanel/elevate');
