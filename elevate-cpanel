@@ -1964,7 +1964,7 @@ EOS
                 $hint = q[hint: You can skip this check using --skip-cpanel-version-check] if $Cpanel::Version::Tiny::VERSION_BUILD =~ 9999;
                 return $self->has_blocker( <<~"EOS" );
             This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.
-            Please upgrade cPanel to a most recent version. $hint
+            Please upgrade cPanel to a more recent version. $hint
             EOS
             }
         }
@@ -4949,7 +4949,7 @@ use Elevate::SystemctlService ();
 use Elevate::Usage            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 17;
+use constant VERSION => 19;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
@@ -6360,7 +6360,9 @@ sub setup_answer_file {
 sub should_run_leapp ($self) {
 
     # we store the no_leapp option, but prefer using a positive check instead
-    my $no_leapp = read_stage_file( 'no_leapp', 0 );
+    # we need to check to see if the no-leapp option is passed via CLI here too in order
+    # to allow users to run this script with the '--check --no-leapp' options
+    my $no_leapp = read_stage_file( 'no_leapp', 0 ) || $self->getopt('no-leapp');
     return !$no_leapp;
 }
 

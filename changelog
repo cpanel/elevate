@@ -1,3 +1,6 @@
+2023-12-20 - version 17
+- Encode blocked repos to assist with enabling support for future elevations
+
 2023-12-11 - version 16
 - Add repo allowance for vzzo custom migrations - ct-preset
 

@@ -195,7 +195,7 @@ my $whm  = $cpev->get_blocker('WHM');
             msg => qr{
                     \QThis installation of cPanel (11.102.0.5) does not appear to be up to date.\E
                     \s+
-                    \QPlease upgrade cPanel to a most recent version.\E
+                    \QPlease upgrade cPanel to a more recent version.\E
                 }xms,
         },
         q{obsolete version generates a blocker.}
