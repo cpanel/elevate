@@ -14,7 +14,7 @@ if their usage is self contained.
 
 =cut
 
-use constant MINIMUM_LTS_SUPPORTED => 102;
+use constant MINIMUM_LTS_SUPPORTED => 110;
 use constant MAXIMUM_LTS_SUPPORTED => 110;
 
 use constant SERVICE_DIR  => '/etc/systemd/system/';

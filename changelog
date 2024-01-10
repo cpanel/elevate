@@ -1,3 +1,9 @@
+2024-01-10 - version 20
+- #337 - Add blocker if cPanel is not running version 110
+
+2024-01-10 - version 19
+- Use canonical_dump() when building JSON for repo blocker reports
+
 2024-01-09 - version 18
 - #332 - Suppress additional checks when run with --check --no-leapp
 
