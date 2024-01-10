@@ -3,7 +3,7 @@
 set -e
 
 ULC=/usr/local/cpanel
-VERSION=11.102.0.1
+VERSION=11.110.0.17
 REPO=$(pwd)
 
 yum clean all
@@ -31,17 +31,17 @@ echo "# ............. setup symlinks"
 ln -sf usr/local/cpanel/scripts /scripts
 ln -sf /bin/true /usr/local/cpanel/bin/build_locale_databases
 ln -sf /bin/true /usr/local/cpanel/scripts/restartsrv_tailwatchd
-ln -sf /usr/local/cpanel/3rdparty/perl/532/bin/perl /usr/local/cpanel/3rdparty/bin/perl
+ln -sf /usr/local/cpanel/3rdparty/perl/536/bin/perl /usr/local/cpanel/3rdparty/bin/perl
 
 echo "CPANEL=${VERSION}" > /etc/cpupdate.conf
 
 echo "# ............. /scripts/fix-cpanel-perl"
-rm -f /usr/local/cpanel/3rdparty/perl/532/bin/perl
+rm -f /usr/local/cpanel/3rdparty/perl/536/bin/perl
 /scripts/fix-cpanel-perl ||:
 
 echo "# ............. which perl"
 which perl
-ls -l /usr/local/cpanel/3rdparty/perl/532/bin/perl
+ls -l /usr/local/cpanel/3rdparty/perl/536/bin/perl
 
 echo "# ............. cpanm round 2"
 #perl bin/cpanm -n Params::Util
