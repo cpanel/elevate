@@ -69,10 +69,9 @@ our @BLOCKERS = qw{
   AbsoluteSymlinks
 };
 
-use constant ELEVATE_BLOCKER_FILE_EXPIRE_TIME => 6 * 60 * 60;                      # Six hours
-use constant ELEVATE_BLOCKER_FILE             => '/var/cpanel/elevate-blockers';
+use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
 
-our $_CHECK_MODE;                                                                  # for now global so we can use the helper (move it later to the object)
+our $_CHECK_MODE;    # for now global so we can use the helper (move it later to the object)
 
 sub _build_blockers { [] }
 
@@ -111,50 +110,6 @@ sub check ( $self, %opts ) {    # do_check - main  entry point
     }
 
     return $has_blockers;
-}
-
-sub bail_if_check_not_run_or_blockers_found () {
-
-    if ( !check_run_recently() ) {
-        FATAL("You must first run script with --check to check if your server is ready to upgrade");
-        exit 1;
-    }
-
-    my $blocker_ar = load_past_blockers();
-
-    # Pass if no blockers in blocker file
-    return unless scalar @$blocker_ar;
-
-    say "The following blockers must still be resolved:";
-    foreach my $bl (@$blocker_ar) {
-        say '';
-        say $bl->{id} . ':';
-        say $bl->{msg};
-    }
-
-    FATAL("You must fix all blockers and re-run with --check before performing the upgrade.");
-    exit 1;
-}
-
-sub check_run_recently () {
-    return 0 if ( !-f ELEVATE_BLOCKER_FILE );
-
-    return ( ( stat(ELEVATE_BLOCKER_FILE) )[9] + ELEVATE_BLOCKER_FILE_EXPIRE_TIME > time() ) ? 1 : 0;
-}
-
-sub load_past_blockers ( $blocker_file = ELEVATE_BLOCKER_FILE ) {
-
-    my $blocker_hr = eval { Cpanel::JSON::LoadFile($blocker_file) } // {};
-    if ($@) {
-        WARN("Unable to load contents of $blocker_file: $@");
-        return [];
-    }
-    if ( ref $blocker_hr ne 'HASH' || !exists $blocker_hr->{blockers} || ref $blocker_hr->{blockers} ne 'ARRAY' ) {
-        WARN("The blocker file $blocker_file is malformed");
-        return [];
-    }
-
-    return $blocker_hr->{blockers};
 }
 
 sub _has_blockers ( $self, $check_mode = 0 ) {
