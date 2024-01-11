@@ -113,7 +113,7 @@ chmod 700 /scripts/elevate-cpanel
 
 ### Pre-upgrade checks
 
-We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system.
+We **require** that you check for known blockers before you upgrade. The check is designed to not make any changes to your system.
 
 You can check if your system is ready to upgrade to **AlmaLinux 8** by running:
 ```bash
@@ -154,6 +154,7 @@ You can upgrade to **Rocky Linux 8** by running:
 /scripts/elevate-cpanel --help
 
 # Check if your server is ready for elevation (dry run mode)
+# This is required before starting the migration
 /scripts/elevate-cpanel --check # defaults to AlmaLinux
 /scripts/elevate-cpanel --check --upgrade-to=almalinux
 /scripts/elevate-cpanel --check --upgrade-to=rocky
