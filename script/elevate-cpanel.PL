@@ -515,7 +515,6 @@ sub monitor_upgrade ($self) {
 
 sub start ($self) {
     Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();
-    Elevate::Blockers::bail_if_check_not_run_or_blockers_found();
     my $stage = get_stage();
     if ( $stage != 0 ) {
         my $header;
