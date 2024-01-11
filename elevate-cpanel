@@ -65,7 +65,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     package Elevate::Constants;
 
-    use constant MINIMUM_LTS_SUPPORTED => 102;
+    use constant MINIMUM_LTS_SUPPORTED => 110;
     use constant MAXIMUM_LTS_SUPPORTED => 110;
 
     use constant SERVICE_DIR  => '/etc/systemd/system/';
@@ -4900,7 +4900,7 @@ BEGIN {
     $Cpanel::Version::Tiny::major_version >= Elevate::Constants::MINIMUM_LTS_SUPPORTED
       or do {
         warn qq[You need to upgrade your cPanel server to version ] . Elevate::Constants::MINIMUM_LTS_SUPPORTED    #
-          . qq[or later before running this script.\n];
+          . qq[ or later before running this script.\n];
         exit 1;
       };
 }

@@ -15,7 +15,7 @@ jobs:
     env:
       PERL_USE_UNSAFE_INC: 1
       CPANEL_BIN_PATH: /usr/local/cpanel/3rdparty/bin
-      CPANEL_PERL: /usr/local/cpanel/3rdparty/perl/532/bin/perl
+      CPANEL_PERL: /usr/local/cpanel/3rdparty/perl/536/bin/perl
 
     runs-on: ubuntu-latest
 
@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
 
     container:
-      image: cpanelos/perl-compiler:perl-v5.32.0
+      image: cpanelos/perl-compiler:perl-v5.36.0
 
     steps:
       - name: Checkout

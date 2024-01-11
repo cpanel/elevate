@@ -192,7 +192,7 @@ BEGIN {
     $Cpanel::Version::Tiny::major_version >= Elevate::Constants::MINIMUM_LTS_SUPPORTED
       or do {
         warn qq[You need to upgrade your cPanel server to version ] . Elevate::Constants::MINIMUM_LTS_SUPPORTED    #
-          . qq[or later before running this script.\n];
+          . qq[ or later before running this script.\n];
         exit 1;
       };
 }
