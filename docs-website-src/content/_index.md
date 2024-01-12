@@ -237,8 +237,16 @@ A `--no-leapp` upgrade would look like:
     * When you have completed upgrading your system to 8, simply remove `/waiting_for_distro_upgrade` and reboot the system into normal multi-user mode.
 5. Elevate will resume upon reboot and complete the upgrade just like it would have without `--no-leapp`
 
-The regular workflow is the following
-NOTE: `--no-leapp` is not required for helper commands like `--continue` or `--status`
+### Using the LEAPP_OVL_SIZE environment variable
+
+By default, the elevate script will set this variable to 3000 before beginning the [leapp
+process](https://almalinux.org/elevate/).  However, if you set this environment variable before
+calling the elevate script, the elevate script will honor the environment variable and pass it
+through to the [leapp process](https://almalinux.org/elevate/).
+
+**NOTE** For more information on what this environment variable is used for, please review the
+[leapp documentation for
+it](https://leapp.readthedocs.io/en/latest/el7toel8/envars.html#leapp-ovl-size)
 
 ## FAQ
 
