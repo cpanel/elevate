@@ -380,8 +380,8 @@ sub run ( $pkg, @args ) {
         return $self->check_status();
     }
 
-    return $self->do_cleanup()                      if $self->getopt('clean');
-    return $self->blockers->check( 'dry_run' => 1 ) if defined $self->getopt('check');
+    return $self->do_cleanup()      if $self->getopt('clean');
+    return $self->blockers->check() if defined $self->getopt('check');
 
     my $stage = get_stage();
 
@@ -534,6 +534,9 @@ sub start ($self) {
         EOS
 
     }
+
+    # Check for blockers before starting the migration
+    return 1 if ( $self->blockers->check() );
 
     $self->give_last_chance();
 
@@ -923,13 +926,6 @@ sub run_stage_1 ($self) {
     local $SIG{'HUP'} = $abort;
 
     return 1 unless _sanity_check();
-
-    if ( $self->blockers->check() ) {
-
-        # we have not yet install the service yet, clear the stage file
-        $self->service->remove;
-        return 1;
-    }
 
     print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . $self->service->name . " service" );
 
