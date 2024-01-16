@@ -103,7 +103,7 @@ sub check ($self) {    # do_check - main  entry point
             $cmd = "$cmd --upgrade-to=$flavor";
         }
         INFO( <<~"EOS" );
-        There is no known blockers to start the elevation process.
+        There are no known blockers to start the elevation process.
         You can consider running:
             $cmd
         EOS
