@@ -1,3 +1,6 @@
+2024-??-?? - version 20
+- #338 - Improve warning and add prompt before starting the upgrade process
+
 2024-01-16 - version 19
 - #337 - Add blocker if cPanel is not running version 110
 - #341 - Use canonical_dump() when building JSON for repo blocker reports
