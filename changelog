@@ -1,4 +1,5 @@
-2024-XX-XX - version 20
+2024-??-?? - version 20
+- #338 - Improve warning and add prompt before starting the upgrade process
 - RE-93 - Do not return from EA4 blocker check prematurely
 
 2024-01-16 - version 19

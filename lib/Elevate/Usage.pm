@@ -22,6 +22,7 @@ sub _OPTIONS {
       update version
       upgrade-to=s
       no-leapp
+      non-interactive
     );
 }
 

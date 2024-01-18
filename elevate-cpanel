@@ -4593,6 +4593,7 @@ EOS
           update version
           upgrade-to=s
           no-leapp
+          non-interactive
         );
     }
 
@@ -4714,6 +4715,7 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
        --clean                        Cleanup scripts and files created by elevate-cpanel
        --upgrade-to=[rocky|almalinux] Update to AlmaLinux 8 or Rocky Linux 8
                                       [default to 'almalinux']
+       --non-interactive              Skip the yes/no prompt before proceeding with the upgrade.
 
        --update                       Instruct the script to replace itself on disk with a downloaded copy of the latest version.
        --version                      Print the version number and exit.
@@ -4742,6 +4744,14 @@ You can start an elevation update by running:
 
     # Rocky Linux 8 update
     /scripts/elevate-cpanel --start --upgrade-to=rocky
+
+=item Start an installation and skip the confirmation prompt
+
+By default, you will be asked if you wish to proceed with the upgrade.
+If you wish to skip this prompt (by assuming yes):
+
+    # Perform the update in non-interactive mode
+    /scripts/elevate-cpanel --start --non-interactive
 
 =item Compatibility check with elevation
 
@@ -4831,6 +4841,9 @@ is not a risk free update.
 Depending on the state of your current distribution multiple errors can occur.
 We recommend updating your system to the last upstream state before starting.
 
+It is *highly* recommended that you have a full backup or snapshot
+of your server before beginning the elevation process.
+
 The elevation process can take several long minutes and requires multiple reboots.
 Some reboots are expected to be longer than normal.
 
@@ -4876,6 +4889,7 @@ use File::Slurper         ();
 use File::Spec            ();
 use File::Temp            ();
 use Hash::Merge           ();
+use IO::Prompt            ();
 use Term::ANSIColor       ();
 
 use Cpanel::AccessIds::SetUids  ();
@@ -5271,13 +5285,26 @@ EOS
     Elevate::Notify::warn_skip_version_check() if $self->getopt('skip-cpanel-version-check');    # give one last reminder
 
     say <<EOS;
-This is your chance now to cancel the update process.
-You can hit CTRL-C to abort, otherwise the install starts in a few seconds.
+It is *highly* recommended that you have a full backup or snapshot
+of your server before proceeding.
 EOS
 
-    do { sleep 1; print '.' }
-      for 1 .. 6;
-    print "\n";
+    if ( !$self->getopt('non-interactive') ) {
+        if (
+            !IO::Prompt::prompt(
+                '-one_char',
+                '-yes_no',
+                '-tty',
+                -default => 'n',
+                "Do you wish to proceed with the upgrade process [y/N]: ",
+            )
+        ) {
+            INFO("The update process has been canceled");
+            exit 0;
+        }
+    }
+
+    INFO("The update process has begun");
 
     return;
 }
