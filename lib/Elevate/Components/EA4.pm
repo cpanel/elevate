@@ -33,7 +33,6 @@ use Elevate::Blockers ();
 sub backup ($self) {    # run by the check (should be a dry run mode)
 
     $self->_backup_ea4_profile;
-    $self->_backup_ea_addons;
 
     return;
 }
@@ -41,7 +40,6 @@ sub backup ($self) {    # run by the check (should be a dry run mode)
 sub pre_leapp ($self) {    # run to perform the backup
 
     $self->run_once('_backup_ea4_profile');
-    $self->run_once('_backup_ea_addons');
     $self->run_once('_cleanup_rpm_db');
 
     return;
@@ -50,7 +48,6 @@ sub pre_leapp ($self) {    # run to perform the backup
 sub post_leapp ($self) {
 
     $self->run_once('_restore_ea4_profile');
-    $self->run_once('_restore_ea_addons');
 
     return;
 }
@@ -59,31 +56,6 @@ sub _cleanup_rpm_db ($self) {
 
     # remove all ea- packages
     $self->ssystem(q{/usr/bin/yum -y erase ea-*});
-
-    return;
-}
-
-sub _restore_ea_addons ($self) {
-
-    return unless cpev::read_stage_file('ea4')->{'nginx'};
-
-    INFO("Restoring ea-nginx");
-
-    # ea profile restore it in a broken state - remove & reinstall
-    $self->ssystem(qw{/usr/bin/rpm -e --nodeps ea-nginx});
-    $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
-
-    return;
-}
-
-sub _backup_ea_addons ($self) {
-
-    if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
-        cpev::update_stage_file( { ea4 => { nginx => 1 } } );
-    }
-    else {
-        cpev::update_stage_file( { ea4 => { nginx => 0 } } );
-    }
 
     return;
 }
