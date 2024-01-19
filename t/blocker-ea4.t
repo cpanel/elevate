@@ -31,7 +31,7 @@ my $mock_cpev          = Test::MockModule->new('cpev');
     my $mock_isea4 = Test::MockFile->file( '/etc/cpanel/ea4/is_ea4' => 1 );
     my $type       = '';
 
-    $mock_compoment_ea4->redefine( backup => 1 );
+    $mock_compoment_ea4->redefine( backup => sub { return; } );
     my $mock_cpev = Test::MockModule->new('cpev');
     $mock_cpev->redefine(
         _read_stage_file => sub {
@@ -65,7 +65,7 @@ my $mock_cpev          = Test::MockModule->new('cpev');
 }
 
 {
-    $mock_compoment_ea4->redefine( backup => 1 );
+    $mock_compoment_ea4->redefine( backup => sub { return; } );
 
     my $ea_info_check = sub {
         message_seen( 'INFO' => "Checking EasyApache profile compatibility with AlmaLinux 8." );
