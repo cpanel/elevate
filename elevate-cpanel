@@ -5853,7 +5853,8 @@ sub run_stage_4 ($self) {
             $self->ssystem(qw{/usr/bin/dnf config-manager --enable powertools});
             $self->ssystem(qw{/usr/bin/dnf config-manager --enable epel});
 
-            $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/bin/perl});
+            # Break cpanel-perl (NOTE: This only works on perl 5.36)
+            $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm});
             {
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
                 $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
