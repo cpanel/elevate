@@ -107,13 +107,12 @@ sub _blocker_cpanel_needs_license ($self) {
 
 sub _blocker_cpanel_needs_update ($self) {
     if ( !$self->getopt('skip-cpanel-version-check') ) {
-        my $tiers_obj = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
-        if ( !grep { Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $_ ) } $tiers_obj->get_flattened_hash()->@{qw/edge current release stable lts/} ) {
-            my $hint = '';
-            $hint = q[hint: You can skip this check using --skip-cpanel-version-check] if $Cpanel::Version::Tiny::VERSION_BUILD =~ 9999;
+        my $tiers_obj        = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
+        my $expected_version = $tiers_obj->get_flattened_hash()->{'11.110'};
+        if ( !Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $expected_version ) ) {
             return $self->has_blocker( <<~"EOS" );
             This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.
-            Please upgrade cPanel to a more recent version. $hint
+            Please upgrade cPanel to $expected_version.
             EOS
         }
     }

@@ -148,6 +148,8 @@ my $whm  = $cpev->get_blocker('WHM');
     note "cPanel & WHM latest version.";
     clear_messages_seen();
 
+    my $latest_lts_version = "11.110.0.15";
+
     my $mock_tiers = Test::MockModule->new('Cpanel::Update::Tiers');
     $mock_tiers->redefine(
         sync_tiers_file => 1,
@@ -167,6 +169,13 @@ my $whm  = $cpev->get_blocker('WHM');
                         "build"   => "11.102.0.7",
                         "is_main" => 1,
                         "named"   => [ "current", "edge" ],
+                    }
+                ],
+                "11.110" => [
+                    {
+                        "build"   => $latest_lts_version,
+                        "is_main" => 1,
+                        "named"   => [ "lts" ],
                     }
                 ],
             },
@@ -195,7 +204,7 @@ my $whm  = $cpev->get_blocker('WHM');
             msg => qr{
                     \QThis installation of cPanel (11.102.0.5) does not appear to be up to date.\E
                     \s+
-                    \QPlease upgrade cPanel to a more recent version.\E
+                    \QPlease upgrade cPanel to $latest_lts_version.\E
                 }xms,
         },
         q{obsolete version generates a blocker.}
@@ -203,7 +212,7 @@ my $whm  = $cpev->get_blocker('WHM');
 
     clear_messages_seen();
 
-    $Cpanel::Version::Tiny::VERSION_BUILD = '11.102.0.7';
+    $Cpanel::Version::Tiny::VERSION_BUILD = $latest_lts_version;
     is( $whm->_blocker_cpanel_needs_update(), 0, "No blocker if cPanel is up to date" );
     no_messages_seen();
 }
