@@ -4775,8 +4775,8 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
     /scripts/elevate-cpanel [OPTIONS]
 
     Optional:
-       --start                        Start the convertion process
-       --continue                     Continue the convertion: retry the last step
+       --start                        Start the conversion process
+       --continue                     Continue the conversion: retry the last step
        --check[=BLOCKER_FILE]         Check if your system has any known blockers to upgrade.
        --log                          Show the current elevation log
        --status                       Check the current elevation status
