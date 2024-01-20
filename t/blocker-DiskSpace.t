@@ -127,10 +127,12 @@ is $check, 0, "_disk_space_check failure - /usr/local/cpanel 1.4 G";
 
     is(
         $blockers->blockers,
-        [ {
-            id  => q[Elevate::Blockers::DiskSpace::check],
-            msg => "disk space issue",
-        } ],
+        [
+            {
+                id  => q[Elevate::Blockers::DiskSpace::check],
+                msg => "disk space issue",
+            }
+        ],
         q{Block if disk space issues.}
     );
 
@@ -146,8 +148,8 @@ exit;
 
 sub check_blocker (@args) {    # helper for test...
 
-    my $blockers = cpev->new( @args )->blockers;
-    my $ds      = $blockers->_get_blocker_for('DiskSpace');
+    my $blockers = cpev->new(@args)->blockers;
+    my $ds       = $blockers->_get_blocker_for('DiskSpace');
 
     return $ds->check;
 }
