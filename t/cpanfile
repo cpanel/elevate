@@ -30,4 +30,5 @@ on 'test' => sub {
     recommends "Devel::Cover";
     recommends "Template";
     recommends "JSON::MaybeXS";
+    recommends "Test::PerlTidy";
 };
