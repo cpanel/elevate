@@ -625,13 +625,15 @@ of your server before proceeding.
 EOS
 
     if ( !$self->getopt('non-interactive') ) {
-        if ( !IO::Prompt::prompt(
-            '-one_char',
-            '-yes_no',
-            '-tty',
-            -default => 'n',
-            "Do you wish to proceed with the upgrade process [y/N]: ",
-        ) ) {
+        if (
+            !IO::Prompt::prompt(
+                '-one_char',
+                '-yes_no',
+                '-tty',
+                -default => 'n',
+                "Do you wish to proceed with the upgrade process [y/N]: ",
+            )
+        ) {
             INFO("The update process has been canceled");
             exit 0;
         }
