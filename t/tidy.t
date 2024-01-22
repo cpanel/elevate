@@ -3,4 +3,4 @@
 
 use Test::PerlTidy qw( run_tests );
 
-run_tests();
+run_tests( exclude => [qr{^\.vscode/}] );
