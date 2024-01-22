@@ -1681,6 +1681,7 @@ sub post_upgrade_check ($self) {
 }
 
 =pod
+
     > cat /var/log/leapp/answerfile
     [remove_pam_pkcs11_module_check]
     confirm=True

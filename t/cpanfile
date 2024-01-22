@@ -31,4 +31,5 @@ on 'test' => sub {
     recommends "Template";
     recommends "JSON::MaybeXS";
     recommends "Test::PerlTidy";
+    recommends "Test::Pod";
 };
