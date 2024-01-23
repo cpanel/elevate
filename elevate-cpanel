@@ -55,6 +55,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Motd.pm'}                        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Notify.pm'}                      = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Roles/Run.pm'}                   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/RPM.pm'}                         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Script.pm'}                      = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Service.pm'}                     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/SystemctlService.pm'}            = 'script/elevate-cpanel.PL.static';
@@ -2118,6 +2119,7 @@ EOS
     use Carp             ();
     use Simple::Accessor qw(
       cpev
+      rpm
     );
 
     # use Log::Log4perl qw(:easy);
@@ -2145,6 +2147,10 @@ EOS
                 return $sub->( $cpev, @args );
             }
         }
+    }
+
+    sub _build_rpm ($self) {
+        return Elevate::RPM->new( cpev => $self );
     }
 
     sub run_once ( $self, $subname ) {
@@ -2284,6 +2290,7 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::RPM       ();
 
     use Cwd ();
 
@@ -2312,6 +2319,7 @@ EOS
 
         $self->run_once('_backup_ea4_profile');
         $self->run_once('_backup_ea_addons');
+        $self->run_once('_backup_config_files');
         $self->run_once('_cleanup_rpm_db');
 
         return;
@@ -2321,6 +2329,8 @@ EOS
 
         $self->run_once('_restore_ea4_profile');
         $self->run_once('_restore_ea_addons');
+
+        $self->run_once('_restore_config_files');
 
         return;
     }
@@ -2460,6 +2470,46 @@ EOS
         }
 
         return 1;
+    }
+
+    sub _backup_config_files ($self) {
+
+        cpev::remove_from_stage_file('ea4_config_files');
+
+        my $ea4_regex        = qr/^EA4(:?-c7)?/a;
+        my $ea4_config_files = $self->rpm->get_config_files_for_repo($ea4_regex);
+
+        cpev::update_stage_file( { ea4_config_files => $ea4_config_files } );
+
+        return;
+    }
+
+    our %config_files_to_ignore = (
+        'ea-nginx' => {
+            '/etc/nginx/conf.d/ea-nginx.conf'   => 1,
+            '/etc/nginx/ea-nginx/settings.json' => 1,
+        },
+        'ea-apache24' => {
+            '/etc/apache2/conf/httpd.conf' => 1,
+        },
+    );
+
+    sub _restore_config_files ($self) {
+
+        my $config_files = cpev::read_stage_file('ea4_config_files');
+
+        foreach my $key ( sort keys %$config_files ) {
+            INFO("Restoring config files for package: '$key'");
+
+            my @config_files_to_restore = @{ $config_files->{$key} };
+            if ( exists $config_files_to_ignore{$key} ) {
+                @config_files_to_restore = grep { !$config_files_to_ignore{$key}{$_} } @config_files_to_restore;
+            }
+
+            $self->rpm->restore_config_files(@config_files_to_restore);
+        }
+
+        return;
     }
 
     1;
@@ -4409,6 +4459,79 @@ EOS
 
 }    # --- END lib/Elevate/Roles/Run.pm
 
+{    # --- BEGIN lib/Elevate/RPM.pm
+
+    package Elevate::RPM;
+
+    use cPstrict;
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use Simple::Accessor qw{
+      cpev
+    };
+
+    sub _build_cpev {
+        die q[Missing cpev];
+    }
+
+    sub get_config_files_for_repo ( $self, $repo ) {
+
+        my @installed    = cpev::get_installed_rpms_in_repo($repo);
+        my $config_files = $self->_get_config_files( \@installed );
+
+        return $config_files;
+    }
+
+    sub _get_config_files ( $self, $pkgs ) {
+
+        my %config_files;
+        foreach my $pkg (@$pkgs) {
+
+            my $out = $self->cpev->ssystem_capture_output( '/usr/bin/rpm', '-qc', $pkg ) || {};
+
+            if ( $out->{status} != 0 ) {
+
+                WARN( <<~"EOS");
+            Failed to retrieve config files for $pkg.  If you have custom config files for this pkg,
+            then you will need to manually evaluate the configs and potentially move the rpmsave file back
+            into place.
+            EOS
+
+            }
+            else {
+
+                my @pkg_config_files = grep { $_ =~ m{^/} } @{ $out->{stdout} };
+
+                $config_files{$pkg} = \@pkg_config_files;
+            }
+        }
+
+        return \%config_files;
+    }
+
+    sub restore_config_files ( $self, @files ) {
+
+        my $suffix = '.rpmsave';
+
+        foreach my $file (@files) {
+            next unless length $file;
+
+            my $backup_file = $file . $suffix;
+
+            next unless -e $backup_file;
+
+            File::Copy::move( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
+        }
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/RPM.pm
+
 {    # --- BEGIN lib/Elevate/Script.pm
 
     package Elevate::Script;
@@ -4491,13 +4614,12 @@ EOS
 
     use Elevate::Roles::Run ();    # for fatpck
 
-    use                            # hide
-      Simple::Accessor qw{
+    use Simple::Accessor qw{
       name
       file
       short_name
       cpev
-      };
+    };
 
     # use Elevate::Roles::Run();
     our @ISA;
@@ -4601,10 +4723,9 @@ EOS
 
     use Elevate::Roles::Run ();    # for fatpck
 
-    use                            # hide
-      Simple::Accessor qw{
+    use Simple::Accessor qw{
       name
-      };
+    };
 
     # use Elevate::Roles::Run();
     our @ISA;
@@ -5108,6 +5229,7 @@ use Elevate::Logger           ();
 use Elevate::Motd             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
+use Elevate::RPM              ();
 use Elevate::Script           ();
 use Elevate::Service          ();
 use Elevate::SystemctlService ();
