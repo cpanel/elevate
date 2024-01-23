@@ -15,14 +15,20 @@ use cPstrict;
 use Elevate::Constants ();
 use Elevate::Notify    ();
 
-use Cpanel::Version::Tiny ();
-use Cpanel::Update::Tiers ();
-use Cpanel::License       ();
-use Cpanel::Pkgr          ();
+use Cpanel::Backup::Sync    ();
+use Cpanel::Version::Tiny   ();
+use Cpanel::Update::Tiers   ();
+use Cpanel::License         ();
+use Cpanel::Pkgr            ();
+use Cpanel::Unix::PID::Tiny ();
 
 use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
+
+use constant BACKUP_ID     => Cpanel::Backup::Sync::BACKUP_TYPE_NEW;
+use constant BACKUP_LOGDIR => '/usr/local/cpanel/logs/cpbackup';
+use constant UPCP_PIDFILE  => '/var/run/upcp.pid';
 
 sub check ($self) {
 
@@ -34,6 +40,8 @@ sub check ($self) {
     $ok = 0 unless $self->_blocker_cpanel_needs_license;
     $ok = 0 unless $self->_blocker_cpanel_needs_update;
     $ok = 0 unless $self->_blocker_is_sandbox;
+    $ok = 0 unless $self->_blocker_is_upcp_running;
+    $ok = 0 unless $self->_blocker_is_cpanel_backup_running;
     $ok = 0 unless $self->_blocker_is_calendar_installed;
 
     return $ok;
@@ -136,6 +144,43 @@ sub _blocker_is_calendar_installed ($self) {
         return $self->has_blocker( <<~'EOS');
         You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.
         Removal of this server can lead to data loss.
+        EOS
+    }
+
+    return 0;
+}
+
+sub _blocker_is_upcp_running ($self) {
+    return 0 unless $self->getopt('start');
+
+    my $upid = Cpanel::Unix::PID::Tiny->new();
+
+    my $upcp_pid = $upid->get_pid_from_pidfile(UPCP_PIDFILE);
+
+    if ($upcp_pid) {
+
+        $self->blockers->abort_on_first_blocker(1);
+
+        return $self->has_blocker( <<~"EOS");
+        cPanel Update (upcp) is currently running. Please wait for the upcp (PID $upcp_pid) to complete, then try again.
+        You can use the command 'ps --pid $upcp_pid' to check if the process is running.
+        EOS
+    }
+
+    return 0;
+}
+
+sub _blocker_is_cpanel_backup_running ($self) {
+    return 0 unless $self->getopt('start');
+
+    if ( !Cpanel::Backup::Sync::handle_already_running( BACKUP_ID, BACKUP_LOGDIR, Log::Log4perl->get_logger(__PACKAGE__) ) ) {
+
+        $self->blockers->abort_on_first_blocker(1);
+
+        # Cpanel::Backup::Sync::handle_already_running will log the PID and log file location for the backup
+        # so there is no need for us to do that in the blocker message
+        return $self->has_blocker( <<~'EOS');
+        A cPanel backup is currently running. Please wait for the cPanel backup to complete, then try again.
         EOS
     }
 

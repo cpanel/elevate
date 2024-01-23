@@ -18,6 +18,15 @@ The following conditions are assumed to be in place any time you run this script
 * You have cPanel version 102 or greater installed.
 * You are logged in as **root**.
 
+## Conflicting Processes
+
+The following processes are known to conflict with this script and cannot be executed simulaneously.
+
+* `/usr/local/cpanel/scripts/upcp`
+* `/usr/local/cpanel/bin/backup`
+
+**NOTE** These checks are only enforced when the script is executed in start mode
+
 ## Disk space
 
 At any given time, the upgrade process may use at or more than 5 GB. If you have a complex mount system, we have determined that the following areas may require disk space for a period of time:
