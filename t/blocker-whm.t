@@ -175,7 +175,7 @@ my $whm  = $cpev->get_blocker('WHM');
                     {
                         "build"   => $latest_lts_version,
                         "is_main" => 1,
-                        "named"   => [ "lts" ],
+                        "named"   => ["lts"],
                     }
                 ],
             },
