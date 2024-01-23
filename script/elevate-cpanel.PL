@@ -285,6 +285,7 @@ use Elevate::Logger           ();
 use Elevate::Motd             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
+use Elevate::RPM              ();
 use Elevate::Script           ();
 use Elevate::Service          ();
 use Elevate::SystemctlService ();

@@ -21,13 +21,12 @@ use Log::Log4perl qw(:easy);
 
 use Elevate::Roles::Run ();    # for fatpck
 
-use                            # hide
-  Simple::Accessor qw{
+use Simple::Accessor qw{
   name
   file
   short_name
   cpev
-  };
+};
 
 use parent qw{
   Elevate::Roles::Run
