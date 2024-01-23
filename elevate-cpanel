@@ -156,7 +156,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         }
 
         my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others );
-        die $blocker if $self->cpev->_abort_on_first_blocker;
+        die $blocker if $self->blockers->abort_on_first_blocker();
 
         if ( !$others{'quiet'} ) {
             WARN( <<~"EOS");
@@ -215,6 +215,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       cpev
       check_mode
       blockers
+      abort_on_first_blocker
     );
 
     # use Log::Log4perl qw(:easy);
@@ -293,8 +294,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
             return 666;
         }
 
-        $_CHECK_MODE = !!$check_mode;                              # running with --check
-        $self->cpev->{_abort_on_first_blocker} = !$_CHECK_MODE;    # abort on first blocker
+        $_CHECK_MODE = !!$check_mode;    # running with --check
+        $self->abort_on_first_blocker( !$_CHECK_MODE );
 
         my $ok = eval { $self->_check_all_blockers; 1; };
 
@@ -1931,10 +1932,12 @@ EOS
     use Elevate::Constants ();
     use Elevate::Notify    ();
 
-    use Cpanel::Version::Tiny ();
-    use Cpanel::Update::Tiers ();
-    use Cpanel::License       ();
-    use Cpanel::Pkgr          ();
+    use Cpanel::Backup::Sync    ();
+    use Cpanel::Version::Tiny   ();
+    use Cpanel::Update::Tiers   ();
+    use Cpanel::License         ();
+    use Cpanel::Pkgr            ();
+    use Cpanel::Unix::PID::Tiny ();
 
     # use Elevate::Blockers::Base();
     our @ISA;
@@ -1942,6 +1945,10 @@ EOS
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant BACKUP_ID     => Cpanel::Backup::Sync::BACKUP_TYPE_NEW;
+    use constant BACKUP_LOGDIR => '/usr/local/cpanel/logs/cpbackup';
+    use constant UPCP_PIDFILE  => '/var/run/upcp.pid';
 
     sub check ($self) {
 
@@ -1953,6 +1960,8 @@ EOS
         $ok = 0 unless $self->_blocker_cpanel_needs_license;
         $ok = 0 unless $self->_blocker_cpanel_needs_update;
         $ok = 0 unless $self->_blocker_is_sandbox;
+        $ok = 0 unless $self->_blocker_is_upcp_running;
+        $ok = 0 unless $self->_blocker_is_cpanel_backup_running;
         $ok = 0 unless $self->_blocker_is_calendar_installed;
 
         return $ok;
@@ -2055,6 +2064,41 @@ EOS
             return $self->has_blocker( <<~'EOS');
         You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.
         Removal of this server can lead to data loss.
+        EOS
+        }
+
+        return 0;
+    }
+
+    sub _blocker_is_upcp_running ($self) {
+        return 0 unless $self->getopt('start');
+
+        my $upid = Cpanel::Unix::PID::Tiny->new();
+
+        my $upcp_pid = $upid->get_pid_from_pidfile(UPCP_PIDFILE);
+
+        if ($upcp_pid) {
+
+            $self->blockers->abort_on_first_blocker(1);
+
+            return $self->has_blocker( <<~"EOS");
+        cPanel Update (upcp) is currently running. Please wait for the upcp (PID $upcp_pid) to complete, then try again.
+        You can use the command 'ps --pid $upcp_pid' to check if the process is running.
+        EOS
+        }
+
+        return 0;
+    }
+
+    sub _blocker_is_cpanel_backup_running ($self) {
+        return 0 unless $self->getopt('start');
+
+        if ( !Cpanel::Backup::Sync::handle_already_running( BACKUP_ID, BACKUP_LOGDIR, Log::Log4perl->get_logger(__PACKAGE__) ) ) {
+
+            $self->blockers->abort_on_first_blocker(1);
+
+            return $self->has_blocker( <<~'EOS');
+        A cPanel backup is currently running. Please wait for the cPanel backup to complete, then try again.
         EOS
         }
 
@@ -5066,8 +5110,6 @@ use Simple::Accessor qw{
   service
   script
   blockers
-
-  _abort_on_first_blocker
 };
 
 # after Simple::Accessor

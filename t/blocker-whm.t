@@ -236,6 +236,68 @@ my $whm  = $cpev->get_blocker('WHM');
 }
 
 {
+    note 'UPCP is running';
+
+    is( $whm->_blocker_is_upcp_running(), 0, 'should return 0 if not in start mode' );
+
+    local $cpev->{_getopt} = { start => 1 };
+
+    my $mock_cpanel_unix_pid_tiny = Test::MockModule->new('Cpanel::Unix::PID::Tiny');
+    $mock_cpanel_unix_pid_tiny->redefine(
+        get_pid_from_pidfile => sub { return; },
+    );
+
+    is( $whm->_blocker_is_upcp_running(), 0, 'should return 0 if upcp is not running and it is in start mode' );
+
+    $mock_cpanel_unix_pid_tiny->redefine(
+        get_pid_from_pidfile => sub { return 42; },
+    );
+
+    like(
+        dies { $whm->_blocker_is_upcp_running() },
+        {
+            id  => q[Elevate::Blockers::WHM::_blocker_is_upcp_running],
+            msg => qr{cPanel Update \(upcp\) is currently running}m,
+        },
+        'should block when upcp is running and it is in start mode'
+    );
+
+    # Reset this
+    $whm->blockers->abort_on_first_blocker(0);
+}
+
+{
+    note 'bin/backup is running';
+
+    is( $whm->_blocker_is_cpanel_backup_running(), 0, 'should return 0 if not in start mode' );
+
+    local $cpev->{_getopt} = { start => 1 };
+
+    my $mock_cpanel_backup_sync = Test::MockModule->new('Cpanel::Backup::Sync');
+    $mock_cpanel_backup_sync->redefine(
+        handle_already_running => 1,
+    );
+
+    is( $whm->_blocker_is_cpanel_backup_running(), 0, 'should return 0 if backup is not running and it is in start mode' );
+
+    $mock_cpanel_backup_sync->redefine(
+        handle_already_running => 0,
+    );
+
+    like(
+        dies { $whm->_blocker_is_cpanel_backup_running() },
+        {
+            id  => q[Elevate::Blockers::WHM::_blocker_is_cpanel_backup_running],
+            msg => qr{A cPanel backup is currently running}m,
+        },
+        'should block when backup is running and it is in start mode'
+    );
+
+    # Reset this
+    $whm->blockers->abort_on_first_blocker(0);
+}
+
+{
     note "CCS CalendarServer";
 
     my $pkgr_mock = Test::MockModule->new('Cpanel::Pkgr');

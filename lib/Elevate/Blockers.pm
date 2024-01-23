@@ -39,6 +39,7 @@ use Simple::Accessor qw(
   cpev
   check_mode
   blockers
+  abort_on_first_blocker
 );
 
 use Log::Log4perl qw(:easy);
@@ -119,8 +120,8 @@ sub _has_blockers ( $self, $check_mode = 0 ) {
         return 666;
     }
 
-    $_CHECK_MODE = !!$check_mode;                              # running with --check
-    $self->cpev->{_abort_on_first_blocker} = !$_CHECK_MODE;    # abort on first blocker
+    $_CHECK_MODE = !!$check_mode;    # running with --check
+    $self->abort_on_first_blocker( !$_CHECK_MODE );
 
     my $ok = eval { $self->_check_all_blockers; 1; };
 

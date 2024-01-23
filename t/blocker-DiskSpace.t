@@ -137,7 +137,7 @@ is $check, 0, "_disk_space_check failure - /usr/local/cpanel 1.4 G";
     );
 
     $mock_ds->redefine( _disk_space_check => 1 );
-    ok( check_blocker( _abort_on_first_blocker => 1 ), 'System is up to date' );
+    ok( check_blocker(), 'System is up to date' );
 }
 
 undef $mock_saferun;
