@@ -55,7 +55,7 @@ sub post_leapp ($self) {
 
     my $tier     = $data->{tier};
     my @packages = $data->{packages}->@*;
-    $self->ssystem( qw{/usr/bin/yum -y reinstall  --disablerepo=* --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
+    $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
 
     return;
 }
