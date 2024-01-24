@@ -26,6 +26,48 @@ sub _OPTIONS {
     );
 }
 
+sub _validate_option_combos ($self) {
+
+    my @solitary_options = qw(
+      clean continue help log service status update version
+    );
+    my @start_only_options = qw(
+      manual-reboots non-interactive
+    );
+
+    # Invoking with no options is permissible
+    return 1 if !%{ $self->{_getopt} };
+
+    foreach my $option (@solitary_options) {
+        if ( $self->getopt($option) ) {
+            if ( scalar( keys %{ $self->{_getopt} } ) > 1 ) {
+                return $self->help( "Option \"$option\" is not compatible with any other option", 1 );
+            }
+            else {
+                return 1;
+            }
+        }
+    }
+
+    if ( $self->getopt('start') && defined $self->getopt('check') ) {
+        return $self->help( "The options \"start\" and \"check\" are mutually exclusive", 1 );
+    }
+
+    if ( !$self->getopt('start') && !defined $self->getopt('check') ) {
+        return $self->help( "Invalid option combination", 1 );
+    }
+
+    if ( !$self->getopt('start') ) {
+        foreach my $option (@start_only_options) {
+            if ( $self->getopt($option) ) {
+                return $self->help( "Option \"$option\" is only compatible with \"start\"", 1 );
+            }
+        }
+    }
+
+    return 1;
+}
+
 sub init ( $self, @args ) {
 
     $self->{_getopt} = {};
@@ -35,6 +77,8 @@ sub init ( $self, @args ) {
         $self->{_getopt},
         _OPTIONS()
     ) or return $self->help( "Invalid Option", 1 );
+
+    return unless $self->_validate_option_combos();
 
     return $self->full_help() if $self->getopt('help');
 }
