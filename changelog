@@ -1,4 +1,6 @@
-2024-??-?? - version 21
+2024-01-25 - version 21
+- Get fix-cpanel-perl to run after distro change without breaking perl.
+- Update elevate for jetbackup to be aware of JetBackup 5.3
 
 2024-01-22 - version 20
 - #338 - Improve warning and add prompt before starting the upgrade process
