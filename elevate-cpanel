@@ -2936,6 +2936,8 @@ EOS
 
         cpev::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
 
+        $self->ssystem(qw{/usr/bin/rpm -e --nodeps jetphp81-zip});
+
         return;
     }
 
@@ -2948,7 +2950,9 @@ EOS
 
         my $tier     = $data->{tier};
         my @packages = $data->{packages}->@*;
-        $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
+
+        $self->ssystem( qw{/usr/bin/yum -y install --enablerepo=jetapps}, "--enablerepo=$tier", 'jetphp81-zip' );
+        $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps},  "--enablerepo=$tier", @packages );
 
         return;
     }

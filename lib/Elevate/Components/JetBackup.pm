@@ -43,6 +43,9 @@ sub pre_leapp ($self) {
 
     cpev::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
 
+    # Remove this package because leapp will remove it as it depends on libzip.so.2 which isn't available in 8.
+    $self->ssystem(qw{/usr/bin/rpm -e --nodeps jetphp81-zip});
+
     return;
 }
 
@@ -55,7 +58,9 @@ sub post_leapp ($self) {
 
     my $tier     = $data->{tier};
     my @packages = $data->{packages}->@*;
-    $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps}, "--enablerepo=$tier", @packages );
+
+    $self->ssystem( qw{/usr/bin/yum -y install --enablerepo=jetapps}, "--enablerepo=$tier", 'jetphp81-zip' );
+    $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps},  "--enablerepo=$tier", @packages );
 
     return;
 }
