@@ -13,12 +13,6 @@ use Test::MockModule qw{strict};
 
 use Elevate::Blockers::Python ();
 
-{
-
-    package bogus::cpev;
-    sub _abort_on_first_blocker { return 0 }
-}
-
 my %mocks = map { $_ => Test::MockModule->new($_); } qw{
   Cpanel::Pkgr
   Elevate::Blockers
