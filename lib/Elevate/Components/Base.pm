@@ -63,4 +63,10 @@ sub run_once ( $self, $subname ) {
     return $run_once->( $cpev, $label, $code );
 }
 
+sub restore_rpmsave ( $self, $file ) {
+    return unless length $file;
+    return unless -e "$file.rpmsave";
+    return rename $file, "$file.rpmsave";
+}
+
 1;

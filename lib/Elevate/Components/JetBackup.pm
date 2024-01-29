@@ -61,6 +61,10 @@ sub post_leapp ($self) {
 
     $self->ssystem( qw{/usr/bin/yum -y install --enablerepo=jetapps}, "--enablerepo=$tier", 'jetphp81-zip' );
     $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps},  "--enablerepo=$tier", @packages );
+    if ( $self->restore_rpmsave('/usr/local/jetapps/etc/.mongod.auth') ) {
+        $self->ssystem(qw{/usr/bin/systemctl restart jetmongod});
+        $self->ssystem(qw{/usr/bin/systemctl restart jetbackup5d});
+    }
 
     return;
 }
