@@ -28,8 +28,7 @@ my $mock = Test::MockModule->new('Elevate::Blockers::IsContainer');
 
     $mock->redefine( '_is_container_envtype' => 1 );
 
-    #my $cpev = bless { _abort_on_first_blocker => 1 }, 'cpev';
-    my $cpev = cpev->new( _abort_on_first_blocker => 1 );
+    my $cpev = cpev->new();
     my $msg  = <<~'EOS';
     cPanel thinks that this is a container-like environment.
     This cannot be upgraded by the native leapp tool.

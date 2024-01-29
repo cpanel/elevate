@@ -330,8 +330,6 @@ use Simple::Accessor qw{
   service
   script
   blockers
-
-  _abort_on_first_blocker
 };
 
 # after Simple::Accessor

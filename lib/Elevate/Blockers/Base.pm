@@ -91,7 +91,7 @@ sub has_blocker ( $self, $msg, %others ) {
     }
 
     my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others );
-    die $blocker if $self->cpev->_abort_on_first_blocker;
+    die $blocker if $self->blockers->abort_on_first_blocker();
 
     if ( !$others{'quiet'} ) {
         WARN( <<~"EOS");
