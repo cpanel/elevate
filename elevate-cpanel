@@ -4936,13 +4936,6 @@ BEGIN {
         warn(qq[This script is designed to only run on cPanel servers.\n]);
         exit 1;
     };
-
-    $Cpanel::Version::Tiny::major_version >= Elevate::Constants::MINIMUM_LTS_SUPPORTED
-      or do {
-        warn qq[You need to upgrade your cPanel server to version ] . Elevate::Constants::MINIMUM_LTS_SUPPORTED    #
-          . qq[ or later before running this script.\n];
-        exit 1;
-      };
 }
 
 use Log::Log4perl qw(:easy);
