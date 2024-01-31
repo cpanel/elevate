@@ -14,9 +14,13 @@ use cPstrict;
 
 use parent qw{Elevate::Blockers::Base};
 
+use Elevate::OS ();
+
 use Cpanel::Pkgr ();
 
 sub check ($self) {
+    return if Elevate::OS::leapp_can_handle_python36();
+
     my $pkg = Cpanel::Pkgr::what_provides('python36');
     return unless $pkg && Cpanel::Pkgr::is_installed($pkg);
     return $self->has_blocker( <<~"END" );

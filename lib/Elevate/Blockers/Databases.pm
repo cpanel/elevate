@@ -13,6 +13,7 @@ Blockers for datbase: MySQL, PostgreSQL...
 use cPstrict;
 
 use Cpanel::OS              ();
+use Cpanel::Pkgr            ();
 use Cpanel::Version::Tiny   ();
 use Cpanel::JSON            ();
 use Cpanel::SafeRun::Simple ();
@@ -29,6 +30,7 @@ sub check ($self) {
     $ok = 0 unless $self->_blocker_acknowledge_postgresql_datadir;
     $ok = 0 unless $self->_blocker_old_mysql;
     $ok = 0 unless $self->_blocker_mysql_upgrade_in_progress;
+    $ok = 0 unless $self->_blocker_mysql_governor;
     $self->_warning_mysql_not_enabled();
     return $ok;
 }
@@ -180,6 +182,25 @@ sub _blocker_old_mysql ( $self, $mysql_version = undef ) {
 sub _blocker_mysql_upgrade_in_progress ($self) {
     if ( -e q[/var/cpanel/mysql_upgrade_in_progress] ) {
         return $self->has_blocker(q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.]);
+    }
+
+    return 0;
+}
+
+sub _blocker_mysql_governor ($self) {
+
+    if ( Cpanel::Pkgr::is_installed('governor-mysql') ) {
+        return $self->has_blocker( <<~'EOS' );
+You have MySQL Governor installed.  Upgrades with this software in place are not supported.
+For more information regarding MySQL Governor, please review the documentation:
+
+    https://docs.cloudlinux.com/shared/cloudlinux_os_components/#mysql-governor
+
+To remove MySQL Governor, execute the following command:
+
+    /usr/share/lve/dbgovernor/mysqlgovernor.py --delete
+
+EOS
     }
 
     return 0;

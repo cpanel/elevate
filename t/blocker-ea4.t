@@ -47,19 +47,37 @@ my $mock_cpev          = Test::MockModule->new('cpev');
 
     # only testing the blocking case
 
-    like(
-        $ea4->_blocker_ea4_profile(),
-        {
-            id  => q[Elevate::Blockers::EA4::_blocker_ea4_profile],
-            msg => <<~'EOS',
-        One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+
+        my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        like(
+            $ea4->_blocker_ea4_profile(),
+            {
+                id  => q[Elevate::Blockers::EA4::_blocker_ea4_profile],
+                msg => <<~"EOS",
+        One or more EasyApache 4 package(s) are not compatible with $expected_target_os.
         Please remove these packages before continuing the update.
         - ea4-bad-pkg
         EOS
 
-        },
-        'blocks when EA4 has an incompatible package'
-    );
+            },
+            'blocks when EA4 has an incompatible package'
+        );
+
+        my $target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        ea_info_check($target_os);
+        message_seen( WARN => <<"EOS");
+*** Elevation Blocker detected: ***
+One or more EasyApache 4 package(s) are not compatible with $target_os.
+Please remove these packages before continuing the update.
+- ea4-bad-pkg
+
+EOS
+
+    }
+
+    no_messages_seen();
 
     $mock_cpev->unmock_all;
 }
@@ -67,63 +85,72 @@ my $mock_cpev          = Test::MockModule->new('cpev');
 {
     $mock_compoment_ea4->redefine( backup => sub { return; } );
 
-    my $ea_info_check = sub {
-        message_seen( 'INFO' => "Checking EasyApache profile compatibility with AlmaLinux 8." );
-    };
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
 
-    ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
-    $ea_info_check->();
+        my $target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
 
-    my $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
+        ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
+        ea_info_check($target_os);
 
-    my $stage_ea4 = {
-        profile => '/some/file.not.used.there',
-    };
+        my $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
 
-    $mock_cpev->redefine(
-        read_stage_file => sub {
-            return { ea4 => $stage_ea4 };
-        }
-    );
+        my $stage_ea4 = {
+            profile => '/some/file.not.used.there',
+        };
 
-    clear_messages_seen();
+        $mock_cpev->redefine(
+            read_stage_file => sub {
+                return { ea4 => $stage_ea4 };
+            }
+        );
 
-    ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs" );
+        ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs" );
 
-    $ea_info_check->();
+        ea_info_check($target_os);
 
-    $stage_ea4->{'dropped_pkgs'} = {
-        "ea-bar" => "exp",
-        "ea-baz" => "exp",
-    };
-    ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only" );
-    $ea_info_check->();
+        $stage_ea4->{'dropped_pkgs'} = {
+            "ea-bar" => "exp",
+            "ea-baz" => "exp",
+        };
+        ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only" );
+        ea_info_check($target_os);
 
-    $stage_ea4->{'dropped_pkgs'} = {
-        "pkg1"   => "reg",
-        "ea-baz" => "exp",
-        "pkg3"   => "reg",
-        "pkg4"   => "whatever",
-    };
+        $stage_ea4->{'dropped_pkgs'} = {
+            "pkg1"   => "reg",
+            "ea-baz" => "exp",
+            "pkg3"   => "reg",
+            "pkg4"   => "whatever",
+        };
 
-    ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
-    $ea_info_check->();
+        ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
+        ea_info_check($target_os);
 
-    message_seen( 'WARN' => qr[Elevation Blocker detected] );
+        message_seen( 'WARN' => qr[Elevation Blocker detected] );
 
-    like $blocker, object {
-        prop blessed => 'cpev::Blocker';
+        like $blocker, object {
+            prop blessed => 'cpev::Blocker';
 
-        field id => q[Elevate::Blockers::EA4::_blocker_ea4_profile];
-        field msg => 'One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
+            field id => q[Elevate::Blockers::EA4::_blocker_ea4_profile];
+            field msg => qq[One or more EasyApache 4 package(s) are not compatible with $target_os.
 Please remove these packages before continuing the update.
 - pkg1
 - pkg3
 - pkg4
-';
+];
 
-        end();
-    }, "blocker with expected error" or diag explain $blocker;
+            end();
+        }, "blocker with expected error" or diag explain $blocker;
+
+        $stage_ea4 = {};
+        $mock_cpev->unmock_all;
+    }
+
+    no_messages_seen();
+}
+
+sub ea_info_check ($os) {
+    message_seen( 'INFO' => "Checking EasyApache profile compatibility with $os." );
 }
 
 done_testing();

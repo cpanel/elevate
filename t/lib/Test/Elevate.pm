@@ -7,7 +7,7 @@ use Test::More;
 use Test::Deep;
 
 our @ISA       = qw(Exporter);
-our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen );
+our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to unmock_os);
 our @EXPORT_OK = @EXPORT;
 
 use Log::Log4perl;
@@ -67,6 +67,10 @@ sub init {
         mockLoggerFor($cat);
     }
 
+    # Default to CentOS 7
+    note 'Mock Elevate::OS singleton to think this server is CentOS 7';
+    $Elevate::OS::OS = Elevate::OS::CentOS7->new();
+
     return;
 }
 
@@ -124,5 +128,29 @@ sub no_messages_seen {
 
 # convenience
 sub no_message_seen { goto &no_messages_seen; }
+
+sub set_os_to_centos_7 {
+    note 'Mock Elevate::OS singleton to think this server is CentOS 7';
+    $Elevate::OS::OS = Elevate::OS::CentOS7->new();
+    return;
+}
+
+sub set_os_to_cloudlinux_7 {
+    note 'Mock Elevate::OS singleton to think this server is CloudLinux 7';
+    $Elevate::OS::OS = Elevate::OS::CloudLinux7->new();
+    return;
+}
+
+sub set_os_to ($os) {
+    return set_os_to_centos_7()   if $os =~ m/^cent/i;
+    return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i;
+
+    die "Unknown os:  $os\n";
+}
+
+sub unmock_os {
+    note 'Elevate::OS is no longer mocked';
+    $Elevate::OS::OS = undef;
+}
 
 1;

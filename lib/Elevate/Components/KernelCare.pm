@@ -13,6 +13,7 @@ Capture and reinstall KernelCare.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use Cwd            ();
 use File::Copy     ();
@@ -23,12 +24,16 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
+    return if Elevate::OS::leapp_can_handle_kernelcare();
+
     $self->run_once("_remove_kernelcare_if_needed");
 
     return;
 }
 
 sub post_leapp ($self) {
+
+    return if Elevate::OS::leapp_can_handle_kernelcare();
 
     $self->run_once('_restore_kernelcare');
 

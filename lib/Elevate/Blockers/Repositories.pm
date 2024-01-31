@@ -16,6 +16,7 @@ use Cpanel::OS   ();
 use Cpanel::JSON ();
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -67,6 +68,22 @@ use constant VETTED_MYSQL_YUM_REPO_IDS => qw{
   MariaDB103
   MariaDB105
   MariaDB106
+};
+
+use constant VETTED_CLOUDLINUX_YUM_REPO => qw{
+  cloudlinux
+  cloudlinux-base
+  cloudlinux-updates
+  cloudlinux-extras
+  cloudlinux-compat
+  cloudlinux-imunify360
+  cl-ea4
+  cloudlinux-ea4
+  cloudlinux-ea4-rollout
+  cl-mysql
+  cl-mysql-meta
+  cloudlinux-elevate
+  cloudlinux-rollout
 };
 
 use constant VETTED_YUM_REPO => qw{
@@ -217,7 +234,10 @@ sub _check_yum_repos ($self) {
     $self->{_yum_repos_to_disable}                = [];
     $self->{_yum_repos_unsupported_with_packages} = [];
 
-    my %vetted = map { $_ => 1 } VETTED_YUM_REPO;
+    my @vetted_repos = (VETTED_YUM_REPO);
+    push( @vetted_repos, VETTED_CLOUDLINUX_YUM_REPO ) if Elevate::OS::name() eq 'CloudLinux7';
+
+    my %vetted = map { $_ => 1 } @vetted_repos;
 
     my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 
@@ -244,7 +264,17 @@ sub _check_yum_repos ($self) {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
 
+            my $temp_current_repo_name = $current_repo_name;
+
+            # ignore the number on rollout mirrors
+            # cloudlinux-rollout-1 becomes cloudlinux-rollout
+            # cloudlinux-ea4-1 becomes cloudlinux-ea4
+            # cloudlinux-ea4-rollout-1 becomes cloudlinux-ea4-rollout
+            $current_repo_name = $1 if $current_repo_name =~ m/^(cloudlinux-(?:rollout|ea4)(?:-rollout)?)-[0-9]+$/;
+
             my $is_vetted = $vetted{$current_repo_name} || $vetted{ lc $current_repo_name };
+
+            $current_repo_name = $temp_current_repo_name;
 
             if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
