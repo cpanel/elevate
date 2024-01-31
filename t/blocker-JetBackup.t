@@ -53,18 +53,24 @@ my $jb   = $cpev->get_blocker('JetBackup');
 
     my $jb_mock = Test::MockModule->new('Elevate::Blockers::JetBackup');
 
-    $jb_mock->redefine( '_use_jetbackup4_or_earlier' => 1 );
-    is(
-        $jb->_blocker_old_jetbackup(),
-        {
-            id  => q[Elevate::Blockers::JetBackup::_blocker_old_jetbackup],
-            msg => "AlmaLinux 8 does not support JetBackup prior to version 5.\nPlease upgrade JetBackup before elevate.\n",
-        },
-        q{Block if jetbackup 4 is installed.}
-    );
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
 
-    $jb_mock->redefine( '_use_jetbackup4_or_earlier' => 0 );
-    is( $jb->_blocker_old_jetbackup(), 0, 'ok when jetbackup 4 or earlier is not installed.' );
+        my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+
+        $jb_mock->redefine( '_use_jetbackup4_or_earlier' => 1 );
+        is(
+            $jb->_blocker_old_jetbackup(),
+            {
+                id  => q[Elevate::Blockers::JetBackup::_blocker_old_jetbackup],
+                msg => "$expected_target_os does not support JetBackup prior to version 5.\nPlease upgrade JetBackup before elevate.\n",
+            },
+            q{Block if jetbackup 4 is installed.}
+        );
+
+        $jb_mock->redefine( '_use_jetbackup4_or_earlier' => 0 );
+        is( $jb->_blocker_old_jetbackup(), 0, 'ok when jetbackup 4 or earlier is not installed.' );
+    }
 
 }
 

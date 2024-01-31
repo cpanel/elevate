@@ -22,23 +22,37 @@ use cPstrict;
 
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
+my $ssystem_cmd;
 my $mock_elevate = Test::MockModule->new('cpev');
 $mock_elevate->redefine(
     ssystem_and_die => sub ( $, @args ) {
-        note "run: ", join( ' ', @args );
+        shift @args;
+        $ssystem_cmd = join( ' ', @args );
+        note "run: $ssystem_cmd";
 
-        return;
-    },
-    setup_answer_file => sub {    # cannot use Test::MockFile with system touch...
-        note "mocked setup_answer_file";
         return;
     },
     getopt => sub { return; },
 );
 
+my $mock_elevate_leapp = Test::MockModule->new('Elevate::Leapp');
+$mock_elevate_leapp->redefine(
+    setup_answer_file => sub {    # cannot use Test::MockFile with system touch...
+        note "mocked setup_answer_file";
+        return;
+    },
+);
+
 my $mock_elevate_file = Test::MockFile->file('/var/cpanel/elevate');
 
-ok( cpev->_do_leapp_upgrade(), '_do_leapp_upgrade succeeds' );
+for my $os ( 'cent', 'cloud' ) {
+    set_os_to($os);
+
+    my $expect_cmd = '/usr/bin/leapp upgrade';
+    $expect_cmd .= ' --nowarn' if $os eq 'cloud';
+    ok( cpev->leapp->upgrade(), 'leapp upgrade succeeds' );
+    is( $ssystem_cmd, $expect_cmd );
+}
 
 $mock_elevate->redefine(
     ssystem_and_die => sub {
@@ -46,14 +60,14 @@ $mock_elevate->redefine(
     }
 );
 
-ok cpev::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
-ok cpev::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
+ok Elevate::Leapp::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
+ok Elevate::Leapp::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
 
-my $mock_leap_report_json = Test::MockFile->file( cpev::LEAPP_REPORT_JSON() );
-my $mock_leap_report_txt  = Test::MockFile->file( cpev::LEAPP_REPORT_TXT() );
+my $mock_leap_report_json = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_JSON() );
+my $mock_leap_report_txt  = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_TXT() );
 
 like(
-    dies { cpev->_do_leapp_upgrade() },
+    dies { cpev->leapp->upgrade() },
     qr{The 'leapp upgrade' process failed},
     '_do_leapp_upgrade failed'
 );
@@ -131,7 +145,7 @@ $mock_leap_report_json->contents( <<'EOS' );
 }
 EOS
 
-my $error = dies { cpev->_do_leapp_upgrade() };
+my $error = dies { cpev->leapp->upgrade() };
 
 note $error;
 
@@ -162,7 +176,7 @@ unlike(
 );
 
 $mock_leap_report_txt->contents('full report');
-$error = dies { cpev->_do_leapp_upgrade() };
+$error = dies { cpev->leapp->upgrade() };
 
 note $error;
 

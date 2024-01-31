@@ -42,76 +42,82 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 }
 
 {
-    is(
-        $db->_blocker_old_mysql('5.7'),
-        {
-            id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
-            msg => <<~'EOS',
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+
+        my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+
+        is(
+            $db->_blocker_old_mysql('5.7'),
+            {
+                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                msg => <<~"EOS",
     You are using MySQL 5.7 server.
-    This version is not available for AlmaLinux 8.
+    This version is not available for $expected_target_os.
     You first need to update your MySQL server to 8.0 or later.
 
     You can update to version 8.0 using the following command:
 
         /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=8.0
 
-    Once the MySQL upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+    Once the MySQL upgrade is finished, you can then retry to elevate to $expected_target_os.
     EOS
-        },
-        'MySQL 5.7 is a blocker.'
-    );
+            },
+            'MySQL 5.7 is a blocker.'
+        );
 
-    local $Cpanel::Version::Tiny::major_version = 108;
-    is(
-        $db->_blocker_old_mysql('10.1'),
-        {
-            id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
-            msg => <<~'EOS',
-        You are using MariaDB server 10.1, this version is not available for AlmaLinux 8.
+        local $Cpanel::Version::Tiny::major_version = 108;
+        is(
+            $db->_blocker_old_mysql('10.1'),
+            {
+                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                msg => <<~"EOS",
+        You are using MariaDB server 10.1, this version is not available for $expected_target_os.
         You first need to update MariaDB server to 10.3 or later.
 
         You can update to version 10.3 using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
 
-        Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+        Once the MariaDB upgrade is finished, you can then retry to elevate to $expected_target_os.
         EOS
-        },
-        'Maria 10.1 on 108 is a blocker.'
-    );
+            },
+            'Maria 10.1 on 108 is a blocker.'
+        );
 
-    $Cpanel::Version::Tiny::major_version = 110;
-    is(
-        $db->_blocker_old_mysql('10.2'),
-        {
-            id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
-            msg => <<~'EOS',
-        You are using MariaDB server 10.2, this version is not available for AlmaLinux 8.
+        $Cpanel::Version::Tiny::major_version = 110;
+        is(
+            $db->_blocker_old_mysql('10.2'),
+            {
+                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                msg => <<~"EOS",
+        You are using MariaDB server 10.2, this version is not available for $expected_target_os.
         You first need to update MariaDB server to 10.5 or later.
 
         You can update to version 10.5 using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.5
 
-        Once the MariaDB upgrade is finished, you can then retry to elevate to AlmaLinux 8.
+        Once the MariaDB upgrade is finished, you can then retry to elevate to $expected_target_os.
         EOS
-        },
-        'Maria 10.2 on 110 is a blocker.'
-    );
+            },
+            'Maria 10.2 on 110 is a blocker.'
+        );
 
-    is(
-        $db->_blocker_old_mysql('4.2'),
-        {
-            id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
-            msg => <<~'EOS',
-        We do not know how to upgrade to AlmaLinux 8 with MySQL version 4.2.
+        is(
+            $db->_blocker_old_mysql('4.2'),
+            {
+                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                msg => <<~"EOS",
+        We do not know how to upgrade to $expected_target_os with MySQL version 4.2.
         Please upgrade your MySQL server to one of the supported versions before running elevate.
 
         Supported MySQL server versions are: 8.0, 10.3, 10.4, 10.5, 10.6
         EOS
-        },
-        'Maria 10.2 on 110 is a blocker.'
-    );
+            },
+            'Maria 10.2 on 110 is a blocker.'
+        );
+    }
 
     my $stash = undef;
     $cpev_mock->redefine(
@@ -135,25 +141,31 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
     clear_messages_seen();
 
-    my $pkgr_mock = Test::MockModule->new('Cpanel::Pkgr');
-    my %installed = ( 'cpanel-ccs-calendarserver' => 9.2, 'postgresql-server' => 9.2 );
-    $pkgr_mock->redefine( 'is_installed'        => sub ($rpm) { return defined $installed{$rpm} ? 1 : 0 } );
-    $pkgr_mock->redefine( 'get_package_version' => sub ($rpm) { return $installed{$rpm} } );
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
 
-    is( $db->_warning_if_postgresql_installed, 2, "pg 9 is installed" );
-    message_seen( 'WARN', "You have postgresql-server version 9.2 installed. This will be upgraded irreversibly to version 10.0 when you switch to AlmaLinux 8" );
+        my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
 
-    $installed{'postgresql-server'} = '10.2';
-    is( $db->_warning_if_postgresql_installed, 1, "pg 10 is installed so no warning" );
-    no_messages_seen();
+        my $pkgr_mock = Test::MockModule->new('Cpanel::Pkgr');
+        my %installed = ( 'cpanel-ccs-calendarserver' => 9.2, 'postgresql-server' => 9.2 );
+        $pkgr_mock->redefine( 'is_installed'        => sub ($rpm) { return defined $installed{$rpm} ? 1 : 0 } );
+        $pkgr_mock->redefine( 'get_package_version' => sub ($rpm) { return $installed{$rpm} } );
 
-    $installed{'postgresql-server'} = 'an_unexpected_version';
-    is( $db->_warning_if_postgresql_installed, 1, "unknown pg version is installed so no warning" );
-    no_messages_seen();
+        is( $db->_warning_if_postgresql_installed, 2, "pg 9 is installed" );
+        message_seen( 'WARN', "You have postgresql-server version 9.2 installed. This will be upgraded irreversibly to version 10.0 when you switch to $expected_target_os" );
 
-    delete $installed{'postgresql-server'};
-    is( $db->_warning_if_postgresql_installed, 0, "pg is not installed so no warning" );
-    no_messages_seen();
+        $installed{'postgresql-server'} = '10.2';
+        is( $db->_warning_if_postgresql_installed, 1, "pg 10 is installed so no warning" );
+        no_messages_seen();
+
+        $installed{'postgresql-server'} = 'an_unexpected_version';
+        is( $db->_warning_if_postgresql_installed, 1, "unknown pg version is installed so no warning" );
+        no_messages_seen();
+
+        delete $installed{'postgresql-server'};
+        is( $db->_warning_if_postgresql_installed, 0, "pg is not installed so no warning" );
+        no_messages_seen();
+    }
 
 }
 

@@ -11,10 +11,9 @@ use Test2::Tools::Exception;
 
 use Test::MockModule qw/strict/;
 
-BEGIN {
-    use FindBin;
-    require $FindBin::Bin . '/../elevate-cpanel';
-}
+use FindBin;
+use lib $FindBin::Bin . "/lib";
+use Test::Elevate;
 
 use Elevate::Blockers::DiskSpace ();
 
