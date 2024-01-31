@@ -144,7 +144,7 @@ my @TEST_DATA = (
         fail_msg => q/Option "clean" is not compatible with any other option/,
     },
     {
-        options  => [qw/--continue --no-leap/],
+        options  => [qw/--continue --no-leapp/],
         passed   => 0,
         fail_msg => q/Option "continue" is not compatible with any other option/,
     },
@@ -159,7 +159,7 @@ my @TEST_DATA = (
         fail_msg => q/Option "service" is not compatible with any other option/,
     },
     {
-        options  => [qw/--status --no-leap/],
+        options  => [qw/--status --no-leapp/],
         passed   => 0,
         fail_msg => q/Option "status" is not compatible with any other option/,
     },
@@ -184,7 +184,7 @@ my @TEST_DATA = (
         passed  => 1,
     },
     {
-        options => [qw/--check --upgrade-to almalinux --skip-cpanel-version-check --skip-elevate-version-check --no-leap/],
+        options => [qw/--check --upgrade-to almalinux --skip-cpanel-version-check --skip-elevate-version-check --no-leapp/],
         passed  => 1,
     },
     {
@@ -214,7 +214,7 @@ my @TEST_DATA = (
         warning_regex => qr/Option upgrade-to requires an argument/,
     },
     {
-        options => [qw/--start --upgrade-to rocky  --skip-cpanel-version-check --skip-elevate-version-check --no-leap --manual-reboots --non-interactive/],
+        options => [qw/--start --upgrade-to rocky  --skip-cpanel-version-check --skip-elevate-version-check --no-leapp --manual-reboots --non-interactive/],
         passed  => 1,
     },
 );
