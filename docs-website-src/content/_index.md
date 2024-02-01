@@ -257,6 +257,21 @@ You can check the current status of the elevation process by running:
 /scripts/elevate-cpanel --status
 ```
 
+### Where are the current stage and status stored?
+
+They are stored in the JSON file `/var/cpanel/elevate` as values for the
+`stage_number` and `status` keys.
+
+During execution `stage_number` will be set to `1` through `5`. Upon
+completion the `stage_number` will be set to `6`.
+
+The possible values for `status` are:
+
+* `running`
+* `paused`
+* `success`
+* `failed`
+
 ### How to check elevate log?
 
 The main log from the `/scripts/elevate-cpanel` can be read by running:
