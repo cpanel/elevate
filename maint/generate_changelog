@@ -1,0 +1,25 @@
+#!/usr/local/cpanel/3rdparty/bin/perl
+
+use cPstrict;
+use File::Slurper qw/read_text write_text/;
+
+my $changelog = 'Changelog.md';
+
+my $to = read_text('version');
+chomp $to;
+my $from = $to - 1;
+
+print `git tag v$to`;
+my $new_changelog_content = `/usr/local/cpanel/build-tools/generate_changelog --from v$from --to v$to --markdown 2>/dev/null`;
+print `git tag -d v$to`;
+
+$new_changelog_content =~ s/^.+\n.+\n//m;
+$new_changelog_content =~ s/^(.+\d\*\*)/$1 - version $to/;
+
+my $content = $new_changelog_content . "\n" . read_text($changelog);
+
+write_text( $changelog, $content );
+
+print `git diff Changelog.md`;
+
+1;

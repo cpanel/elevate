@@ -1,4 +1,4 @@
-.PHONY: all test cover tags clean release build sanity
+.PHONY: all test cover tags clean release build sanity cl
 
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
@@ -68,3 +68,5 @@ bump_version:
 	$(MAKE) build;
 	$(GIT) add version elevate-cpanel
 	$(GIT) commit -m "Bump version to $(version) after release"
+cl:
+	maint/generate_changelog
