@@ -380,6 +380,71 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(14) ($se
 
 }
 
+sub test_backup_and_restore_config_files : Test(10) ($self) {
+    my $cpev_mock = Test::MockModule->new('cpev');
+
+    $cpev_mock->redefine(
+        get_installed_rpms_in_repo => sub { return ( 'ea-foo', 'ea-bar', 'ea-nginx' ) },
+        ssystem_capture_output     => sub ( $, @args ) {
+            my $pkg         = pop @args;
+            my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
+            my $ret         = {
+                status => 0,
+                stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
+            };
+            return $ret;
+        },
+    );
+
+    my $ea4 = cpev->new->component('EA4');
+
+    is( $ea4->_backup_config_files(), undef, '_backup_config_files() successfully completes' );
+
+    is(
+        cpev::read_stage_file(),
+        {
+            ea4_config_files => {
+                'ea-foo'   => ['/tmp/foo.conf'],
+                'ea-bar'   => ['/tmp/bar.conf'],
+                'ea-nginx' => [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ],
+            },
+        },
+        'stage file contains the expected config files',
+    );
+
+    my %config_files_restored;
+    my $mock_file_copy = Test::MockModule->new('File::Copy');
+    $mock_file_copy->redefine(
+        move => sub {
+            my ( $from, $to ) = @_;
+            $config_files_restored{$to} = 1;
+            return 1;
+        },
+    );
+
+    my $mock_foo   = Test::MockFile->file( '/tmp/foo.conf.rpmsave',         '' );
+    my $mock_bar   = Test::MockFile->file( '/tmp/bar.conf.rpmsave',         '' );
+    my $mock_nginx = Test::MockFile->file( '/etc/nginx/nginx.conf.rpmsave', '' );
+
+    is( $ea4->_restore_config_files(), undef, '_restore_config_files() successfully completes' );
+
+    is(
+        \%config_files_restored,
+        {
+            '/tmp/foo.conf'         => 1,
+            '/tmp/bar.conf'         => 1,
+            '/etc/nginx/nginx.conf' => 1,
+        },
+        'The expected files are restored',
+    );
+
+    message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
+    message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
+    message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
+
+    return;
+}
+
 =pod
 sub test_blocker_ea4_profile : Test(18) ($self) {
 
