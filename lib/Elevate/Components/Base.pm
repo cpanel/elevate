@@ -18,6 +18,7 @@ use cPstrict;
 use Carp             ();
 use Simple::Accessor qw(
   cpev
+  rpm
 );
 
 use Log::Log4perl qw(:easy);
@@ -45,6 +46,10 @@ BEGIN {
             return $sub->( $cpev, @args );
         }
     }
+}
+
+sub _build_rpm ($self) {
+    return Elevate::RPM->new( cpev => $self );
 }
 
 sub run_once ( $self, $subname ) {
