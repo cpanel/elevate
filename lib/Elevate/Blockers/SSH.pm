@@ -22,23 +22,23 @@ use Log::Log4perl qw(:easy);
 
 sub check ($self) {
 
-    return $self->_blocker_invalid_ssh_config;
+    return $self->_check_ssh_config();
 }
 
-sub _blocker_invalid_ssh_config ($self) {
-    return $self->has_blocker(q[Issue with sshd configuration]) unless $self->_sshd_setup();
-    return 0;
-}
-
-sub _sshd_setup ($self) {
+sub _check_ssh_config ($self) {
     my $sshd_config = q[/etc/ssh/sshd_config];
 
     my $setup = eval { File::Slurper::read_binary($sshd_config) } // '';
+    if ( my $exception = $@ ) {
+        ERROR("The system could not read the sshd config file ($sshd_config): $exception");
+        return $self->has_blocker(qq[Unable to read the sshd config file: $sshd_config]);
+    }
 
     if ( $setup !~ m{^\s*PermitRootLogin\b}m ) {
-        ERROR( <<~"EOS" );
+        WARN( <<~"EOS" );
         OpenSSH configuration file does not explicitly state the option PermitRootLogin in sshd_config file, which will default in RHEL8 to "prohibit-password".
-        Please set the 'PermitRootLogin' value in $sshd_config before upgrading.
+        We will set the 'PermitRootLogin' value in $sshd_config to 'yes' before upgrading.
+
         EOS
 
         return 0;
