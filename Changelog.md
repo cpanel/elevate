@@ -1,3 +1,11 @@
+##### **2024-02-05** - version 22
+
+* RE-55: Document possible statuses in /var/cpanel/elevate.
+* RE-56: Removed the simple version check from the BEGIN block of the script since this happens during the check operation.
+* RE-57: Improved command line option validation
+* RE-71: Add blocker for start mode if bin/backup or scripts/upcp is currently executing.
+* RE-38: Restore config files for packages provided by the EA4 repo.
+
 ## **2024-01-25** - version 21
 
 * Get fix-cpanel-perl to run after distro change without breaking perl.
