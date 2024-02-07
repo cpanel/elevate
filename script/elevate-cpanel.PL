@@ -1190,7 +1190,6 @@ sub run_stage_5 ($self) {
     unlink CHKSRVD_SUSPEND_FILE;
     my $el_backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR;
     File::Path::remove_tree($el_backup_dir) if -d $el_backup_dir;
-    Elevate::Motd->cleanup();
 
     $self->run_component_once( 'Grub2' => 'post_leapp' );
 
@@ -1200,6 +1199,7 @@ sub run_stage_5 ($self) {
     INFO("Updating all packages before final reboot");
     $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
 
+    Elevate::Motd->cleanup();
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
