@@ -37,7 +37,7 @@ my $ssh  = $cpev->get_blocker('SSH');
     my $blocker = $ssh->_check_ssh_config();
     is ref $blocker, "cpev::Blocker", "sshd_config does not exist";
     message_seen( 'ERROR', qr/The system could not read the sshd config file/ );
-    message_seen( 'WARN',  qr/Elevation Blocker detected/ );
+    message_seen( 'ERROR', qr/ELevation Blocker detected/ );
 
     $mock_sshd_cfg->contents('');
     is $ssh->_check_ssh_config() => 0, "sshd_config with empty content";

@@ -93,7 +93,7 @@ sub check ($self) {    # do_check - main  entry point
     $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
     if ($has_blockers) {
-        WARN( <<~'EOS' );
+        ERROR( <<~'EOS' );
         Please fix the detected issues before performing the elevation process.
         Read More: https://cpanel.github.io/elevate/blockers/
         EOS

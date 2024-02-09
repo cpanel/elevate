@@ -121,23 +121,6 @@ sub check ($self) {
 sub _blocker_invalid_yum_repos ($self) {
     my $status_hr = $self->_check_yum_repos();
     if ( _yum_status_hr_contains_blocker($status_hr) ) {
-        my $msg = '';
-        if ( $status_hr->{'INVALID_SYNTAX'} ) {
-            $msg .= <<~'EOS';
-            One or more enabled YUM repo are using invalid syntax.
-            '\$' variables behave differently in repo files between RedHat 7 and RedHat 8.
-            RedHat 7 interpolates '\$' variable whereas RedHat 8 does not.
-
-            Please fix the files before continuing the update.
-            EOS
-        }
-        if ( $status_hr->{'USE_RPMS_FROM_UNVETTED_REPO'} ) {
-            $msg .= <<~'EOS';
-            One or more enabled YUM repo are currently unsupported and have installed packages.
-            You should disable these repositories and remove packages installed from them
-            before continuing the update.
-            EOS
-        }
 
         if ( !$self->is_check_mode() ) {    # autofix when --check is not used
             $self->_autofix_yum_repos();
@@ -146,11 +129,26 @@ sub _blocker_invalid_yum_repos ($self) {
             $status_hr = $self->_check_yum_repos();
         }
 
-        return 0 unless _yum_status_hr_contains_blocker($status_hr);
-
-        for my $unsupported_repo ( @{ $self->{_yum_repos_unsupported_with_packages} } ) {
-            my $blocker_id = ref($self) . '::' . $unsupported_repo->{'name'};
-            $self->has_blocker( $unsupported_repo->{'json_report'}, 'blocker_id' => $blocker_id, 'quiet' => 1 );
+        if ( _yum_status_hr_contains_blocker($status_hr) ) {
+            my $quiet = 1;
+            if ( $status_hr->{'INVALID_SYNTAX'} ) {
+                my @bad_repos = $self->{'_yum_repos_path_using_invalid_syntax'};
+                my $message   = "There are syntax errors with the following YUM configuration files. Please resolve the error(s) and rerun the script.\n";
+                foreach my $path ( @{ $self->{_yum_repos_path_using_invalid_syntax} } ) {
+                    $message .= qq{\t"$path"\n};
+                }
+                $self->has_blocker($message);
+            }
+            if ( $status_hr->{'USE_RPMS_FROM_UNVETTED_REPO'} ) {
+                for my $unsupported_repo ( @{ $self->{_yum_repos_unsupported_with_packages} } ) {
+                    my $blocker_id = ref($self) . '::' . $unsupported_repo->{'name'};
+                    my $message    = sprintf( qq{The "%s" repository is not supported. Please remove the following packages before continuing.\n}, $unsupported_repo->{'name'} );
+                    foreach my $package ( @{ $unsupported_repo->{'packages'} } ) {
+                        $message .= sprintf( qq{\t"%s"\n}, $package );
+                    }
+                    $self->has_blocker( $message, 'blocker_id' => $blocker_id );
+                }
+            }
         }
     }
 
@@ -158,14 +156,14 @@ sub _blocker_invalid_yum_repos ($self) {
 }
 
 sub _blocker_unstable_yum ($self) {
-    $self->has_blocker(q[yum is not stable]) unless $self->_yum_is_stable();
+    $self->has_blocker('YUM encountered a problem. Please resolve the error and rerun the script.') unless $self->_yum_is_stable();
 
     return 0;
 }
 
 sub _blocker_system_update ($self) {
     return 0 if $self->_system_update_check();
-    return $self->has_blocker(q[System is not up to date]);
+    return $self->has_blocker(q[There are out of date packages on the system. Please update them and rerun the script.]);
 }
 
 sub _yum_status_hr_contains_blocker ($status_hr) {
@@ -182,7 +180,7 @@ sub _yum_status_hr_contains_blocker ($status_hr) {
 sub _yum_is_stable ($self) {
     my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
     if ( $errors =~ m/\S/ms ) {
-        ERROR('yum appears to be unstable. Please address this before upgrading');
+        ERROR('YUM encountered a problem running "makecache". Please resolve the error and rerun the script.');
         ERROR($errors);
 
         return 0;
@@ -191,7 +189,7 @@ sub _yum_is_stable ($self) {
     if ( opendir( my $dfh, '/var/lib/yum' ) ) {
         my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
         if (@transactions) {
-            ERROR('There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.');
+            ERROR('YUM has unfinished transactions. Please complete pending transactions and rerun the script.');
             return 0;
         }
     }
@@ -249,25 +247,21 @@ sub _check_yum_repos ($self) {
             if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
                 my @installed_packages = cpev::get_installed_rpms_in_repo($current_repo_name);
-                if ( my $total_pkg = scalar @installed_packages ) {    # FIXME
-                    ERROR(
-                        sprintf(
-                            "%d package(s) installed from unsupported YUM repo '%s' from %s",
-                            $total_pkg,
-                            $current_repo_name, $path
-                        )
-                    );
+                my $num_packages       = scalar @installed_packages;
+                if ($num_packages) {
                     push(
                         $self->{_yum_repos_unsupported_with_packages}->@*,
                         {
                             'name'        => $current_repo_name,
+                            'path'        => $path,
+                            'packages'    => [ sort @installed_packages ],
                             'json_report' => Cpanel::JSON::canonical_dump( { 'name' => $current_repo_name, 'path' => $path, 'packages' => [ sort @installed_packages ] } )
                         }
                     );
                     $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
                 }
                 else {
-                    INFO( sprintf( "Unsupported YUM repo enabled '%s' without packages installed from %s, these will be disabled before ELevation", $current_repo_name, $path ) );
+                    INFO( sprintf( "The unsupported YUM repository named '%s' will be disabled before ELevate continues.", $current_repo_name ) );
 
                     # no packages installed need to disable it
                     push( $self->{_yum_repos_to_disable}->@*, $current_repo_name );
@@ -275,7 +269,6 @@ sub _check_yum_repos ($self) {
                 }
             }
             elsif ( !$current_repo_use_valid_syntax ) {
-                WARN( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
                 unless ( grep { $_ eq $path } $self->{_yum_repos_path_using_invalid_syntax}->@* ) {
                     push( $self->{_yum_repos_path_using_invalid_syntax}->@*, $path );
                 }
@@ -334,7 +327,7 @@ sub _autofix_yum_repos ($self) {
 
 sub _system_update_check ($self) {
 
-    INFO("Checking if your system is up to date: ");
+    INFO('Checking for system updates.');
     $self->ssystem(qw{/usr/bin/yum clean all});
 
     my $out = $self->ssystem_capture_output(qw{/usr/bin/yum check-update -q});
@@ -342,7 +335,7 @@ sub _system_update_check ($self) {
     if ( $out->{status} != 0 ) {
 
         # not a blocker: only a warning
-        WARN("Your system is not up to date please run: /usr/bin/yum update");
+        WARN('The system is out of date. You can update the system using YUM.');
 
         my $is_blocker;
         my $output = $out->{stdout} // [];
@@ -359,7 +352,7 @@ sub _system_update_check ($self) {
 
     INFO("Checking /scripts/sysup");
     if ( $self->ssystem("/scripts/sysup") != 0 ) {
-        WARN("/scripts/sysup failed, please fix it and rerun it before upgrading.");
+        WARN("/scripts/sysup encounterd a problem.");
         return;
     }
 

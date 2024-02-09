@@ -109,7 +109,7 @@ my $mock_cpev          = Test::MockModule->new('cpev');
     ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
     $ea_info_check->();
 
-    message_seen( 'WARN' => qr[Elevation Blocker detected] );
+    message_seen( 'ERROR' => qr[ELevation Blocker detected] );
 
     like $blocker, object {
         prop blessed => 'cpev::Blocker';

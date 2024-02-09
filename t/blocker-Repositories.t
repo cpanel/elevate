@@ -31,7 +31,7 @@ my $mock_yum = Test::MockModule->new('Elevate::Blockers::Repositories');
         $yum->_blocker_system_update(),
         {
             id  => q[Elevate::Blockers::Repositories::_blocker_system_update],
-            msg => "System is not up to date",
+            msg => "There are out of date packages on the system. Please update them and rerun the script.",
         },
         q{Block if the system is not up to date.}
     );
@@ -84,7 +84,9 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1 }, "Us
 is $yum->{_yum_repos_unsupported_with_packages}[0],
   {
     'json_report' => '{"name":"MyRepo","packages":["1"],"path":"/etc/yum.repos.d/Unknown.repo"}',
-    'name'        => 'MyRepo'
+    'name'        => 'MyRepo',
+    'path'        => '/etc/yum.repos.d/Unknown.repo',
+    'packages'    => [1],
   },
   "Names and JSON data of repos are recorded in object";
 
@@ -192,7 +194,7 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
     $errors_mock->redefine( 'saferunonlyerrors' => sub { return $errors } );
 
     is( $yum->_yum_is_stable(), 0, "Repositories is not stable and emits STDERR output (but does not exit non-zero)" );
-    message_seen( 'ERROR', 'yum appears to be unstable. Please address this before upgrading' );
+    message_seen( 'ERROR', 'YUM encountered a problem running "makecache". Please resolve the error and rerun the script.' );
     message_seen( 'ERROR', 'something is not right' );
     no_messages_seen();
     $errors = '';
@@ -206,7 +208,7 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
     mkdir '/var/lib/yum';
     push @mocked, Test::MockFile->file( '/var/lib/yum/transaction-all.12345', 'aa' );
     is( $yum->_yum_is_stable(), 0, "There is an outstanding transaction." );
-    message_seen( 'ERROR', 'There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.' );
+    message_seen( 'ERROR', 'YUM has unfinished transactions. Please complete pending transactions and rerun the script.' );
 
     unlink '/var/lib/yum/transaction-all.12345';
     is( $yum->_yum_is_stable(), 1, "No outstanding yum transactions are found. we're good to go!" );
