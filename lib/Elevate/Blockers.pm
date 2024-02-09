@@ -51,6 +51,7 @@ our @BLOCKERS = qw{
 
   IsContainer
   ElevateScript
+  SSH
 
   DiskSpace
   WHM
@@ -59,7 +60,6 @@ our @BLOCKERS = qw{
 
   Databases
   Repositories
-  SSH
   JetBackup
   NICs
   EA4
