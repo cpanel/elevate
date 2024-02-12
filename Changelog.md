@@ -1,4 +1,9 @@
-##### **2024-02-05** - version 22
+## **2024-02-12** - version 23
+
+* Fixed case RE-2: Always show ELevate MOTD when ELevate is running.
+* Fixed case RE-112: Set PermitRootLogin for sshd to &#39;yes&#39; if not explicitly set in the configuration file so that the behavior does not change after the upgrade.
+
+## **2024-02-05** - version 22
 
 * RE-55: Document possible statuses in /var/cpanel/elevate.
 * RE-56: Removed the simple version check from the BEGIN block of the script since this happens during the check operation.
