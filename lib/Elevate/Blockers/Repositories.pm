@@ -35,96 +35,50 @@ use constant DISABLE_MYSQL_YUM_REPOS => qw{
   mysql-community.repo
 };
 
-# FIXME use some RegExp...
-use constant VETTED_MYSQL_YUM_REPO_IDS => qw{
-  mysql-cluster-7.5-community
-  mysql-cluster-7.5-community-source
-  mysql-cluster-7.5-community-source
-  mysql-cluster-7.6-community
-  mysql-cluster-7.6-community-source
-  mysql-cluster-7.6-community-source
-  mysql-cluster-8.0-community
-  mysql-cluster-8.0-community-debuginfo
-  mysql-cluster-8.0-community-source
-  mysql-connectors-community
-  mysql-connectors-community-debuginfo
-  mysql-connectors-community-source
-  mysql-connectors-community-source
-  mysql-tools-community
-  mysql-tools-community-debuginfo
-  mysql-tools-community-source
-  mysql-tools-preview
-  mysql-tools-preview-source
-  mysql55-community
-  mysql55-community-source
-  mysql56-community
-  mysql56-community-source
-  mysql57-community
-  mysql57-community-source
-  mysql80-community
-  mysql80-community-debuginfo
-  mysql80-community-source
-  MariaDB102
-  MariaDB103
-  MariaDB105
-  MariaDB106
-};
+use constant VETTED_MYSQL_YUM_REPO_IDS => (
+  qr/^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$/,
+  qr/^mysql-connectors-community(?:-(?:source|debuginfo))?$/,
+  qr/^mysql-tools-community(?:-(?:source|debuginfo))?$/,
+  qr/^mysql-tools-preview(?:-source)?$/,
+  qr/^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$/,
+  qr/^MariaDB[0-9]{3}$/,
+);
 
-use constant VETTED_CLOUDLINUX_YUM_REPO => qw{
-  cloudlinux
-  cloudlinux-base
-  cloudlinux-updates
-  cloudlinux-extras
-  cloudlinux-compat
-  cloudlinux-imunify360
-  cl-ea4
-  cloudlinux-ea4
-  cloudlinux-ea4-rollout
-  cl-mysql
-  cl-mysql-meta
-  cloudlinux-elevate
-  cloudlinux-rollout
-};
+use constant VETTED_CLOUDLINUX_YUM_REPO => (
+  qr/^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$/,
+  qr/^cloudlinux-rollout(?:-[0-9]+)?$/,
+  qr/^cloudlinux-ea4(?:-[0-9]+)?$/,
+  qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
+  'cl-ea4',
+  qr/^cl-mysql(?:-meta)?/,
+);
 
-use constant VETTED_YUM_REPO => qw{
-  base
-  c7-media
-  centos-kernel
-  centos-kernel-experimental
-  centosplus
-  cp-dev-tools
-  cpanel-addons-production-feed
-  cpanel-plugins
-  cr
-  ct-preset
-  digitalocean-agent
-  droplet-agent
-  EA4
-  EA4-c$releasever
-  elasticsearch
-  elasticsearch-7.x
-  elevate
-  elevate-source
-  epel
-  epel-testing
-  extras
-  fasttrack
-  imunify360
-  imunify360-ea-php-hardened
-  imunify360-rollout-1
-  imunify360-rollout-2
-  imunify360-rollout-3
-  imunify360-rollout-4
-  imunify360-rollout-5
-  imunify360-rollout-6
-  imunify360-rollout-7
-  imunify360-rollout-8
-  influxdb
-  kernelcare
-  updates
-  wp-toolkit-cpanel
-  wp-toolkit-thirdparties
-}, VETTED_MYSQL_YUM_REPO_IDS;
+use constant VETTED_YUM_REPO => (
+  'base',
+  'c7-media',
+  qr/^centos-kernel(?:-experimental)?$/,
+  'centosplus',
+  'cp-dev-tools',
+  'cpanel-addons-production-feed',
+  'cpanel-plugins',
+  'cr',
+  'ct-preset',
+  'digitalocean-agent',
+  'droplet-agent',
+  qr/^EA4(?:-c\$releasever)?$/,
+  qr/^elasticsearch(?:7\.x)?$/,
+  qr/^elevate(?:-source)?$/,
+  qr/^epel(?:-testing)?$/,
+  'extras',
+  'fasttrack',
+  'imunify360',
+  'imunify360-ea-php-hardened',
+  qr/^imunify360-rollout-[0-9]+$/,
+  'influxdb',
+  'kernelcare',
+  'updates',
+  qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
+), VETTED_MYSQL_YUM_REPO_IDS;
 
 sub check ($self) {
     my $ok = 1;
@@ -237,8 +191,6 @@ sub _check_yum_repos ($self) {
     my @vetted_repos = (VETTED_YUM_REPO);
     push( @vetted_repos, VETTED_CLOUDLINUX_YUM_REPO ) if Elevate::OS::name() eq 'CloudLinux7';
 
-    my %vetted = map { $_ => 1 } @vetted_repos;
-
     my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 
     my %status;
@@ -264,17 +216,7 @@ sub _check_yum_repos ($self) {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
 
-            my $temp_current_repo_name = $current_repo_name;
-
-            # ignore the number on rollout mirrors
-            # cloudlinux-rollout-1 becomes cloudlinux-rollout
-            # cloudlinux-ea4-1 becomes cloudlinux-ea4
-            # cloudlinux-ea4-rollout-1 becomes cloudlinux-ea4-rollout
-            $current_repo_name = $1 if $current_repo_name =~ m/^(cloudlinux-(?:rollout|ea4)(?:-rollout)?)-[0-9]+$/;
-
-            my $is_vetted = $vetted{$current_repo_name} || $vetted{ lc $current_repo_name };
-
-            $current_repo_name = $temp_current_repo_name;
+            my $is_vetted = grep { $current_repo_name =~ m/$_/ } @vetted_repos;
 
             if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
