@@ -277,6 +277,7 @@ use Elevate::Blockers::Python           ();
 use Elevate::Blockers::Repositories     ();    # using a constant
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
+use Elevate::Blockers::Leapp            ();
 
 # - fatpack Components
 use Elevate::Components::Base             ();
@@ -1081,6 +1082,7 @@ sub run_stage_3 ($self) {
     $self->run_once(
         install_leapp => sub {
             $self->leapp->install();
+            $self->leapp->remove_kernel_devel();
         },
     );
 
