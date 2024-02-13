@@ -72,9 +72,11 @@ our @BLOCKERS = qw{
   AbsoluteSymlinks
 };
 
+push @BLOCKERS, 'Leapp';    # This blocker has to run last!
+
 use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
 
-our $_CHECK_MODE;    # for now global so we can use the helper (move it later to the object)
+our $_CHECK_MODE;           # for now global so we can use the helper (move it later to the object)
 
 sub _build_blockers { [] }
 
@@ -90,7 +92,7 @@ sub check ($self) {    # do_check - main  entry point
     # If no argument passed to --check, use default path:
     my $blocker_file = $self->cpev->getopt('check') || ELEVATE_BLOCKER_FILE;
 
-    my $has_blockers = $self->_has_blockers(1);
+    my $has_blockers = $self->_has_blockers( $self->cpev->getopt('start') ? 0 : 1 );
 
     $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
@@ -123,7 +125,7 @@ sub _has_blockers ( $self, $check_mode = 0 ) {
     }
 
     $_CHECK_MODE = !!$check_mode;    # running with --check
-    $self->abort_on_first_blocker( !$_CHECK_MODE );
+    $self->abort_on_first_blocker(0);
 
     my $ok = eval { $self->_check_all_blockers; 1; };
 
@@ -137,6 +139,10 @@ sub _has_blockers ( $self, $check_mode = 0 ) {
         return 127;    # unknown error
     }
 
+    return scalar $self->blockers->@*;
+}
+
+sub num_blockers_found ($self) {
     return scalar $self->blockers->@*;
 }
 
