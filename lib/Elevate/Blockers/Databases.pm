@@ -196,10 +196,6 @@ For more information regarding MySQL Governor, please review the documentation:
 
     https://docs.cloudlinux.com/shared/cloudlinux_os_components/#mysql-governor
 
-To remove MySQL Governor, execute the following command:
-
-    /usr/share/lve/dbgovernor/mysqlgovernor.py --delete
-
 EOS
     }
 
