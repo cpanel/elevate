@@ -66,7 +66,7 @@ sub _sysup ($self) {
         local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
         $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
     }
-    $self->dnf->update_allow_raising( '--disablerepo', 'cpanel-plugins' );
+    $self->dnf->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
     $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
 
     return;

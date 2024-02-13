@@ -28,7 +28,7 @@ sub config_manager_enable ( $self, $repo ) {
     return;
 }
 
-sub update_allow_raising ( $self, @args ) {
+sub update_allow_erasing ( $self, @args ) {
     my $pkgmgr = $self->pkgmgr;
 
     my @additional_args = scalar @args ? @args : '';
