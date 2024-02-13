@@ -75,9 +75,6 @@ CloudLinux 7 => CloudLinux 8
                                                  Once leapp has been run you should remove the file
                                                  /waiting_for_distro_upgrade
 
-       --manual-reboots                          The script will stop and require the user to reboot manually rather than
-                                                 automatically rebooting when reboots are needed
-
        --help                                    Display this documentation.
 
 =head1 COMMON USAGE
