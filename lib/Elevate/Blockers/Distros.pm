@@ -39,11 +39,7 @@ sub check ($self) {
 }
 
 sub _blocker_os_is_not_supported ($self) {
-    unless ( Elevate::OS::is_supported() ) {
-        my $supported_distros = join( "\n", Elevate::OS::get_supported_distros() );
-        return $self->has_blocker(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
-    }
-
+    Elevate::OS::is_supported();    # dies
     return 0;
 }
 
@@ -72,13 +68,7 @@ sub _blocker_is_experimental_os ($self) {
 
 # We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
-
-    unless ( Elevate::OS::is_supported() ) {
-        my $supported_distros = join( "\n", Elevate::OS::get_supported_distros() );
-        FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
-        exit 1;
-    }
-
+    Elevate::OS::is_supported();    # dies
     return;
 }
 

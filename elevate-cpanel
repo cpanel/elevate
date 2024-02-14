@@ -806,11 +806,7 @@ EOS
     }
 
     sub _blocker_os_is_not_supported ($self) {
-        unless ( Elevate::OS::is_supported() ) {
-            my $supported_distros = join( "\n", Elevate::OS::get_supported_distros() );
-            return $self->has_blocker(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
-        }
-
+        Elevate::OS::is_supported();    # dies
         return 0;
     }
 
@@ -838,13 +834,7 @@ EOS
     }
 
     sub bail_out_on_inappropriate_distro () {
-
-        unless ( Elevate::OS::is_supported() ) {
-            my $supported_distros = join( "\n", Elevate::OS::get_supported_distros() );
-            FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
-            exit 1;
-        }
-
+        Elevate::OS::is_supported();    # dies
         return;
     }
 
@@ -4258,20 +4248,26 @@ EOS
             $distro_with_version = $distro . $major;
         }
 
-        FATAL("Attempted to get factory for unsupported OS: $distro $major") unless grep { $_ eq $distro_with_version } SUPPORTED_DISTROS;
-
         my $pkg = "Elevate::OS::" . $distro_with_version;
         return $pkg->new;
     }
 
     sub instance {
-        $OS //= factory();
+        return $OS if $OS;
+
+        $OS = eval { factory(); };
+
+        if ( !$OS ) {
+            my $supported_distros = join( "\n", get_supported_distros() );
+            FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
+            exit 1;
+        }
 
         return $OS;
     }
 
     sub is_supported () {
-        return eval { instance(); 1; } ? 1 : 0;
+        return instance();    # dies
     }
 
     sub get_supported_distros () {
