@@ -54,20 +54,26 @@ sub factory {
         $distro_with_version = $distro . $major;
     }
 
-    FATAL("Attempted to get factory for unsupported OS: $distro $major") unless grep { $_ eq $distro_with_version } SUPPORTED_DISTROS;
-
     my $pkg = "Elevate::OS::" . $distro_with_version;
     return $pkg->new;
 }
 
 sub instance {
-    $OS //= factory();
+    return $OS if $OS;
+
+    $OS = eval { factory(); };
+
+    if ( !$OS ) {
+        my $supported_distros = join( "\n", get_supported_distros() );
+        FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
+        exit 1;
+    }
 
     return $OS;
 }
 
 sub is_supported () {
-    return eval { instance(); 1; } ? 1 : 0;
+    return instance();    # dies
 }
 
 sub get_supported_distros () {
