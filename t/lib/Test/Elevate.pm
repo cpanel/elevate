@@ -69,7 +69,7 @@ sub init {
 
     # Default to CentOS 7
     note 'Mock Elevate::OS singleton to think this server is CentOS 7';
-    $Elevate::OS::OS = Elevate::OS::CentOS7->new();
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::CentOS7';
 
     return;
 }
@@ -131,13 +131,13 @@ sub no_message_seen { goto &no_messages_seen; }
 
 sub set_os_to_centos_7 {
     note 'Mock Elevate::OS singleton to think this server is CentOS 7';
-    $Elevate::OS::OS = Elevate::OS::CentOS7->new();
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::CentOS7';
     return;
 }
 
 sub set_os_to_cloudlinux_7 {
     note 'Mock Elevate::OS singleton to think this server is CloudLinux 7';
-    $Elevate::OS::OS = Elevate::OS::CloudLinux7->new();
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::CloudLinux7';
     return;
 }
 

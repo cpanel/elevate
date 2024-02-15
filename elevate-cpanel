@@ -4172,7 +4172,7 @@ EOS
         my $class      = "Elevate::OS::" . $distro_with_version;
         my $class_path = "Elevate/OS/$distro_with_version.pm";
 
-        require $class unless $INC{$class_path};
+        require $class_path unless $INC{$class_path};
 
         my $self = bless {}, $class;
         return $self;
@@ -4185,8 +4185,7 @@ EOS
 
         if ( !$OS ) {
             my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
-            FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
-            exit 1;
+            die "This script is only designed to upgrade the following OSs:\n\n$supported_distros\n";
         }
 
         return $OS;
@@ -4274,7 +4273,7 @@ EOS
     use constant name               => 'CentOS7';
     use constant pretty_name        => 'CentOS 7';
 
-    sub leapp_data_pkg () {
+    sub leapp_data_pkg ($self) {
         my $upgrade_to = Elevate::OS::upgrade_to();
         return $upgrade_to =~ m/^rocky/ai ? 'leapp-data-rocky' : 'leapp-data-almalinux';
     }
