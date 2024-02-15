@@ -191,7 +191,7 @@ sub _blocker_mysql_governor ($self) {
 
     if ( Cpanel::Pkgr::is_installed('governor-mysql') ) {
         return $self->has_blocker( <<~'EOS' );
-You have MySQL Governor installed.  Upgrades with this software in place are not supported.
+You have MySQL Governor installed.  Upgrades with this software in place are not currently supported.
 For more information regarding MySQL Governor, please review the documentation:
 
     https://docs.cloudlinux.com/shared/cloudlinux_os_components/#mysql-governor
