@@ -41,7 +41,7 @@ sub factory {
 
     # Ok if it dies since instance() should be the only thing calling this
     # Since this is a fat packed script, we only want to require the class in tests
-    require $class unless $INC{$class_path};
+    require $class_path unless $INC{$class_path};
 
     my $self = bless {}, $class;
     return $self;
@@ -54,8 +54,7 @@ sub instance {
 
     if ( !$OS ) {
         my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
-        FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
-        exit 1;
+        die "This script is only designed to upgrade the following OSs:\n\n$supported_distros\n";
     }
 
     return $OS;

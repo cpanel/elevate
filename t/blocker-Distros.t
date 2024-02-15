@@ -34,11 +34,8 @@ my $distros = $cpev->get_blocker('Distros');
     my $m_custom = Test::MockFile->file(q[/var/cpanel/caches/Cpanel-OS.custom]);
 
     like(
-        $distros->check(),
-        {
-            id  => q[Elevate::Blockers::Distros::_blocker_os_is_not_supported],
-            msg => qr/This script is only designed to upgrade the following OSs/,
-        },
+        dies { $distros->check() },
+        qr/This script is only designed to upgrade the following OSs/,
         'C6 is not supported.'
     );
 
@@ -47,11 +44,8 @@ my $distros = $cpev->get_blocker('Distros');
     unmock_os();
     $f = Test::MockFile->symlink( 'linux|centos|8|9|2009', '/var/cpanel/caches/Cpanel-OS' );
     like(
-        $distros->check(),
-        {
-            id  => q[Elevate::Blockers::Distros::_blocker_os_is_not_supported],
-            msg => qr/This script is only designed to upgrade the following OSs/,
-        },
+        dies { $distros->check() },
+        qr/This script is only designed to upgrade the following OSs/,
         'C8 is not supported.'
     );
 

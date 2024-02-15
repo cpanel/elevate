@@ -100,7 +100,7 @@ EOS
         };
 
         $mock_cpev->redefine(
-            read_stage_file => sub {
+            _read_stage_file => sub {
                 return { ea4 => $stage_ea4 };
             }
         );
