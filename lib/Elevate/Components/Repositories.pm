@@ -12,10 +12,9 @@ Disable some repostiories.
 
 use cPstrict;
 
-use Elevate::Constants              ();
-use Elevate::Blockers::Repositories ();
-use Elevate::OS                     ();
-use Elevate::RPM                    ();
+use Elevate::Constants ();
+use Elevate::OS        ();
+use Elevate::RPM       ();
 
 use Cpanel::SafeRun::Simple ();
 use Cwd                     ();
@@ -36,8 +35,7 @@ sub pre_leapp ($self) {
 sub _disable_known_yum_repositories {
 
     # remove all MySQL repos
-    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ }    #
-      Elevate::Blockers::Repositories::DISABLE_MYSQL_YUM_REPOS;
+    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::OS::disable_mysql_yum_repos();
 
     foreach my $f (@repo_files) {
         next unless -e $f;

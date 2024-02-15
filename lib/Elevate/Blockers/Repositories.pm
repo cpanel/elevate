@@ -22,64 +22,6 @@ use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
 
-# still used by disable_known_yum_repositories function
-use constant DISABLE_MYSQL_YUM_REPOS => qw{
-  Mysql57.repo
-  Mysql80.repo
-
-  MariaDB102.repo
-  MariaDB103.repo
-  MariaDB105.repo
-  MariaDB106.repo
-
-  mysql-community.repo
-};
-
-use constant VETTED_MYSQL_YUM_REPO_IDS => (
-  qr/^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$/,
-  qr/^mysql-connectors-community(?:-(?:source|debuginfo))?$/,
-  qr/^mysql-tools-community(?:-(?:source|debuginfo))?$/,
-  qr/^mysql-tools-preview(?:-source)?$/,
-  qr/^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$/,
-  qr/^MariaDB[0-9]{3}$/,
-);
-
-use constant VETTED_CLOUDLINUX_YUM_REPO => (
-  qr/^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$/,
-  qr/^cloudlinux-rollout(?:-[0-9]+)?$/,
-  qr/^cloudlinux-ea4(?:-[0-9]+)?$/,
-  qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
-  'cl-ea4',
-  qr/^cl-mysql(?:-meta)?/,
-);
-
-use constant VETTED_YUM_REPO => (
-  'base',
-  'c7-media',
-  qr/^centos-kernel(?:-experimental)?$/,
-  'centosplus',
-  'cp-dev-tools',
-  'cpanel-addons-production-feed',
-  'cpanel-plugins',
-  'cr',
-  'ct-preset',
-  'digitalocean-agent',
-  'droplet-agent',
-  qr/^EA4(?:-c\$releasever)?$/,
-  qr/^elasticsearch(?:7\.x)?$/,
-  qr/^elevate(?:-source)?$/,
-  qr/^epel(?:-testing)?$/,
-  'extras',
-  'fasttrack',
-  'imunify360',
-  'imunify360-ea-php-hardened',
-  qr/^imunify360-rollout-[0-9]+$/,
-  'influxdb',
-  'kernelcare',
-  'updates',
-  qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
-), VETTED_MYSQL_YUM_REPO_IDS;
-
 sub check ($self) {
     my $ok = 1;
     $ok = 0 unless $self->_blocker_system_update;
@@ -188,8 +130,7 @@ sub _check_yum_repos ($self) {
     $self->{_yum_repos_to_disable}                = [];
     $self->{_yum_repos_unsupported_with_packages} = [];
 
-    my @vetted_repos = (VETTED_YUM_REPO);
-    push( @vetted_repos, VETTED_CLOUDLINUX_YUM_REPO ) if Elevate::OS::name() eq 'CloudLinux7';
+    my @vetted_repos = Elevate::OS::vetted_yum_repo();
 
     my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 

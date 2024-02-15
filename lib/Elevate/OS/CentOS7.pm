@@ -12,27 +12,24 @@ use cPstrict;
 
 use Log::Log4perl qw(:easy);
 
-use parent 'Elevate::OS::Base';
+use parent 'Elevate::OS::RHEL';
 
-sub _build_elevate_rpm_url ($self) {
-    return 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
-}
+use constant available_upgrade_paths => (
+    'alma',
+    'almalinux',
+    'rocky',
+    'rockylinux',
+);
 
-sub _build_default_upgrade_to ($self) {
-    return 'almalinux';
-}
+use constant default_upgrade_to => 'AlmaLinux';
+use constant ea_alias           => 'CentOS_8';
+use constant elevate_rpm_url    => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
+use constant name               => 'CentOS7';
+use constant pretty_name        => 'CentOS 7';
 
-sub _build_leapp_data_pkg ($self) {
-    my $upgrade_to = $self->upgrade_to();
+sub leapp_data_pkg () {
+    my $upgrade_to = Elevate::OS::upgrade_to();
     return $upgrade_to =~ m/^rocky/ai ? 'leapp-data-rocky' : 'leapp-data-almalinux';
-}
-
-sub _build_name ($self) {
-    return 'CentOS7';
-}
-
-sub _build_pretty_name ($self) {
-    return 'CentOS 7';
 }
 
 1;
