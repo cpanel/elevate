@@ -12,32 +12,14 @@ Abstract interface to the OS to obviate the need for if-this-os-do-this-elsif-el
 
 use cPstrict;
 
+use Carp ();
+
 use Log::Log4perl qw(:easy);
 
-use Elevate::OS::CentOS7;
-use Elevate::OS::CloudLinux7;
-
-use constant SUPPORTED_DISTROS => qw{
-  CentOS7
-  CloudLinux7
-};
-
-use constant PRETTY_SUPPORTED_DISTROS => (
+use constant SUPPORTED_DISTROS => (
     'CentOS 7',
     'CloudLinux 7',
 );
-
-use constant AVAILABLE_UPGRADE_PATHS_FOR_CENTOS_7 => qw{
-  alma
-  almalinux
-  rocky
-  rockylinux
-};
-
-use constant AVAILABLE_UPGRADE_PATHS_FOR_CLOUDLINUX_7 => qw{
-  cloud
-  cloudlinux
-};
 
 our $OS;
 
@@ -54,8 +36,15 @@ sub factory {
         $distro_with_version = $distro . $major;
     }
 
-    my $pkg = "Elevate::OS::" . $distro_with_version;
-    return $pkg->new;
+    my $class      = "Elevate::OS::" . $distro_with_version;
+    my $class_path = "Elevate/OS/$distro_with_version.pm";
+
+    # Ok if it dies since instance() should be the only thing calling this
+    # Since this is a fat packed script, we only want to require the class in tests
+    require $class unless $INC{$class_path};
+
+    my $self = bless {}, $class;
+    return $self;
 }
 
 sub instance {
@@ -64,7 +53,7 @@ sub instance {
     $OS = eval { factory(); };
 
     if ( !$OS ) {
-        my $supported_distros = join( "\n", get_supported_distros() );
+        my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
         FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
         exit 1;
     }
@@ -72,90 +61,74 @@ sub instance {
     return $OS;
 }
 
-sub is_supported () {
-    return instance();    # dies
+## NOTE: private methods (beginning with _) are NOT allowed in this list!
+my %methods;
+
+BEGIN {
+
+    # The key specifies what the method that all platforms we support.
+    # The value specifies how many args the method is designed to take.
+    %methods = map { $_ => 0 } (
+        ### General distro specific methods.
+        'available_upgrade_paths',        # This returns a list of possible upgrade paths for the OS
+        'default_upgrade_to',             # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
+        'disable_mysql_yum_repos',        # This is a list of mysql repo files to disable
+        'ea_alias',                       # This is the value for the --target-os flag used when backing up an EA4 profile
+        'elevate_rpm_url',                # This is the URL used to install the leapp RPM/repo
+        'is_supported',                   # This is used to determine if the OS is supported or not
+        'leapp_can_handle_epel',          # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
+        'leapp_can_handle_imunify',       # This is used to determine if we can skip the Imunify component or not
+        'leapp_can_handle_kernelcare',    # This is used to determine if we can skip the kernelcare component or not
+        'leapp_can_handle_python36',      # This is used to determine if we can skip the python36 blocker or not
+        'leapp_data_pkg',                 # This is used to determine which leapp data package to install
+        'leapp_flag',                     # This is used to determine if we need to pass any flags to the leapp script or not
+        'name',                           # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+        'pretty_name',                    # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
+        'vetted_mysql_yum_repo_ids',      # This is a list of known mysql yum repo ids
+        'vetted_yum_repo',                # This is a list of known yum repos that we do not block on
+    );
 }
 
-sub get_supported_distros () {
-    return PRETTY_SUPPORTED_DISTROS;
+sub supported_methods {
+    return sort keys %methods;
 }
 
-sub check_for_old_centos7 () {
-    return instance()->check_for_old_centos7();
+our $AUTOLOAD;
+
+sub AUTOLOAD {
+    my $sub = $AUTOLOAD;
+    $sub =~ s/.*:://;
+
+    exists $methods{$sub} or Carp::Croak("$sub is not a supported data variable for Elevate::OS");
+
+    my $i   = instance();
+    my $can = $i->can($sub) or Carp::Croak( ref($i) . " does not implement $sub" );
+    return $can->( $i, @_ );
 }
 
-sub default_upgrade_to () {
-    return instance()->default_upgrade_to();
-}
+sub DESTROY { }    # This is a must for autoload modules
 
-sub get_available_upgrade_paths {
-    my $name = instance()->name();
+=head1 can_upgrade_to
 
-    if ( $name eq 'CentOS7' ) {
-        return AVAILABLE_UPGRADE_PATHS_FOR_CENTOS_7;
-    }
-    elsif ( $name eq 'CloudLinux7' ) {
-        return AVAILABLE_UPGRADE_PATHS_FOR_CLOUDLINUX_7;
-    }
+This returns true or false depending on whether the current OS
+is able to upgrade to the requested OS or not.
 
-    return;
-}
-
-sub name () {
-    return instance()->name();
-}
-
-sub pretty_name () {
-    return instance()->pretty_name();
-}
+=cut
 
 sub can_upgrade_to ($flavor) {
-    my $name = instance()->name();
-
-    if ( $name eq 'CentOS7' ) {
-        return grep { $_ eq $flavor } AVAILABLE_UPGRADE_PATHS_FOR_CENTOS_7;
-    }
-    elsif ( $name eq 'CloudLinux7' ) {
-        return grep { $_ eq $flavor } AVAILABLE_UPGRADE_PATHS_FOR_CLOUDLINUX_7;
-    }
-
-    return 0;
+    return grep { $_ eq $flavor } Elevate::OS::available_upgrade_paths();
 }
 
-sub leapp_can_handle_epel () {
-    return instance()->leapp_can_handle_epel();
-}
+=head1 upgrade_to
 
-sub leapp_can_handle_imunify () {
-    return instance()->leapp_can_handle_imunify();
-}
+This is the name of the OS we are upgrading to.  Data is stored
+within the stages file.
 
-sub leapp_can_handle_kernelcare () {
-    return instance()->leapp_can_handle_kernelcare();
-}
-
-sub ea_alias () {
-    return instance()->ea_alias();
-}
-
-sub elevate_rpm_url () {
-    return instance()->elevate_rpm_url();
-}
-
-sub leapp_data_pkg () {
-    return instance()->leapp_data_pkg();
-}
+=cut
 
 sub upgrade_to () {
-    return instance()->upgrade_to();
-}
-
-sub leapp_flag () {
-    return instance()->leapp_flag();
-}
-
-sub leapp_can_handle_python36 () {
-    return instance()->leapp_can_handle_python36();
+    my $default = Elevate::OS::default_upgrade_to();
+    return cpev::read_stage_file( 'upgrade_to', $default );
 }
 
 1;

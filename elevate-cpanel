@@ -52,9 +52,9 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/WPToolkit.pm'}        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/SSH.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/Base.pm'}                     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/RHEL.pm'}                     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Fetch.pm'}                       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Leapp.pm'}                       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Logger.pm'}                      = 'script/elevate-cpanel.PL.static';
@@ -1567,64 +1567,6 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    use constant DISABLE_MYSQL_YUM_REPOS => qw{
-      Mysql57.repo
-      Mysql80.repo
-
-      MariaDB102.repo
-      MariaDB103.repo
-      MariaDB105.repo
-      MariaDB106.repo
-
-      mysql-community.repo
-    };
-
-    use constant VETTED_MYSQL_YUM_REPO_IDS => (
-        qr/^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$/,
-        qr/^mysql-connectors-community(?:-(?:source|debuginfo))?$/,
-        qr/^mysql-tools-community(?:-(?:source|debuginfo))?$/,
-        qr/^mysql-tools-preview(?:-source)?$/,
-        qr/^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$/,
-        qr/^MariaDB[0-9]{3}$/,
-    );
-
-    use constant VETTED_CLOUDLINUX_YUM_REPO => (
-        qr/^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$/,
-        qr/^cloudlinux-rollout(?:-[0-9]+)?$/,
-        qr/^cloudlinux-ea4(?:-[0-9]+)?$/,
-        qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
-        'cl-ea4',
-        qr/^cl-mysql(?:-meta)?/,
-    );
-
-    use constant VETTED_YUM_REPO => (
-        'base',
-        'c7-media',
-        qr/^centos-kernel(?:-experimental)?$/,
-        'centosplus',
-        'cp-dev-tools',
-        'cpanel-addons-production-feed',
-        'cpanel-plugins',
-        'cr',
-        'ct-preset',
-        'digitalocean-agent',
-        'droplet-agent',
-        qr/^EA4(?:-c\$releasever)?$/,
-        qr/^elasticsearch(?:7\.x)?$/,
-        qr/^elevate(?:-source)?$/,
-        qr/^epel(?:-testing)?$/,
-        'extras',
-        'fasttrack',
-        'imunify360',
-        'imunify360-ea-php-hardened',
-        qr/^imunify360-rollout-[0-9]+$/,
-        'influxdb',
-        'kernelcare',
-        'updates',
-        qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
-      ),
-      VETTED_MYSQL_YUM_REPO_IDS;
-
     sub check ($self) {
         my $ok = 1;
         $ok = 0 unless $self->_blocker_system_update;
@@ -1723,8 +1665,7 @@ EOS
         $self->{_yum_repos_to_disable}                = [];
         $self->{_yum_repos_unsupported_with_packages} = [];
 
-        my @vetted_repos = (VETTED_YUM_REPO);
-        push( @vetted_repos, VETTED_CLOUDLINUX_YUM_REPO ) if Elevate::OS::name() eq 'CloudLinux7';
+        my @vetted_repos = Elevate::OS::vetted_yum_repo();
 
         my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 
@@ -3901,10 +3842,9 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants              ();
-    use Elevate::Blockers::Repositories ();
-    use Elevate::OS                     ();
-    use Elevate::RPM                    ();
+    use Elevate::Constants ();
+    use Elevate::OS        ();
+    use Elevate::RPM       ();
 
     use Cpanel::SafeRun::Simple ();
     use Cwd                     ();
@@ -3928,8 +3868,7 @@ EOS
 
     sub _disable_known_yum_repositories {
 
-        my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ }    #
-          Elevate::Blockers::Repositories::DISABLE_MYSQL_YUM_REPOS;
+        my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::OS::disable_mysql_yum_repos();
 
         foreach my $f (@repo_files) {
             next unless -e $f;
@@ -4205,33 +4144,15 @@ EOS
 
     use cPstrict;
 
+    use Carp ();
+
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    use Elevate::OS::CentOS7;
-    use Elevate::OS::CloudLinux7;
-
-    use constant SUPPORTED_DISTROS => qw{
-      CentOS7
-      CloudLinux7
-    };
-
-    use constant PRETTY_SUPPORTED_DISTROS => (
+    use constant SUPPORTED_DISTROS => (
         'CentOS 7',
         'CloudLinux 7',
     );
-
-    use constant AVAILABLE_UPGRADE_PATHS_FOR_CENTOS_7 => qw{
-      alma
-      almalinux
-      rocky
-      rockylinux
-    };
-
-    use constant AVAILABLE_UPGRADE_PATHS_FOR_CLOUDLINUX_7 => qw{
-      cloud
-      cloudlinux
-    };
 
     our $OS;
 
@@ -4248,8 +4169,13 @@ EOS
             $distro_with_version = $distro . $major;
         }
 
-        my $pkg = "Elevate::OS::" . $distro_with_version;
-        return $pkg->new;
+        my $class      = "Elevate::OS::" . $distro_with_version;
+        my $class_path = "Elevate/OS/$distro_with_version.pm";
+
+        require $class unless $INC{$class_path};
+
+        my $self = bless {}, $class;
+        return $self;
     }
 
     sub instance {
@@ -4258,7 +4184,7 @@ EOS
         $OS = eval { factory(); };
 
         if ( !$OS ) {
-            my $supported_distros = join( "\n", get_supported_distros() );
+            my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
             FATAL(qq[This script is only designed to upgrade the following OSs:\n\n$supported_distros]);
             exit 1;
         }
@@ -4266,168 +4192,61 @@ EOS
         return $OS;
     }
 
-    sub is_supported () {
-        return instance();    # dies
+    my %methods;
+
+    BEGIN {
+
+        %methods = map { $_ => 0 } (
+            'available_upgrade_paths',        # This returns a list of possible upgrade paths for the OS
+            'default_upgrade_to',             # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
+            'disable_mysql_yum_repos',        # This is a list of mysql repo files to disable
+            'ea_alias',                       # This is the value for the --target-os flag used when backing up an EA4 profile
+            'elevate_rpm_url',                # This is the URL used to install the leapp RPM/repo
+            'is_supported',                   # This is used to determine if the OS is supported or not
+            'leapp_can_handle_epel',          # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
+            'leapp_can_handle_imunify',       # This is used to determine if we can skip the Imunify component or not
+            'leapp_can_handle_kernelcare',    # This is used to determine if we can skip the kernelcare component or not
+            'leapp_can_handle_python36',      # This is used to determine if we can skip the python36 blocker or not
+            'leapp_data_pkg',                 # This is used to determine which leapp data package to install
+            'leapp_flag',                     # This is used to determine if we need to pass any flags to the leapp script or not
+            'name',                           # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+            'pretty_name',                    # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
+            'vetted_mysql_yum_repo_ids',      # This is a list of known mysql yum repo ids
+            'vetted_yum_repo',                # This is a list of known yum repos that we do not block on
+        );
     }
 
-    sub get_supported_distros () {
-        return PRETTY_SUPPORTED_DISTROS;
+    sub supported_methods {
+        return sort keys %methods;
     }
 
-    sub check_for_old_centos7 () {
-        return instance()->check_for_old_centos7();
+    our $AUTOLOAD;
+
+    sub AUTOLOAD {
+        my $sub = $AUTOLOAD;
+        $sub =~ s/.*:://;
+
+        exists $methods{$sub} or Carp::Croak("$sub is not a supported data variable for Elevate::OS");
+
+        my $i   = instance();
+        my $can = $i->can($sub) or Carp::Croak( ref($i) . " does not implement $sub" );
+        return $can->( $i, @_ );
     }
 
-    sub default_upgrade_to () {
-        return instance()->default_upgrade_to();
-    }
-
-    sub get_available_upgrade_paths {
-        my $name = instance()->name();
-
-        if ( $name eq 'CentOS7' ) {
-            return AVAILABLE_UPGRADE_PATHS_FOR_CENTOS_7;
-        }
-        elsif ( $name eq 'CloudLinux7' ) {
-            return AVAILABLE_UPGRADE_PATHS_FOR_CLOUDLINUX_7;
-        }
-
-        return;
-    }
-
-    sub name () {
-        return instance()->name();
-    }
-
-    sub pretty_name () {
-        return instance()->pretty_name();
-    }
+    sub DESTROY { }    # This is a must for autoload modules
 
     sub can_upgrade_to ($flavor) {
-        my $name = instance()->name();
-
-        if ( $name eq 'CentOS7' ) {
-            return grep { $_ eq $flavor } AVAILABLE_UPGRADE_PATHS_FOR_CENTOS_7;
-        }
-        elsif ( $name eq 'CloudLinux7' ) {
-            return grep { $_ eq $flavor } AVAILABLE_UPGRADE_PATHS_FOR_CLOUDLINUX_7;
-        }
-
-        return 0;
-    }
-
-    sub leapp_can_handle_epel () {
-        return instance()->leapp_can_handle_epel();
-    }
-
-    sub leapp_can_handle_imunify () {
-        return instance()->leapp_can_handle_imunify();
-    }
-
-    sub leapp_can_handle_kernelcare () {
-        return instance()->leapp_can_handle_kernelcare();
-    }
-
-    sub ea_alias () {
-        return instance()->ea_alias();
-    }
-
-    sub elevate_rpm_url () {
-        return instance()->elevate_rpm_url();
-    }
-
-    sub leapp_data_pkg () {
-        return instance()->leapp_data_pkg();
+        return grep { $_ eq $flavor } Elevate::OS::available_upgrade_paths();
     }
 
     sub upgrade_to () {
-        return instance()->upgrade_to();
-    }
-
-    sub leapp_flag () {
-        return instance()->leapp_flag();
-    }
-
-    sub leapp_can_handle_python36 () {
-        return instance()->leapp_can_handle_python36();
-    }
-
-    1;
-
-}    # --- END lib/Elevate/OS.pm
-
-{    # --- BEGIN lib/Elevate/OS/Base.pm
-
-    package Elevate::OS::Base;
-
-    use cPstrict;
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    use Simple::Accessor qw{
-      ea_alias
-      elevate_rpm_url
-      default_upgrade_to
-      leapp_can_handle_epel
-      leapp_can_handle_imunify
-      leapp_can_handle_kernelcare
-      leapp_can_handle_python36
-      leapp_data_pkg
-      leapp_flag
-      name
-      pretty_name
-      upgrade_to
-    };
-
-    sub _build_ea_alias ($self) {
-        return 'CentOS_8';
-    }
-
-    sub _build_elevate_rpm_url ($self) {
-        die "subclass must implement elevate_rpm_url\n";
-    }
-
-    sub _build_default_upgrade_to ($self) {
-        die "subclass must implement default_upgrade_to\n";
-    }
-
-    sub _build_leapp_can_handle_epel ($self) {
-        return 0;
-    }
-
-    sub _build_leapp_can_handle_imunify ($self) {
-        return 0;
-    }
-
-    sub _build_leapp_can_handle_kernelcare ($self) {
-        return 0;
-    }
-
-    sub _build_leapp_can_handle_python36 ($self) {
-        return 0;
-    }
-
-    sub _build_leapp_data_pkg ($self) {
-        die "subclass must implement leapp_data_pkg\n";
-    }
-
-    sub _build_name ($self) {
-        die "subclass must implement name\n";
-    }
-
-    sub _build_pretty_name ($self) {
-        die "subclass must implment pretty_name\n";
-    }
-
-    sub _build_upgrade_to ($self) {
-        my $default = $self->default_upgrade_to();
+        my $default = Elevate::OS::default_upgrade_to();
         return cpev::read_stage_file( 'upgrade_to', $default );
     }
 
     1;
 
-}    # --- END lib/Elevate/OS/Base.pm
+}    # --- END lib/Elevate/OS.pm
 
 {    # --- BEGIN lib/Elevate/OS/CentOS7.pm
 
@@ -4438,29 +4257,26 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    # use Elevate::OS::Base();
+    # use Elevate::OS::RHEL();
     our @ISA;
-    BEGIN { push @ISA, qw(Elevate::OS::Base); }
+    BEGIN { push @ISA, qw(Elevate::OS::RHEL); }
 
-    sub _build_elevate_rpm_url ($self) {
-        return 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
-    }
+    use constant available_upgrade_paths => (
+        'alma',
+        'almalinux',
+        'rocky',
+        'rockylinux',
+    );
 
-    sub _build_default_upgrade_to ($self) {
-        return 'almalinux';
-    }
+    use constant default_upgrade_to => 'AlmaLinux';
+    use constant ea_alias           => 'CentOS_8';
+    use constant elevate_rpm_url    => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
+    use constant name               => 'CentOS7';
+    use constant pretty_name        => 'CentOS 7';
 
-    sub _build_leapp_data_pkg ($self) {
-        my $upgrade_to = $self->upgrade_to();
+    sub leapp_data_pkg () {
+        my $upgrade_to = Elevate::OS::upgrade_to();
         return $upgrade_to =~ m/^rocky/ai ? 'leapp-data-rocky' : 'leapp-data-almalinux';
-    }
-
-    sub _build_name ($self) {
-        return 'CentOS7';
-    }
-
-    sub _build_pretty_name ($self) {
-        return 'CentOS 7';
     }
 
     1;
@@ -4476,57 +4292,121 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    # use Elevate::OS::Base();
+    # use Elevate::OS::RHEL();
     our @ISA;
-    BEGIN { push @ISA, qw(Elevate::OS::Base); }
+    BEGIN { push @ISA, qw(Elevate::OS::RHEL); }
 
-    sub _build_ea_alias ($self) {
-        return 'CloudLinux_8';
-    }
+    use constant available_upgrade_paths => (
+        'cloud',
+        'cloudlinux',
+    );
 
-    sub _build_elevate_rpm_url ($self) {
-        return 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
-    }
+    use constant default_upgrade_to          => 'CloudLinux';
+    use constant ea_alias                    => 'CloudLinux_8';
+    use constant elevate_rpm_url             => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
+    use constant leapp_can_handle_epel       => 1;
+    use constant leapp_can_handle_imunify    => 1;
+    use constant leapp_can_handle_kernelcare => 1;
+    use constant leapp_can_handle_python36   => 1;
+    use constant leapp_data_pkg              => 'leapp-data-cloudlinux';
+    use constant leapp_flag                  => '--nowarn';
+    use constant name                        => 'CloudLinux7';
+    use constant pretty_name                 => 'CloudLinux 7';
 
-    sub _build_default_upgrade_to ($self) {
-        return 'CloudLinux';
-    }
+    sub vetted_yum_repo ($self) {
+        my @vetted_cloudlinux_yum_repo = (
+            qr/^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$/,
+            qr/^cloudlinux-rollout(?:-[0-9]+)?$/,
+            qr/^cloudlinux-ea4(?:-[0-9]+)?$/,
+            qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
+            'cl-ea4',
+            qr/^cl-mysql(?:-meta)?/,
+        );
 
-    sub _build_leapp_can_handle_epel ($self) {
-        return 1;
-    }
-
-    sub _build_leapp_can_handle_imunify ($self) {
-        return 1;
-    }
-
-    sub _build_leapp_can_handle_kernelcare ($self) {
-        return 1;
-    }
-
-    sub _build_leapp_can_handle_python36 ($self) {
-        return 1;
-    }
-
-    sub _build_leapp_data_pkg ($self) {
-        return 'leapp-data-cloudlinux';
-    }
-
-    sub _build_leapp_flag ($self) {
-        return '--nowarn';
-    }
-
-    sub _build_name ($self) {
-        return 'CloudLinux7';
-    }
-
-    sub _build_pretty_name ($self) {
-        return 'CloudLinux 7';
+        my @repos = $self->SUPER::vetted_yum_repo();
+        push @repos, @vetted_cloudlinux_yum_repo;
+        return @repos;
     }
 
     1;
 
 }    # --- END lib/Elevate/OS/CloudLinux7.pm
+
+{    # --- BEGIN lib/Elevate/OS/RHEL.pm
+
+    package Elevate::OS::RHEL;
+
+    use cPstrict;
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant disable_mysql_yum_repos => qw{
+      Mysql57.repo
+      Mysql80.repo
+
+      MariaDB102.repo
+      MariaDB103.repo
+      MariaDB105.repo
+      MariaDB106.repo
+
+      mysql-community.repo
+    };
+
+    use constant vetted_mysql_yum_repo_ids => (
+        qr/^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$/,
+        qr/^mysql-connectors-community(?:-(?:source|debuginfo))?$/,
+        qr/^mysql-tools-community(?:-(?:source|debuginfo))?$/,
+        qr/^mysql-tools-preview(?:-source)?$/,
+        qr/^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$/,
+        qr/^MariaDB[0-9]{3}$/,
+    );
+
+    use constant vetted_yum_repo => (
+        'base',
+        'c7-media',
+        qr/^centos-kernel(?:-experimental)?$/,
+        'centosplus',
+        'cp-dev-tools',
+        'cpanel-addons-production-feed',
+        'cpanel-plugins',
+        'cr',
+        'ct-preset',
+        'digitalocean-agent',
+        'droplet-agent',
+        qr/^EA4(?:-c\$releasever)?$/,
+        qr/^elasticsearch(?:7\.x)?$/,
+        qr/^elevate(?:-source)?$/,
+        qr/^epel(?:-testing)?$/,
+        'extras',
+        'fasttrack',
+        'imunify360',
+        'imunify360-ea-php-hardened',
+        qr/^imunify360-rollout-[0-9]+$/,
+        'influxdb',
+        'kernelcare',
+        'updates',
+        qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
+      ),
+      vetted_mysql_yum_repo_ids;
+
+    use constant available_upgrade_paths     => undef;
+    use constant default_upgrade_to          => undef;
+    use constant ea_alias                    => undef;
+    use constant elevate_rpm_url             => undef;
+    use constant is_supported                => 1;
+    use constant leapp_can_handle_epel       => 0;
+    use constant leapp_can_handle_imunify    => 0;
+    use constant leapp_can_handle_kernelcare => 0;
+    use constant leapp_can_handle_python36   => 0;
+    use constant leapp_data_package          => undef;
+    use constant leapp_flag                  => undef;
+    use constant name                        => 'RHEL';
+    use constant pretty_name                 => 'RHEL';
+
+    1;
+
+}    # --- END lib/Elevate/OS/RHEL.pm
 
 {    # --- BEGIN lib/Elevate/Fetch.pm
 
@@ -5992,9 +5872,9 @@ use Elevate::Components::SSH              ();
 
 # - fatpack OS
 use Elevate::OS              ();
-use Elevate::OS::Base        ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
+use Elevate::OS::RHEL        ();
 
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
@@ -6170,7 +6050,7 @@ sub _parse_opt_upgrade_to ($self) {
 
     $flavor = lc $flavor;
     if ( !Elevate::OS::can_upgrade_to($flavor) ) {
-        my @available_flavors = Elevate::OS::get_available_upgrade_paths();
+        my @available_flavors = Elevate::OS::available_upgrade_paths();
         my $af                = join( "\n", @available_flavors );
         die qq[The current OS can only upgrade to the following flavors:\n\n$af\n];
     }

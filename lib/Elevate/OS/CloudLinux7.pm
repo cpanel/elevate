@@ -12,50 +12,38 @@ use cPstrict;
 
 use Log::Log4perl qw(:easy);
 
-use parent 'Elevate::OS::Base';
+use parent 'Elevate::OS::RHEL';
 
-sub _build_ea_alias ($self) {
-    return 'CloudLinux_8';
-}
+use constant available_upgrade_paths => (
+    'cloud',
+    'cloudlinux',
+);
 
-sub _build_elevate_rpm_url ($self) {
-    return 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
-}
+use constant default_upgrade_to          => 'CloudLinux';
+use constant ea_alias                    => 'CloudLinux_8';
+use constant elevate_rpm_url             => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
+use constant leapp_can_handle_epel       => 1;
+use constant leapp_can_handle_imunify    => 1;
+use constant leapp_can_handle_kernelcare => 1;
+use constant leapp_can_handle_python36   => 1;
+use constant leapp_data_pkg              => 'leapp-data-cloudlinux';
+use constant leapp_flag                  => '--nowarn';
+use constant name                        => 'CloudLinux7';
+use constant pretty_name                 => 'CloudLinux 7';
 
-sub _build_default_upgrade_to ($self) {
-    return 'CloudLinux';
-}
+sub vetted_yum_repo ($self) {
+    my @vetted_cloudlinux_yum_repo = (
+        qr/^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$/,
+        qr/^cloudlinux-rollout(?:-[0-9]+)?$/,
+        qr/^cloudlinux-ea4(?:-[0-9]+)?$/,
+        qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
+        'cl-ea4',
+        qr/^cl-mysql(?:-meta)?/,
+    );
 
-sub _build_leapp_can_handle_epel ($self) {
-    return 1;
-}
-
-sub _build_leapp_can_handle_imunify ($self) {
-    return 1;
-}
-
-sub _build_leapp_can_handle_kernelcare ($self) {
-    return 1;
-}
-
-sub _build_leapp_can_handle_python36 ($self) {
-    return 1;
-}
-
-sub _build_leapp_data_pkg ($self) {
-    return 'leapp-data-cloudlinux';
-}
-
-sub _build_leapp_flag ($self) {
-    return '--nowarn';
-}
-
-sub _build_name ($self) {
-    return 'CloudLinux7';
-}
-
-sub _build_pretty_name ($self) {
-    return 'CloudLinux 7';
+    my @repos = $self->SUPER::vetted_yum_repo();
+    push @repos, @vetted_cloudlinux_yum_repo;
+    return @repos;
 }
 
 1;

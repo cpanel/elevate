@@ -301,9 +301,9 @@ use Elevate::Components::SSH              ();
 
 # - fatpack OS
 use Elevate::OS              ();
-use Elevate::OS::Base        ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
+use Elevate::OS::RHEL        ();
 
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
@@ -479,7 +479,7 @@ sub _parse_opt_upgrade_to ($self) {
 
     $flavor = lc $flavor;
     if ( !Elevate::OS::can_upgrade_to($flavor) ) {
-        my @available_flavors = Elevate::OS::get_available_upgrade_paths();
+        my @available_flavors = Elevate::OS::available_upgrade_paths();
         my $af                = join( "\n", @available_flavors );
         die qq[The current OS can only upgrade to the following flavors:\n\n$af\n];
     }
