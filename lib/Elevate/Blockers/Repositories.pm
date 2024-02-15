@@ -111,9 +111,9 @@ use constant VETTED_YUM_REPO => qw{
 
 sub check ($self) {
     my $ok = 1;
-    $ok = 0 unless $self->_blocker_system_update;
+    $ok = 0 unless $self->_system_update_check();
     $ok = 0 unless $self->_blocker_invalid_yum_repos;
-    $ok = 0 unless $self->_blocker_unstable_yum;
+    $ok = 0 unless $self->_yum_is_stable();
 
     return $ok;
 }
@@ -157,17 +157,6 @@ sub _blocker_invalid_yum_repos ($self) {
     return 0;
 }
 
-sub _blocker_unstable_yum ($self) {
-    $self->has_blocker(q[yum is not stable]) unless $self->_yum_is_stable();
-
-    return 0;
-}
-
-sub _blocker_system_update ($self) {
-    return 0 if $self->_system_update_check();
-    return $self->has_blocker(q[System is not up to date]);
-}
-
 sub _yum_status_hr_contains_blocker ($status_hr) {
     return 0 if ref $status_hr ne 'HASH' || !scalar keys( %{$status_hr} );
 
@@ -184,6 +173,8 @@ sub _yum_is_stable ($self) {
     if ( $errors =~ m/\S/ms ) {
         ERROR('yum appears to be unstable. Please address this before upgrading');
         ERROR($errors);
+        my $id = ref($self) . '::YumMakeCacheError';
+        $self->has_blocker( Cpanel::JSON::canonical_dump( { 'name' => $id, 'error' => $errors } ), 'blocker_id' => $id, 'quiet' => 1 );
 
         return 0;
     }
@@ -192,11 +183,16 @@ sub _yum_is_stable ($self) {
         my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
         if (@transactions) {
             ERROR('There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.');
+            my $id = ref($self) . '::YumUnfinishedTransactions';
+            $self->has_blocker( Cpanel::JSON::canonical_dump( { 'name' => $id, 'error' => 'YUM has unfinished transactions.', 'data' => { 'transactions' => \@transactions } } ), 'blocker_id' => $id, 'quiet' => 1 );
             return 0;
         }
     }
     else {
-        ERROR(qq{Could not read directory '/var/lib/yum': $!});
+        my $err = $!;    # Don't want to accidentally lose the error
+        ERROR(qq{Could not read directory '/var/lib/yum': $err});
+        my $id = ref($self) . '::YumDirUnreadable';
+        $self->has_blocker( Cpanel::JSON::canonical_dump( { 'name' => $id, 'error' => $err } ), 'blocker_id' => $id, 'quiet' => 1 );
         return 0;
     }
 
@@ -277,6 +273,8 @@ sub _check_yum_repos ($self) {
             elsif ( !$current_repo_use_valid_syntax ) {
                 WARN( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
                 unless ( grep { $_ eq $path } $self->{_yum_repos_path_using_invalid_syntax}->@* ) {
+                    my $blocker_id = ref($self) . '::YumRepoConfigInvalidSyntax';
+                    $self->has_blocker( Cpanel::JSON::canonical_dump( { 'name' => $blocker_id, 'error' => 'YUM repository has unsupported syntax', 'data' => { 'repository' => $current_repo_name, 'path' => $path } } ), 'blocker_id' => $blocker_id, 'quiet' => 1 );
                     push( $self->{_yum_repos_path_using_invalid_syntax}->@*, $path );
                 }
                 $status{'INVALID_SYNTAX'} = 1;
