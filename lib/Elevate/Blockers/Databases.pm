@@ -99,6 +99,9 @@ sub _has_mapped_postgresql_dbs ($self) {
     # Compile a list of users with PgSQL DBs:
     my @users_with_dbs;
     foreach my $user (@users) {
+        my $feature_json   = Cpanel::SafeRun::Simple::saferunnoerror( "/usr/local/cpanel/bin/uapi", "--user=$user", qw(--output=json Features has_feature name=postgres) );
+        my $feature_parsed = Cpanel::JSON::Load($feature_json);
+        next unless $feature_parsed->{result}{data};
         my $dbs_json   = Cpanel::SafeRun::Simple::saferunnoerror( "/usr/local/cpanel/bin/uapi", "--user=$user", qw(--output=json Postgresql list_databases) );
         my $dbs_parsed = Cpanel::JSON::Load($dbs_json);
         if ( !$dbs_parsed->{result}->{status} ) {

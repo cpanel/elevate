@@ -18,7 +18,6 @@ use Test::Elevate;
 use cPstrict;
 
 my $cpev_mock = Test::MockModule->new('cpev');
-my $db_mock   = Test::MockModule->new('Elevate::Blockers::Databases');
 
 my $cpev = cpev->new;
 my $db   = $cpev->get_blocker('Databases');
@@ -168,6 +167,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
     my $mock_touchfile = Test::MockFile->file('/var/cpanel/acknowledge_postgresql_for_elevate');
 
     my @mock_users = qw(cpuser1 cpuser2);
+    my $db_mock    = Test::MockModule->new('Elevate::Blockers::Databases');
     $db_mock->redefine( _has_mapped_postgresql_dbs => sub { return @mock_users } );
 
     my $expected = {
@@ -225,9 +225,22 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
     $mock_saferun->redefine(
         saferunnoerror => sub {
-            return $_[0] eq '/usr/local/cpanel/bin/whmapi1'
-              ? '{"metadata":{"command":"list_users","version":1,"reason":"OK","result":1},"data":{"users":["root","cpuser2","cpuser1"]}}'
-              : '{"apiversion":3,"module":"Postgresql","func":"list_databases","result":{"warnings":null,"data":[{"disk_usage":9001,"database":"dontcare","users":["dontcare"]}],"errors":null,"metadata":{"transformed":1},"status":1,"messages":null}}';
+            if ( $_[0] eq '/usr/local/cpanel/bin/whmapi1' ) {
+                return '{"metadata":{"command":"list_users","version":1,"reason":"OK","result":1},"data":{"users":["root","cpuser3","cpuser2","cpuser1"]}}';
+            }
+            else {
+                if ( $_[4] =~ /has_feature/ ) {
+                    if ( $_[1] =~ /cpuser2/ ) {
+                        return '{"apiversion":3,"module":"Features","func":"has_feature","result":{"metadata":{},"status":1,"messages":["The feature “postgres” exists but is not enabled."],"warnings":null,"data":0,"errors":null}}';
+                    }
+                    else {
+                        return '{"apiversion":3,"module":"Features","func":"has_feature","result":{"warnings":null,"errors":null,"data":1,"metadata":{},"messages":null,"status":1}}';
+                    }
+                }
+                else {
+                    return '{"apiversion":3,"module":"Postgresql","func":"list_databases","result":{"warnings":null,"data":[{"disk_usage":9001,"database":"dontcare","users":["dontcare"]}],"errors":null,"metadata":{"transformed":1},"status":1,"messages":null}}';
+                }
+            }
         }
     );
 
@@ -235,7 +248,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
         [ $db->_has_mapped_postgresql_dbs() ],
         bag {
             item 'cpuser1';
-            item 'cpuser2';
+            item 'cpuser3';
             end();
         },
         "_has_mapped_postgresql_dbs returns expected list of users"
