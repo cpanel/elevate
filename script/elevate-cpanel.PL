@@ -42,7 +42,7 @@ Currently supported upgrade paths:
 
 CentOS 7     => AlmaLinux 8
 CentOS 7     => Rocky Linux 8
-CloudLinux 7 => CloudLinux 8
+CloudLinux 7 => CloudLinux 8 (Experimental)
 
 =head1 SYNOPSIS
 
