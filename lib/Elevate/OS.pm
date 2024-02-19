@@ -74,6 +74,7 @@ BEGIN {
         'disable_mysql_yum_repos',        # This is a list of mysql repo files to disable
         'ea_alias',                       # This is the value for the --target-os flag used when backing up an EA4 profile
         'elevate_rpm_url',                # This is the URL used to install the leapp RPM/repo
+        'is_experimental',                # This is used to determine if the OS is experimental or not
         'is_supported',                   # This is used to determine if the OS is supported or not
         'leapp_can_handle_epel',          # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
         'leapp_can_handle_imunify',       # This is used to determine if we can skip the Imunify component or not

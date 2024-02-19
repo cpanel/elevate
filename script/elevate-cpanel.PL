@@ -671,6 +671,13 @@ It is *highly* recommended that you have a full backup or snapshot
 of your server before proceeding.
 EOS
 
+    if ( Elevate::OS::is_experimental() ) {
+        say <<EOS;
+*Warning*:  ELevate for CloudLinux 7 to CloudLinux 8 is experimental software
+and is not recommended for production environments.
+EOS
+    }
+
     if ( !$self->getopt('non-interactive') ) {
         if (
             !IO::Prompt::prompt(

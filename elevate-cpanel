@@ -4201,6 +4201,7 @@ EOS
             'disable_mysql_yum_repos',        # This is a list of mysql repo files to disable
             'ea_alias',                       # This is the value for the --target-os flag used when backing up an EA4 profile
             'elevate_rpm_url',                # This is the URL used to install the leapp RPM/repo
+            'is_experimental',                # This is used to determine if the OS is experimental or not
             'is_supported',                   # This is used to determine if the OS is supported or not
             'leapp_can_handle_epel',          # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
             'leapp_can_handle_imunify',       # This is used to determine if we can skip the Imunify component or not
@@ -4303,6 +4304,7 @@ EOS
     use constant default_upgrade_to          => 'CloudLinux';
     use constant ea_alias                    => 'CloudLinux_8';
     use constant elevate_rpm_url             => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
+    use constant is_experimental             => 1;
     use constant leapp_can_handle_epel       => 1;
     use constant leapp_can_handle_imunify    => 1;
     use constant leapp_can_handle_kernelcare => 1;
@@ -4393,6 +4395,7 @@ EOS
     use constant default_upgrade_to          => undef;
     use constant ea_alias                    => undef;
     use constant elevate_rpm_url             => undef;
+    use constant is_experimental             => 0;
     use constant is_supported                => 1;
     use constant leapp_can_handle_epel       => 0;
     use constant leapp_can_handle_imunify    => 0;
@@ -6240,6 +6243,13 @@ EOS
 It is *highly* recommended that you have a full backup or snapshot
 of your server before proceeding.
 EOS
+
+    if ( Elevate::OS::is_experimental() ) {
+        say <<EOS;
+*Warning*:  ELevate for CloudLinux 7 to CloudLinux 8 is experimental software
+and is not recommended for production environments.
+EOS
+    }
 
     if ( !$self->getopt('non-interactive') ) {
         if (
