@@ -1,6 +1,6 @@
 ##### **2024-02-19** - version 24
 
-* Fixed case RE-18: Add initial support for Elevating from CL7 to CL8.
+* Fixed case RE-18: Add initial "Experimental" support for Elevating from CL7 to CL8.
 * Fixed case RE-186: Document manual-reboots flag in help text.
 
 ## **2024-02-12** - version 23
