@@ -12,8 +12,9 @@ Disable some repostiories.
 
 use cPstrict;
 
-use Elevate::Constants              ();
-use Elevate::Blockers::Repositories ();
+use Elevate::Constants ();
+use Elevate::OS        ();
+use Elevate::RPM       ();
 
 use Cpanel::SafeRun::Simple ();
 use Cwd                     ();
@@ -24,6 +25,8 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
+    $self->run_once("_disable_epel");
+    $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
 
     return;
@@ -32,8 +35,7 @@ sub pre_leapp ($self) {
 sub _disable_known_yum_repositories {
 
     # remove all MySQL repos
-    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ }    #
-      Elevate::Blockers::Repositories::DISABLE_MYSQL_YUM_REPOS;
+    my @repo_files = map { Elevate::Constants::YUM_REPOS_D . '/' . $_ } Elevate::OS::disable_mysql_yum_repos();
 
     foreach my $f (@repo_files) {
         next unless -e $f;
@@ -47,6 +49,27 @@ sub _disable_known_yum_repositories {
 
     Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
 
+    return;
+}
+
+sub _disable_yum_plugin_fastestmirror ($self) {
+    my $pkg = 'yum-plugin-fastestmirror';
+    $self->_erase_package($pkg);
+    return;
+}
+
+sub _disable_epel ($self) {
+
+    return if Elevate::OS::leapp_can_handle_epel();
+
+    my $pkg = 'epel-release';
+    $self->_erase_package($pkg);
+    return;
+}
+
+sub _erase_package ( $self, $pkg ) {
+    return unless Cpanel::Pkgr::is_installed($pkg);
+    $self->rpm->remove_no_dependencies($pkg);
     return;
 }
 

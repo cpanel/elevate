@@ -35,38 +35,47 @@ package cpev;
 
 =head1 DESCRIPTION
 
-Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
+Wrapper around the ELevate project which is designed to enable migrations
+between major version of RHEL® derivatives.
+
+Currently supported upgrade paths:
+
+CentOS 7     => AlmaLinux 8
+CentOS 7     => Rocky Linux 8
+CloudLinux 7 => CloudLinux 8
 
 =head1 SYNOPSIS
 
     /scripts/elevate-cpanel [OPTIONS]
 
     Optional:
-       --start                        Start the conversion process
-       --continue                     Continue the conversion: retry the last step
-       --check[=BLOCKER_FILE]         Check if your system has any known blockers to upgrade.
-       --log                          Show the current elevation log
-       --status                       Check the current elevation status
-       --clean                        Cleanup scripts and files created by elevate-cpanel
-       --upgrade-to=[rocky|almalinux] Update to AlmaLinux 8 or Rocky Linux 8
-                                      [default to 'almalinux']
-       --non-interactive              Skip the yes/no prompt before proceeding with the upgrade.
+       --start                                   Start the conversion process
+       --continue                                Continue the conversion: retry the last step
+       --check[=BLOCKER_FILE]                    Check if your system has any known blockers to upgrade.
+       --log                                     Show the current elevation log
+       --status                                  Check the current elevation status
+       --clean                                   Cleanup scripts and files created by elevate-cpanel
+       --upgrade-to=[rocky|almalinux|cloudlinux] Update to AlmaLinux 8 or Rocky Linux 8
+                                                 [Servers running CentOS 7 will default to 'almalinux']
+                                                 [Servers running CloudLinux 7 will default to 'cloudlinux']
 
-       --update                       Instruct the script to replace itself on disk with a downloaded copy of the latest version.
-       --version                      Print the version number and exit.
+                                                 NOTE: servers running CentOS 7 can only upgrade to almalinux or rocky
+                                                       servers running CloudLinux 7 can only upgrade to cloudlinux
 
-       --skip-elevate-version-check   Skip the check for whether this script is up to date.
-       --skip-cpanel-version-check    Skip the check for whether cPanel is up to date.
-                                      This option is intended only for testing!
+       --non-interactive                         Skip the yes/no prompt before proceeding with the upgrade.
 
-       --no-leapp                     Do not try to run leapp, and pause instead.
-                                      Once leapp has been run you should remove the file
-                                      /waiting_for_distro_upgrade
+       --update                                  Instruct the script to replace itself on disk with a downloaded copy of the latest version.
+       --version                                 Print the version number and exit.
 
-       --manual-reboots               The script will stop and require the user to reboot manually rather than
-                                      automatically rebooting when reboots are needed
+       --skip-elevate-version-check              Skip the check for whether this script is up to date.
+       --skip-cpanel-version-check               Skip the check for whether cPanel is up to date.
+                                                 This option is intended only for testing!
 
-       --help                         Display this documentation.
+       --no-leapp                                Do not try to run leapp, and pause instead.
+                                                 Once leapp has been run you should remove the file
+                                                 /waiting_for_distro_upgrade
+
+       --help                                    Display this documentation.
 
 =head1 COMMON USAGE
 
@@ -76,12 +85,16 @@ Helps to upgrade CentOS 7 cPanel servers to AlmaLinux 8 or Rocky Linux 8.
 
 You can start an elevation update by running:
 
-    # AlmaLinux 8 update
+    # AlmaLinux 8 update from CentOS 7
     /scripts/elevate-cpanel --start
     /scripts/elevate-cpanel --start --upgrade-to=almalinux
 
-    # Rocky Linux 8 update
+    # Rocky Linux 8 update from CentOS 7
     /scripts/elevate-cpanel --start --upgrade-to=rocky
+
+    # CloudLinux 8 update from CloudLinux 7
+    /scripts/elevate-cpanel --start
+    /scripts/elevate-cpanel --start --upgrade-to=cloudlinux
 
 =item Start an installation and skip the confirmation prompt
 
@@ -96,12 +109,16 @@ If you wish to skip this prompt (by assuming yes):
 You can check if your server is compatible with the upgrade process without
 starting an upgrade process.
 
-    # Check AlmaLinux 8 update
+    # Check AlmaLinux 8 update from CentOS 7
     /scripts/elevate-cpanel --check
     /scripts/elevate-cpanel --check --upgrade-to=almalinux
 
-    # Check Rocky Linux 8 update
+    # Check Rocky Linux 8 update from CentOS 7
     /scripts/elevate-cpanel --check --upgrade-to=rocky
+
+    # Check CloudLinux 8 update from CloudLinux 7
+    /scripts/elevate-cpanel --check
+    /scripts/elevate-cpanel --check --upgrade-to=cloudlinux
 
 This will also save a JSON representation of the blockers to a file, C</var/cpanel/elevate-blockers> by default,
 but passing an optional argument will use the file given instead:
@@ -142,7 +159,7 @@ the update process by running:
 
 =head3 Using an alternative tool to upgrade your distro
 
-By default, the elevate script runs the [leapp process](https://almalinux.org/elevate/)
+By default, the elevate script runs the L<leapp process|https://almalinux.org/elevate/>
 to upgrade you from 7 to 8. `Leapp` may not be compatible with your system.
 
 Using the `--no-leapp` option gives you a way to do the actual distro upgrade in your own way.
@@ -174,8 +191,7 @@ NOTE: `--no-leapp` is not required for helper commands like `--continue` or `--s
 
 =head1 WARNINGS
 
-The elevation process from CentOS 7 to AlmaLinux 8 or Rocky Linux 8 distribution
-is not a risk free update.
+The elevation process to perform a major OS upgrade is not a risk free update.
 Depending on the state of your current distribution multiple errors can occur.
 We recommend updating your system to the last upstream state before starting.
 
@@ -208,7 +224,6 @@ BEGIN {
 use Log::Log4perl qw(:easy);
 
 use Config;
-use Config::Tiny          ();
 use Carp                  ();
 use Errno                 ();
 use File::Basename        ();
@@ -284,7 +299,14 @@ use Elevate::Components::RmMod            ();
 use Elevate::Components::WPToolkit        ();
 use Elevate::Components::SSH              ();
 
+# - fatpack OS
+use Elevate::OS              ();
+use Elevate::OS::CentOS7     ();
+use Elevate::OS::CloudLinux7 ();
+use Elevate::OS::RHEL        ();
+
 use Elevate::Fetch            ();
+use Elevate::Leapp            ();
 use Elevate::Logger           ();
 use Elevate::Motd             ();
 use Elevate::Notify           ();
@@ -294,6 +316,8 @@ use Elevate::Script           ();
 use Elevate::Service          ();
 use Elevate::SystemctlService ();
 use Elevate::Usage            ();
+use Elevate::DNF              ();
+use Elevate::YUM              ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 1;
@@ -307,9 +331,6 @@ use constant VALID_STAGES => 5;
 
 use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
 
-use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
-use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
-
 use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recommendations];
 
 # XXX TODO verify that imunify reponames are in fact correct.
@@ -319,8 +340,9 @@ use constant ACTION_REBOOT_NEEDED   => 4242;    # just one unique id
 use constant ACTION_PAUSE_REQUESTED => 4243;
 
 # prefer string over integers so we can read the configuration file (no need for bitmask)
-use constant UPGRADE_TO_ALMALINUX => q[AlmaLinux];
-use constant UPGRADE_TO_ROCKY     => q[Rocky];
+use constant UPGRADE_TO_ALMALINUX  => q[AlmaLinux];
+use constant UPGRADE_TO_ROCKY      => q[Rocky];
+use constant UPGRADE_TO_CLOUDLINUX => q[CloudLinux];
 
 use constant PAUSE_ELEVATE_TOUCHFILE => q[/waiting_for_distro_upgrade];
 
@@ -328,6 +350,7 @@ use Simple::Accessor qw{
   service
   script
   blockers
+  leapp
 };
 
 # after Simple::Accessor
@@ -348,6 +371,12 @@ sub _build_blockers ($self) {
 
     # FIXME weaken
     return Elevate::Blockers->new( cpev => $self );
+}
+
+sub _build_leapp ($self) {
+
+    # FIXME weaken
+    return Elevate::Leapp->new( cpev => $self );
 }
 
 sub _build_script ($self) {
@@ -378,8 +407,6 @@ sub run ( $pkg, @args ) {
     if ( $self->getopt('update') ) {
         return $self->do_update();
     }
-
-    $self->_parse_opt_upgrade_to();
 
     if ( $self->getopt('start') ) {
         die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
@@ -440,17 +467,37 @@ sub get_blocker ( $self, $name ) {    # helper for tests
 
 sub _parse_opt_upgrade_to ($self) {
 
-    return unless my $flavor = $self->getopt('upgrade-to');
+    my $flavor = $self->getopt('upgrade-to');
 
     if ( !defined $self->getopt('start') && !defined $self->getopt('check') ) {
         die qq[--upgrade-to option is only supported with --start or --check\n];
     }
+
+    Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();
+
+    $flavor ||= Elevate::OS::default_upgrade_to();
+
     $flavor = lc $flavor;
-    if ( $flavor !~ m{^(?:almalinux|alma|rocky)$} ) {
-        die qq[Invalid --upgrade_to value '$flavor'. Only 'almalinux' or 'rocky' are supported.\n];
+    if ( !Elevate::OS::can_upgrade_to($flavor) ) {
+        my @available_flavors = Elevate::OS::available_upgrade_paths();
+        my $af                = join( "\n", @available_flavors );
+        die qq[The current OS can only upgrade to the following flavors:\n\n$af\n];
     }
 
-    $self->{upgrade_to} = $flavor eq 'rocky' ? UPGRADE_TO_ROCKY : UPGRADE_TO_ALMALINUX;
+    $self->_set_upgrade_to($flavor);
+
+    return;
+}
+
+sub _set_upgrade_to ( $self, $flavor ) {
+    my $upgrade_to = UPGRADE_TO_ROCKY if $flavor =~ m/^rocky/a;
+
+    $upgrade_to = UPGRADE_TO_ALMALINUX  if $flavor =~ m/^alma/a;
+    $upgrade_to = UPGRADE_TO_CLOUDLINUX if $flavor =~ m/^cloud/a;
+
+    die qq['$flavor' is not a valid path to upgrade to\n] unless $upgrade_to;
+
+    $self->{upgrade_to} = $upgrade_to;
 
     return;
 }
@@ -486,16 +533,20 @@ sub do_update ($self) {
 }
 
 sub upgrade_to ($self) {    # main helper to know the upgrade_to distro
-    return $self->{upgrade_to} if $self->{upgrade_to};
-    return read_stage_file( 'upgrade_to', UPGRADE_TO_ALMALINUX );    # default to AlmaLinux
+    return $self->{upgrade_to} ? $self->{upgrade_to} : Elevate::OS::upgrade_to();
 }
 
 sub upgrade_to_rocky ($self) {
     return $self->upgrade_to() eq UPGRADE_TO_ROCKY;
 }
 
+sub upgrade_to_cloudlinux ($self) {
+    return $self->upgrade_to() eq UPGRADE_TO_CLOUDLINUX;
+}
+
 sub upgrade_to_pretty_name ($self) {    # used by output messages
     return q[Rocky Linux 8] if $self->upgrade_to_rocky;
+    return q[CloudLinux 8]  if $self->upgrade_to_cloudlinux;
     return q[AlmaLinux 8];
 }
 
@@ -523,7 +574,7 @@ sub monitor_upgrade ($self) {
 }
 
 sub start ($self) {
-    Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();
+    $self->_parse_opt_upgrade_to();
     my $stage = get_stage();
     if ( $stage != 0 ) {
         my $header;
@@ -619,6 +670,13 @@ EOS
 It is *highly* recommended that you have a full backup or snapshot
 of your server before proceeding.
 EOS
+
+    if ( Elevate::OS::is_experimental() ) {
+        say <<EOS;
+*Warning*:  ELevate for CloudLinux 7 to CloudLinux 8 is experimental software
+and is not recommended for production environments.
+EOS
+    }
 
     if ( !$self->getopt('non-interactive') ) {
         if (
@@ -790,10 +848,11 @@ sub check_status ($self) {
 
 sub _notify_success ($self) {
 
+    my $upgrade_from_name  = Elevate::OS::pretty_name();
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
 
     my $msg = <<"EOS";
-The cPanel & WHM server has completed the elevation process from CentOS 7 to $pretty_distro_name.
+The cPanel & WHM server has completed the elevation process from $upgrade_from_name to $pretty_distro_name.
 EOS
 
     if ( my $warnings = read_stage_file( 'final_notifications', [] ) ) {
@@ -954,6 +1013,11 @@ sub run_stage_1 ($self) {
     # store 'upgrade_to' early so later stages can access it
     update_stage_file( { upgrade_to => $self->upgrade_to } );
 
+    # store 'upgrade_from' early so that Elevate::OS can access it
+    # Elevate::OS is based on the OS we are upgrading from since the information
+    # that it provides is mostly based on what leapp can do when upgrading from an OS
+    update_stage_file( { upgrade_from => Elevate::OS::name() } );
+
     return $self->service->install();
 }
 
@@ -992,15 +1056,16 @@ sub run_stage_2 ($self) {
 
 =head2 run_stage_3
 
-Setup the AlmaLinux elevate-release-latest-el7 repo and install leapp packages.
-Prepare the cPanel packages for the update.
+Setup the elevate-release-latest-el7 repo from the appropriate fork and install
+leapp Packages.  Prepare the cPnael packages for the update.
 
 Remove some known conflicting packages. (Reinstall later).
 
 Provide answers to a few leapp questions.
 
 Attempt to perform the leapp upgrade itself.
-In case of failure you probably want to reply to a few extra questions or remove some conflicting packages.
+In case of failure you probably want to reply to a few extra questions or remove
+some conflicting packages.
 
 =cut
 
@@ -1012,8 +1077,13 @@ sub run_stage_3 ($self) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
-    $self->run_once('_install_leapp');
-    $self->_do_leapp_upgrade();
+    $self->run_once(
+        install_leapp => sub {
+            $self->leapp->install();
+        },
+    );
+
+    $self->leapp->upgrade();
 
     WARN(<<~'EOS');
     Rebooting for distro upgrade. This will take over 10 minutes to run.
@@ -1023,27 +1093,6 @@ sub run_stage_3 ($self) {
     return ACTION_REBOOT_NEEDED;
 
     # This takes a while because on reboot it's installing 800 packages
-}
-
-sub _install_leapp ($self) {
-
-    unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
-
-        # provides leapp-data-almalinux & leapp-data-rocky
-        $self->ssystem_and_die(qw{/usr/bin/yum install -y http://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm});
-    }
-
-    my $leap_data_pkg = $self->upgrade_to_rocky() ? 'leapp-data-rocky' : 'leapp-data-almalinux';
-
-    unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leap_data_pkg) ) {
-        $self->ssystem_and_die( qw{/usr/bin/yum install -y leapp-upgrade }, $leap_data_pkg );
-    }
-
-    if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-        $self->ssystem_and_die(qw{/usr/bin/yum -y remove kernel-devel});
-    }
-
-    return;
 }
 
 sub _request_to_upgrade_distro_manually ($self) {
@@ -1067,7 +1116,7 @@ EOS
 
 =head2 run_stage_4
 
-At this stage we should now run Alamalinux 8.
+At this stage, we should now be run the upgraded OS (i.e. AlmaLinux 8).
 Update cPanel product for the new distro.
 
 Restore removed packages during the previous stage.
@@ -1106,29 +1155,7 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    $self->run_once(
-        sysup => sub {
-            Cpanel::Yum::Vars::install();
-            $self->ssystem_and_die(qw{/usr/bin/dnf clean all});
-
-            # no failures once already installed: no need to check for the epel-release version
-            $self->ssystem_and_die(qw{/usr/bin/dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm});
-
-            $self->ssystem(qw{/usr/bin/dnf config-manager --enable powertools});
-            $self->ssystem(qw{/usr/bin/dnf config-manager --enable epel});
-
-            # Break cpanel-perl (NOTE: This only works on perl 5.36)
-            $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm});
-            {
-                local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
-                $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
-            }
-            $self->ssystem(qw{/usr/bin/dnf -y --allowerasing --disablerepo cpanel-plugins update});
-            $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
-
-            return;
-        }
-    );
+    $self->run_component_once( 'RpmDB', => 'post_leapp' );
 
     $self->run_once(
         restore_cpanel_services => sub {
@@ -1162,7 +1189,7 @@ sub run_stage_4 ($self) {
     $self->post_leapp_update_restore();
 
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
-      leapp leapp-data-almalinux leapp-data-rocky leapp-upgrade-el7toel8
+      leapp leapp-data-almalinux leapp-data-rocky leapp-data-cloudlinux leapp-upgrade-el7toel8
       python2-leapp alt-pcre802 alt-pcre802-devel};
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
 
@@ -1187,7 +1214,7 @@ The elevate-cpanel service is now removed.
 =cut
 
 sub run_stage_5 ($self) {
-    return 1 if $self->post_upgrade_check();
+    return 0 if $self->post_upgrade_check();
 
     # we cannot stop the service ( ourself )
     $self->service->disable;
@@ -1250,14 +1277,6 @@ sub elevation_success_marker ($self) {
 
     return;
 }
-
-=pod
-
-Example:
-
-    $self->run_component_once( Imunify => 'backup' );
-
-=cut
 
 sub run_component_once ( $self, $name, $function ) {
 
@@ -1440,76 +1459,6 @@ sub disable_all_cpanel_services ($self) {
     return;
 }
 
-sub _do_leapp_upgrade ($self) {
-
-    return unless $self->should_run_leapp();
-
-    $self->run_once('setup_answer_file');
-
-    INFO("Running leapp upgrade");
-
-    my $ok = eval {
-        local $ENV{LEAPP_OVL_SIZE} = read_stage_file('env')->{'LEAPP_OVL_SIZE'} || 3000;
-        $self->ssystem_and_die( { keep_env => 1 }, qw{/usr/bin/leapp upgrade} );
-        1;
-    };
-
-    return 1 if $ok;
-
-    my $msg = <<'EOS';
-The 'leapp upgrade' process failed.
-
-Please investigate, resolve then re-run the following command to continue the update:
-
-    /scripts/elevate-cpanel --continue
-
-EOS
-
-    my $leapp_json_report = LEAPP_REPORT_JSON;
-    if ( -e $leapp_json_report ) {
-        my $report = eval { Cpanel::JSON::LoadFile($leapp_json_report) } // {};
-
-        my $entries = $report->{entries};
-        if ( ref $entries eq 'ARRAY' ) {
-            foreach my $e (@$entries) {
-                next unless ref $e && $e->{title} =~ qr{Missing.*answer}i;
-
-                $msg .= $e->{summary} if $e->{summary};
-
-                if ( ref $e->{detail} ) {
-                    my $d = $e->{detail};
-
-                    if ( ref $d->{remediations} ) {
-                        foreach my $remed ( $d->{remediations}->@* ) {
-                            next unless $remed->{type} && $remed->{type} eq 'command';
-                            next unless ref $remed->{context};
-                            my @hint = $remed->{context}->@*;
-                            next unless scalar @hint;
-                            $hint[0] = q[/usr/bin/leapp] if $hint[0] && $hint[0] eq 'leapp';
-                            my $cmd = join( ' ', @hint );
-
-                            $msg .= "\n\n";
-                            $msg .= <<"EOS";
-Consider running this command:
-
-    $cmd
-EOS
-                        }
-                    }
-
-                }
-
-            }
-        }
-    }
-
-    if ( -e LEAPP_REPORT_TXT ) {
-        $msg .= qq[\nYou can read the full leapp report at: ] . LEAPP_REPORT_TXT;
-    }
-
-    die qq[$msg\n];
-}
-
 # remove and store
 sub run_final_components_pre_leapp ($self) {
 
@@ -1664,52 +1613,18 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
 
 sub post_upgrade_check ($self) {
 
-    my $expect_distro = $self->upgrade_to_rocky() ? 'rocky' : 'almalinux';
+    my $expect_distro = Elevate::OS::upgrade_to();
+    $expect_distro = lc $expect_distro;
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        FATAL("Your distro does not looks like $pretty_distro_name.");
-        return 1;
+        die "Your distro does not look like $pretty_distro_name.\n";
     }
 
     # call a cpanel binary
     $self->ssystem_and_die(qw{/usr/local/cpanel/cpanel -V});
 
     return 0;
-}
-
-=pod
-
-    > cat /var/log/leapp/answerfile
-    [remove_pam_pkcs11_module_check]
-    confirm=True
-=cut
-
-sub setup_answer_file {
-    my $leapp_dir = '/var/log/leapp';
-    mkdir $leapp_dir unless -d $leapp_dir;
-
-    my $answerfile_path = $leapp_dir . '/answerfile';
-    system touch => $answerfile_path unless -e $answerfile_path;
-
-    my $do_write;    # no point in overwriting the file if nothing needs to change
-
-    my $ini_obj = Config::Tiny->read( $answerfile_path, 'utf8' );
-    LOGDIE( 'Failed to read leapp answerfile: ' . Config::Tiny->errstr ) unless $ini_obj;
-
-    my $SECTION = 'remove_pam_pkcs11_module_check';
-
-    if ( not defined $ini_obj->{$SECTION}->{'confirm'} or $ini_obj->{$SECTION}->{'confirm'} ne 'True' ) {
-        $do_write = 1;
-        $ini_obj->{$SECTION}->{'confirm'} = 'True';
-    }
-
-    if ($do_write) {
-        $ini_obj->write( $answerfile_path, 'utf8' )    #
-          or LOGDIE( 'Failed to write leapp answerfile: ' . $ini_obj->errstr );
-    }
-
-    return;
 }
 
 # TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.

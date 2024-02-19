@@ -102,28 +102,34 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
     return;
 }
 
-sub test_missing_ea4_profile : Test(3) ($self) {
+sub test_missing_ea4_profile : Test(6) ($self) {
 
-    $self->{mock_saferun}->redefine(
-        saferunnoerror => sub {
-            note "saferunnoerror: no output";
-            return;
-        },
-    );
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
 
-    my $ea4 = cpev->new->component('EA4');
-    like(
-        dies { $ea4->_backup_ea4_profile() },
-        qr/Unable to backup EA4 profile/,
-        "Unable to backup EA4 profile - no profile file"
-    );
+        $self->{mock_saferun}->redefine(
+            saferunnoerror => sub {
+                note "saferunnoerror: no output";
+                return;
+            },
+        );
 
-    _message_run_ea_current_to_profile();
+        my $ea4 = cpev->new->component('EA4');
+        like(
+            dies { $ea4->_backup_ea4_profile() },
+            qr/Unable to backup EA4 profile/,
+            "Unable to backup EA4 profile - no profile file"
+        );
+
+        _message_run_ea_current_to_profile($os);
+    }
 
     return;
 }
 
 sub test_get_ea4_profile : Test(10) ($self) {
+
+    set_os_to('cent');
 
     my $profile = PROFILE_FILE;
     my $output  = qq[$profile\n];
@@ -140,7 +146,7 @@ sub test_get_ea4_profile : Test(10) ($self) {
     my $ea4 = cpev->new->component('EA4');
 
     is( $ea4->_get_ea4_profile(), PROFILE_FILE, "_get_ea4_profile" );
-    _message_run_ea_current_to_profile(1);
+    _message_run_ea_current_to_profile( 'cent', 1 );
 
     $output = <<'EOS';
 The following packages are not available on AlmaLinux_8 and have been removed from the profile
@@ -176,41 +182,46 @@ EOS
 
     is( $ea4->_get_ea4_profile(), $f, "_get_ea4_profile with noise..." );
 
-    _message_run_ea_current_to_profile($f);
+    _message_run_ea_current_to_profile( 'cent', $f );
 
     return;
 }
 
-sub test_get_ea4_profile_check_mode : Test(7) ($self) {
+sub test_get_ea4_profile_check_mode : Test(14) ($self) {
 
-    my $output = qq[void\n];
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
 
-    my $cpev = cpev->new( _is_check_mode => 1 );
-    ok -d $cpev->tmp_dir, "tmp_dir works";
+        my $output = qq[void\n];
 
-    my $mock_b = Test::MockModule->new('Elevate::Blockers')    #
-      ->redefine( is_check_mode => 1 );
+        my $cpev = cpev->new( _is_check_mode => 1 );
+        ok -d $cpev->tmp_dir, "tmp_dir works";
 
-    ok( Elevate::Blockers->is_check_mode(), 'Elevate::Blockers->is_check_mode()' );
+        my $mock_b = Test::MockModule->new('Elevate::Blockers')    #
+          ->redefine( is_check_mode => 1 );
 
-    my $expected_profile = $cpev->tmp_dir() . '/ea_profile.json';
-    {
-        open( my $fh, '>', $expected_profile ) or die;
-        print {$fh} "...\n";
+        ok( Elevate::Blockers->is_check_mode(), 'Elevate::Blockers->is_check_mode()' );
+
+        my $expected_profile = $cpev->tmp_dir() . '/ea_profile.json';
+        {
+            open( my $fh, '>', $expected_profile ) or die;
+            print {$fh} "...\n";
+        }
+
+        $self->{mock_saferun}->redefine(
+            saferunnoerror => sub {
+                note "saferunnoerror: ", $output;
+                return $output;
+            },
+        );
+
+        my $ea4 = $cpev->component('EA4');
+        is( $ea4->_get_ea4_profile(), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
+
+        my $expected_target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
+        message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
+        message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
     }
-
-    $self->{mock_saferun}->redefine(
-        saferunnoerror => sub {
-            note "saferunnoerror: ", $output;
-            return $output;
-        },
-    );
-
-    my $ea4 = $cpev->component('EA4');
-    is( $ea4->_get_ea4_profile(), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
-
-    message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8 --output=$expected_profile" );
-    message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
 
     return;
 }
@@ -229,27 +240,31 @@ sub test_tmp_dir : Test(3) ($self) {
     return;
 }
 
-sub backup_non_existing_profile : Test(10) ($self) {
+sub backup_non_existing_profile : Test(16) ($self) {
 
     my $ea4 = cpev->new->component('EA4');
 
-    like(
-        dies { $ea4->_backup_ea4_profile() },
-        qr/Unable to backup EA4 profile/,
-        "Unable to backup EA4 profile - non existing profile file"
-    );
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
 
-    _message_run_ea_current_to_profile();
+        like(
+            dies { $ea4->_backup_ea4_profile() },
+            qr/Unable to backup EA4 profile/,
+            "Unable to backup EA4 profile - non existing profile file"
+        );
 
-    $self->{mock_profile}->contents('');
+        _message_run_ea_current_to_profile($os);
 
-    like(
-        dies { $ea4->_backup_ea4_profile() },
-        qr/Unable to backup EA4 profile/,
-        "Unable to backup EA4 profile - empty profile file"
-    );
+        $self->{mock_profile}->contents('');
 
-    _message_run_ea_current_to_profile();
+        like(
+            dies { $ea4->_backup_ea4_profile() },
+            qr/Unable to backup EA4 profile/,
+            "Unable to backup EA4 profile - empty profile file"
+        );
+
+        _message_run_ea_current_to_profile($os);
+    }
 
     is cpev::read_stage_file(), { ea4 => { enable => 1 } }, "stage file - ea4 is enabled but we failed";
     is $ea4->_restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
@@ -259,7 +274,7 @@ sub backup_non_existing_profile : Test(10) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
+sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
 
     my $ea4 = cpev->new->component('EA4');
 
@@ -267,8 +282,12 @@ sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
 
     $self->_update_profile_file($profile);
 
-    is( $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4" );
-    _message_run_ea_current_to_profile(1);
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+
+        is( $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4" );
+        _message_run_ea_current_to_profile( $os, 1 );
+    }
 
     is cpev::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
 
@@ -279,102 +298,113 @@ sub test_backup_and_restore_ea4_profile : Test(8) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_dropped_packages : Test(14) ($self) {
+sub test_backup_and_restore_ea4_profile_dropped_packages : Test(28) ($self) {
 
     my $ea4 = cpev->new->component('EA4');
 
-    my $profile = {
-        "os_upgrade" => {
-            "source_os"          => "<the source OS’s display name>",
-            "target_os"          => "<the --target-os=value value>",
-            "target_obs_project" => "<the target os’s OBS project>",
-            "dropped_pkgs"       => {
-                "ea-bar" => "reg",
-                "ea-baz" => "exp"
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+
+        my $profile = {
+            "os_upgrade" => {
+                "source_os"          => "<the source OS’s display name>",
+                "target_os"          => "<the --target-os=value value>",
+                "target_obs_project" => "<the target os’s OBS project>",
+                "dropped_pkgs"       => {
+                    "ea-bar" => "reg",
+                    "ea-baz" => "exp"
+                }
             }
-        }
-    };
-    $self->_update_profile_file($profile);
+        };
+        $self->_update_profile_file($profile);
 
-    is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
-    _message_run_ea_current_to_profile(1);
+        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        _message_run_ea_current_to_profile( $os, 1 );
 
-    is cpev::read_stage_file(), {
-        ea4 => {
-            enable       => 1,                                        #
-            profile      => PROFILE_FILE,                             #
-            dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
-        }
-      },
-      "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
+        is cpev::read_stage_file(), {
+            ea4 => {
+                enable       => 1,                                        #
+                profile      => PROFILE_FILE,                             #
+                dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
+            }
+          },
+          "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
 
-    is $ea4->_restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
-    is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
-      or diag explain $self->{last_ssystem_call};
+        is $ea4->_restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
+        is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
+          or diag explain $self->{last_ssystem_call};
 
-    my $expect = <<'EOS';
+        my $expect = <<'EOS';
 One or more EasyApache 4 package(s) cannot be restored from your previous profile:
 - 'ea-bar'
 - 'ea-baz' ( package was Experimental in CentOS 7 )
 EOS
-    chomp $expect;
-    foreach my $l ( split( "\n", $expect ) ) {
-        message_seen( 'WARN' => $l );
+        chomp $expect;
+        foreach my $l ( split( "\n", $expect ) ) {
+            message_seen( 'WARN' => $l );
+        }
+
+        $stage_file->unlink;
     }
 
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(14) ($self) {
+sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($self) {
 
     my $ea4 = cpev->new->component('EA4');
 
-    my $profile = {
-        "os_upgrade" => {
-            "source_os"          => "<the source OS’s display name>",
-            "target_os"          => "<the --target-os=value value>",
-            "target_obs_project" => "<the target os’s OBS project>",
-            "dropped_pkgs"       => {
-                "ea-bar" => "reg",
-                "ea-baz" => "exp"
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+
+        my $profile = {
+            "os_upgrade" => {
+                "source_os"          => "<the source OS’s display name>",
+                "target_os"          => "<the --target-os=value value>",
+                "target_obs_project" => "<the target os’s OBS project>",
+                "dropped_pkgs"       => {
+                    "ea-bar" => "reg",
+                    "ea-baz" => "exp"
+                }
             }
-        }
-    };
-    $self->_update_profile_file($profile);
+        };
+        $self->_update_profile_file($profile);
 
-    is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
-    _message_run_ea_current_to_profile(1);
+        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        _message_run_ea_current_to_profile( $os, 1 );
 
-    is cpev::read_stage_file(), {
-        ea4 => {
-            enable       => 1,                                        #
-            profile      => PROFILE_FILE,                             #
-            dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
-        }
-      },
-      "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
+        is cpev::read_stage_file(), {
+            ea4 => {
+                enable       => 1,                                        #
+                profile      => PROFILE_FILE,                             #
+                dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
+            }
+          },
+          "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
 
-    $profile = {
-        "os_upgrade" => {
-            "source_os"          => "<the source OS’s display name>",
-            "target_os"          => "<the --target-os=value value>",
-            "target_obs_project" => "<the target os’s OBS project>",
-        }
-    };
-    $self->_update_profile_file($profile);
+        $profile = {
+            "os_upgrade" => {
+                "source_os"          => "<the source OS’s display name>",
+                "target_os"          => "<the --target-os=value value>",
+                "target_obs_project" => "<the target os’s OBS project>",
+            }
+        };
+        $self->_update_profile_file($profile);
 
-    is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
-    _message_run_ea_current_to_profile(1);
+        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        _message_run_ea_current_to_profile( $os, 1 );
 
-    my $stage = cpev::read_stage_file();
-    is $stage, {
-        ea4 => {
-            enable  => 1,               #
-            profile => PROFILE_FILE,    #
-        }
-      },
-      "stage file - ea4 is enabled / profile: clear the dropped_pkgs hash"
-      or diag explain $stage;
+        my $stage = cpev::read_stage_file();
+        is $stage, {
+            ea4 => {
+                enable  => 1,               #
+                profile => PROFILE_FILE,    #
+            }
+          },
+          "stage file - ea4 is enabled / profile: clear the dropped_pkgs hash"
+          or diag explain $stage;
+
+    }
 
     return;
 
@@ -512,9 +542,11 @@ Please remove these packages before continuing the update.
 
 ## helpers
 
-sub _message_run_ea_current_to_profile ( $success = 0 ) {
+sub _message_run_ea_current_to_profile ( $os = 'cent', $success = 0 ) {
 
-    message_seen( 'INFO' => q[Running: /usr/local/bin/ea_current_to_profile --target-os=AlmaLinux_8] );
+    my $target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
+
+    message_seen( 'INFO' => qq[Running: /usr/local/bin/ea_current_to_profile --target-os=$target] );
     return unless $success;
 
     my $f = $success eq 1 ? PROFILE_FILE : $success;

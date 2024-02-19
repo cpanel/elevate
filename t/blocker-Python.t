@@ -12,6 +12,7 @@ use Test2::Plugin::NoWarnings;
 use Test::MockModule qw{strict};
 
 use Elevate::Blockers::Python ();
+use Elevate::OS               ();
 
 my %mocks = map { $_ => Test::MockModule->new($_); } qw{
   Cpanel::Pkgr
@@ -40,3 +41,11 @@ my $expected = {
 is( $obj->check, $expected, "Got expected blocker returned when found" );
 
 done_testing();
+
+# ------------------------------ #
+
+package cpev;
+
+sub read_stage_file {
+    return 'CentOS7';
+}
