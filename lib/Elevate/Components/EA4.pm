@@ -13,7 +13,9 @@ Perform am EA4 backup pre-elevate then restore it after the elevation process.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 use Elevate::RPM       ();
+use Elevate::YUM       ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -73,7 +75,7 @@ sub post_leapp ($self) {
 sub _cleanup_rpm_db ($self) {
 
     # remove all ea- packages
-    $self->ssystem(q{/usr/bin/yum -y erase ea-*});
+    $self->yum->remove('ea-*');
 
     return;
 }
@@ -134,8 +136,7 @@ sub _backup_ea4_profile ($self) {    ## _backup_ea4_profile
 
 sub _get_ea4_profile ($self) {
 
-    # obs_project_aliases from /etc/cpanel/ea4/ea4-metainfo.json
-    my $ea_alias = $self->upgrade_to_rocky() ? 'CentOS_8' : 'AlmaLinux_8';
+    my $ea_alias = Elevate::OS::ea_alias();
 
     my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
 

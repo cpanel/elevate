@@ -18,12 +18,14 @@ use constant MINIMUM_CENTOS_7_SUPPORTED => 9;
 
 use parent qw{Elevate::Blockers::Base};
 
+use Elevate::OS ();
+
 use Log::Log4perl qw(:easy);
 
 sub check ($self) {
 
     my @checks = qw{
-      _blocker_is_non_centos7
+      _blocker_os_is_not_supported
       _blocker_is_old_centos7
       _blocker_is_experimental_os
     };
@@ -36,16 +38,13 @@ sub check ($self) {
     return 0;
 }
 
-sub _blocker_is_non_centos7 ($self) {
-    unless ( Cpanel::OS::major() == 7 && Cpanel::OS::distro() eq 'centos' ) {
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
-        return $self->has_blocker(qq[This script is only designed to upgrade CentOS 7 to $pretty_distro_name.]);
-    }
-
+sub _blocker_os_is_not_supported ($self) {
+    Elevate::OS::is_supported();    # dies
     return 0;
 }
 
 sub _blocker_is_old_centos7 ($self) {
+
     if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         return $self->has_blocker(
@@ -69,12 +68,7 @@ sub _blocker_is_experimental_os ($self) {
 
 # We are OK if can_be_elevated or if
 sub bail_out_on_inappropriate_distro () {
-
-    if ( !( eval { Cpanel::OS::can_be_elevated() } // ( Cpanel::OS::distro() eq 'centos' && Cpanel::OS::major() == 7 ) ) ) {
-        FATAL(qq[This script is designed to only run on CentOS 7 servers.\n]);
-        exit 1;
-    }
-
+    Elevate::OS::is_supported();    # dies
     return;
 }
 

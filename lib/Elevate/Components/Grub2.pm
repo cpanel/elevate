@@ -28,10 +28,6 @@ use Elevate::Blockers ();
 use constant GRUB_EDITENV  => '/usr/bin/grub2-editenv';
 use constant GRUB_ENV_FILE => '/boot/grub2/grubenv';
 
-##
-## Call early so we can use a blocker based on existing ea4 profile
-##
-
 sub pre_leapp ($self) {
 
     $self->run_once('_update_grub2_workaround_if_needed');    # required part

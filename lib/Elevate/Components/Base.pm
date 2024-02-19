@@ -19,6 +19,8 @@ use Carp             ();
 use Simple::Accessor qw(
   cpev
   rpm
+  yum
+  dnf
 );
 
 use Log::Log4perl qw(:easy);
@@ -50,6 +52,14 @@ BEGIN {
 
 sub _build_rpm ($self) {
     return Elevate::RPM->new( cpev => $self );
+}
+
+sub _build_yum ($self) {
+    return Elevate::YUM->new( cpev => $self );
+}
+
+sub _build_dnf ($self) {
+    return Elevate::DNF->new( cpev => $self );
 }
 
 sub run_once ( $self, $subname ) {
