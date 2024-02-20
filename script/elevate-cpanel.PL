@@ -1190,7 +1190,7 @@ sub run_stage_4 ($self) {
 
     my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
       leapp leapp-data-almalinux leapp-data-rocky leapp-data-cloudlinux leapp-upgrade-el7toel8
-      python2-leapp alt-pcre802 alt-pcre802-devel};
+      python2-leapp};
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
 
     INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
