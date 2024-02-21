@@ -82,23 +82,30 @@ my $whm  = $cpev->get_blocker('WHM');
 {
     note "cPanel & WHM minimum LTS.";
 
-    local $Cpanel::Version::Tiny::major_version = 100;
-    local $Cpanel::Version::Tiny::VERSION_BUILD = '11.109.0.9999';
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+        my $cpev = cpev->new;
+        my $whm  = $cpev->get_blocker('WHM');
 
-    like(
-        $whm->_blocker_is_newer_than_lts(),
-        {
-            id  => q[Elevate::Blockers::WHM::_blocker_is_newer_than_lts],
-            msg => qr{
-                    \QThis version 11.109.0.9999 does not support upgrades to AlmaLinux 8.\E \s+
+        local $Cpanel::Version::Tiny::major_version = 100;
+        local $Cpanel::Version::Tiny::VERSION_BUILD = '11.109.0.9999';
+
+        my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        like(
+            $whm->_blocker_is_newer_than_lts(),
+            {
+                id  => q[Elevate::Blockers::WHM::_blocker_is_newer_than_lts],
+                msg => qr{
+                    \QThis version 11.109.0.9999 does not support upgrades to $expected_target_os.\E \s+
                     \QPlease ensure the cPanel version is 110.\E
                 }xms,
-        },
-        q{cPanel version must be above the known LTS.}
-    );
+            },
+            q{cPanel version must be above the known LTS.}
+        );
 
-    $Cpanel::Version::Tiny::major_version = Elevate::Constants::MINIMUM_LTS_SUPPORTED;
-    is( $whm->_blocker_is_newer_than_lts(), 0, 'Recent LTS version passes this test.' );
+        $Cpanel::Version::Tiny::major_version = Elevate::Constants::MINIMUM_LTS_SUPPORTED;
+        is( $whm->_blocker_is_newer_than_lts(), 0, 'Recent LTS version passes this test.' );
+    }
 
 }
 

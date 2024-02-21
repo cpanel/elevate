@@ -15,6 +15,7 @@ use cPstrict;
 use Elevate::Constants ();
 use Elevate::Fetch     ();
 use Elevate::Notify    ();
+use Elevate::OS        ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -33,6 +34,8 @@ use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . 
 
 sub pre_leapp ($self) {
 
+    return if Elevate::OS::leapp_can_handle_imunify();
+
     return unless $self->is_installed;
 
     $self->run_once("_capture_imunify_features");
@@ -43,6 +46,8 @@ sub pre_leapp ($self) {
 }
 
 sub post_leapp ($self) {
+
+    return if Elevate::OS::leapp_can_handle_imunify();
 
     # order matters
     $self->run_once('_reinstall_imunify_360');

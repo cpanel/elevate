@@ -16,98 +16,11 @@ use Cpanel::OS   ();
 use Cpanel::JSON ();
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
-
-# still used by disable_known_yum_repositories function
-use constant DISABLE_MYSQL_YUM_REPOS => qw{
-  Mysql57.repo
-  Mysql80.repo
-
-  MariaDB102.repo
-  MariaDB103.repo
-  MariaDB105.repo
-  MariaDB106.repo
-
-  mysql-community.repo
-};
-
-# FIXME use some RegExp...
-use constant VETTED_MYSQL_YUM_REPO_IDS => qw{
-  mysql-cluster-7.5-community
-  mysql-cluster-7.5-community-source
-  mysql-cluster-7.5-community-source
-  mysql-cluster-7.6-community
-  mysql-cluster-7.6-community-source
-  mysql-cluster-7.6-community-source
-  mysql-cluster-8.0-community
-  mysql-cluster-8.0-community-debuginfo
-  mysql-cluster-8.0-community-source
-  mysql-connectors-community
-  mysql-connectors-community-debuginfo
-  mysql-connectors-community-source
-  mysql-connectors-community-source
-  mysql-tools-community
-  mysql-tools-community-debuginfo
-  mysql-tools-community-source
-  mysql-tools-preview
-  mysql-tools-preview-source
-  mysql55-community
-  mysql55-community-source
-  mysql56-community
-  mysql56-community-source
-  mysql57-community
-  mysql57-community-source
-  mysql80-community
-  mysql80-community-debuginfo
-  mysql80-community-source
-  MariaDB102
-  MariaDB103
-  MariaDB105
-  MariaDB106
-};
-
-use constant VETTED_YUM_REPO => qw{
-  base
-  c7-media
-  centos-kernel
-  centos-kernel-experimental
-  centosplus
-  cp-dev-tools
-  cpanel-addons-production-feed
-  cpanel-plugins
-  cr
-  ct-preset
-  digitalocean-agent
-  droplet-agent
-  EA4
-  EA4-c$releasever
-  elasticsearch
-  elasticsearch-7.x
-  elevate
-  elevate-source
-  epel
-  epel-testing
-  extras
-  fasttrack
-  imunify360
-  imunify360-ea-php-hardened
-  imunify360-rollout-1
-  imunify360-rollout-2
-  imunify360-rollout-3
-  imunify360-rollout-4
-  imunify360-rollout-5
-  imunify360-rollout-6
-  imunify360-rollout-7
-  imunify360-rollout-8
-  influxdb
-  kernelcare
-  updates
-  wp-toolkit-cpanel
-  wp-toolkit-thirdparties
-}, VETTED_MYSQL_YUM_REPO_IDS;
 
 sub check ($self) {
     my $ok = 1;
@@ -213,7 +126,7 @@ sub _check_yum_repos ($self) {
     $self->{_yum_repos_to_disable}                = [];
     $self->{_yum_repos_unsupported_with_packages} = [];
 
-    my %vetted = map { $_ => 1 } VETTED_YUM_REPO;
+    my @vetted_repos = Elevate::OS::vetted_yum_repo();
 
     my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 
@@ -240,7 +153,7 @@ sub _check_yum_repos ($self) {
             return unless length $current_repo_name;
             return unless $current_repo_enabled;
 
-            my $is_vetted = $vetted{$current_repo_name} || $vetted{ lc $current_repo_name };
+            my $is_vetted = grep { $current_repo_name =~ m/$_/ } @vetted_repos;
 
             if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;

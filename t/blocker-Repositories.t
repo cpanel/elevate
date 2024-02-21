@@ -67,9 +67,13 @@ my $mocked_yum_repos_d = Test::MockFile->dir($path_yum_repos_d);
 #mkdir $path_yum_repos_d;
 is $yum->_check_yum_repos(), undef, "no blockers when directory is empty";
 
-ok scalar Elevate::Blockers::Repositories::VETTED_YUM_REPO(), "VETTED_YUM_REPO populated";
+for my $os ( 'cent', 'cloud' ) {
+    set_os_to($os);
 
-ok( grep( { 'MariaDB103' } Elevate::Blockers::Repositories::VETTED_YUM_REPO() ), 'MariaDB103 is a valid repo' );
+    ok scalar Elevate::OS::vetted_yum_repo(), 'vetted_yum_repo populated';
+
+    ok( grep( { 'MariaDB103' } Elevate::OS::vetted_yum_repo() ), 'MariaDB103 is a valid repo' );
+}
 
 my $mock_vetted_repo = Test::MockFile->file( "$path_yum_repos_d/MariaDB103.repo" => q[MariaDB103] );
 

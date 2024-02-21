@@ -247,35 +247,76 @@ foreach my $test_hr (@TEST_DATA) {
 # Test out setting --upgrade-to to different values
 #
 
-my $mock_cpev = Test::MockModule->new('cpev');
-$mock_cpev->redefine(
-    _read_stage_file => sub {
-        return {};
-    }
-);
+{
+    note 'Test as CentOS 7 server';
 
-my $cpev = cpev->new->_init( '--check', '--upgrade-to=OogaBoogaLinux' );
+    set_os_to_centos_7();
 
-like(
-    dies { $cpev->_parse_opt_upgrade_to() },
-    qr/Invalid --upgrade_to value/,
-    'Exception thrown for invalid linux distro'
-);
+    my $cpev = cpev->new->_init( '--check', '--upgrade-to=OogaBoogaLinux' );
 
-$cpev = cpev->new->_init('--check');
+    like(
+        dies { $cpev->_parse_opt_upgrade_to() },
+        qr/The current OS can only upgrade to the following flavors/,
+        'Exception thrown for invalid linux distro'
+    );
 
-ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to not supplied';
-is $cpev->upgrade_to(), 'AlmaLinux', 'Defaults to AlmaLinux when upgrade-to not specified';
+    $cpev = cpev->new->_init('--check');
 
-$cpev = cpev->new->_init( '--check', '--upgrade-to=almalinux' );
+    ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to not supplied';
+    is $cpev->upgrade_to(), 'AlmaLinux', 'CentOS 7 defaults to AlmaLinux when upgrade-to not specified';
 
-ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to set to AlmaLinux';
-is $cpev->upgrade_to(), 'AlmaLinux', 'Set to use AlmaLinux when upgrade-to set to AlmaLinux';
+    $cpev = cpev->new->_init( '--check', '--upgrade-to=almalinux' );
 
-$cpev = cpev->new->_init( '--check', '--upgrade-to=rocky' );
+    ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to set to AlmaLinux';
+    is $cpev->upgrade_to(), 'AlmaLinux', 'Set to use AlmaLinux when upgrade-to set to AlmaLinux';
 
-ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to set to Rocky';
-is $cpev->upgrade_to(), 'Rocky', 'Set to use Rocky when upgrade-to set to Rocky';
+    $cpev = cpev->new->_init( '--check', '--upgrade-to=rocky' );
+
+    ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to set to Rocky';
+    is $cpev->upgrade_to(), 'Rocky', 'Set to use Rocky when upgrade-to set to Rocky';
+
+    $cpev = cpev->new->_init( '--check', '--upgrade-to=cloudlinux' );
+
+    like(
+        dies { $cpev->_parse_opt_upgrade_to() },
+        qr/The current OS can only upgrade to the following flavors/,
+        'Exception thrown for CloudLinux when the OS is CentOS 7',
+    );
+
+}
+
+{
+    note 'Test as CloudLinux 7 server';
+
+    set_os_to_cloudlinux_7();
+
+    my $cpev = cpev->new->_init('--check');
+
+    ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to not supplied';
+    is $cpev->upgrade_to(), 'CloudLinux', 'CloudLinux 7 defaults to CloudLinux when upgrade-to not specified';
+
+    $cpev = cpev->new->_init( '--check', '--upgrade-to=almalinux' );
+
+    like(
+        dies { $cpev->_parse_opt_upgrade_to() },
+        qr/The current OS can only upgrade to the following flavors/,
+        'Exception thrown for AlmaLinux when the OS is CloudLinux 7',
+    );
+
+    $cpev = cpev->new->_init( '--check', '--upgrade-to=rocky' );
+
+    like(
+        dies { $cpev->_parse_opt_upgrade_to() },
+        qr/The current OS can only upgrade to the following flavors/,
+        'Exception thrown for Rocky Linux when the OS is CloudLinux 7',
+    );
+
+    $cpev = cpev->new->_init( '--check', '--upgrade-to=cloudlinux' );
+
+    ok lives { $cpev->_parse_opt_upgrade_to() }, 'No exception when upgrade-to set to cloudlinux';
+    is $cpev->upgrade_to(), 'CloudLinux', 'Set to use CloudLinux when upgrade-to set to CloudLinux';
+
+}
 
 #
 # Test out the --non-interactive parameter
@@ -291,7 +332,7 @@ $mock_io_prompt->redefine(
     }
 );
 
-$cpev = cpev->new->_init('--start');
+my $cpev = cpev->new->_init('--start');
 $cpev->give_last_chance();
 is $user_has_been_prompted, 1, 'IP::Prompt invoked without the non-interactive option';
 
