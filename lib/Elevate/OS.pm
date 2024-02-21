@@ -69,23 +69,24 @@ BEGIN {
     # The value specifies how many args the method is designed to take.
     %methods = map { $_ => 0 } (
         ### General distro specific methods.
-        'available_upgrade_paths',        # This returns a list of possible upgrade paths for the OS
-        'default_upgrade_to',             # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
-        'disable_mysql_yum_repos',        # This is a list of mysql repo files to disable
-        'ea_alias',                       # This is the value for the --target-os flag used when backing up an EA4 profile
-        'elevate_rpm_url',                # This is the URL used to install the leapp RPM/repo
-        'is_experimental',                # This is used to determine if the OS is experimental or not
-        'is_supported',                   # This is used to determine if the OS is supported or not
-        'leapp_can_handle_epel',          # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
-        'leapp_can_handle_imunify',       # This is used to determine if we can skip the Imunify component or not
-        'leapp_can_handle_kernelcare',    # This is used to determine if we can skip the kernelcare component or not
-        'leapp_can_handle_python36',      # This is used to determine if we can skip the python36 blocker or not
-        'leapp_data_pkg',                 # This is used to determine which leapp data package to install
-        'leapp_flag',                     # This is used to determine if we need to pass any flags to the leapp script or not
-        'name',                           # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
-        'pretty_name',                    # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
-        'vetted_mysql_yum_repo_ids',      # This is a list of known mysql yum repo ids
-        'vetted_yum_repo',                # This is a list of known yum repos that we do not block on
+        'available_upgrade_paths',            # This returns a list of possible upgrade paths for the OS
+        'default_upgrade_to',                 # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
+        'disable_mysql_yum_repos',            # This is a list of mysql repo files to disable
+        'ea_alias',                           # This is the value for the --target-os flag used when backing up an EA4 profile
+        'elevate_rpm_url',                    # This is the URL used to install the leapp RPM/repo
+        'is_experimental',                    # This is used to determine if the OS is experimental or not
+        'is_supported',                       # This is used to determine if the OS is supported or not
+        'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
+        'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
+        'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
+        'leapp_can_handle_python36',          # This is used to determine if we can skip the python36 blocker or not
+        'leapp_data_pkg',                     # This is used to determine which leapp data package to install
+        'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
+        'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+        'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
+        'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
+        'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
+        'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
     );
 }
 

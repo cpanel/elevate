@@ -19,6 +19,7 @@ use cPstrict;
 use Elevate::Blockers::Base ();
 
 use Elevate::Blockers::AbsoluteSymlinks ();
+use Elevate::Blockers::CloudLinux       ();
 use Elevate::Blockers::Databases        ();
 use Elevate::Blockers::DiskSpace        ();
 use Elevate::Blockers::Distros          ();
@@ -56,6 +57,7 @@ our @BLOCKERS = qw{
   DiskSpace
   WHM
   Distros
+  CloudLinux
   DNS
 
   Databases
@@ -129,7 +131,7 @@ sub _has_blockers ( $self, $check_mode = 0 ) {
         my $error = $@;
         if ( ref $error eq 'cpev::Blocker' ) {
             ERROR( $error->{msg} );
-            return $error->{id} // 401;
+            return 401;
         }
         WARN("Unknown error while checking blockers: $error");
         return 127;    # unknown error

@@ -261,6 +261,7 @@ use Elevate::Blockers::Base             ();
 use Elevate::Blockers                   ();
 use Elevate::Blockers::AbsoluteSymlinks ();
 use Elevate::Blockers::BootKernel       ();
+use Elevate::Blockers::CloudLinux       ();
 use Elevate::Blockers::Databases        ();
 use Elevate::Blockers::DiskSpace        ();
 use Elevate::Blockers::Distros          ();
