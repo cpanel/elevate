@@ -1,3 +1,7 @@
+##### **2024-02-21** - version 25
+
+* Fixed case RE-206: Do not remove &#39;alt-pcre802&#39; post elevate to avoid breaking Cloudlinux ea-php51/ea-php52
+
 ##### **2024-02-19** - version 24
 
 * Fixed case RE-18: Add initial "Experimental" support for Elevating from CL7 to CL8.
