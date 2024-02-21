@@ -63,19 +63,20 @@ use constant vetted_yum_repo => (
   ),
   vetted_mysql_yum_repo_ids;
 
-use constant available_upgrade_paths     => undef;
-use constant default_upgrade_to          => undef;
-use constant ea_alias                    => undef;
-use constant elevate_rpm_url             => undef;
-use constant is_experimental             => 0;
-use constant is_supported                => 1;
-use constant leapp_can_handle_epel       => 0;
-use constant leapp_can_handle_imunify    => 0;
-use constant leapp_can_handle_kernelcare => 0;
-use constant leapp_can_handle_python36   => 0;
-use constant leapp_data_package          => undef;
-use constant leapp_flag                  => undef;
-use constant name                        => 'RHEL';
-use constant pretty_name                 => 'RHEL';
+use constant available_upgrade_paths         => undef;
+use constant default_upgrade_to              => undef;
+use constant ea_alias                        => undef;
+use constant elevate_rpm_url                 => undef;
+use constant is_experimental                 => 0;
+use constant is_supported                    => 1;
+use constant leapp_can_handle_epel           => 0;
+use constant leapp_can_handle_imunify        => 0;
+use constant leapp_can_handle_kernelcare     => 0;
+use constant leapp_can_handle_python36       => 0;
+use constant leapp_data_package              => undef;
+use constant leapp_flag                      => undef;
+use constant name                            => 'RHEL';
+use constant pretty_name                     => 'RHEL';
+use constant should_check_cloudlinux_license => 0;
 
 1;
