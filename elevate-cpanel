@@ -405,10 +405,9 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Constants ();
 
     use Cpanel::Kernel::Status ();
-
-    # use Cpanel::Exception      ();
-    use Cpanel::YAML ();
-    use Cpanel::JSON ();
+    use Cpanel::Exception      ();
+    use Cpanel::YAML           ();
+    use Cpanel::JSON           ();
 
     use Try::Tiny;
 

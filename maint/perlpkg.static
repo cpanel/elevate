@@ -2877,11 +2877,6 @@ foreach my $module ( sort keys %EMBEDDED_NON_CORE_MODULES ) {
 
 my @packages_injected = map { my $name = $_; $name =~ s{/}{::}g; $name =~ s{\.pm$}{}; $name } @modules_to_include;
 
-# if Cpanel::Exception::CORE is included also consider that Cpanel::Exception is in
-if ( grep { 'Cpanel::Exception::CORE' } @packages_injected ) {
-    push @packages_injected, 'Cpanel::Exception';
-}
-
 my $in_use_base            = 0;
 my $cpan_module_found      = 0;
 my $previous_module        = '';
