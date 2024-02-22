@@ -4388,6 +4388,7 @@ EOS
         'kernelcare',
         'updates',
         qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
+        'zabbix',
       ),
       vetted_mysql_yum_repo_ids;
 
