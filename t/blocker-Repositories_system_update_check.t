@@ -46,7 +46,7 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
     ok( $yum->_system_update_check(), '_system_update_check - success' );
     is \@cmds, [
         [qw{/usr/bin/yum clean all}],
-        [qw{/usr/bin/yum check-update -q}],
+        [q{/usr/bin/yum check-update -q | xargs -n3}],
         ['/scripts/sysup']
       ],
       "check yum & sysup" or diag explain \@cmds;
@@ -70,10 +70,19 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
         'ea-openssl11.x86_64                    1:1.1.1s-1.el7.cloudlinux cl-ea4         ',
     );
 
+    my $mock_cpanel_update_config = Test::MockModule->new('Cpanel::Update::Config');
+    $mock_cpanel_update_config->redefine(
+        load => sub {
+            return (
+                RPMUP => 'daily',
+            );
+        },
+    );
+
     is( $yum->_system_update_check(), undef, '_system_update_check - failure' );
     is \@cmds, [
         [qw{/usr/bin/yum clean all}],
-        [qw{/usr/bin/yum check-update -q}],
+        [q{/usr/bin/yum check-update -q | xargs -n3}],
       ],
       "check yum & warn; package update required outside of kernel" or diag explain \@cmds;
 
@@ -88,7 +97,7 @@ $logger_mock->redefine( init => sub { die "should not call init_logger" } );
     is( $yum->_system_update_check(), undef, '_system_update_check - failure' );
     is \@cmds, [
         [qw{/usr/bin/yum clean all}],
-        [qw{/usr/bin/yum check-update -q}],
+        [q{/usr/bin/yum check-update -q | xargs -n3}],
         ['/scripts/sysup']
       ],
       "check yum & warn, only view kernel update needed, then check sysup; " or diag explain \@cmds;

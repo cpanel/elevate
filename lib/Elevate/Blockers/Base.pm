@@ -12,7 +12,8 @@ This is the base package used by all blockers.
 
 use cPstrict;
 
-use Carp ();
+use Carp         ();
+use Cpanel::JSON ();
 
 use Simple::Accessor qw(
   blockers
@@ -90,7 +91,15 @@ sub has_blocker ( $self, $msg, %others ) {
         $caller_id ||= ref $self;
     }
 
-    my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others );
+    my $analytics_data;
+    if ( $others{info} ) {
+        my $info = $others{info};
+        die "Invalid data analytics given to blocker.  'info' must be a hash reference.\n" unless ref $info eq 'HASH';
+        $analytics_data = Cpanel::JSON::canonical_dump( [$info] );
+        delete $others{info};
+    }
+
+    my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others, info => $analytics_data );
     $self->blockers->add_blocker($blocker);
     die $blocker if $self->blockers->abort_on_first_blocker();
 
@@ -109,7 +118,7 @@ sub has_blocker ( $self, $msg, %others ) {
 
     package cpev::Blocker;
 
-    use Simple::Accessor qw{ id msg };
+    use Simple::Accessor qw{ id msg info };
 
     sub TO_JSON ($self) {
         my %hash = $self->%*;

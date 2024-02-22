@@ -41,6 +41,16 @@ my $mock_yum = Test::MockModule->new('Elevate::Blockers::Repositories');
             };
         }
     );
+
+    my $mock_cpanel_update_config = Test::MockModule->new('Cpanel::Update::Config');
+    $mock_cpanel_update_config->redefine(
+        load => sub {
+            return (
+                RPMUP => 'manual',
+            );
+        },
+    );
+
     my $ret = $yum->_system_update_check();
     is(
         $ret,
@@ -97,8 +107,12 @@ $cpev_mock->redefine( get_installed_rpms_in_repo => 1 );
 is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1 }, "Using an unknown enabled repo with installed packages detected";
 is $yum->{_yum_repos_unsupported_with_packages}[0],
   {
-    'json_report' => '{"name":"MyRepo","packages":["1"],"path":"/etc/yum.repos.d/Unknown.repo"}',
-    'name'        => 'MyRepo'
+    'name' => 'MyRepo',
+    'info' => {
+        name         => 'MyRepo',
+        path         => "$path_yum_repos_d/Unknown.repo",
+        num_packages => 1,
+    },
   },
   "Names and JSON data of repos are recorded in object";
 
