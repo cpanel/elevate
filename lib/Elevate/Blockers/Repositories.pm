@@ -256,15 +256,38 @@ sub _system_update_check ($self) {
         WARN("Your system is not up to date please run: /usr/bin/yum update");
 
         my $is_blocker;
-        my $output = $out->{stdout} // [];
+        my $output               = $out->{stdout} // [];
+        my $out_of_date_packages = {
+            'outdated_packages_count' => 0,
+            'outdated_packages'       => [],
+            'repositories'            => {},
+        };
         foreach my $line (@$output) {
             next if $line =~ qr{^\s+$};
             next if $line =~ qr{^kernel};    # do not block if we need to update kernel packages
             $is_blocker = 1;
-            last;
+
+            if ( my ( $pkg_name, $pkg_version, $pkg_repo ) = $line =~ qr{^([\w.-]+)\s+([\w.:-]+)\s+([\w-]+)$}x ) {
+                $out_of_date_packages->{'outdated_packages_count'}++;
+                push( @{ $out_of_date_packages->{'outdated_packages'} }, { 'name' => $pkg_name, 'version' => $pkg_version, 'repository' => $pkg_repo } );
+                push( @{ $out_of_date_packages->{'repositories'}->{$pkg_repo}->{'packages'} }, { 'name' => $pkg_name, 'version' => $pkg_version } );
+            }
         }
 
         # not a blocker when only kernels packages need to be updated
+        my $blocker_id = ref($self) . '::YumOutOfDate';
+        $self->has_blocker(
+            Cpanel::JSON::canonical_dump(
+                {
+                    'name'  => $blocker_id,
+                    'error' => 'YUM reports there are out of date packages.',
+                    'data'  => $out_of_date_packages,
+                }
+            ),
+            'blocker_id' => $blocker_id,
+            'quiet'      => 1
+        );
+
         return if $is_blocker;
     }
 
