@@ -91,6 +91,7 @@ sub has_blocker ( $self, $msg, %others ) {
     }
 
     my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others );
+    $self->blockers->add_blocker($blocker);
     die $blocker if $self->blockers->abort_on_first_blocker();
 
     if ( !$others{'quiet'} ) {
@@ -99,8 +100,6 @@ sub has_blocker ( $self, $msg, %others ) {
         $msg
         EOS
     }
-
-    $self->blockers->add_blocker($blocker);
 
     return $blocker;
 }

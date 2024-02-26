@@ -16,6 +16,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/AbsoluteSymlinks.pm'}   = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/BootKernel.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/CloudLinux.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Databases.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/DiskSpace.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Distros.pm'}            = 'script/elevate-cpanel.PL.static';
@@ -165,6 +166,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         }
 
         my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others );
+        $self->blockers->add_blocker($blocker);
         die $blocker if $self->blockers->abort_on_first_blocker();
 
         if ( !$others{'quiet'} ) {
@@ -173,8 +175,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
         $msg
         EOS
         }
-
-        $self->blockers->add_blocker($blocker);
 
         return $blocker;
     }
@@ -204,6 +204,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Blockers::Base ();
 
     use Elevate::Blockers::AbsoluteSymlinks ();
+    use Elevate::Blockers::CloudLinux       ();
     use Elevate::Blockers::Databases        ();
     use Elevate::Blockers::DiskSpace        ();
     use Elevate::Blockers::Distros          ();
@@ -240,6 +241,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       DiskSpace
       WHM
       Distros
+      CloudLinux
       DNS
 
       Databases
@@ -312,7 +314,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
             my $error = $@;
             if ( ref $error eq 'cpev::Blocker' ) {
                 ERROR( $error->{msg} );
-                return $error->{id} // 401;
+                return 401;
             }
             WARN("Unknown error while checking blockers: $error");
             return 127;    # unknown error
@@ -469,6 +471,51 @@ BEGIN {    # Suppress load of all of these at earliest point.
     1;
 
 }    # --- END lib/Elevate/Blockers/BootKernel.pm
+
+{    # --- BEGIN lib/Elevate/Blockers/CloudLinux.pm
+
+    package Elevate::Blockers::CloudLinux;
+
+    use cPstrict;
+
+    # use Elevate::Blockers::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
+
+    use Elevate::OS ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant CLDETECT  => '/usr/bin/cldetect';
+    use constant RHN_CHECK => '/usr/sbin/rhn_check';
+
+    sub check ($self) {
+        return $self->_check_cloudlinux_license();
+    }
+
+    sub _check_cloudlinux_license ($self) {
+        return 0 unless Elevate::OS::should_check_cloudlinux_license();
+
+        my $out = $self->ssystem_capture_output( CLDETECT, '--check-license' );
+
+        if ( $self->ssystem(RHN_CHECK) != 0 || $out->{status} != 0 || grep { $_ !~ m/^ok/i } @{ $out->{stdout} } ) {
+
+            $self->blockers->abort_on_first_blocker(1);
+
+            return $self->has_blocker( <<~'EOS');
+        The CloudLinux license is reporting that it is not currently valid.  A
+        valid CloudLinux license is required to ELevate from CloudLinux 7 to
+        CloudLinux 8.
+        EOS
+        }
+
+        return 0;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Blockers/CloudLinux.pm
 
 {    # --- BEGIN lib/Elevate/Blockers/Databases.pm
 
@@ -4195,23 +4242,24 @@ EOS
     BEGIN {
 
         %methods = map { $_ => 0 } (
-            'available_upgrade_paths',        # This returns a list of possible upgrade paths for the OS
-            'default_upgrade_to',             # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
-            'disable_mysql_yum_repos',        # This is a list of mysql repo files to disable
-            'ea_alias',                       # This is the value for the --target-os flag used when backing up an EA4 profile
-            'elevate_rpm_url',                # This is the URL used to install the leapp RPM/repo
-            'is_experimental',                # This is used to determine if the OS is experimental or not
-            'is_supported',                   # This is used to determine if the OS is supported or not
-            'leapp_can_handle_epel',          # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
-            'leapp_can_handle_imunify',       # This is used to determine if we can skip the Imunify component or not
-            'leapp_can_handle_kernelcare',    # This is used to determine if we can skip the kernelcare component or not
-            'leapp_can_handle_python36',      # This is used to determine if we can skip the python36 blocker or not
-            'leapp_data_pkg',                 # This is used to determine which leapp data package to install
-            'leapp_flag',                     # This is used to determine if we need to pass any flags to the leapp script or not
-            'name',                           # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
-            'pretty_name',                    # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
-            'vetted_mysql_yum_repo_ids',      # This is a list of known mysql yum repo ids
-            'vetted_yum_repo',                # This is a list of known yum repos that we do not block on
+            'available_upgrade_paths',            # This returns a list of possible upgrade paths for the OS
+            'default_upgrade_to',                 # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
+            'disable_mysql_yum_repos',            # This is a list of mysql repo files to disable
+            'ea_alias',                           # This is the value for the --target-os flag used when backing up an EA4 profile
+            'elevate_rpm_url',                    # This is the URL used to install the leapp RPM/repo
+            'is_experimental',                    # This is used to determine if the OS is experimental or not
+            'is_supported',                       # This is used to determine if the OS is supported or not
+            'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
+            'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
+            'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
+            'leapp_can_handle_python36',          # This is used to determine if we can skip the python36 blocker or not
+            'leapp_data_pkg',                     # This is used to determine which leapp data package to install
+            'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
+            'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+            'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
+            'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
+            'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
+            'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
         );
     }
 
@@ -4300,18 +4348,19 @@ EOS
         'cloudlinux',
     );
 
-    use constant default_upgrade_to          => 'CloudLinux';
-    use constant ea_alias                    => 'CloudLinux_8';
-    use constant elevate_rpm_url             => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
-    use constant is_experimental             => 1;
-    use constant leapp_can_handle_epel       => 1;
-    use constant leapp_can_handle_imunify    => 1;
-    use constant leapp_can_handle_kernelcare => 1;
-    use constant leapp_can_handle_python36   => 1;
-    use constant leapp_data_pkg              => 'leapp-data-cloudlinux';
-    use constant leapp_flag                  => '--nowarn';
-    use constant name                        => 'CloudLinux7';
-    use constant pretty_name                 => 'CloudLinux 7';
+    use constant default_upgrade_to              => 'CloudLinux';
+    use constant ea_alias                        => 'CloudLinux_8';
+    use constant elevate_rpm_url                 => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
+    use constant is_experimental                 => 1;
+    use constant leapp_can_handle_epel           => 1;
+    use constant leapp_can_handle_imunify        => 1;
+    use constant leapp_can_handle_kernelcare     => 1;
+    use constant leapp_can_handle_python36       => 1;
+    use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
+    use constant leapp_flag                      => '--nowarn';
+    use constant name                            => 'CloudLinux7';
+    use constant pretty_name                     => 'CloudLinux 7';
+    use constant should_check_cloudlinux_license => 1;
 
     sub vetted_yum_repo ($self) {
         my @vetted_cloudlinux_yum_repo = (
@@ -4390,20 +4439,21 @@ EOS
       ),
       vetted_mysql_yum_repo_ids;
 
-    use constant available_upgrade_paths     => undef;
-    use constant default_upgrade_to          => undef;
-    use constant ea_alias                    => undef;
-    use constant elevate_rpm_url             => undef;
-    use constant is_experimental             => 0;
-    use constant is_supported                => 1;
-    use constant leapp_can_handle_epel       => 0;
-    use constant leapp_can_handle_imunify    => 0;
-    use constant leapp_can_handle_kernelcare => 0;
-    use constant leapp_can_handle_python36   => 0;
-    use constant leapp_data_package          => undef;
-    use constant leapp_flag                  => undef;
-    use constant name                        => 'RHEL';
-    use constant pretty_name                 => 'RHEL';
+    use constant available_upgrade_paths         => undef;
+    use constant default_upgrade_to              => undef;
+    use constant ea_alias                        => undef;
+    use constant elevate_rpm_url                 => undef;
+    use constant is_experimental                 => 0;
+    use constant is_supported                    => 1;
+    use constant leapp_can_handle_epel           => 0;
+    use constant leapp_can_handle_imunify        => 0;
+    use constant leapp_can_handle_kernelcare     => 0;
+    use constant leapp_can_handle_python36       => 0;
+    use constant leapp_data_package              => undef;
+    use constant leapp_flag                      => undef;
+    use constant name                            => 'RHEL';
+    use constant pretty_name                     => 'RHEL';
+    use constant should_check_cloudlinux_license => 0;
 
     1;
 
@@ -5833,6 +5883,7 @@ use Elevate::Blockers::Base             ();
 use Elevate::Blockers                   ();
 use Elevate::Blockers::AbsoluteSymlinks ();
 use Elevate::Blockers::BootKernel       ();
+use Elevate::Blockers::CloudLinux       ();
 use Elevate::Blockers::Databases        ();
 use Elevate::Blockers::DiskSpace        ();
 use Elevate::Blockers::Distros          ();
