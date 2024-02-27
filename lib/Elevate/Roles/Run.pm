@@ -39,6 +39,18 @@ sub ssystem_capture_output ( $, @args ) {
     return _ssystem( \@args, %opts );
 }
 
+sub ssystem_hide_output ( $, @args ) {
+
+    my %opts;
+    if ( ref $args[0] ) {
+        my $ropts = shift @args;
+        %opts = %$ropts;
+    }
+    $opts{should_hide_output} = 1;
+
+    return _ssystem( \@args, %opts );
+}
+
 sub ssystem ( $, @args ) {
 
     my %opts;
@@ -72,7 +84,7 @@ sub _ssystem ( $command, %opts ) {
         Cpanel::IOCallbackWriteLine->new(
             sub ($line) {
                 chomp $line;
-                INFO($line);
+                INFO($line) unless $opts{should_hide_output};
                 if ( $opts{should_capture_output} ) {
                     push $capture_output->{$label}->@*, $line;
                 }
