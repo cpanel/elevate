@@ -523,11 +523,13 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use cPstrict;
 
-    use Cpanel::OS              ();
-    use Cpanel::Pkgr            ();
-    use Cpanel::Version::Tiny   ();
-    use Cpanel::JSON            ();
-    use Cpanel::SafeRun::Simple ();
+    use Cpanel::OS                         ();
+    use Cpanel::Pkgr                       ();
+    use Cpanel::Version::Tiny              ();
+    use Cpanel::JSON                       ();
+    use Cpanel::SafeRun::Simple            ();
+    use Cpanel::DB::Map::Collection::Index ();
+    use Cpanel::Exception                  ();
 
     # use Elevate::Blockers::Base();
     our @ISA;
@@ -603,25 +605,16 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub _has_mapped_postgresql_dbs ($self) {
 
-        local $ENV{HTTP_COOKIE} = 'session_locale=en';
-
-        my $users_json   = Cpanel::SafeRun::Simple::saferunnoerror(qw(/usr/local/cpanel/bin/whmapi1 --output=json list_users));
-        my $users_parsed = Cpanel::JSON::Load($users_json);
-        die "WHM API1 list_users call returned result 0: $users_parsed->{metadata}->{reason}" unless $users_parsed->{metadata}->{result};
-        my @users = grep { $_ ne "root" } $users_parsed->{data}->{users}->@*;
-
-        my @users_with_dbs;
-        foreach my $user (@users) {
-            my $dbs_json   = Cpanel::SafeRun::Simple::saferunnoerror( "/usr/local/cpanel/bin/uapi", "--user=$user", qw(--output=json Postgresql list_databases) );
-            my $dbs_parsed = Cpanel::JSON::Load($dbs_json);
-            if ( !$dbs_parsed->{result}->{status} ) {
-                return if ( $dbs_parsed->{result}->{errors}->[0] // '' ) eq 'This server does not support this functionality.';    # sanity check
-                die( "UAPI Postgresql::list_databases call returned status 0 for user $user:\n" . join( "\n", $dbs_parsed->{result}->{errors}->@* ) );
-            }
-            push @users_with_dbs, $user if scalar $dbs_parsed->{result}->{data}->@*;
+        my $dbindex = eval { Cpanel::DB::Map::Collection::Index->new( { db => 'PGSQL' } ); };
+        if ( my $exception = $@ ) {
+            ERROR( 'Unable to read the database index file:  ' . Cpanel::Exception::get_string($exception) );
+            $self->has_blocker("Unable to read the database index file; you may need to rebuild it by running: /usr/local/cpanel/bin/dbindex");
+            return ();
         }
 
-        return @users_with_dbs;
+        my %user_hash = map { $dbindex->{dbindex}{$_} => 1 } keys %{ $dbindex->{dbindex} };
+
+        return ( keys %user_hash );
     }
 
     sub _blocker_old_mysql ( $self, $mysql_version = undef ) {

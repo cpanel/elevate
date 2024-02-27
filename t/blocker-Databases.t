@@ -12,13 +12,17 @@ use Test2::Tools::Exception;
 use Test::MockFile 0.032;
 use Test::MockModule qw/strict/;
 
+use File::Slurper qw{read_text};
+use JSON::XS      ();
+
 use lib $FindBin::Bin . "/lib";
 use Test::Elevate;
+
+use Cpanel::DB::Map::Collection::Index ();
 
 use cPstrict;
 
 my $cpev_mock = Test::MockModule->new('cpev');
-my $db_mock   = Test::MockModule->new('Elevate::Blockers::Databases');
 
 my $cpev = cpev->new;
 my $db   = $cpev->get_blocker('Databases');
@@ -179,6 +183,8 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
     my $mock_touchfile = Test::MockFile->file('/var/cpanel/acknowledge_postgresql_for_elevate');
 
+    my $db_mock = Test::MockModule->new('Elevate::Blockers::Databases');
+
     my @mock_users = qw(cpuser1 cpuser2);
     $db_mock->redefine( _has_mapped_postgresql_dbs => sub { return @mock_users } );
 
@@ -233,25 +239,77 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 {
     note "check for PostgreSQL databases";
 
-    my $mock_saferun = Test::MockModule->new('Cpanel::SafeRun::Simple');
+    # This keeps Cpanel::Exception::get_string() from causing errors
+    # when trying to access locale files
+    local $Cpanel::Exception::LOCALIZE_STRINGS = 0;
 
-    $mock_saferun->redefine(
-        saferunnoerror => sub {
-            return $_[0] eq '/usr/local/cpanel/bin/whmapi1'
-              ? '{"metadata":{"command":"list_users","version":1,"reason":"OK","result":1},"data":{"users":["root","cpuser2","cpuser1"]}}'
-              : '{"apiversion":3,"module":"Postgresql","func":"list_databases","result":{"warnings":null,"data":[{"disk_usage":9001,"database":"dontcare","users":["dontcare"]}],"errors":null,"metadata":{"transformed":1},"status":1,"messages":null}}';
+    # Cpanel::Transaction::File::JSONReader will do some low-level file
+    # calls that get around Test::MockFile.  This is needed to ensure that the
+    # contents of the mocked dbindex file are read rather than the real one.
+    my $mock_reader = Test::MockModule->new("Cpanel::Transaction::File::JSONReader");
+    $mock_reader->redefine(
+        new => sub ( $class, %opts ) {
+            my $self = {};
+            bless $self, 'Cpanel::Transaction::File::JSONReader';
+            $self->{path} = $opts{path};
+            return $self;
+        },
+        get_data => sub ($self) {
+            my $contents = read_text( $self->{path} );
+            return undef if !defined $contents;
+
+            my $json_obj = JSON::XS->new->ascii->pretty->allow_nonref;
+            my $hr       = $json_obj->decode($contents);
+            return $hr;
         }
     );
+
+    my $mock_dbindex_file = Test::MockFile->file( Cpanel::DB::Map::Collection::Index::_cache_file_path() );
+
+    # There should be an error for a bogus dbindex file.
+    $mock_dbindex_file->contents('this is not json');
+    clear_messages_seen();
+    is( [ $db->_has_mapped_postgresql_dbs() ], [], 'Bogus index file returns no users' );
+    message_seen( 'ERROR', qr{Unable to read the database index file.*this is not json} );
+    message_seen( 'WARN',  qr{Elevation Blocker detected.*rebuild it by running:\s+/usr/local/cpanel/bin/dbindex}s );
+
+    $mock_dbindex_file->contents( <<~EOS );
+    {
+        "PGSQL": {
+            "pgdb_01": "pgdb_user_01",
+            "pgdb_02": "pgdb_user_01",
+            "pgdb_03": "pgdb_user_01",
+            "pgdb_04": "pgdb_user_02",
+            "pgdb_05": "pgdb_user_02",
+            "pgdb_06": "pgdb_user_02",
+            "pgdb_07": "pgdb_user_03",
+            "pgdb_08": "pgdb_user_03",
+            "pgdb_09": "pgdb_user_03",
+            "pgdb_10": "pgdb_user_04"
+        },
+        "MYSQL": {
+            "mysqldb_01": "cpuser_01",
+            "mysqldb_02": "cpuser_01",
+            "mysqldb_03": "cpuser_02",
+            "mysqldb_04": "cpuser_02",
+            "mysqldb_05": "cpuser_02"
+        }
+    }
+    EOS
 
     is(
         [ $db->_has_mapped_postgresql_dbs() ],
         bag {
-            item 'cpuser1';
-            item 'cpuser2';
+            item 'pgdb_user_01';
+            item 'pgdb_user_02';
+            item 'pgdb_user_03';
+            item 'pgdb_user_04';
             end();
         },
         "_has_mapped_postgresql_dbs returns expected list of users"
     );
+
+    no_messages_seen();
 }
 
 done_testing();
