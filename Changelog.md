@@ -1,3 +1,9 @@
+##### **2024-02-27** - version 26
+
+* Fixed case RE-90: Add a pre-flight leapp check when checking for upgrade blockers.
+* Fixed case RE-173: Add blocker for invalid CloudLinux licenses.
+* Fixed case RE-188: Improve the check for PostgreSQL users to be more efficient and not throw an error if the feature is disabled for any of the users.
+
 ##### **2024-02-21** - version 25
 
 * Fixed case RE-206: Do not remove &#39;alt-pcre802&#39; post elevate to avoid breaking Cloudlinux ea-php51/ea-php52
