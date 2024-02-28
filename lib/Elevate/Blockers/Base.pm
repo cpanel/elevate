@@ -18,9 +18,14 @@ use Cpanel::JSON ();
 use Simple::Accessor qw(
   blockers
   cpconf
+  yum
 );
 
 use Log::Log4perl qw(:easy);
+
+sub _build_yum ($self) {
+    return Elevate::YUM->new( cpev => $self->cpev );
+}
 
 sub _build_blockers {
     if ( $0 =~ qr{\bt/} ) {

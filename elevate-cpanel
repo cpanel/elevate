@@ -109,10 +109,15 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Simple::Accessor qw(
       blockers
       cpconf
+      yum
     );
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub _build_yum ($self) {
+        return Elevate::YUM->new( cpev => $self->cpev );
+    }
 
     sub _build_blockers {
         if ( $0 =~ qr{\bt/} ) {
@@ -1633,6 +1638,7 @@ EOS
 
     sub check ($self) {
         my $ok = 1;
+        $ok = 0 unless $self->_update_system();
         $ok = 0 unless $self->_system_update_check();
         $ok = 0 unless $self->_blocker_invalid_yum_repos;
         $ok = 0 unless $self->_yum_is_stable();
@@ -1682,6 +1688,37 @@ EOS
         }
 
         return 0;
+    }
+
+    sub _update_system ($self) {
+        return if $self->is_check_mode();    # Only do this in start mode
+
+        INFO("Attempting to update yum");
+
+        $self->yum->clean_all();
+        $self->yum->makecache();
+
+        my $out = $self->yum->update();
+
+        if ( $out->{status} != 0 ) {
+
+            $self->blockers->abort_on_first_blocker(1);
+
+            my $id = ref($self) . 'YumUpdateFailure';
+
+            $self->has_blocker(
+                'YUM was unable to update successfully',
+                info => {
+                    msg       => 'YUM was unable to update successfully',
+                    stdout    => $out->{stdout},
+                    stderr    => $out->{stderr},
+                    exit_code => $out->{status},
+                },
+                blocker_id => $id,
+            );
+        }
+
+        return 1;
     }
 
     sub _yum_status_hr_contains_blocker ($status_hr) {
@@ -5829,9 +5866,25 @@ EOS
     sub clean_all ($self) {
         my $pkgmgr = $self->pkgmgr;
 
-        $self->cpev->ssystem( $pkgmgr, 'clean', 'all' );
+        $self->cpev->ssystem_and_die( $pkgmgr, 'clean', 'all' );
 
         return;
+    }
+
+    sub makecache ($self) {
+        my $pkgmgr = $self->pkgmgr;
+
+        $self->cpev->ssystem_and_die( $pkgmgr, 'makecache' );
+
+        return;
+    }
+
+    sub update ($self) {
+        my $pkgmgr = $self->pkgmgr;
+
+        my $out = $self->cpev->ssystem_capture_output( $pkgmgr, '-y', 'update' );
+
+        return $out;
     }
 
     sub install_rpm_via_url ( $self, $rpm_url ) {

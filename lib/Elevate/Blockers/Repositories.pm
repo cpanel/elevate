@@ -25,6 +25,7 @@ use Log::Log4perl qw(:easy);
 
 sub check ($self) {
     my $ok = 1;
+    $ok = 0 unless $self->_update_system();
     $ok = 0 unless $self->_system_update_check();
     $ok = 0 unless $self->_blocker_invalid_yum_repos;
     $ok = 0 unless $self->_yum_is_stable();
@@ -75,6 +76,41 @@ sub _blocker_invalid_yum_repos ($self) {
     }
 
     return 0;
+}
+
+sub _update_system ($self) {
+    return if $self->is_check_mode();    # Only do this in start mode
+
+    INFO("Attempting to update yum");
+
+    $self->yum->clean_all();
+    $self->yum->makecache();
+
+    my $out = $self->yum->update();
+
+    if ( $out->{status} != 0 ) {
+
+        # This is start mode.  If yum cannot even update without errors,
+        # then this is the beginning of a bad time considering how important
+        # yum is to the rest of what we do in this script.
+        # Just go ahead and die here.
+        $self->blockers->abort_on_first_blocker(1);
+
+        my $id = ref($self) . 'YumUpdateFailure';
+
+        $self->has_blocker(
+            'YUM was unable to update successfully',
+            info => {
+                msg       => 'YUM was unable to update successfully',
+                stdout    => $out->{stdout},
+                stderr    => $out->{stderr},
+                exit_code => $out->{status},
+            },
+            blocker_id => $id,
+        );
+    }
+
+    return 1;
 }
 
 sub _yum_status_hr_contains_blocker ($status_hr) {

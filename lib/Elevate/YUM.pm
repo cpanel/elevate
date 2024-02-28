@@ -40,9 +40,25 @@ sub remove ( $self, @pkgs ) {
 sub clean_all ($self) {
     my $pkgmgr = $self->pkgmgr;
 
-    $self->cpev->ssystem( $pkgmgr, 'clean', 'all' );
+    $self->cpev->ssystem_and_die( $pkgmgr, 'clean', 'all' );
 
     return;
+}
+
+sub makecache ($self) {
+    my $pkgmgr = $self->pkgmgr;
+
+    $self->cpev->ssystem_and_die( $pkgmgr, 'makecache' );
+
+    return;
+}
+
+sub update ($self) {
+    my $pkgmgr = $self->pkgmgr;
+
+    my $out = $self->cpev->ssystem_capture_output( $pkgmgr, '-y', 'update' );
+
+    return $out;
 }
 
 sub install_rpm_via_url ( $self, $rpm_url ) {
