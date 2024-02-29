@@ -49,8 +49,21 @@ ok !-e $marker_file->path, "marker_file not setup after startup";
 $redhat_release->contents("RHEL After A8");
 
 is $cpev->elevation_success_marker(), undef, 'elevation_success_marker';
-ok -e $stage_file->path,  "stage_file setup";
-ok -e $marker_file->path, "marker_file setup after startup";
+ok -e $stage_file->path,   "stage_file setup";
+ok !-e $marker_file->path, "marker_file not setup after until we mark the elevate succeeded";
+
+my $mock_cpev = Test::MockModule->new('cpev');
+$mock_cpev->redefine(
+    check_and_create_pidfile => 1,
+    get_stage                => 5,
+    get_current_status       => 'running',
+    update_stage_file        => 1,
+    _run_service             => 0,
+    _notify_success          => 1,
+);
+
+$cpev->run_service_and_notify();
+ok -e $marker_file->path, "marker_file is setup after elevate succeeds";
 
 my $data = eval { Cpanel::JSON::LoadFile( $marker_file->path ) } // {};
 

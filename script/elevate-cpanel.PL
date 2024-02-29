@@ -784,6 +784,7 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
         if ( $stage == VALID_STAGES ) {
             update_stage_file( { status => q[success] } );
             $self->_notify_success();
+            File::Copy::copy( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
         }
 
         if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
@@ -1275,8 +1276,6 @@ sub elevation_success_marker ($self) {
             }
         }
     );
-
-    File::Copy::copy( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
 
     return;
 }
