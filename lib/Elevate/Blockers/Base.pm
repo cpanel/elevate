@@ -93,10 +93,20 @@ sub has_blocker ( $self, $msg, %others ) {
 
     my $analytics_data;
     if ( $others{info} ) {
-        my $info = $others{info};
-        die "Invalid data analytics given to blocker.  'info' must be a hash reference.\n" unless ref $info eq 'HASH';
-        $analytics_data = Cpanel::JSON::canonical_dump( [$info] );
-        delete $others{info};
+        my $info = delete $others{info};
+
+        if ( ref $info eq 'HASH' ) {
+            $analytics_data = Cpanel::JSON::canonical_dump( [$info] );
+        }
+        else {
+
+            # only die if this is a developement version since we do not analytics data to potentially affect
+            # the ability to elevate in production
+            my ( $latest_version, $self_version ) = ( $self->cpev->script->latest_version(), cpev::VERSION() );
+            if ( $self_version > $latest_version ) {
+                die "Invalid data analytics given to blocker.  'info' must be a hash reference.\n";
+            }
+        }
     }
 
     my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others, info => $analytics_data );

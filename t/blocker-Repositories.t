@@ -103,7 +103,7 @@ $cpev_mock->redefine( get_installed_rpms_in_repo => sub { return () } );
 my $mock_json = Test::MockModule->new('Cpanel::JSON');
 $mock_json->redefine( 'Dump' => 'foo' );
 is $yum->_check_yum_repos() => { $unused_repo_enabled => 1, $unvetted => 1 }, "Using an unknown enabled repo detected";
-$cpev_mock->redefine( get_installed_rpms_in_repo => 1 );
+$cpev_mock->redefine( get_installed_rpms_in_repo => sub { return ('foo'); }, );
 is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1 }, "Using an unknown enabled repo with installed packages detected";
 is $yum->{_yum_repos_unsupported_with_packages}[0],
   {
@@ -112,6 +112,7 @@ is $yum->{_yum_repos_unsupported_with_packages}[0],
         name         => 'MyRepo',
         path         => "$path_yum_repos_d/Unknown.repo",
         num_packages => 1,
+        packages     => ['foo'],
     },
   },
   "Names and JSON data of repos are recorded in object";
