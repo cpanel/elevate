@@ -169,10 +169,18 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         my $analytics_data;
         if ( $others{info} ) {
-            my $info = $others{info};
-            die "Invalid data analytics given to blocker.  'info' must be a hash reference.\n" unless ref $info eq 'HASH';
-            $analytics_data = Cpanel::JSON::canonical_dump( [$info] );
-            delete $others{info};
+            my $info = delete $others{info};
+
+            if ( ref $info eq 'HASH' ) {
+                $analytics_data = Cpanel::JSON::canonical_dump( [$info] );
+            }
+            else {
+
+                my ( $latest_version, $self_version ) = ( $self->cpev->script->latest_version(), cpev::VERSION() );
+                if ( $self_version > $latest_version ) {
+                    die "Invalid data analytics given to blocker.  'info' must be a hash reference.\n";
+                }
+            }
         }
 
         my $blocker = cpev::Blocker->new( id => $caller_id, msg => $msg, %others, info => $analytics_data );
@@ -1800,6 +1808,7 @@ EOS
                                     name         => $current_repo_name,
                                     path         => $path,
                                     num_packages => scalar @installed_packages,
+                                    packages     => [ sort @installed_packages ],
                                 },
                             },
                         );

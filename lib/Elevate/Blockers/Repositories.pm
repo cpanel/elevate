@@ -210,6 +210,7 @@ sub _check_yum_repos ($self) {
                                 name         => $current_repo_name,
                                 path         => $path,
                                 num_packages => scalar @installed_packages,
+                                packages     => [ sort @installed_packages ],
                             },
                         },
                     );
