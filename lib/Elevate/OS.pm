@@ -84,6 +84,7 @@ BEGIN {
         'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
         'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
         'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
+        'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
         'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
         'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
         'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
