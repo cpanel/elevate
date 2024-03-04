@@ -12,6 +12,8 @@ Blockers for datbase: MySQL, PostgreSQL...
 
 use cPstrict;
 
+use Elevate::Database ();
+
 use Cpanel::OS                         ();
 use Cpanel::Pkgr                       ();
 use Cpanel::Version::Tiny              ();
@@ -102,8 +104,19 @@ sub _has_mapped_postgresql_dbs ($self) {
     return ( keys %user_hash );
 }
 
-sub _blocker_old_mysql ( $self, $mysql_version = undef ) {
+sub _blocker_old_mysql ($self) {
 
+    my $mysql_is_provided_by_cloudlinux = Elevate::Database::is_database_provided_by_cloudlinux(0);
+
+    return $mysql_is_provided_by_cloudlinux ? $self->_blocker_old_cloudlinux_mysql() : $self->_blocker_old_cpanel_mysql();
+}
+
+# TODO: RE-234 implement this
+sub _blocker_old_cloudlinux_mysql ($self) {
+    return;
+}
+
+sub _blocker_old_cpanel_mysql ( $self, $mysql_version = undef ) {
     $mysql_version //= $self->cpconf->{'mysql-version'} // '';
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
