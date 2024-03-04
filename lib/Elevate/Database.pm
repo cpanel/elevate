@@ -36,13 +36,22 @@ sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
     }
 
     # Returns undef if database is not provided by cloudlinux
-    my ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux();
+    # Do not use cache since this could be the first call from --check
+    # It might be different than what is cached when called from here
+    my ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux(0);
 
     return 1 if $db_type && $db_version;
     return 0;
 }
 
-sub get_db_info_if_provided_by_cloudlinux () {
+sub get_db_info_if_provided_by_cloudlinux ( $use_cache = 1 ) {
+
+    if ($use_cache) {
+        my $cloudlinux_database_info = cpev::read_stage_file( 'cloudlinux_database_info', '' );
+        return ( $cloudlinux_database_info->{db_type}, $cloudlinux_database_info->{db_version} )
+          if length $cloudlinux_database_info;
+    }
+
     my $pkg = Cpanel::Pkgr::what_provides(MYSQL_BIN);
 
     my ( $db_type, $db_version ) = $pkg =~ m/^cl-(mysql|mariadb|percona)([0-9]+)-server$/i;

@@ -111,9 +111,33 @@ sub _blocker_old_mysql ($self) {
     return $mysql_is_provided_by_cloudlinux ? $self->_blocker_old_cloudlinux_mysql() : $self->_blocker_old_cpanel_mysql();
 }
 
-# TODO: RE-234 implement this
 sub _blocker_old_cloudlinux_mysql ($self) {
-    return;
+    my ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux();
+
+    # 5.5 gets stored as 55 and so on and so forth since there are no .'s
+    # for the version in the RPM package name
+    return 0 if length $db_version && $db_version >= 55;
+
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $db_dot_version     = $db_version;
+
+    # Shift decimal one place to the left
+    # 80 becomes 8.0
+    # 102 becomes 10.2
+    $db_dot_version =~ s/([0-9])$/\.$1/;
+
+    return $self->has_blocker( <<~"EOS");
+    You are using MySQL $db_dot_version server.
+    This version is not available for $pretty_distro_name.
+    You first need to update your MySQL server to 5.5 or later.
+
+    Please review the following documentation for instructions
+    on how to update to a newer MySQL Version with MySQL Governor:
+
+        https://docs.cloudlinux.com/shared/cloudlinux_os_components/#upgrading-database-server
+
+    Once the MySQL upgrade is finished, you can then retry to elevate to $pretty_distro_name.
+    EOS
 }
 
 sub _blocker_old_cpanel_mysql ( $self, $mysql_version = undef ) {
