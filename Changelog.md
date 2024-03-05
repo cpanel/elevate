@@ -1,3 +1,8 @@
+##### **2024-03-05** - version 27
+
+* Fixed case RE-89: Improved blocker yum reporting.
+* Fixed case RE-228: Do not copy the stage file to the success file until we notify the user that the process succeeded.
+
 ##### **2024-02-27** - version 26
 
 * Fixed case RE-90: Add a pre-flight leapp check when checking for upgrade blockers.
