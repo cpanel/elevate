@@ -12,9 +12,11 @@ Capture and reinstall MySQL packages.
 
 use cPstrict;
 
-use File::Copy      ();
-use Log::Log4perl   qw(:easy);
-use Elevate::Notify ();
+use File::Copy    ();
+use Log::Log4perl qw(:easy);
+
+use Elevate::Database ();
+use Elevate::Notify   ();
 
 use parent qw{Elevate::Components::Base};
 
@@ -22,12 +24,15 @@ my $cnf_file = '/etc/my.cnf';
 
 sub pre_leapp ($self) {
 
-    $self->run_once("_cleanup_mysql_packages");
+    Elevate::Database::is_database_provided_by_cloudlinux()
+      ? $self->run_once('_remove_cpanel_mysql_packages')
+      : $self->run_once("_cleanup_mysql_packages");
 
     return;
 }
 
 sub post_leapp ($self) {
+    return if Elevate::Database::is_database_provided_by_cloudlinux();
 
     $self->run_once('_reinstall_mysql_packages');
 
@@ -51,6 +56,22 @@ sub _cleanup_mysql_packages ($self) {
     # we cannot only remove the packages for the current MySQL versions
     # some packages can also installed from other repo
 
+    $self->_remove_cpanel_mysql_packages();
+
+    return;
+}
+
+=head2
+
+MySQL Governor will leave the repo files for MySQL/MariaDB versions provided by
+cPanel.  Since the repo files are owned by a package and it is not necessary for
+them to be installed in order to reinstall cPanel MySQL/MariaDB, it is safe to
+remove them.  CL leapp will inhibit based on these files being in place, so it
+is also necessary to remove them.
+
+=cut
+
+sub _remove_cpanel_mysql_packages ($self) {
     $self->_cleanup_mysql_57_packages();
     $self->_cleanup_mysql_80_packages();
     $self->_cleanup_mysql_102_packages();

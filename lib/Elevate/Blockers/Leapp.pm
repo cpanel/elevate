@@ -34,6 +34,7 @@ sub check ($self) {
     my $blockers = $self->cpev->leapp->search_report_file_for_blockers(
         qw(
           check_installed_devel_kernels
+          cl_mysql_repository_setup
           verify_check_results
         )
     );
