@@ -278,6 +278,7 @@ use Elevate::Blockers::Repositories     ();    # using a constant
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
 use Elevate::Blockers::Leapp            ();
+use Elevate::Blockers::AutoSSL          ();
 
 # - fatpack Components
 use Elevate::Components::Base               ();
@@ -301,6 +302,7 @@ use Elevate::Components::RpmDB              ();
 use Elevate::Components::RmMod              ();
 use Elevate::Components::WPToolkit          ();
 use Elevate::Components::SSH                ();
+use Elevate::Components::AutoSSL            ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -1058,6 +1060,7 @@ sub run_stage_2 ($self) {
     Elevate::Motd->setup();
 
     $self->run_component_once( 'SSH'        => 'pre_leapp' );
+    $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
 
