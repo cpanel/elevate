@@ -46,15 +46,18 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 }
 
 {
+    note 'cPanel MySQL behavior';
+
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
 
         my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
 
+        local $Cpanel::Version::Tiny::major_version = 110;
         is(
-            $db->_blocker_old_mysql('5.7'),
+            $db->_blocker_old_cpanel_mysql('5.7'),
             {
-                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                id  => q[Elevate::Blockers::Databases::_blocker_old_cpanel_mysql],
                 msg => <<~"EOS",
     You are using MySQL 5.7 server.
     This version is not available for $expected_target_os.
@@ -70,30 +73,28 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
             'MySQL 5.7 is a blocker.'
         );
 
-        local $Cpanel::Version::Tiny::major_version = 108;
         is(
-            $db->_blocker_old_mysql('10.1'),
+            $db->_blocker_old_cpanel_mysql('10.1'),
             {
-                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                id  => q[Elevate::Blockers::Databases::_blocker_old_cpanel_mysql],
                 msg => <<~"EOS",
         You are using MariaDB server 10.1, this version is not available for $expected_target_os.
-        You first need to update MariaDB server to 10.3 or later.
+        You first need to update MariaDB server to 10.5 or later.
 
-        You can update to version 10.3 using the following command:
+        You can update to version 10.5 using the following command:
 
-            /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.3
+            /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.5
 
         Once the MariaDB upgrade is finished, you can then retry to elevate to $expected_target_os.
         EOS
             },
-            'Maria 10.1 on 108 is a blocker.'
+            'Maria 10.1 is a blocker.'
         );
 
-        $Cpanel::Version::Tiny::major_version = 110;
         is(
-            $db->_blocker_old_mysql('10.2'),
+            $db->_blocker_old_cpanel_mysql('10.2'),
             {
-                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                id  => q[Elevate::Blockers::Databases::_blocker_old_cpanel_mysql],
                 msg => <<~"EOS",
         You are using MariaDB server 10.2, this version is not available for $expected_target_os.
         You first need to update MariaDB server to 10.5 or later.
@@ -105,13 +106,13 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
         Once the MariaDB upgrade is finished, you can then retry to elevate to $expected_target_os.
         EOS
             },
-            'Maria 10.2 on 110 is a blocker.'
+            'Maria 10.2 is a blocker.'
         );
 
         is(
-            $db->_blocker_old_mysql('4.2'),
+            $db->_blocker_old_cpanel_mysql('4.2'),
             {
-                id  => q[Elevate::Blockers::Databases::_blocker_old_mysql],
+                id  => q[Elevate::Blockers::Databases::_blocker_old_cpanel_mysql],
                 msg => <<~"EOS",
         We do not know how to upgrade to $expected_target_os with MySQL version 4.2.
         Please upgrade your MySQL server to one of the supported versions before running elevate.
@@ -119,7 +120,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
         Supported MySQL server versions are: 8.0, 10.3, 10.4, 10.5, 10.6
         EOS
             },
-            'Maria 10.2 on 110 is a blocker.'
+            'MySQL 4.2 is a blocker.'
         );
     }
 
@@ -128,15 +129,15 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
         update_stage_file => sub { $stash = $_[0] },
     );
 
-    is( $db->_blocker_old_mysql('8.0'), 0, "MySQL 8 and we're ok" );
+    is( $db->_blocker_old_cpanel_mysql('8.0'), 0, "MySQL 8 and we're ok" );
     is $stash, { 'mysql-version' => '8.0' }, " - Stash is updated";
-    is( $db->_blocker_old_mysql('10.3'), 0, "Maria 10.3 and we're ok" );
+    is( $db->_blocker_old_cpanel_mysql('10.3'), 0, "Maria 10.3 and we're ok" );
     is $stash, { 'mysql-version' => '10.3' }, " - Stash is updated";
-    is( $db->_blocker_old_mysql('10.4'), 0, "Maria 10.4 and we're ok" );
+    is( $db->_blocker_old_cpanel_mysql('10.4'), 0, "Maria 10.4 and we're ok" );
     is $stash, { 'mysql-version' => '10.4' }, " - Stash is updated";
-    is( $db->_blocker_old_mysql('10.5'), 0, "Maria 10.5 and we're ok" );
+    is( $db->_blocker_old_cpanel_mysql('10.5'), 0, "Maria 10.5 and we're ok" );
     is $stash, { 'mysql-version' => '10.5' }, " - Stash is updated";
-    is( $db->_blocker_old_mysql('10.6'), 0, "Maria 10.6 and we're ok" );
+    is( $db->_blocker_old_cpanel_mysql('10.6'), 0, "Maria 10.6 and we're ok" );
     is $stash, { 'mysql-version' => '10.6' }, " - Stash is updated";
 }
 
@@ -310,6 +311,78 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
     );
 
     no_messages_seen();
+}
+
+{
+    note 'Test CloudLinux MySQL blocker';
+    set_os_to('cloud');
+
+    local *Elevate::OS::upgrade_to = sub { return 'CloudLinux'; };
+
+    my $db_version = 106;
+    $cpev_mock->redefine(
+        read_stage_file => sub {
+            return {
+                db_type    => 'foo',
+                db_version => $db_version,
+            };
+        },
+    );
+
+    is( $db->_blocker_old_cloudlinux_mysql(), 0, '10.6 is supported by CL' );
+
+    $db_version = 51;
+    is(
+        $db->_blocker_old_cloudlinux_mysql(),
+        {
+            id  => q[Elevate::Blockers::Databases::_blocker_old_cloudlinux_mysql],
+            msg => <<~'EOS',
+You are using MySQL 5.1 server.
+This version is not available for CloudLinux 8.
+You first need to update your MySQL server to 5.5 or later.
+
+Please review the following documentation for instructions
+on how to update to a newer MySQL Version with MySQL Governor:
+
+    https://docs.cloudlinux.com/shared/cloudlinux_os_components/#upgrading-database-server
+
+Once the MySQL upgrade is finished, you can then retry to elevate to CloudLinux 8.
+EOS
+        },
+        '5.1 is a blocker for CL',
+    );
+
+    $cpev_mock->unmock('read_stage_file');
+}
+
+{
+    note 'Test _blocker_old_mysql()';
+
+    $cpev_mock->redefine(
+        read_stage_file => sub {
+            return {
+                db_type    => 'foo',
+                db_version => 55,
+            };
+        },
+    );
+
+    my $mock_cpanel_config_loadcpconf = Test::MockModule->new('Cpanel::Config::LoadCpConf');
+    $mock_cpanel_config_loadcpconf->redefine(
+        loadcpconf => sub {
+            return {
+                'mysql-version' => '8.0',
+            };
+        },
+    );
+
+    local *Elevate::Database::is_database_provided_by_cloudlinux = sub { return 1; };
+    is( $db->_blocker_old_mysql(), 0, '5.5 is supported by CL' );
+
+    local *Elevate::Database::is_database_provided_by_cloudlinux = sub { return 0; };
+    is( $db->_blocker_old_mysql(), 0, '8.0 is supported by cPanel' );
+
+    $cpev_mock->unmock('read_stage_file');
 }
 
 done_testing();
