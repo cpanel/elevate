@@ -12,6 +12,8 @@ Blockers for datbase: MySQL, PostgreSQL...
 
 use cPstrict;
 
+use Elevate::Database ();
+
 use Cpanel::OS                         ();
 use Cpanel::Pkgr                       ();
 use Cpanel::Version::Tiny              ();
@@ -32,7 +34,6 @@ sub check ($self) {
     $ok = 0 unless $self->_blocker_acknowledge_postgresql_datadir;
     $ok = 0 unless $self->_blocker_old_mysql;
     $ok = 0 unless $self->_blocker_mysql_upgrade_in_progress;
-    $ok = 0 unless $self->_blocker_mysql_governor;
     $self->_warning_mysql_not_enabled();
     return $ok;
 }
@@ -103,8 +104,43 @@ sub _has_mapped_postgresql_dbs ($self) {
     return ( keys %user_hash );
 }
 
-sub _blocker_old_mysql ( $self, $mysql_version = undef ) {
+sub _blocker_old_mysql ($self) {
 
+    my $mysql_is_provided_by_cloudlinux = Elevate::Database::is_database_provided_by_cloudlinux(0);
+
+    return $mysql_is_provided_by_cloudlinux ? $self->_blocker_old_cloudlinux_mysql() : $self->_blocker_old_cpanel_mysql();
+}
+
+sub _blocker_old_cloudlinux_mysql ($self) {
+    my ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux();
+
+    # 5.5 gets stored as 55 and so on and so forth since there are no .'s
+    # for the version in the RPM package name
+    return 0 if length $db_version && $db_version >= 55;
+
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $db_dot_version     = $db_version;
+
+    # Shift decimal one place to the left
+    # 80 becomes 8.0
+    # 102 becomes 10.2
+    $db_dot_version =~ s/([0-9])$/\.$1/;
+
+    return $self->has_blocker( <<~"EOS");
+    You are using MySQL $db_dot_version server.
+    This version is not available for $pretty_distro_name.
+    You first need to update your MySQL server to 5.5 or later.
+
+    Please review the following documentation for instructions
+    on how to update to a newer MySQL Version with MySQL Governor:
+
+        https://docs.cloudlinux.com/shared/cloudlinux_os_components/#upgrading-database-server
+
+    Once the MySQL upgrade is finished, you can then retry to elevate to $pretty_distro_name.
+    EOS
+}
+
+sub _blocker_old_cpanel_mysql ( $self, $mysql_version = undef ) {
     $mysql_version //= $self->cpconf->{'mysql-version'} // '';
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
@@ -172,21 +208,6 @@ sub _blocker_old_mysql ( $self, $mysql_version = undef ) {
 sub _blocker_mysql_upgrade_in_progress ($self) {
     if ( -e q[/var/cpanel/mysql_upgrade_in_progress] ) {
         return $self->has_blocker(q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.]);
-    }
-
-    return 0;
-}
-
-sub _blocker_mysql_governor ($self) {
-
-    if ( Cpanel::Pkgr::is_installed('governor-mysql') ) {
-        return $self->has_blocker( <<~'EOS' );
-You have MySQL Governor installed.  Upgrades with this software in place are not currently supported.
-For more information regarding MySQL Governor, please review the documentation:
-
-    https://docs.cloudlinux.com/shared/cloudlinux_os_components/#mysql-governor
-
-EOS
     }
 
     return 0;
