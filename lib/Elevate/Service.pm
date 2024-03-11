@@ -61,12 +61,6 @@ sub install ($self) {
     INFO( "Installing service $name which will upgrade the server to " . $pretty_distro_name );
     open( my $fh, '>', $self->file ) or die;
 
-    # Works only in systemd v240 and newer!
-    # StandardOutput=append:/var/log/elevate-cpanel.log
-    # StandardError=inherit
-
-    my $log_file = Elevate::Constants::LOG_FILE;
-
     print {$fh} <<~"EOF";
         [Unit]
         Description=Upgrade process from CentOS 7 to $pretty_distro_name.
