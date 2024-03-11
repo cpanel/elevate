@@ -12,6 +12,8 @@ Blocker to check compatibility with Grub2 configuration.
 
 use cPstrict;
 
+use Cpanel::Pkgr ();
+
 use Elevate::Constants ();
 
 use parent qw{Elevate::Blockers::Base};
@@ -36,6 +38,8 @@ sub check ($self) {
     my $ok = 1;
     $ok = 0 unless $self->_blocker_grub2_workaround;
     $ok = 0 unless $self->_blocker_blscfg;
+    $ok = 0 unless $self->_blocker_grub_not_installed;
+    $ok = 0 unless $self->_blocker_grub_config_missing;
     return $ok;
 }
 
@@ -95,6 +99,35 @@ sub _blocker_blscfg ($self) {
 
     or to change it so that it is set to "true" instead.
     EOS
+
+    return 0;
+}
+
+sub _blocker_grub_not_installed ($self) {
+
+    return 0 if Cpanel::Pkgr::is_installed('grub2-pc');
+
+    return $self->has_blocker( <<~EOS );
+    The grub2-pc package is not installed. The GRUB2 boot loader is
+    required to upgrade via leapp.
+
+    You may want to consider reaching out to cPanel Support for assistance:
+    https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+    EOS
+}
+
+sub _blocker_grub_config_missing ($self) {
+
+    if (   ( !-f '/boot/grub2/grub.cfg' || !-s '/boot/grub2/grub.cfg' )
+        && ( !-f '/boot/grub/grub.cfg' || !-s '/boot/grub/grub.cfg' ) ) {
+
+        return $self->has_blocker( <<~EOS );
+        The GRUB2 config file is missing.
+
+        You may want to consider reaching out to cPanel Support for assistance:
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+        EOS
+    }
 
     return 0;
 }
