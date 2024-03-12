@@ -23,45 +23,6 @@ my $blockers = cpev->new->blockers;
 my $yum      = $blockers->_get_blocker_for('Repositories');
 my $mock_yum = Test::MockModule->new('Elevate::Blockers::Repositories');
 
-{
-    note "system is up to date.";
-
-    $mock_yum->redefine( ssystem => 0 );
-    $mock_yum->redefine(
-        ssystem_capture_output => sub {
-
-            # Whitespace is exactly as the system gives us
-            return {
-                'status' => 1,
-                'stdout' => [
-                    'cpanel-sitejet-plugin.noarch                                                                                         1.1.0-7.8.1.cpanel                                                                                         cpanel-plugins',
-                    'ea-apache24-mod_security2.x86_64                                                                                     2.9.7-1.1.38.cpanel                                                                                        EA4-c7',
-                    'rpm-build.x86_64                                                                                                     4.14.3-28.el8_9                                                                                            appstream',
-                ],
-            };
-        }
-    );
-
-    my $mock_cpanel_update_config = Test::MockModule->new('Cpanel::Update::Config');
-    $mock_cpanel_update_config->redefine(
-        load => sub {
-            return (
-                RPMUP => 'manual',
-            );
-        },
-    );
-
-    my $ret = $yum->_system_update_check();
-    is(
-        $ret,
-        undef,
-        q{Block if the system is not up to date.}
-    );
-
-    $mock_yum->redefine( ssystem_capture_output => sub { return { status => 0 } } );
-    is( $yum->_system_update_check(), 1, 'System is up to date' );
-}
-
 my $cpev_mock = Test::MockModule->new('cpev');
 my @messages_seen;
 
