@@ -280,26 +280,27 @@ use Elevate::Blockers::WHM              ();
 use Elevate::Blockers::Leapp            ();
 
 # - fatpack Components
-use Elevate::Components::Base             ();
-use Elevate::Components::AbsoluteSymlinks ();
-use Elevate::Components::cPanelPlugins    ();
-use Elevate::Components::EA4              ();
-use Elevate::Components::Grub2            ();
-use Elevate::Components::Imunify          ();
-use Elevate::Components::InfluxDB         ();
-use Elevate::Components::JetBackup        ();
-use Elevate::Components::LiteSpeed        ();
-use Elevate::Components::KernelCare       ();
-use Elevate::Components::Kernel           ();
-use Elevate::Components::MySQL            ();
-use Elevate::Components::NixStats         ();
-use Elevate::Components::PECL             ();
-use Elevate::Components::PerlXS           ();
-use Elevate::Components::Repositories     ();
-use Elevate::Components::RpmDB            ();
-use Elevate::Components::RmMod            ();
-use Elevate::Components::WPToolkit        ();
-use Elevate::Components::SSH              ();
+use Elevate::Components::Base               ();
+use Elevate::Components::AbsoluteSymlinks   ();
+use Elevate::Components::cPanelPlugins      ();
+use Elevate::Components::EA4                ();
+use Elevate::Components::Grub2              ();
+use Elevate::Components::Imunify            ();
+use Elevate::Components::InfluxDB           ();
+use Elevate::Components::JetBackup          ();
+use Elevate::Components::LiteSpeed          ();
+use Elevate::Components::KernelCare         ();
+use Elevate::Components::Kernel             ();
+use Elevate::Components::MySQL              ();
+use Elevate::Components::NixStats           ();
+use Elevate::Components::PECL               ();
+use Elevate::Components::PerlXS             ();
+use Elevate::Components::UnconvertedModules ();
+use Elevate::Components::Repositories       ();
+use Elevate::Components::RpmDB              ();
+use Elevate::Components::RmMod              ();
+use Elevate::Components::WPToolkit          ();
+use Elevate::Components::SSH                ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -1193,13 +1194,7 @@ sub run_stage_4 ($self) {
 
     $self->post_leapp_update_restore();
 
-    my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
-      leapp leapp-data-almalinux leapp-data-rocky leapp-data-cloudlinux leapp-upgrade-el7toel8
-      python2-leapp};
-    my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
-
-    INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
-    $self->ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
+    $self->run_component_once( 'UnconvertedModules' => 'post_leapp' );
 
     # run upcp a second time as we had to run it before with CPANEL_BASE_INSTALL=1
     $self->run_once(
