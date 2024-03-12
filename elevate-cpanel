@@ -11,66 +11,67 @@
 ## ----------------------------------------------------------------------------
 
 BEGIN {    # Suppress load of all of these at earliest point.
-    $INC{'Elevate/Constants.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Base.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers.pm'}                    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/AbsoluteSymlinks.pm'}   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/BootKernel.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/CloudLinux.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Databases.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DiskSpace.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Distros.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/DNS.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/EA4.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/ElevateScript.pm'}      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Grub2.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/IsContainer.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/JetBackup.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/NICs.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/OVH.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Python.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Repositories.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/SSH.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/WHM.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Leapp.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Base.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/AbsoluteSymlinks.pm'} = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/cPanelPlugins.pm'}    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/EA4.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Grub2.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Imunify.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/InfluxDB.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/JetBackup.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/LiteSpeed.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/KernelCare.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Kernel.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/MySQL.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/NixStats.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PECL.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PerlXS.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Repositories.pm'}     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/RpmDB.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/RmMod.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/WPToolkit.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/SSH.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS.pm'}                          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/CentOS7.pm'}                  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/CloudLinux7.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/RHEL.pm'}                     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Database.pm'}                    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Fetch.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Leapp.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Logger.pm'}                      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Motd.pm'}                        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Notify.pm'}                      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Roles/Run.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/RPM.pm'}                         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Script.pm'}                      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Service.pm'}                     = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/SystemctlService.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Usage.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/DNF.pm'}                         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/YUM.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Constants.pm'}                     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Base.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers.pm'}                      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/AbsoluteSymlinks.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/BootKernel.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/CloudLinux.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Databases.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DiskSpace.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Distros.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/DNS.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/EA4.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/ElevateScript.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Grub2.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/IsContainer.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/JetBackup.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/NICs.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/OVH.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Python.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Repositories.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/SSH.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/WHM.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Leapp.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Base.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/AbsoluteSymlinks.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/cPanelPlugins.pm'}      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/EA4.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Grub2.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Imunify.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/InfluxDB.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/JetBackup.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/LiteSpeed.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/KernelCare.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Kernel.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/MySQL.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/NixStats.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PECL.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PerlXS.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/UnconvertedModules.pm'} = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Repositories.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/RpmDB.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/RmMod.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/WPToolkit.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/SSH.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/RHEL.pm'}                       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Database.pm'}                      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Fetch.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Leapp.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Logger.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Motd.pm'}                          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Notify.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Roles/Run.pm'}                     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/RPM.pm'}                           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Script.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Service.pm'}                       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/SystemctlService.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Usage.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/DNF.pm'}                           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/YUM.pm'}                           = 'script/elevate-cpanel.PL.static';
 }
 
 {    # --- BEGIN lib/Elevate/Constants.pm
@@ -4002,6 +4003,75 @@ EOS
 
 }    # --- END lib/Elevate/Components/PerlXS.pm
 
+{    # --- BEGIN lib/Elevate/Components/UnconvertedModules.pm
+
+    package Elevate::Components::UnconvertedModules;
+
+    use cPstrict;
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_leapp ($self) {
+        return;
+    }
+
+    sub post_leapp ($self) {
+        $self->run_once('_remove_leapp_packages');
+        $self->run_once('_warn_about_other_modules_that_did_not_convert');
+        return;
+    }
+
+    sub _remove_leapp_packages ($self) {
+        my @leapp_packages = qw{
+          elevate-release
+          leapp
+          leapp-data-almalinux
+          leapp-data-cloudlinux
+          leapp-data-rocky
+          leapp-deps
+          leapp-repository-deps
+          leapp-upgrade-el7toel8
+          leapp-upgrade-el7toel8-deps
+          python2-leapp
+        };
+
+        INFO('Removing packages provided by leapp');
+        my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @leapp_packages;
+        $self->dnf->remove(@to_remove);
+
+        return;
+    }
+
+    sub _warn_about_other_modules_that_did_not_convert ($self) {
+        my @installed_packages                    = $self->rpm->get_installed_rpms();
+        my @el7_installed_packages                = grep { $_ =~ m/el7/ } @installed_packages;
+        my @exclude_kernel_el7_installed_packages = grep { $_ !~ m/^kernel-/ } @el7_installed_packages;
+
+        return unless @exclude_kernel_el7_installed_packages;
+
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+
+        my $msg = "The following packages should probably be removed as they will not function on $pretty_distro_name\n\n";
+        foreach my $pkg (@exclude_kernel_el7_installed_packages) {
+            $msg .= "    $pkg\n";
+        }
+
+        $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @exclude_kernel_el7_installed_packages ) . "\n";
+
+        Elevate::Notify::add_final_notification($msg);
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/UnconvertedModules.pm
+
 {    # --- BEGIN lib/Elevate/Components/Repositories.pm
 
     package Elevate::Components::Repositories;
@@ -6177,26 +6247,27 @@ use Elevate::Blockers::WHM              ();
 use Elevate::Blockers::Leapp            ();
 
 # - fatpack Components
-use Elevate::Components::Base             ();
-use Elevate::Components::AbsoluteSymlinks ();
-use Elevate::Components::cPanelPlugins    ();
-use Elevate::Components::EA4              ();
-use Elevate::Components::Grub2            ();
-use Elevate::Components::Imunify          ();
-use Elevate::Components::InfluxDB         ();
-use Elevate::Components::JetBackup        ();
-use Elevate::Components::LiteSpeed        ();
-use Elevate::Components::KernelCare       ();
-use Elevate::Components::Kernel           ();
-use Elevate::Components::MySQL            ();
-use Elevate::Components::NixStats         ();
-use Elevate::Components::PECL             ();
-use Elevate::Components::PerlXS           ();
-use Elevate::Components::Repositories     ();
-use Elevate::Components::RpmDB            ();
-use Elevate::Components::RmMod            ();
-use Elevate::Components::WPToolkit        ();
-use Elevate::Components::SSH              ();
+use Elevate::Components::Base               ();
+use Elevate::Components::AbsoluteSymlinks   ();
+use Elevate::Components::cPanelPlugins      ();
+use Elevate::Components::EA4                ();
+use Elevate::Components::Grub2              ();
+use Elevate::Components::Imunify            ();
+use Elevate::Components::InfluxDB           ();
+use Elevate::Components::JetBackup          ();
+use Elevate::Components::LiteSpeed          ();
+use Elevate::Components::KernelCare         ();
+use Elevate::Components::Kernel             ();
+use Elevate::Components::MySQL              ();
+use Elevate::Components::NixStats           ();
+use Elevate::Components::PECL               ();
+use Elevate::Components::PerlXS             ();
+use Elevate::Components::UnconvertedModules ();
+use Elevate::Components::Repositories       ();
+use Elevate::Components::RpmDB              ();
+use Elevate::Components::RmMod              ();
+use Elevate::Components::WPToolkit          ();
+use Elevate::Components::SSH                ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -7090,13 +7161,7 @@ sub run_stage_4 ($self) {
 
     $self->post_leapp_update_restore();
 
-    my @known_modules_that_dont_convert = qw{libtermkey msgpack btrfs-progs elevate-release
-      leapp leapp-data-almalinux leapp-data-rocky leapp-data-cloudlinux leapp-upgrade-el7toel8
-      python2-leapp};
-    my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @known_modules_that_dont_convert;
-
-    INFO("Removing known cruft that various 3rdparties leave behind. Also removing leapp.");
-    $self->ssystem( qw{/usr/bin/dnf -y erase}, @to_remove );
+    $self->run_component_once( 'UnconvertedModules' => 'post_leapp' );
 
     # run upcp a second time as we had to run it before with CPANEL_BASE_INSTALL=1
     $self->run_once(
