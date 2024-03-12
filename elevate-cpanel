@@ -7108,6 +7108,11 @@ sub run_stage_2 ($self) {
 
     $self->elevation_startup_marker($sum);
 
+    # Remove scripts/upcp and bin/backup to make sure they don't
+    # end up running while ELevate is running.
+    unlink('/usr/local/cpanel/scripts/upcp');
+    unlink('/usr/local/cpanel/bin/backup');
+
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
     $self->ssystem_and_die(qw{/usr/bin/yum -y update});
@@ -7249,7 +7254,7 @@ sub run_stage_4 ($self) {
             {
                 # MySQL server is not upgraded at this point - treat the upcp like a fresh install
                 local $ENV{'CPANEL_BASE_INSTALL'} = 1;
-                $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+                $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp.static --sync});
             }
 
             # cleanup the license: cpsanitycheck.so binary is compiled for a different distro
@@ -7267,7 +7272,7 @@ sub run_stage_4 ($self) {
     # run upcp a second time as we had to run it before with CPANEL_BASE_INSTALL=1
     $self->run_once(
         upcp_second_run => sub {
-            $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp --sync});
+            $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp.static --sync});
         }
     );
 
