@@ -1,3 +1,8 @@
+##### **2024-03-13** - version 28
+
+* Fixed case RE-153: Add support for CL MySQL.
+* Fixed case RE-172: Remove blocker to check if the system is up to date.
+
 ##### **2024-03-05** - version 27
 
 * Fixed case RE-89: Improved blocker yum reporting.
