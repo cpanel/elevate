@@ -77,6 +77,7 @@ use constant leapp_data_package              => undef;
 use constant leapp_flag                      => undef;
 use constant name                            => 'RHEL';
 use constant pretty_name                     => 'RHEL';
+use constant provides_mysql_governor         => 0;
 use constant should_check_cloudlinux_license => 0;
 
 1;

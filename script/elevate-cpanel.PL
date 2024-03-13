@@ -307,6 +307,7 @@ use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
+use Elevate::Database         ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();

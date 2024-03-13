@@ -57,6 +57,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/OS/CentOS7.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/RHEL.pm'}                     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Database.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Fetch.pm'}                       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Leapp.pm'}                       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Logger.pm'}                      = 'script/elevate-cpanel.PL.static';
@@ -547,6 +548,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use cPstrict;
 
+    use Elevate::Database ();
+
     use Cpanel::OS                         ();
     use Cpanel::Pkgr                       ();
     use Cpanel::Version::Tiny              ();
@@ -570,7 +573,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
         $ok = 0 unless $self->_blocker_acknowledge_postgresql_datadir;
         $ok = 0 unless $self->_blocker_old_mysql;
         $ok = 0 unless $self->_blocker_mysql_upgrade_in_progress;
-        $ok = 0 unless $self->_blocker_mysql_governor;
         $self->_warning_mysql_not_enabled();
         return $ok;
     }
@@ -641,8 +643,38 @@ BEGIN {    # Suppress load of all of these at earliest point.
         return ( keys %user_hash );
     }
 
-    sub _blocker_old_mysql ( $self, $mysql_version = undef ) {
+    sub _blocker_old_mysql ($self) {
 
+        my $mysql_is_provided_by_cloudlinux = Elevate::Database::is_database_provided_by_cloudlinux(0);
+
+        return $mysql_is_provided_by_cloudlinux ? $self->_blocker_old_cloudlinux_mysql() : $self->_blocker_old_cpanel_mysql();
+    }
+
+    sub _blocker_old_cloudlinux_mysql ($self) {
+        my ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux();
+
+        return 0 if length $db_version && $db_version >= 55;
+
+        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $db_dot_version     = $db_version;
+
+        $db_dot_version =~ s/([0-9])$/\.$1/;
+
+        return $self->has_blocker( <<~"EOS");
+    You are using MySQL $db_dot_version server.
+    This version is not available for $pretty_distro_name.
+    You first need to update your MySQL server to 5.5 or later.
+
+    Please review the following documentation for instructions
+    on how to update to a newer MySQL Version with MySQL Governor:
+
+        https://docs.cloudlinux.com/shared/cloudlinux_os_components/#upgrading-database-server
+
+    Once the MySQL upgrade is finished, you can then retry to elevate to $pretty_distro_name.
+    EOS
+    }
+
+    sub _blocker_old_cpanel_mysql ( $self, $mysql_version = undef ) {
         $mysql_version //= $self->cpconf->{'mysql-version'} // '';
 
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
@@ -707,21 +739,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     sub _blocker_mysql_upgrade_in_progress ($self) {
         if ( -e q[/var/cpanel/mysql_upgrade_in_progress] ) {
             return $self->has_blocker(q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.]);
-        }
-
-        return 0;
-    }
-
-    sub _blocker_mysql_governor ($self) {
-
-        if ( Cpanel::Pkgr::is_installed('governor-mysql') ) {
-            return $self->has_blocker( <<~'EOS' );
-You have MySQL Governor installed.  Upgrades with this software in place are not currently supported.
-For more information regarding MySQL Governor, please review the documentation:
-
-    https://docs.cloudlinux.com/shared/cloudlinux_os_components/#mysql-governor
-
-EOS
         }
 
         return 0;
@@ -2161,6 +2178,7 @@ EOS
         my $blockers = $self->cpev->leapp->search_report_file_for_blockers(
             qw(
               check_installed_devel_kernels
+              cl_mysql_repository_setup
               verify_check_results
             )
         );
@@ -3349,9 +3367,11 @@ EOS
 
     use File::Copy ();
 
-    # use Log::Log4perl   qw(:easy);
+    # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
-    use Elevate::Notify ();
+
+    use Elevate::Database ();
+    use Elevate::Notify   ();
 
     # use Elevate::Components::Base();
     our @ISA;
@@ -3361,12 +3381,15 @@ EOS
 
     sub pre_leapp ($self) {
 
-        $self->run_once("_cleanup_mysql_packages");
+        Elevate::Database::is_database_provided_by_cloudlinux()
+          ? $self->run_once('_remove_cpanel_mysql_packages')
+          : $self->run_once("_cleanup_mysql_packages");
 
         return;
     }
 
     sub post_leapp ($self) {
+        return if Elevate::Database::is_database_provided_by_cloudlinux();
 
         $self->run_once('_reinstall_mysql_packages');
 
@@ -3384,6 +3407,12 @@ EOS
 
         File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
 
+        $self->_remove_cpanel_mysql_packages();
+
+        return;
+    }
+
+    sub _remove_cpanel_mysql_packages ($self) {
         $self->_cleanup_mysql_57_packages();
         $self->_cleanup_mysql_80_packages();
         $self->_cleanup_mysql_102_packages();
@@ -4348,6 +4377,7 @@ EOS
             'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
             'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
             'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
+            'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
             'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
             'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
@@ -4451,6 +4481,7 @@ EOS
     use constant leapp_flag                      => '--nowarn';
     use constant name                            => 'CloudLinux7';
     use constant pretty_name                     => 'CloudLinux 7';
+    use constant provides_mysql_governor         => 1;
     use constant should_check_cloudlinux_license => 1;
 
     sub vetted_yum_repo ($self) {
@@ -4461,6 +4492,7 @@ EOS
             qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
             'cl-ea4',
             qr/^cl-mysql(?:-meta)?/,
+            'mysqclient', 'mysql-debuginfo'
         );
 
         my @repos = $self->SUPER::vetted_yum_repo();
@@ -4544,11 +4576,76 @@ EOS
     use constant leapp_flag                      => undef;
     use constant name                            => 'RHEL';
     use constant pretty_name                     => 'RHEL';
+    use constant provides_mysql_governor         => 0;
     use constant should_check_cloudlinux_license => 0;
 
     1;
 
 }    # --- END lib/Elevate/OS/RHEL.pm
+
+{    # --- BEGIN lib/Elevate/Database.pm
+
+    package Elevate::Database;
+
+    use cPstrict;
+
+    use Elevate::OS ();
+
+    use Cpanel::Pkgr ();
+
+    use constant MYSQL_BIN => '/usr/sbin/mysqld';
+
+    sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
+
+        if ($use_cache) {
+            my $cloudlinux_database_installed = cpev::read_stage_file( 'cloudlinux_database_installed', '' );
+
+            return $cloudlinux_database_installed if length $cloudlinux_database_installed;
+        }
+
+        if ( !Elevate::OS::provides_mysql_governor() ) {
+            cpev::update_stage_file( { cloudlinux_database_installed => 0 } );
+            return 0;
+        }
+
+        my ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux(0);
+
+        return 1 if $db_type && $db_version;
+        return 0;
+    }
+
+    sub get_db_info_if_provided_by_cloudlinux ( $use_cache = 1 ) {
+
+        if ($use_cache) {
+            my $cloudlinux_database_info = cpev::read_stage_file( 'cloudlinux_database_info', '' );
+            return ( $cloudlinux_database_info->{db_type}, $cloudlinux_database_info->{db_version} )
+              if length $cloudlinux_database_info;
+        }
+
+        my $pkg = Cpanel::Pkgr::what_provides(MYSQL_BIN);
+
+        my ( $db_type, $db_version ) = $pkg =~ m/^cl-(mysql|mariadb|percona)([0-9]+)-server$/i;
+
+        my $cloudlinux_database_installed = ( $db_type && $db_version ) ? 1 : 0;
+        cpev::update_stage_file( { cloudlinux_database_installed => $cloudlinux_database_installed } );
+
+        if ($cloudlinux_database_installed) {
+            cpev::update_stage_file(
+                {
+                    cloudlinux_database_info => {
+                        db_type    => lc $db_type,
+                        db_version => $db_version,
+                    }
+                }
+            );
+        }
+
+        return ( $db_type, $db_version );
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Database.pm
 
 {    # --- BEGIN lib/Elevate/Fetch.pm
 
@@ -6107,6 +6204,7 @@ use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
+use Elevate::Database         ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();
