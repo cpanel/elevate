@@ -31,6 +31,7 @@ use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
 use constant leapp_flag                      => '--nowarn';
 use constant name                            => 'CloudLinux7';
 use constant pretty_name                     => 'CloudLinux 7';
+use constant provides_mysql_governor         => 1;
 use constant should_check_cloudlinux_license => 1;
 
 sub vetted_yum_repo ($self) {
@@ -41,6 +42,7 @@ sub vetted_yum_repo ($self) {
         qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
         'cl-ea4',
         qr/^cl-mysql(?:-meta)?/,
+        'mysqclient', 'mysql-debuginfo'
     );
 
     my @repos = $self->SUPER::vetted_yum_repo();
