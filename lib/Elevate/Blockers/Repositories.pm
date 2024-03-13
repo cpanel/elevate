@@ -25,7 +25,6 @@ use Log::Log4perl qw(:easy);
 
 sub check ($self) {
     my $ok = 1;
-    $ok = 0 unless $self->_system_update_check();
     $ok = 0 unless $self->_blocker_invalid_yum_repos;
     $ok = 0 unless $self->_yum_is_stable();
 
@@ -294,68 +293,6 @@ sub _autofix_yum_repos ($self) {
     }
 
     return;
-}
-
-sub _system_update_check ($self) {
-
-    INFO("Checking if your system is up to date: ");
-    $self->ssystem(qw{/usr/bin/yum clean all});
-
-    # Avoid yum splitting the outdated pacakges list to multiple lines
-    # so that we can systematically parse it
-    my $out = $self->ssystem_capture_output(q{/usr/bin/yum check-update -q | xargs -n3});
-
-    # Can not just check the exit code since xargs -n3 always returns 0
-    # Could set pipefail but that makes the above command even more complicated
-    # Just check that stdout has a list to parse instead
-    my $output = $out->{stdout} // [];
-    if ( scalar @$output > 1 || $output->[0] ) {
-
-        # not a blocker: only a warning
-        WARN("Your system is not up to date please run: /usr/bin/yum update");
-
-        my $is_blocker;
-        my %repos_with_outdated_packages;
-        foreach my $line (@$output) {
-            next if $line =~ qr{^\s+$};
-            next if $line =~ qr{^kernel};    # do not block if we need to update kernel packages
-            $is_blocker = 1;
-
-            if ( my ( $pkg_name, $pkg_version, $pkg_repo ) = split( /\s+/, $line ) ) {
-                $repos_with_outdated_packages{"outdated_count_for_$pkg_repo"}++;
-            }
-        }
-
-        # not a blocker when only kernels packages need to be updated
-        if ($is_blocker) {
-
-            my %cpupdate     = Cpanel::Update::Config::load();
-            my $rpmup_status = $cpupdate{RPMUP};
-
-            my $blocker_id = ref($self) . '::YumOutOfDate';
-            $self->has_blocker(
-                'YUM reports there are out of date packages',
-                info => {
-                    name  => $blocker_id,
-                    error => 'YUM reports there are out of date packages',
-                    rpmup => $rpmup_status,
-                    %repos_with_outdated_packages,
-                },
-                'blocker_id' => $blocker_id,
-                'quiet'      => 1
-            );
-
-            return;
-        }
-    }
-
-    INFO("Checking /scripts/sysup");
-    if ( $self->ssystem("/scripts/sysup") != 0 ) {
-        WARN("/scripts/sysup failed, please fix it and rerun it before upgrading.");
-        return;
-    }
-
-    return 1;
 }
 
 1;
