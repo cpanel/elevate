@@ -39,14 +39,15 @@ sub ssystem_capture_output ( $, @args ) {
     return _ssystem( \@args, %opts );
 }
 
-sub ssystem_hide_output ( $, @args ) {
+sub ssystem_hide_and_capture_output ( $, @args ) {
 
     my %opts;
     if ( ref $args[0] ) {
         my $ropts = shift @args;
         %opts = %$ropts;
     }
-    $opts{should_hide_output} = 1;
+    $opts{should_hide_output}    = 1;
+    $opts{should_capture_output} = 1;
 
     return _ssystem( \@args, %opts );
 }

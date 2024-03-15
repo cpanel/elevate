@@ -2173,9 +2173,20 @@ EOS
 
         $self->cpev->leapp->install();
 
-        $self->cpev->leapp->preupgrade();
+        my $out = $self->cpev->leapp->preupgrade();
 
-        my $blockers = $self->cpev->leapp->search_report_file_for_blockers(
+        return if ( $out->{status} == 0 );
+
+        $self->_check_for_inhibitors();
+
+        $self->_check_for_fatal_errors($out);
+
+        return;
+    }
+
+    sub _check_for_inhibitors ($self) {
+
+        my $inhibitors = $self->cpev->leapp->search_report_file_for_inhibitors(
             qw(
               check_installed_devel_kernels
               cl_mysql_repository_setup
@@ -2183,17 +2194,28 @@ EOS
             )
         );
 
-        foreach my $blocker (@$blockers) {
-            my $message = $blocker->{title} . "\n";
-            $message .= $blocker->{summary} . "\n";
-            if ( $blocker->{hint} ) {
-                $message .= "Possible resolution: " . $blocker->{hint} . "\n";
+        foreach my $inhibitor (@$inhibitors) {
+            my $message = $inhibitor->{title} . "\n";
+            $message .= $inhibitor->{summary} . "\n";
+            if ( $inhibitor->{hint} ) {
+                $message .= "Possible resolution: " . $inhibitor->{hint} . "\n";
             }
-            if ( $blocker->{command} ) {
-                $message .= "Consider running:" . "\n" . $blocker->{command} . "\n";
+            if ( $inhibitor->{command} ) {
+                $message .= "Consider running:" . "\n" . $inhibitor->{command} . "\n";
             }
 
             $self->has_blocker($message);
+        }
+
+        return;
+    }
+
+    sub _check_for_fatal_errors ( $self, $out ) {
+
+        my $error_block = $self->cpev->leapp->extract_error_block_from_output( $out->{stdout} );
+
+        if ( length $error_block ) {
+            $self->has_blocker( "Leapp encountered the following error(s):\n" . $error_block );
         }
 
         return;
@@ -4754,11 +4776,11 @@ EOS
 
         INFO("Running leapp preupgrade checks");
 
-        $self->cpev->ssystem_hide_output( '/usr/bin/leapp', 'preupgrade' );
+        my $out = $self->cpev->ssystem_hide_and_capture_output( '/usr/bin/leapp', 'preupgrade' );
 
         INFO("Finished running leapp preupgrade checks");
 
-        return;
+        return $out;
     }
 
     sub upgrade ($self) {
@@ -4790,7 +4812,7 @@ EOS
         return;
     }
 
-    sub search_report_file_for_blockers ( $self, @ignored_blockers ) {
+    sub search_report_file_for_inhibitors ( $self, @ignored_blockers ) {
 
         my @blockers;
         my $leapp_json_report = LEAPP_REPORT_JSON;
@@ -4849,6 +4871,44 @@ EOS
         }
 
         return \@blockers;
+    }
+
+    sub extract_error_block_from_output ( $self, $text_ar ) {
+
+        my $error_block = '';
+
+        my $found_banner_line        = 0;
+        my $found_second_banner_line = 0;
+        my $in_error_block           = 0;
+
+        foreach my $line (@$text_ar) {
+
+            if ( !$found_banner_line ) {
+                $found_banner_line = 1 if $line =~ /^={10}/;
+                next;
+            }
+
+            if ( !$in_error_block ) {
+                if ( $line =~ /^\s+ERRORS/ ) {
+                    $in_error_block = 1;
+                }
+                else {
+                    $found_banner_line = 0;
+                }
+                next;
+            }
+
+            if ( !$found_second_banner_line ) {
+                $found_second_banner_line = 1 if $line =~ /^={10}/;
+                next;
+            }
+
+            last if $line =~ /^={10}/;
+
+            $error_block .= $line . "\n";
+        }
+
+        return $error_block;
     }
 
     sub _report_leapp_failure_and_die ($self) {
@@ -5203,14 +5263,15 @@ EOS
         return _ssystem( \@args, %opts );
     }
 
-    sub ssystem_hide_output ( $, @args ) {
+    sub ssystem_hide_and_capture_output ( $, @args ) {
 
         my %opts;
         if ( ref $args[0] ) {
             my $ropts = shift @args;
             %opts = %$ropts;
         }
-        $opts{should_hide_output} = 1;
+        $opts{should_hide_output}    = 1;
+        $opts{should_capture_output} = 1;
 
         return _ssystem( \@args, %opts );
     }
