@@ -67,11 +67,11 @@ sub preupgrade ($self) {
 
     INFO("Running leapp preupgrade checks");
 
-    $self->cpev->ssystem_hide_output( '/usr/bin/leapp', 'preupgrade' );
+    my $out = $self->cpev->ssystem_hide_and_capture_output( '/usr/bin/leapp', 'preupgrade' );
 
     INFO("Finished running leapp preupgrade checks");
 
-    return;
+    return $out;
 }
 
 sub upgrade ($self) {
@@ -103,7 +103,7 @@ sub upgrade ($self) {
     return;
 }
 
-sub search_report_file_for_blockers ( $self, @ignored_blockers ) {
+sub search_report_file_for_inhibitors ( $self, @ignored_blockers ) {
 
     my @blockers;
     my $leapp_json_report = LEAPP_REPORT_JSON;
@@ -165,6 +165,60 @@ sub search_report_file_for_blockers ( $self, @ignored_blockers ) {
     }
 
     return \@blockers;
+}
+
+sub extract_error_block_from_output ( $self, $text_ar ) {
+
+    # The fatal errors will appear there in a block that looks like this:
+    # =========================================
+    #               ERRORS
+    # =========================================
+    #
+    # Info about the errors
+    #
+    # =========================================
+    #             END OF ERRORS
+    # =========================================
+
+    my $error_block = '';
+
+    my $found_banner_line        = 0;
+    my $found_second_banner_line = 0;
+    my $in_error_block           = 0;
+
+    foreach my $line (@$text_ar) {
+
+        # Keep looking for a "banner" line (a line full of "=")
+        if ( !$found_banner_line ) {
+            $found_banner_line = 1 if $line =~ /^={10}/;
+            next;
+        }
+
+        # We've found the banner line, check if this is the error block
+        if ( !$in_error_block ) {
+            if ( $line =~ /^\s+ERRORS/ ) {
+                $in_error_block = 1;
+            }
+            else {
+                # not the error block, go back to looking for a banner line
+                $found_banner_line = 0;
+            }
+            next;
+        }
+
+        # We can't start harvesting the error info until we pass the second banner line
+        if ( !$found_second_banner_line ) {
+            $found_second_banner_line = 1 if $line =~ /^={10}/;
+            next;
+        }
+
+        # If we come across another banner line, we are done with the error block
+        last if $line =~ /^={10}/;
+
+        $error_block .= $line . "\n";
+    }
+
+    return $error_block;
 }
 
 sub _report_leapp_failure_and_die ($self) {
