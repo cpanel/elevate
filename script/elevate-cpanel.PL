@@ -1130,7 +1130,17 @@ Restore removed packages during the previous stage.
 
 sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
-    Cpanel::OS::clear_cache_after_cloudlinux_update();    # I didn't pick the "clear cache but don't die" name...
+    Cpanel::OS::clear_cache_after_cloudlinux_update();
+
+    my $upgrade_errors = $self->leapp->check_upgrade_log_for_failures();
+    if ($upgrade_errors) {
+        my $message = sprintf("The LEAPP upgrade process did not succeed\n");
+        $message .= sprintf("Please review the errors, and resolve them.\n");
+        $message .= sprintf("Once resolved, run the following commands to continue the upgrade process:\n");
+        $message .= sprintf("\ttouch /var/cpanel/elevate_leap_fail_continue\n");
+        $message .= sprintf("\t/scripts/elevate-cpanel --continue\n");
+        die($message);
+    }
 
     if ( Cpanel::OS::major() != 8 ) {
         my $pretty_distro_name = $self->upgrade_to_pretty_name();

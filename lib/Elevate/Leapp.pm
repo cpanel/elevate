@@ -22,8 +22,10 @@ use Config::Tiny ();
 
 use Log::Log4perl qw(:easy);
 
-use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
-use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
+use constant LEAPP_REPORT_JSON    => q[/var/log/leapp/leapp-report.json];
+use constant LEAPP_REPORT_TXT     => q[/var/log/leapp/leapp-report.txt];
+use constant LEAPP_UPGRADE_LOG    => q[/var/log/leapp/leapp-upgrade.log];
+use constant LEAPP_FAIL_CONT_FILE => q[/var/cpanel/elevate_leap_fail_continue];
 
 use Simple::Accessor qw{
   cpev
@@ -165,6 +167,34 @@ sub search_report_file_for_blockers ( $self, @ignored_blockers ) {
     }
 
     return \@blockers;
+}
+
+sub check_upgrade_log_for_failures ($self) {
+    my $upgrade_log = LEAPP_UPGRADE_LOG;
+
+    if ( !-e $upgrade_log ) {
+        ERROR("No LEAPP upgrade log detected at [$upgrade_log]");
+
+        return 1;
+    }
+
+    my $out = $self->cpev->ssystem_capture_output( '/usr/bin/grep', '-E', "\\sERROR\\s", $upgrade_log );
+
+    if ( scalar @{ $out->{'stdout'} } ) {
+        if ( -e LEAPP_FAIL_CONT_FILE ) {
+            INFO( "Found LEAPP upgrade errors, but continuing anyway because " . LEAPP_FAIL_CONT_FILE . " exists" );
+
+            return 0;
+        }
+        else {
+            ERROR('There were errors during the LEAPP process.');
+            ERROR( join( '\n', @{ $out->{'stdout'} } ) );
+
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 sub _report_leapp_failure_and_die ($self) {
