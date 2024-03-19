@@ -133,4 +133,10 @@ sub upgrade_to () {
     return cpev::read_stage_file( 'upgrade_to', $default );
 }
 
+sub clear_cache () {
+    undef $OS unless $INC{'Test/Elevate.pm'};
+    cpev::remove_from_stage_file('upgrade_from');
+    return;
+}
+
 1;
