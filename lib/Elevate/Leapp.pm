@@ -14,6 +14,7 @@ use cPstrict;
 
 use Cpanel::Binaries ();
 use Cpanel::JSON     ();
+use Cpanel::LoadFile ();
 use Cpanel::Pkgr     ();
 
 use Elevate::OS        ();
@@ -24,8 +25,10 @@ use Config::Tiny ();
 
 use Log::Log4perl qw(:easy);
 
-use constant LEAPP_REPORT_JSON => q[/var/log/leapp/leapp-report.json];
-use constant LEAPP_REPORT_TXT  => q[/var/log/leapp/leapp-report.txt];
+use constant LEAPP_REPORT_JSON    => q[/var/log/leapp/leapp-report.json];
+use constant LEAPP_REPORT_TXT     => q[/var/log/leapp/leapp-report.txt];
+use constant LEAPP_UPGRADE_LOG    => q[/var/log/leapp/leapp-upgrade.log];
+use constant LEAPP_FAIL_CONT_FILE => q[/var/cpanel/elevate_leap_fail_continue];
 
 use Simple::Accessor qw{
   cpev
@@ -231,6 +234,71 @@ sub extract_error_block_from_output ( $self, $text_ar ) {
     }
 
     return $error_block;
+}
+
+sub check_upgrade_log_for_failures ($self) {
+    my $upgrade_log   = LEAPP_UPGRADE_LOG;
+    my $cont_file     = LEAPP_FAIL_CONT_FILE;
+    my $max_delay     = 60 * 10;                                     # 10 minutes. If changed don't forget to update the INFO line below.
+    my $search_string = 'Starting stage After of phase FirstBoot';
+
+    if ( !-e $upgrade_log ) {
+        ERROR("No LEAPP upgrade log detected at [$upgrade_log]");
+
+        return 1;
+    }
+
+    my $contents;
+    my $not_found = 1;
+    my $elapsed   = 0;
+    INFO( "Waiting to ensure the LEAPP upgrade process completes. This process may take up to " . int( $max_delay / 60 ) . " minutes." );
+    my $found = $self->_wait_for_log_contents( $search_string, $max_delay );
+
+    if ( !$found ) {
+        if ( -e $cont_file ) {
+            INFO("LEAPP does not appear to have completed successfully, but continuing anyway because [$cont_file] exists");
+
+            return 0;
+        }
+        else {
+            my $msg = sprintf("The command 'leapp upgrade' did not complete successfully. Please investigate and resolve the issue.\n");
+            $msg .= sprintf("Once resolved, you can continue the upgrade by running the following commands:\n");
+            $msg .= sprintf( "    %s\n", "touch $cont_file" );
+            $msg .= sprintf( "    %s\n", '/scripts/elevate-cpanel --continue' );
+            $msg .= sprintf("The following log files may help in your investigation.\n");
+            $msg .= sprintf( "    %s\n", $upgrade_log );
+            $msg .= sprintf( "    %s\n", LEAPP_REPORT_TXT );
+            ERROR($msg);
+
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+sub _wait_for_log_contents ( $self, $search_string, $max_delay ) {
+    my $upgrade_log = LEAPP_UPGRADE_LOG;
+    my $found       = 0;
+    my $elapsed     = 0;
+    my $sleep_time  = 3;                   # Time to sleep, in seconds, between checks
+
+    while ( !$found && $elapsed < $max_delay ) {
+        my $contents = Cpanel::LoadFile::loadfile($upgrade_log) // '';
+        if ( $contents =~ /$search_string/ ) {
+            $found = 1;
+        }
+        else {
+            sleep $sleep_time;
+            $elapsed += $sleep_time;
+        }
+
+        if ( $elapsed > 0 && $elapsed % 30 == 0 ) {
+            INFO("Still waiting for the LEAPP upgrade process to complete.");
+        }
+    }
+
+    return $found;
 }
 
 sub _report_leapp_failure_and_die ($self) {
