@@ -63,8 +63,10 @@ $mock_elevate->redefine(
 ok Elevate::Leapp::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
 ok Elevate::Leapp::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
 
-my $mock_leap_report_json = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_JSON() );
-my $mock_leap_report_txt  = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_TXT() );
+my $mock_leap_report_json  = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_JSON() );
+my $mock_leap_report_txt   = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_TXT() );
+my $mock_leapp_upgrade_log = Test::MockFile->file( Elevate::Leapp::LEAPP_UPGRADE_LOG() );
+my $mock_leapp_cont_file   = Test::MockFile->file( Elevate::Leapp::LEAPP_FAIL_CONT_FILE() );
 
 like(
     dies { cpev->leapp->upgrade() },
@@ -244,5 +246,108 @@ local $Cpanel::Exception::LOCALIZE_STRINGS = 0;
 $found_blockers = cpev->leapp->search_report_file_for_blockers();
 
 is $found_blockers, $expected_blockers, 'Returned blocker for invalid JSON in report file';
+
+{
+    my $label = 'LEAPP upgrade log failure checks';
+
+    $mock_elevate->redefine(
+        ssystem_capture_output => sub ( $, @args ) {
+            $ssystem_cmd = join( ' ', @args );
+            note "run: $ssystem_cmd";
+
+            my @out;
+            if ( $ssystem_cmd =~ /ERROR/ ) {
+                my @lines = split( '\n', $mock_leapp_upgrade_log->contents() );
+                foreach my $line (@lines) {
+                    if ( $line =~ /ERROR/ ) {
+                        push @out, $line;
+                    }
+                }
+                return { stdout => [@out], stderr => [] };
+            }
+            else {
+                my @lines = split( '\n', $mock_leapp_upgrade_log->contents() );
+                foreach my $line (@lines) {
+                    if ( $line =~ /Starting stage After/ ) {
+                        push @out, $line;
+                    }
+                }
+                return { stdout => [@out], stderr => [] };
+            }
+        }
+    );
+
+    # Upgrade log file contents with no errors
+    $mock_leapp_upgrade_log->contents(
+        "2024-03-18 16:45:18.386 INFO     PID: 1258 leapp.workflow.FirstBoot: Starting stage After of phase FirstBoot\n2024-03-18 16:45:18.362 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping setting the RHSM release due to --no-rhsm or environment variables.\n2024-03-18 16:45:18.368 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping enabling repositories through subscription-manager due to --no-rhsm or environment variables."
+    );
+    my $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 0, "$label: check_upgrade_log_for_failures returns the proper value when no errors are found." );
+}
+
+{
+    my $label = 'LEAPP upgrade log failure checks';
+
+    $mock_elevate->redefine(
+        ssystem_capture_output => sub ( $, @args ) {
+            $ssystem_cmd = join( ' ', @args );
+            note "run: $ssystem_cmd";
+
+            my @out;
+            if ( $ssystem_cmd =~ /ERROR/ ) {
+                my @lines = split( '\n', $mock_leapp_upgrade_log->contents() );
+                foreach my $line (@lines) {
+                    if ( $line =~ /ERROR/ ) {
+                        push @out, $line;
+                    }
+                }
+                return { stdout => [@out], stderr => [] };
+            }
+            else {
+                my @lines = split( '\n', $mock_leapp_upgrade_log->contents() );
+                foreach my $line (@lines) {
+                    if ( $line =~ /Starting stage After/ ) {
+                        push @out, $line;
+                    }
+                }
+                return { stdout => [@out], stderr => [] };
+            }
+        }
+    );
+
+    # Upgrade log file contents with errors
+    $mock_leapp_upgrade_log->contents(
+        "2024-03-18 16:45:18.386 INFO     PID: 1258 leapp.workflow.FirstBoot: Starting stage After of phase FirstBoot\n2024-03-18 16:45:18.362 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping setting the RHSM release due to --no-rhsm or environment variables.\n2024-03-18 16:45:18.368 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping enabling repositories through subscription-manager due to --no-rhsm or environment variables.\n2024-03-18 16:45:18.368 ERROR    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping enabling repositories through subscription-manager due to --no-rhsm or environment variables."
+    );
+    my $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 1, "$label: check_upgrade_log_for_failures returns the proper value when errors are found." );
+    undef $out;
+
+    $mock_leapp_upgrade_log->contents(
+        "2024-03-18 16:45:18.362 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping setting the RHSM release due to --no-rhsm or environment variables.\n2024-03-18 16:45:18.368 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping enabling repositories through subscription-manager due to --no-rhsm or environment variables.\n");
+    $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 1, "$label: check_upgrade_log_for_failures returns the proper value when the upgrade log shows the LEAPP process may not have finished." );
+}
+
+{
+    my $label = 'LEAPP upgrade log failure checks';
+
+    my $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 1, "$label: check_upgrade_log_for_failures returns the proper value when the upgrade log does not exist." );
+    undef $out;
+
+    $mock_leapp_cont_file->contents("1");
+    $mock_leapp_upgrade_log->contents(
+        "2024-03-18 16:45:18.386 INFO     PID: 1258 leapp.workflow.FirstBoot: Starting stage After of phase FirstBoot\n2024-03-18 16:45:18.362 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping setting the RHSM release due to --no-rhsm or environment variables.\n2024-03-18 16:45:18.368 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping enabling repositories through subscription-manager due to --no-rhsm or environment variables.\n2024-03-18 16:45:18.368 ERROR    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping enabling repositories through subscription-manager due to --no-rhsm or environment variables."
+    );
+    $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 0, "$label: check_upgrade_log_for_failures returns the proper value when the upgrade log has errors but the touch file exists." );
+    undef $out;
+
+    $mock_leapp_upgrade_log->contents(
+        "2024-03-18 16:45:18.362 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping setting the RHSM release due to --no-rhsm or environment variables.\n2024-03-18 16:45:18.368 DEBUG    PID: 2150 leapp.workflow.FirstBoot.enable_rhsm_target_repos: Skipping enabling repositories through subscription-manager due to --no-rhsm or environment variables.");
+    $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 0, "$label: check_upgrade_log_for_failures returns the proper value when the LEAPP process may not have finished, but the touch file exists." );
+}
 
 done_testing;
