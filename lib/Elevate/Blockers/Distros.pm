@@ -66,8 +66,15 @@ sub _blocker_is_experimental_os ($self) {
     return 0;
 }
 
-# We are OK if can_be_elevated or if
+=head2
+
+This sub is the primary gateway to determine if a server is eligible for a OS
+upgrade via this script.  Never allow a cache to be used here.
+
+=cut
+
 sub bail_out_on_inappropriate_distro () {
+    Elevate::OS::clear_cache();
     Elevate::OS::is_supported();    # dies
     return;
 }
