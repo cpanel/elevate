@@ -914,6 +914,7 @@ EOS
     }
 
     sub bail_out_on_inappropriate_distro () {
+        Elevate::OS::clear_cache();
         Elevate::OS::is_supported();    # dies
         return;
     }
@@ -4443,6 +4444,12 @@ EOS
     sub upgrade_to () {
         my $default = Elevate::OS::default_upgrade_to();
         return cpev::read_stage_file( 'upgrade_to', $default );
+    }
+
+    sub clear_cache () {
+        undef $OS unless $INC{'Test/Elevate.pm'};
+        cpev::remove_from_stage_file('upgrade_from');
+        return;
     }
 
     1;
