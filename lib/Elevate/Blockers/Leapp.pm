@@ -29,9 +29,29 @@ sub check ($self) {
 
     $self->cpev->leapp->install();
 
-    $self->cpev->leapp->preupgrade();
+    my $out = $self->cpev->leapp->preupgrade();
 
-    my $blockers = $self->cpev->leapp->search_report_file_for_blockers(
+    # A return code of zero indicates that no inhibitors
+    # or fatal errors have been found. I.e., success.
+    return if ( $out->{status} == 0 );
+
+    $self->_check_for_inhibitors();
+
+    $self->_check_for_fatal_errors($out);
+
+    return;
+}
+
+sub _check_for_inhibitors ($self) {
+
+    # Leapp will generate a JSON report file which contains any
+    # inhibitors found. Find any reported inhibitors but exclude ones
+    # that we know about and will fix before the upgrade.
+    # (Inhibitors will also be reported in stdout in a block
+    # labeled "UPGRADE INHIBITORS"; but more complete info is reported
+    # in the JSON report file.)
+
+    my $inhibitors = $self->cpev->leapp->search_report_file_for_inhibitors(
         qw(
           check_installed_devel_kernels
           cl_mysql_repository_setup
@@ -39,17 +59,33 @@ sub check ($self) {
         )
     );
 
-    foreach my $blocker (@$blockers) {
-        my $message = $blocker->{title} . "\n";
-        $message .= $blocker->{summary} . "\n";
-        if ( $blocker->{hint} ) {
-            $message .= "Possible resolution: " . $blocker->{hint} . "\n";
+    foreach my $inhibitor (@$inhibitors) {
+        my $message = $inhibitor->{title} . "\n";
+        $message .= $inhibitor->{summary} . "\n";
+        if ( $inhibitor->{hint} ) {
+            $message .= "Possible resolution: " . $inhibitor->{hint} . "\n";
         }
-        if ( $blocker->{command} ) {
-            $message .= "Consider running:" . "\n" . $blocker->{command} . "\n";
+        if ( $inhibitor->{command} ) {
+            $message .= "Consider running:" . "\n" . $inhibitor->{command} . "\n";
         }
 
         $self->has_blocker($message);
+    }
+
+    return;
+}
+
+sub _check_for_fatal_errors ( $self, $out ) {
+
+    # Fatal errors will NOT be flagged as inhibitors in the
+    # leapp reports.  So it is NOT possible to distinguish them from
+    # any non-fatal conditions reported there.  So, we need to fish
+    # them from stdout.
+
+    my $error_block = $self->cpev->leapp->extract_error_block_from_output( $out->{stdout} );
+
+    if ( length $error_block ) {
+        $self->has_blocker( "Leapp encountered the following error(s):\n" . $error_block );
     }
 
     return;
