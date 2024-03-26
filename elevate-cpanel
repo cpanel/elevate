@@ -33,6 +33,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/SSH.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/WHM.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Leapp.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/AutoSSL.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Base.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/AbsoluteSymlinks.pm'}   = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/cPanelPlugins.pm'}      = 'script/elevate-cpanel.PL.static';
@@ -54,6 +55,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/RmMod.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/WPToolkit.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/SSH.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/AutoSSL.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
@@ -274,6 +276,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       OVH
       Python
       AbsoluteSymlinks
+      AutoSSL
     };
 
     push @BLOCKERS, 'Leapp';    # This blocker has to run last!
@@ -2259,6 +2262,46 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Blockers/Leapp.pm
+
+{    # --- BEGIN lib/Elevate/Blockers/AutoSSL.pm
+
+    package Elevate::Blockers::AutoSSL;
+
+    use cPstrict;
+
+    use Cpanel::SSL::Auto ();
+
+    use Elevate::Components::AutoSSL ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Blockers::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
+
+    sub check ($self) {
+
+        return $self->_check_autossl_provider();
+    }
+
+    sub _check_autossl_provider ($self) {
+
+        if ( Elevate::Components::AutoSSL::is_using_sectigo() ) {
+            WARN( <<~"EOS" );
+        Elevating with Sectigo as the provider for AutoSSL is not supported.
+        If you proceed with this upgrade, we will switch your system
+        to use the Let's Encrypt™ provider.
+
+        EOS
+        }
+
+        return 0;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Blockers/AutoSSL.pm
 
 {    # --- BEGIN lib/Elevate/Components/Base.pm
 
@@ -4430,6 +4473,52 @@ EOS
 
 }    # --- END lib/Elevate/Components/SSH.pm
 
+{    # --- BEGIN lib/Elevate/Components/AutoSSL.pm
+
+    package Elevate::Components::AutoSSL;
+
+    use cPstrict;
+
+    use Cpanel::SSL::Auto ();
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_leapp ($self) {
+
+        if ( is_using_sectigo() ) {
+            $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/autorepair set_autossl_to_lets_encrypt});
+        }
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+
+        return;
+    }
+
+    sub is_using_sectigo {
+
+        my @providers = Cpanel::SSL::Auto::get_all_provider_info();
+
+        foreach my $provider (@providers) {
+            next unless ( ref $provider eq 'HASH' && $provider->{enabled} );
+
+            if ( defined $provider->{display_name}
+                && $provider->{display_name} =~ /sectigo/i ) {
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/AutoSSL.pm
+
 {    # --- BEGIN lib/Elevate/OS.pm
 
     package Elevate::OS;
@@ -6346,6 +6435,7 @@ use Elevate::Blockers::Repositories     ();    # using a constant
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
 use Elevate::Blockers::Leapp            ();
+use Elevate::Blockers::AutoSSL          ();
 
 # - fatpack Components
 use Elevate::Components::Base               ();
@@ -6369,6 +6459,7 @@ use Elevate::Components::RpmDB              ();
 use Elevate::Components::RmMod              ();
 use Elevate::Components::WPToolkit          ();
 use Elevate::Components::SSH                ();
+use Elevate::Components::AutoSSL            ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -7126,6 +7217,7 @@ sub run_stage_2 ($self) {
     Elevate::Motd->setup();
 
     $self->run_component_once( 'SSH'        => 'pre_leapp' );
+    $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
 

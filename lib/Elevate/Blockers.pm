@@ -70,6 +70,7 @@ our @BLOCKERS = qw{
   OVH
   Python
   AbsoluteSymlinks
+  AutoSSL
 };
 
 push @BLOCKERS, 'Leapp';    # This blocker has to run last!
