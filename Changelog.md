@@ -1,3 +1,12 @@
+##### **2024-03-26** - version 29
+
+* Fixed case CPANEL-41659: Change to Let&#39;s Encrypt if Sectigo is the AutoSSL provider.
+* Fixed case RE-83: Block if the grub2-pc package is not installed or if the grub.cfg file is missing.
+* Fixed case RE-138: Ensure upcp and backups cannot run at the same time as ELevate.
+* Fixed case RE-213: Convert logic to remove modules that do not convert into component.
+* Fixed case RE-223: Also block on the &#39;leapp preupgrade&#39; ERRORS.
+* Fixed case RE-249: Ensure proper OS detection on servers that have been previously elevated.
+
 ##### **2024-03-13** - version 28
 
 * Fixed case RE-153: Add support for CL MySQL.
