@@ -18,7 +18,9 @@ my %mocks = map { $_ => Test::MockModule->new($_); } qw{
   Cpanel::Pkgr
   Elevate::Blockers
   Elevate::Blockers::Base
+  Elevate::OS
 };
+$mocks{'Elevate::OS'}->redefine( _set_cache => 0 );
 $mocks{'Cpanel::Pkgr'}->redefine( "what_provides" => '', "is_installed" => 1 );
 my $obj = bless {}, 'Elevate::Blockers::Python';
 ok( !$obj->check(), "Returns early on no provider of python36" );
