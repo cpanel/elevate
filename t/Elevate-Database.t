@@ -20,6 +20,11 @@ my $cloudlinux_database_installed;
 my $cloudlinux_database_info;
 my $os;
 
+my $mock_elevate_os = Test::MockModule->new('Elevate::OS');
+$mock_elevate_os->redefine(
+    _set_cache => 0,
+);
+
 {
     note 'Test is_database_provided_by_cloudlinux() behavior';
 

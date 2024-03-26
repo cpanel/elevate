@@ -57,6 +57,8 @@ sub instance {
         die "This script is only designed to upgrade the following OSs:\n\n$supported_distros\n";
     }
 
+    Elevate::OS::_set_cache();
+
     return $OS;
 }
 
@@ -136,6 +138,11 @@ sub upgrade_to () {
 sub clear_cache () {
     undef $OS unless $INC{'Test/Elevate.pm'};
     cpev::remove_from_stage_file('upgrade_from');
+    return;
+}
+
+sub _set_cache () {
+    cpev::update_stage_file( { upgrade_from => Elevate::OS::name() } );
     return;
 }
 
