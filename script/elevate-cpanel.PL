@@ -580,7 +580,6 @@ sub monitor_upgrade ($self) {
 }
 
 sub start ($self) {
-    $self->_parse_opt_upgrade_to();
     my $stage = get_stage();
     if ( $stage != 0 ) {
         my $header;
@@ -600,6 +599,11 @@ sub start ($self) {
         EOS
 
     }
+
+    # Do not do this until after we know that the script is not already in progress
+    # Otherwise, it will clear the Elevate::OS cache which can result in the script
+    # failing once leapp has finished upgrading the server
+    $self->_parse_opt_upgrade_to();
 
     # Check for blockers before starting the migration
     return 1 if ( $self->blockers->check() );
@@ -1019,11 +1023,6 @@ sub run_stage_1 ($self) {
 
     # store 'upgrade_to' early so later stages can access it
     update_stage_file( { upgrade_to => $self->upgrade_to } );
-
-    # store 'upgrade_from' early so that Elevate::OS can access it
-    # Elevate::OS is based on the OS we are upgrading from since the information
-    # that it provides is mostly based on what leapp can do when upgrading from an OS
-    update_stage_file( { upgrade_from => Elevate::OS::name() } );
 
     return $self->service->install();
 }
