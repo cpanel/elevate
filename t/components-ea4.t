@@ -38,7 +38,7 @@ sub startup : Test(startup) ($self) {
         }
     );
 
-    $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
+    $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
     $self->{mock_profile} = Test::MockFile->file(PROFILE_FILE);
 
@@ -94,7 +94,7 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
     is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - not using ea4";
     message_seen( 'WARN' => q[Skipping EA4 backup. EA4 does not appear to be enabled on this system] );
 
-    is cpev::read_stage_file(), { ea4 => { enable => 0 } }, "stage file - ea4 is disabled";
+    is Elevate::StageFile::read_stage_file(), { ea4 => { enable => 0 } }, "stage file - ea4 is disabled";
 
     is $ea4->_restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
     message_seen( 'WARN' => q[Skipping EA4 restore. EA4 does not appear to be enabled on this system.] );
@@ -266,7 +266,7 @@ sub backup_non_existing_profile : Test(16) ($self) {
         _message_run_ea_current_to_profile($os);
     }
 
-    is cpev::read_stage_file(), { ea4 => { enable => 1 } }, "stage file - ea4 is enabled but we failed";
+    is Elevate::StageFile::read_stage_file(), { ea4 => { enable => 1 } }, "stage file - ea4 is enabled but we failed";
     is $ea4->_restore_ea4_profile(), undef, "restore_ea4_profile: nothing to restore";
 
     message_seen( 'WARN' => q[Unable to restore EA4 profile. Is EA4 enabled?] );
@@ -289,7 +289,7 @@ sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
         _message_run_ea_current_to_profile( $os, 1 );
     }
 
-    is cpev::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
+    is Elevate::StageFile::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
 
     is( $ea4->_restore_ea4_profile(), 1, "restore_ea4_profile: profile restored" );
     is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
@@ -321,7 +321,7 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(28) ($self) {
         is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
-        is cpev::read_stage_file(), {
+        is Elevate::StageFile::read_stage_file(), {
             ea4 => {
                 enable       => 1,                                        #
                 profile      => PROFILE_FILE,                             #
@@ -373,7 +373,7 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
         is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
-        is cpev::read_stage_file(), {
+        is Elevate::StageFile::read_stage_file(), {
             ea4 => {
                 enable       => 1,                                        #
                 profile      => PROFILE_FILE,                             #
@@ -394,7 +394,7 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
         is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
-        my $stage = cpev::read_stage_file();
+        my $stage = Elevate::StageFile::read_stage_file();
         is $stage, {
             ea4 => {
                 enable  => 1,               #
@@ -431,7 +431,7 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
     is( $ea4->_backup_config_files(), undef, '_backup_config_files() successfully completes' );
 
     is(
-        cpev::read_stage_file(),
+        Elevate::StageFile::read_stage_file(),
         {
             ea4_config_files => {
                 'ea-foo'   => ['/tmp/foo.conf'],

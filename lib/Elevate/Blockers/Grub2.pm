@@ -15,6 +15,7 @@ use cPstrict;
 use Cpanel::Pkgr ();
 
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -57,7 +58,7 @@ sub _blocker_grub2_workaround ($self) {
         current $deb directory, re-create $deb as a symlink to $rhel,
         and then copy as much of the old $deb into $rhel as possible.
         EOS
-        cpev::update_stage_file( { 'grub2_workaround' => { 'needs_workaround_update' => 1 } } ) if !$self->is_check_mode();    # don't update stage file if this is just a check
+        Elevate::StageFile::update_stage_file( { 'grub2_workaround' => { 'needs_workaround_update' => 1 } } ) if !$self->is_check_mode();    # don't update stage file if this is just a check
     }
     elsif ( $state == GRUB2_WORKAROUND_UNCERTAIN ) {
 

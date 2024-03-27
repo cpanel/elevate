@@ -12,7 +12,8 @@ Blockers for datbase: MySQL, PostgreSQL...
 
 use cPstrict;
 
-use Elevate::Database ();
+use Elevate::Database  ();
+use Elevate::StageFile ();
 
 use Cpanel::OS                         ();
 use Cpanel::Pkgr                       ();
@@ -200,7 +201,7 @@ sub _blocker_old_cpanel_mysql ( $self, $mysql_version = undef ) {
     }
 
     # store the MySQL version we started from
-    cpev::update_stage_file( { 'mysql-version' => $mysql_version } );
+    Elevate::StageFile::update_stage_file( { 'mysql-version' => $mysql_version } );
 
     return 0;
 }
@@ -217,7 +218,7 @@ sub _warning_mysql_not_enabled ($self) {
     require Cpanel::Services::Enabled;
     my $enabled = Cpanel::Services::Enabled::is_enabled('mysql');
 
-    cpev::update_stage_file( { 'mysql-enabled' => $enabled } );
+    Elevate::StageFile::update_stage_file( { 'mysql-enabled' => $enabled } );
     WARN( "MySQL is disabled. This must be enabled for MySQL upgrade to succeed.\n" . "We temporarily will enable it when it is needed to be enabled,\n" . "but we reccomend starting the process with MySQL enabled." ) if !$enabled;
     return 0;
 }

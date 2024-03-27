@@ -72,13 +72,13 @@ subtest 'Testing _grub2_workaround_state' => sub {
 
 subtest 'Testing _update_grub2_workaround_if_needed' => sub {
     {
-        my $cpev_mock = Test::MockModule->new('cpev');
-        my $g2_mock   = Test::MockModule->new('Elevate::Components::Grub2');
+        my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
+        my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
         my $cpev = cpev->new;
         my $g2   = $cpev->component('Grub2');
 
-        $cpev_mock->redefine(
+        $stagefile_mock->redefine(
             _read_stage_file => { grub2_workaround => { needs_workaround_update => 0 } },
         );
 
@@ -92,8 +92,8 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
 
     subtest "needs workaround, clean run" => sub {
 
-        my $cpev_mock = Test::MockModule->new('cpev');
-        my $g2_mock   = Test::MockModule->new('Elevate::Components::Grub2');
+        my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
+        my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
         my $cpev = cpev->new;
         my $g2   = $cpev->component('Grub2');
@@ -105,7 +105,7 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
         symlink "../grub2/grub.cfg", "$mocked_boot/grub/grub.cfg";
 
         my $stage_update;
-        $cpev_mock->redefine(
+        $stagefile_mock->redefine(
             _read_stage_file  => { grub2_workaround => { needs_workaround_update => 1 } },
             update_stage_file => sub { $stage_update = $_[0]; return 1; },
         );
@@ -134,8 +134,8 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
     };
 
     subtest "needs workaround, recovery run" => sub {
-        my $cpev_mock = Test::MockModule->new('cpev');
-        my $g2_mock   = Test::MockModule->new('Elevate::Components::Grub2');
+        my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
+        my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
         my $cpev = cpev->new;
         my $g2   = $cpev->component('Grub2');
@@ -148,7 +148,7 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
 
         my $now = CORE::time();
         my $stage_update;
-        $cpev_mock->redefine(
+        $stagefile_mock->redefine(
             _read_stage_file  => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
             update_stage_file => sub { die 'this should not reached' },
         );
@@ -172,14 +172,14 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
 
 subtest 'Testing _merge_grub_directories_if_needed' => sub {
 
-    my $cpev_mock = Test::MockModule->new('cpev');
-    my $g2_mock   = Test::MockModule->new('Elevate::Components::Grub2');
+    my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
+    my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
     my $cpev = cpev->new;
     my $g2   = $cpev->component('Grub2');
 
     {
-        $cpev_mock->redefine(
+        $stagefile_mock->redefine(
             _read_stage_file => { grub2_workaround => { needs_workaround_update => 0 } },
         );
         $g2_mock->redefine(
@@ -200,7 +200,7 @@ subtest 'Testing _merge_grub_directories_if_needed' => sub {
     symlink "../grub2/grub.cfg", "$mocked_boot/grub-$now/grub.cfg";
     symlink "grub2",             "$mocked_boot/grub";
 
-    $cpev_mock->redefine(
+    $stagefile_mock->redefine(
         _read_stage_file => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
     );
     $g2_mock->redefine(

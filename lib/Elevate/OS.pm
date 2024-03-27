@@ -14,6 +14,8 @@ use cPstrict;
 
 use Carp ();
 
+use Elevate::StageFile ();
+
 use Log::Log4perl qw(:easy);
 
 use constant SUPPORTED_DISTROS => (
@@ -24,7 +26,7 @@ use constant SUPPORTED_DISTROS => (
 our $OS;
 
 sub factory {
-    my $distro_with_version = cpev::read_stage_file( 'upgrade_from', '' );
+    my $distro_with_version = Elevate::StageFile::read_stage_file( 'upgrade_from', '' );
 
     my $distro;
     my $major;
@@ -103,10 +105,10 @@ sub AUTOLOAD {
     my $sub = $AUTOLOAD;
     $sub =~ s/.*:://;
 
-    exists $methods{$sub} or Carp::Croak("$sub is not a supported data variable for Elevate::OS");
+    exists $methods{$sub} or Carp::croak("$sub is not a supported data variable for Elevate::OS");
 
     my $i   = instance();
-    my $can = $i->can($sub) or Carp::Croak( ref($i) . " does not implement $sub" );
+    my $can = $i->can($sub) or Carp::croak( ref($i) . " does not implement $sub" );
     return $can->( $i, @_ );
 }
 
@@ -132,17 +134,17 @@ within the stages file.
 
 sub upgrade_to () {
     my $default = Elevate::OS::default_upgrade_to();
-    return cpev::read_stage_file( 'upgrade_to', $default );
+    return Elevate::StageFile::read_stage_file( 'upgrade_to', $default );
 }
 
 sub clear_cache () {
     undef $OS unless $INC{'Test/Elevate.pm'};
-    cpev::remove_from_stage_file('upgrade_from');
+    Elevate::StageFile::remove_from_stage_file('upgrade_from');
     return;
 }
 
 sub _set_cache () {
-    cpev::update_stage_file( { upgrade_from => Elevate::OS::name() } );
+    Elevate::StageFile::update_stage_file( { upgrade_from => Elevate::OS::name() } );
     return;
 }
 

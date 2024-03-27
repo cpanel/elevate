@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::OS        ();
+use Elevate::StageFile ();
 
 use Cwd            ();
 use File::Copy     ();
@@ -48,13 +49,13 @@ sub _remove_kernelcare_if_needed ($self) {
     local $ENV{KCARE_KEEP_REGISTRATION} = '1';
     $self->remove_rpms_from_repos('kernelcare');
 
-    cpev::update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
 
     return 1;
 }
 
 sub _restore_kernelcare ($self) {
-    return unless cpev::read_stage_file('reinstall')->{'kernelcare'};
+    return unless Elevate::StageFile::read_stage_file('reinstall')->{'kernelcare'};
 
     INFO("Restoring kernelcare");
 
