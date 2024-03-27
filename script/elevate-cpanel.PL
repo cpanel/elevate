@@ -1192,7 +1192,7 @@ sub run_stage_4 ($self) {
             }
 
             # cleanup the license: cpsanitycheck.so binary is compiled for a different distro
-            $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/cpsanitycheck.so});
+            unlink('/usr/local/cpanel/cpsanitycheck.so');
             $self->ssystem(qw{/usr/local/cpanel/cpkeyclt});
 
             return;
