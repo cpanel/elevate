@@ -22,7 +22,8 @@ BEGIN {
     require $FindBin::Bin . q[/../elevate-cpanel];
     $INC{'cpev.pm'} = '__TEST__';
     no warnings;
-    *Elevate::Logger::init = sub { };
+    *Elevate::Logger::init   = sub { };
+    *Elevate::OS::_set_cache = sub { };
 }
 
 sub _msg ( $self, $msg, $level = '[void]' ) {
