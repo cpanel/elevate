@@ -1,3 +1,7 @@
+##### **2024-03-27** - version 30
+
+* Fixed case RE-265: Validate script can execute start option before parsing upgrade_to option.
+
 ##### **2024-03-26** - version 29
 
 * Fixed case CPANEL-41659: Change to Let&#39;s Encrypt if Sectigo is the AutoSSL provider.
