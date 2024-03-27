@@ -5,6 +5,8 @@ use cPstrict;
 use FindBin;
 
 use lib "$FindBin::Bin/../lib";
+use lib "$FindBin::Bin/lib";
+use Test::Elevate::OS;
 
 use Test2::Bundle::Extended;
 use Test2::Tools::Explain;
@@ -18,18 +20,25 @@ my $stash = [];
 
 my $cloudlinux_database_installed;
 my $cloudlinux_database_info;
-my $os;
 
-my $mock_elevate_os = Test::MockModule->new('Elevate::OS');
-$mock_elevate_os->redefine(
-    _set_cache => 0,
+my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+$mock_stagefile->redefine(
+    read_stage_file => sub ( $key, $default = undef ) {
+        return $cloudlinux_database_installed if $key eq 'cloudlinux_database_installed';
+        return $cloudlinux_database_info      if $key eq 'cloudlinux_database_info';
+        return $default;
+    },
+    update_stage_file => sub {
+        my $update = shift;
+        push @$stash, $update;
+        return;
+    },
 );
 
 {
     note 'Test is_database_provided_by_cloudlinux() behavior';
 
-    local $Elevate::OS::OS = undef;
-    $os = 'CentOS7';
+    set_os_to('cent');
 
     is(
         Elevate::Database::is_database_provided_by_cloudlinux(),
@@ -58,11 +67,11 @@ $mock_elevate_os->redefine(
 
     is( $stash, [ { cloudlinux_database_installed => 0, } ], 'The expected data is stashed' );
 
-    local $Elevate::OS::OS = undef;
-    $os = 'CloudLinux7';
+    set_os_to('cloud');
 
     local *Elevate::Database::get_db_info_if_provided_by_cloudlinux = sub { return ( 1, 1 ); };
 
+    diag explain $Elevate::OS::OS;
     is(
         Elevate::Database::is_database_provided_by_cloudlinux(0),
         1,
@@ -151,20 +160,3 @@ $mock_elevate_os->redefine(
 }
 
 done_testing();
-
-# ------------------------------ #
-
-package cpev;
-
-sub read_stage_file ( $key, $default = undef ) {
-    return $os                            if $key eq 'upgrade_from';
-    return $cloudlinux_database_installed if $key eq 'cloudlinux_database_installed';
-    return $cloudlinux_database_info      if $key eq 'cloudlinux_database_info';
-    return $default;
-}
-
-sub update_stage_file {
-    my $update = shift;
-    push @$stash, $update;
-    return;
-}

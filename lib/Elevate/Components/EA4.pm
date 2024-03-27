@@ -15,6 +15,7 @@ use cPstrict;
 use Elevate::Constants ();
 use Elevate::OS        ();
 use Elevate::RPM       ();
+use Elevate::StageFile ();
 use Elevate::YUM       ();
 
 use Cwd           ();
@@ -82,7 +83,7 @@ sub _cleanup_rpm_db ($self) {
 
 sub _restore_ea_addons ($self) {
 
-    return unless cpev::read_stage_file('ea4')->{'nginx'};
+    return unless Elevate::StageFile::read_stage_file('ea4')->{'nginx'};
 
     INFO("Restoring ea-nginx");
 
@@ -96,10 +97,10 @@ sub _restore_ea_addons ($self) {
 sub _backup_ea_addons ($self) {
 
     if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
-        cpev::update_stage_file( { ea4 => { nginx => 1 } } );
+        Elevate::StageFile::update_stage_file( { ea4 => { nginx => 1 } } );
     }
     else {
-        cpev::update_stage_file( { ea4 => { nginx => 0 } } );
+        Elevate::StageFile::update_stage_file( { ea4 => { nginx => 0 } } );
     }
 
     return;
@@ -109,8 +110,8 @@ sub _backup_ea4_profile ($self) {    ## _backup_ea4_profile
 
     my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
 
-    cpev::remove_from_stage_file('ea4');
-    cpev::update_stage_file( { ea4 => { enable => $use_ea4 } } );
+    Elevate::StageFile::remove_from_stage_file('ea4');
+    Elevate::StageFile::update_stage_file( { ea4 => { enable => $use_ea4 } } );
 
     unless ($use_ea4) {
 
@@ -129,7 +130,7 @@ sub _backup_ea4_profile ($self) {    ## _backup_ea4_profile
         $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
     }
 
-    cpev::update_stage_file( { ea4 => $data } );    # FIXME
+    Elevate::StageFile::update_stage_file( { ea4 => $data } );    # FIXME
 
     return 1;
 }
@@ -183,7 +184,7 @@ sub _get_ea4_profile ($self) {
 
 sub _restore_ea4_profile ($self) {
 
-    my $stash      = cpev::read_stage_file();
+    my $stash      = Elevate::StageFile::read_stage_file();
     my $is_enabled = $stash->{'ea4'} && $stash->{'ea4'}->{'enable'};
 
     unless ($is_enabled) {
@@ -217,12 +218,12 @@ sub _restore_ea4_profile ($self) {
 
 sub _backup_config_files ($self) {
 
-    cpev::remove_from_stage_file('ea4_config_files');
+    Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
     my $ea4_regex        = qr/^EA4(:?-c7)?/a;
     my $ea4_config_files = $self->rpm->get_config_files_for_repo($ea4_regex);
 
-    cpev::update_stage_file( { ea4_config_files => $ea4_config_files } );
+    Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
     return;
 }
@@ -239,7 +240,7 @@ our %config_files_to_ignore = (
 
 sub _restore_config_files ($self) {
 
-    my $config_files = cpev::read_stage_file('ea4_config_files');
+    my $config_files = Elevate::StageFile::read_stage_file('ea4_config_files');
 
     foreach my $key ( sort keys %$config_files ) {
         INFO("Restoring config files for package: '$key'");

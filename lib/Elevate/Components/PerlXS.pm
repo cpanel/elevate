@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::Notify    ();
+use Elevate::StageFile ();
 
 use Config;
 use Cwd           ();
@@ -104,13 +105,13 @@ sub purge_perl_xs ( $self, $path ) {
         }
     }
 
-    cpev::update_stage_file($stash);
+    Elevate::StageFile::update_stage_file($stash);
 
     return;
 }
 
 sub restore_perl_xs ( $self, $path ) {
-    my $stash = cpev::read_stage_file();
+    my $stash = Elevate::StageFile::read_stage_file();
 
     if ( $path eq DISTRO_PERL_XS_PATH ) {
         my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};

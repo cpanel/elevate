@@ -77,7 +77,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
         "uncertainty about whether GRUB2 workaround is present/needed blocks"
     );
 
-    my $mock_cpev = Test::MockModule->new('cpev');
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 
     #$grub2 = $blockers->_get_blocker_for('Grub2');
     my $stash = undef;
@@ -86,7 +86,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
         #update_stage_file       => sub ( $, $data ) { $stash = $data },
     );
-    $mock_cpev->redefine(
+    $mock_stagefile->redefine(
         update_stage_file => sub ($data) { $stash = $data },
     );
 

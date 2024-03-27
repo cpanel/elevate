@@ -12,7 +12,8 @@ Helper/Utility logic for database related tasks.
 
 use cPstrict;
 
-use Elevate::OS ();
+use Elevate::OS        ();
+use Elevate::StageFile ();
 
 use Cpanel::Pkgr ();
 
@@ -21,7 +22,7 @@ use constant MYSQL_BIN => '/usr/sbin/mysqld';
 sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
 
     if ($use_cache) {
-        my $cloudlinux_database_installed = cpev::read_stage_file( 'cloudlinux_database_installed', '' );
+        my $cloudlinux_database_installed = Elevate::StageFile::read_stage_file( 'cloudlinux_database_installed', '' );
 
         # cloudlinux_database_installed should only ever be 1 or 0 if it is set
         # by default, read_stage_file() will return '{}', but we are telling it to send back ''
@@ -31,7 +32,7 @@ sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
     }
 
     if ( !Elevate::OS::provides_mysql_governor() ) {
-        cpev::update_stage_file( { cloudlinux_database_installed => 0 } );
+        Elevate::StageFile::update_stage_file( { cloudlinux_database_installed => 0 } );
         return 0;
     }
 
@@ -47,7 +48,7 @@ sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
 sub get_db_info_if_provided_by_cloudlinux ( $use_cache = 1 ) {
 
     if ($use_cache) {
-        my $cloudlinux_database_info = cpev::read_stage_file( 'cloudlinux_database_info', '' );
+        my $cloudlinux_database_info = Elevate::StageFile::read_stage_file( 'cloudlinux_database_info', '' );
         return ( $cloudlinux_database_info->{db_type}, $cloudlinux_database_info->{db_version} )
           if length $cloudlinux_database_info;
     }
@@ -58,10 +59,10 @@ sub get_db_info_if_provided_by_cloudlinux ( $use_cache = 1 ) {
 
     # cache this data so we only need to query the package manager for it once
     my $cloudlinux_database_installed = ( $db_type && $db_version ) ? 1 : 0;
-    cpev::update_stage_file( { cloudlinux_database_installed => $cloudlinux_database_installed } );
+    Elevate::StageFile::update_stage_file( { cloudlinux_database_installed => $cloudlinux_database_installed } );
 
     if ($cloudlinux_database_installed) {
-        cpev::update_stage_file(
+        Elevate::StageFile::update_stage_file(
             {
                 cloudlinux_database_info => {
                     db_type    => lc $db_type,

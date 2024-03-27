@@ -13,6 +13,7 @@ Remove and reinstall some arch RPMs. (plugins)
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -32,7 +33,7 @@ sub pre_leapp ($self) {
 
     return unless @installed_arch_cpanel_plugins;
 
-    cpev::update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } );
+    Elevate::StageFile::update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } );
 
     return;
 }
@@ -41,7 +42,7 @@ sub post_leapp ($self) {
 
     # Restore YUM arch plugins.
 
-    my $stash            = cpev::read_stage_file();
+    my $stash            = Elevate::StageFile::read_stage_file();
     my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
     return unless scalar @$yum_arch_plugins;
 

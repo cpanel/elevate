@@ -15,8 +15,9 @@ use cPstrict;
 use File::Copy    ();
 use Log::Log4perl qw(:easy);
 
-use Elevate::Database ();
-use Elevate::Notify   ();
+use Elevate::Database  ();
+use Elevate::Notify    ();
+use Elevate::StageFile ();
 
 use parent qw{Elevate::Components::Base};
 
@@ -41,12 +42,12 @@ sub post_leapp ($self) {
 
 sub _cleanup_mysql_packages ($self) {
 
-    my $mysql_version = cpev::read_stage_file( 'mysql-version', '' );
+    my $mysql_version = Elevate::StageFile::read_stage_file( 'mysql-version', '' );
     return unless length $mysql_version;
 
     INFO("# Cleanup MySQL packages ; using version $mysql_version");
 
-    cpev::update_stage_file( { 'mysql-version' => $mysql_version } );
+    Elevate::StageFile::update_stage_file( { 'mysql-version' => $mysql_version } );
 
     # Stash current config so we can restore it later.
     File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
@@ -84,8 +85,8 @@ sub _remove_cpanel_mysql_packages ($self) {
 
 sub _reinstall_mysql_packages {
 
-    my $mysql_version = cpev::read_stage_file( 'mysql-version', '' ) or return;
-    my $enabled       = cpev::read_stage_file( 'mysql-enabled', '' ) or return;
+    my $mysql_version = Elevate::StageFile::read_stage_file( 'mysql-version', '' ) or return;
+    my $enabled       = Elevate::StageFile::read_stage_file( 'mysql-enabled', '' ) or return;
 
     INFO("Restoring MySQL $mysql_version");
 

@@ -16,6 +16,7 @@ use Elevate::Constants ();
 use Elevate::Fetch     ();
 use Elevate::Notify    ();
 use Elevate::OS        ();
+use Elevate::StageFile ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -64,7 +65,7 @@ sub _capture_imunify_packages ($self) {
 
     return unless scalar @packages;
 
-    cpev::update_stage_file( { 'reinstall' => { 'imunify_packages' => \@packages } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify_packages' => \@packages } } );
 
     return;
 }
@@ -73,7 +74,7 @@ sub _restore_imunify_packages ($self) {
 
     # try to reinstall missing Imunify packages which were previously installed
 
-    return unless my $packages = cpev::read_stage_file('reinstall')->{'imunify_packages'};
+    return unless my $packages = Elevate::StageFile::read_stage_file('reinstall')->{'imunify_packages'};
 
     foreach my $pkg (@$packages) {
         next unless Cpanel::Pkgr::is_installed($pkg);
@@ -94,14 +95,14 @@ sub _capture_imunify_features {
         File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
     }
 
-    cpev::update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
 
     return;
 }
 
 sub _restore_imunify_features {
 
-    return unless my $features = cpev::read_stage_file('reinstall')->{'imunify_features'};
+    return unless my $features = Elevate::StageFile::read_stage_file('reinstall')->{'imunify_features'};
 
     File::Copy::move( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
 
@@ -228,7 +229,7 @@ sub _remove_imunify_360 ($self) {
     }
     unlink $installer_script;
 
-    cpev::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
 
     # Cleanup any lingering packages.
     $self->remove_rpms_from_repos('imunify');
@@ -237,7 +238,7 @@ sub _remove_imunify_360 ($self) {
 }
 
 sub _reinstall_imunify_360 ($self) {
-    my $product_type = cpev::read_stage_file('reinstall')->{'imunify360'} or return;
+    my $product_type = Elevate::StageFile::read_stage_file('reinstall')->{'imunify360'} or return;
 
     INFO("Reinstalling $product_type");
 
