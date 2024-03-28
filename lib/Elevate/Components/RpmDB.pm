@@ -61,7 +61,7 @@ sub _sysup ($self) {
     $self->dnf->config_manager_enable('epel');
 
     # Break cpanel-perl (NOTE: This only works on perl 5.36)
-    $self->ssystem(qw{/usr/bin/rm -f /usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm});
+    unlink('/usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm');
     {
         local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
         $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
