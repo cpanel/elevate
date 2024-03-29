@@ -55,6 +55,7 @@ CloudLinux 7 => CloudLinux 8 (Experimental)
        --log                                     Show the current elevation log
        --status                                  Check the current elevation status
        --clean                                   Cleanup scripts and files created by elevate-cpanel
+       --leappbeta                               Use the special beta repo from leapp. Do this only if instructed to by cPanel
        --upgrade-to=[rocky|almalinux|cloudlinux] Update to AlmaLinux 8 or Rocky Linux 8
                                                  [Servers running CentOS 7 will default to 'almalinux']
                                                  [Servers running CloudLinux 7 will default to 'cloudlinux']
@@ -415,8 +416,10 @@ sub run ( $pkg, @args ) {
     }
 
     if ( $self->getopt('start') ) {
-        die qq[Unsupported option with --start\n] if $self->getopt('continue') || $self->getopt('service');
-        return 1                                  if $self->start();
+        die qq[Unsupported option with --start\n]        if $self->getopt('continue') || $self->getopt('service');
+        die qq[BETA is unavailable for this leapp repo.] if $self->getopt('leappbeta') && !length Elevate::OS::leapp_repo_beta();
+
+        return 1 if $self->start();
     }
     elsif ( $self->getopt('status') ) {
         return $self->check_status();
