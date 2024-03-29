@@ -6815,9 +6815,10 @@ sub _capture_env_variables ($self) {
 # This code used to be in stage 1, but it makes more sense for it to take place before a stage has been set.
 sub give_last_chance ($self) {
 
+    my $upgrade_from_name  = Elevate::OS::pretty_name();
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
 
-    print_box(qq[/!\ Warning: You are about to convert your cPanel & WHM CentOS 7 to $pretty_distro_name server.]);
+    print_box(qq[/!\ Warning: You are about to convert your cPanel & WHM $upgrade_from_name to $pretty_distro_name server.]);
 
     present_noc_recommendations();
 
