@@ -1,3 +1,6 @@
+##### **2024-03-29** - version 31
+* Fixed case RE-275: Add command line arg --leappbeta to use the leapp beta repos
+
 ##### **2024-03-27** - version 30
 
 * Fixed case RE-265: Validate script can execute start option before parsing upgrade_to option.
