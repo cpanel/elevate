@@ -25,15 +25,14 @@ my $ea4      = $blockers->_get_blocker_for('EA4');
 my $mock_ea4 = Test::MockModule->new('Elevate::Blockers::EA4');
 
 my $mock_compoment_ea4 = Test::MockModule->new('Elevate::Components::EA4');
-my $mock_cpev          = Test::MockModule->new('cpev');
 
 {
     my $mock_isea4 = Test::MockFile->file( '/etc/cpanel/ea4/is_ea4' => 1 );
     my $type       = '';
 
     $mock_compoment_ea4->redefine( backup => sub { return; } );
-    my $mock_cpev = Test::MockModule->new('cpev');
-    $mock_cpev->redefine(
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
         _read_stage_file => sub {
             return {
                 ea4 => {
@@ -79,7 +78,6 @@ EOS
 
     no_messages_seen();
 
-    $mock_cpev->unmock_all;
 }
 
 {
@@ -93,13 +91,14 @@ EOS
         ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
         ea_info_check($target_os);
 
-        my $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
+        my $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
         my $stage_ea4 = {
             profile => '/some/file.not.used.there',
         };
 
-        $mock_cpev->redefine(
+        my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+        $mock_stagefile->redefine(
             _read_stage_file => sub {
                 return { ea4 => $stage_ea4 };
             }
@@ -143,7 +142,6 @@ Please remove these packages before continuing the update.
         }, "blocker with expected error" or diag explain $blocker;
 
         $stage_ea4 = {};
-        $mock_cpev->unmock_all;
     }
 
     no_messages_seen();

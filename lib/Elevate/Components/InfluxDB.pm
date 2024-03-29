@@ -13,6 +13,7 @@ Capture and reinstall InfluxDB packages.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use Cpanel::Pkgr  ();
 use Cwd           ();
@@ -22,19 +23,19 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
-    cpev::remove_from_stage_file('reinstall.influxdb');
+    Elevate::StageFile::remove_from_stage_file('reinstall.influxdb');
 
     return unless Cpanel::Pkgr::is_installed('telegraf');
 
     INFO("Not removing influxdb. Will re-install it after elevate.");
-    cpev::update_stage_file( { 'reinstall' => { 'influxdb' => 1 } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'influxdb' => 1 } } );
 
     return;
 }
 
 sub post_leapp ($self) {
 
-    return unless cpev::read_stage_file('reinstall')->{'influxdb'};
+    return unless Elevate::StageFile::read_stage_file('reinstall')->{'influxdb'};
 
     INFO("Re-installing telegraf for influxdb");
     $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});

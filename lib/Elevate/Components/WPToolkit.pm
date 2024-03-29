@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::Fetch     ();
+use Elevate::StageFile ();
 
 use Cpanel::SafeRun::Errors ();
 use Cwd                     ();
@@ -51,13 +52,13 @@ sub _remove_wordpress_toolkit ($self) {
     cpev::yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
     $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
-    cpev::update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
 
     return;
 }
 
 sub _reinstall_wordpress_toolkit ($self) {
-    return unless cpev::read_stage_file('reinstall')->{'wordpress_toolkit'};
+    return unless Elevate::StageFile::read_stage_file('reinstall')->{'wordpress_toolkit'};
 
     INFO("Restoring Wordpress Toolkit");
     my $installer_script = Elevate::Fetch::script( 'https://wp-toolkit.plesk.com/cPanel/installer.sh', 'wptk_installer' );

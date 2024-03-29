@@ -16,6 +16,7 @@ use Elevate::Constants        ();
 use Elevate::SystemctlService ();
 use Elevate::Fetch            ();
 use Elevate::Notify           ();
+use Elevate::StageFile        ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -94,13 +95,13 @@ sub _remove_nixstats ($self) {
         to_restore      => $to_restore,
     };
 
-    cpev::update_stage_file( { 'reinstall' => { 'nixstats' => $data } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'nixstats' => $data } } );
 
     return;
 }
 
 sub _restore_nixstats ($self) {
-    my $data = cpev::read_stage_file('reinstall')->{'nixstats'};
+    my $data = Elevate::StageFile::read_stage_file('reinstall')->{'nixstats'};
     return unless ref $data;
 
     INFO("Restoring nixstats");

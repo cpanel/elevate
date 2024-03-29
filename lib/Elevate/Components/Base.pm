@@ -29,7 +29,6 @@ use Log::Log4perl qw(:easy);
 BEGIN {
     my @_DELEGATE_TO_CPEV = qw{
       getopt
-      update_stage_file
       upgrade_to_rocky
       upgrade_to_pretty_name
       tmp_dir

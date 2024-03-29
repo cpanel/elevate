@@ -13,6 +13,7 @@ Logic to update and fix grub2 configuration.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -41,7 +42,7 @@ sub GRUB2_PREFIX_RHEL   { return '/boot/grub2' }    # FIXME deduplicate & move t
 
 sub _update_grub2_workaround_if_needed ($self) {
 
-    my $grub2_info = cpev::read_stage_file('grub2_workaround');
+    my $grub2_info = Elevate::StageFile::read_stage_file('grub2_workaround');
     return unless $grub2_info->{'needs_workaround_update'};
 
     my $grub_dir  = GRUB2_PREFIX_DEBIAN;
@@ -53,7 +54,7 @@ sub _update_grub2_workaround_if_needed ($self) {
     }
     else {
         $grub_bak = $grub2_info->{'backup_dir'} = $grub_dir . '-' . time;
-        cpev::update_stage_file( { 'grub2_workaround' => $grub2_info } );
+        Elevate::StageFile::update_stage_file( { 'grub2_workaround' => $grub2_info } );
     }
 
     rename $grub_dir, $grub_bak or LOGDIE("Unable to rename $grub_dir to $grub_bak: $!");    # failure on cross-device move is a feature
@@ -67,7 +68,7 @@ sub _update_grub2_workaround_if_needed ($self) {
 
 sub _merge_grub_directories_if_needed ($self) {
 
-    my $grub2_info = cpev::read_stage_file('grub2_workaround');
+    my $grub2_info = Elevate::StageFile::read_stage_file('grub2_workaround');
     return unless $grub2_info->{'needs_workaround_update'};
 
     my $grub_dir  = GRUB2_PREFIX_DEBIAN;

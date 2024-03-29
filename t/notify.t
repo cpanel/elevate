@@ -38,7 +38,7 @@ my $cpev = bless {}, 'cpev';
 for my $os ( 'cent', 'cloud' ) {
     set_os_to($os);
 
-    my $stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
+    my $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
     my $expect_title = $os eq 'cent' ? 'Successfully updated to AlmaLinux 8' : 'Successfully updated to CloudLinux 8';
     my $expect_body =
@@ -60,16 +60,16 @@ for my $os ( 'cent', 'cloud' ) {
 
     ok Elevate::Notify::add_final_notification("My First Notification"), 'add_final_notification';
 
-    is cpev::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
+    is Elevate::StageFile::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
     ok !Elevate::Notify::add_final_notification(undef), q[cannot add_final_notification(undef)];
     ok !Elevate::Notify::add_final_notification(''),    q[cannot add_final_notification('')];
 
-    is cpev::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
+    is Elevate::StageFile::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
     Elevate::Notify::add_final_notification("My Second Notification\nwith two lines.");
 
-    is cpev::read_stage_file(), {
+    is Elevate::StageFile::read_stage_file(), {
         final_notifications => [
             "My Second Notification\nwith two lines.",
             'My First Notification',

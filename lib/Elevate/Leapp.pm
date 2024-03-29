@@ -16,8 +16,9 @@ use Cpanel::Binaries ();
 use Cpanel::JSON     ();
 use Cpanel::Pkgr     ();
 
-use Elevate::OS  ();
-use Elevate::YUM ();
+use Elevate::OS        ();
+use Elevate::StageFile ();
+use Elevate::YUM       ();
 
 use Config::Tiny ();
 
@@ -103,7 +104,7 @@ sub upgrade ($self) {
     INFO("Running leapp upgrade");
 
     my $ok = eval {
-        local $ENV{LEAPP_OVL_SIZE} = cpev::read_stage_file('env')->{'LEAPP_OVL_SIZE'} || 3000;
+        local $ENV{LEAPP_OVL_SIZE} = Elevate::StageFile::read_stage_file('env')->{'LEAPP_OVL_SIZE'} || 3000;
         $self->cpev->ssystem_and_die( { keep_env => 1 }, $leapp_bin, @leapp_args );
         1;
     };
