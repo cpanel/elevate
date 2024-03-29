@@ -24,6 +24,7 @@ use constant available_upgrade_paths => (
 use constant default_upgrade_to => 'AlmaLinux';
 use constant ea_alias           => 'CentOS_8';
 use constant elevate_rpm_url    => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
+use constant leapp_repo_prod    => 'elevate';
 use constant name               => 'CentOS7';
 use constant pretty_name        => 'CentOS 7';
 
