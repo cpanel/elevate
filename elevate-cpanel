@@ -6509,7 +6509,7 @@ use Elevate::DNF              ();
 use Elevate::YUM              ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 31;
+use constant VERSION => 32;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
