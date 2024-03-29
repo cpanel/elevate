@@ -12,8 +12,9 @@ Object to install and execute the leapp script
 
 use cPstrict;
 
-use Cpanel::JSON ();
-use Cpanel::Pkgr ();
+use Cpanel::Binaries ();
+use Cpanel::JSON     ();
+use Cpanel::Pkgr     ();
 
 use Elevate::OS  ();
 use Elevate::YUM ();
@@ -43,6 +44,7 @@ sub install ($self) {
     unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
         my $elevate_rpm_url = Elevate::OS::elevate_rpm_url();
         $self->yum->install_rpm_via_url($elevate_rpm_url);
+        $self->beta_if_enabled;    # If --leappbeta was passed, then enable it.
     }
 
     my $leapp_data_pkg = Elevate::OS::leapp_data_pkg();
@@ -52,6 +54,15 @@ sub install ($self) {
     }
 
     return;
+}
+
+sub beta_if_enabled ($self) {
+    return unless $self->cpev->getopt('leappbeta');
+    my $yum_config = Cpanel::Binaries::path('yum-config-manager');
+    $self->cpev->ssystem_and_die( $yum_config, '--disable', Elevate::OS::leapp_repo_prod() );
+    $self->cpev->ssystem_and_die( $yum_config, '--enable',  Elevate::OS::leapp_repo_beta() );
+
+    return 1;
 }
 
 sub remove_kernel_devel ($self) {

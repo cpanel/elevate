@@ -79,5 +79,6 @@ use constant name                            => 'RHEL';
 use constant pretty_name                     => 'RHEL';
 use constant provides_mysql_governor         => 0;
 use constant should_check_cloudlinux_license => 0;
+use constant leapp_repo_beta                 => '';       # Unavailable by default.
 
 1;
