@@ -28,7 +28,7 @@ $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 my $mock_elevate = Test::MockModule->new('cpev');
 my $mock_pecl    = Test::MockModule->new('Elevate::Components::PECL');
 
-my $mock_stage_file = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
+my $mock_stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
 my $list_output;
 
@@ -79,18 +79,18 @@ is Elevate::Components::PECL::_get_pecl_installed_for('/my/pecl/bin'), {
 
 {
 
-    is cpev::read_stage_file(), {}, "stage file is empty";
+    is Elevate::StageFile::read_stage_file(), {}, "stage file is empty";
 
     $mock_pecl->redefine( _get_pecl_installed_for => sub { { module_one => 1.2 } } );
 
     Elevate::Components::PECL::_store_pecl_for( '/whatever', 'cpanel' );
 
-    is cpev::read_stage_file(), { pecl => { cpanel => { module_one => 1.2 } } }, "stage file: store pecl for cpanel";
+    is Elevate::StageFile::read_stage_file(), { pecl => { cpanel => { module_one => 1.2 } } }, "stage file: store pecl for cpanel";
 
     $mock_pecl->redefine( _get_pecl_installed_for => sub { { xyz => 5.6 } } );
     Elevate::Components::PECL::_store_pecl_for( '/whatever', 'ea-php80' );
 
-    is cpev::read_stage_file(), {
+    is Elevate::StageFile::read_stage_file(), {
         pecl => {
             cpanel     => { module_one => 1.2 },
             'ea-php80' => { xyz        => 5.6 }
@@ -102,7 +102,9 @@ is Elevate::Components::PECL::_get_pecl_installed_for('/my/pecl/bin'), {
 
 {
     $mock_pecl->redefine( _get_pecl_installed_for => undef );
-    $mock_elevate->redefine(
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
         _read_stage_file => sub {
             return {
                 pecl => {

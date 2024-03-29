@@ -22,8 +22,6 @@ use Cpanel::DB::Map::Collection::Index ();
 
 use cPstrict;
 
-my $cpev_mock = Test::MockModule->new('cpev');
-
 my $cpev = cpev->new;
 my $db   = $cpev->get_blocker('Databases');
 
@@ -125,7 +123,9 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
     }
 
     my $stash = undef;
-    $cpev_mock->redefine(
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
         update_stage_file => sub { $stash = $_[0] },
     );
 
@@ -320,7 +320,9 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
     local *Elevate::OS::upgrade_to = sub { return 'CloudLinux'; };
 
     my $db_version = 106;
-    $cpev_mock->redefine(
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
         read_stage_file => sub {
             return {
                 db_type    => 'foo',
@@ -351,14 +353,13 @@ EOS
         },
         '5.1 is a blocker for CL',
     );
-
-    $cpev_mock->unmock('read_stage_file');
 }
 
 {
     note 'Test _blocker_old_mysql()';
 
-    $cpev_mock->redefine(
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
         read_stage_file => sub {
             return {
                 db_type    => 'foo',
@@ -381,8 +382,6 @@ EOS
 
     local *Elevate::Database::is_database_provided_by_cloudlinux = sub { return 0; };
     is( $db->_blocker_old_mysql(), 0, '8.0 is supported by cPanel' );
-
-    $cpev_mock->unmock('read_stage_file');
 }
 
 done_testing();

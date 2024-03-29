@@ -14,6 +14,7 @@ use cPstrict;
 
 use Cpanel::Pkgr       ();
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -22,7 +23,7 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
-    cpev::remove_from_stage_file('reinstall.jetbackup');
+    Elevate::StageFile::remove_from_stage_file('reinstall.jetbackup');
 
     return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
 
@@ -41,7 +42,7 @@ sub pre_leapp ($self) {
         packages => \@reinstall,
     };
 
-    cpev::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
 
     # Remove this package because leapp will remove it as it depends on libzip.so.2 which isn't available in 8.
     $self->ssystem(qw{/usr/bin/rpm -e --nodeps jetphp81-zip});
@@ -51,7 +52,7 @@ sub pre_leapp ($self) {
 
 sub post_leapp ($self) {
 
-    my $data = cpev::read_stage_file('reinstall')->{'jetbackup'};
+    my $data = Elevate::StageFile::read_stage_file('reinstall')->{'jetbackup'};
     return unless ref $data && ref $data->{packages};
 
     INFO("Re-installing jetbackup.");

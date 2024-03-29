@@ -20,6 +20,7 @@ use Elevate::Constants ();
 use Log::Log4perl qw(:easy);
 
 use Elevate::Roles::Run ();    # for fatpck
+use Elevate::Stages     ();
 
 use Simple::Accessor qw{
   name
@@ -86,7 +87,7 @@ sub install ($self) {
     $self->ssystem_and_die( '/usr/bin/systemctl', 'daemon-reload' );
     $self->ssystem_and_die( '/usr/bin/systemctl', 'enable', $name );
 
-    $self->cpev->bump_stage();
+    Elevate::Stages::bump_stage();
 
     my $pid = fork();
     die qq[Failed to fork: $!] unless defined $pid;

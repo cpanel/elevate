@@ -13,6 +13,7 @@ Capture and reinstall LiteSpeed packages.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -21,7 +22,7 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
-    cpev::remove_from_stage_file('reinstall.litespeed');
+    Elevate::StageFile::remove_from_stage_file('reinstall.litespeed');
 
     my $ls_cfg_dir = q[/usr/local/lsws/conf];
     return unless -d $ls_cfg_dir;
@@ -36,14 +37,14 @@ sub pre_leapp ($self) {
         has_valid_license => $has_valid_license,
     };
 
-    cpev::update_stage_file( { 'reinstall' => { 'litespeed' => $data } } );
+    Elevate::StageFile::update_stage_file( { 'reinstall' => { 'litespeed' => $data } } );
 
     return;
 }
 
 sub post_leapp ($self) {
 
-    my $data = cpev::read_stage_file('reinstall')->{'litespeed'};
+    my $data = Elevate::StageFile::read_stage_file('reinstall')->{'litespeed'};
     return unless ref $data;
 
     INFO("Checking LiteSpeed");

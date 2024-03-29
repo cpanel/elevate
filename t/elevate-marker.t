@@ -34,33 +34,46 @@ $mock_fcp->redefine(
     }
 );
 
-my $stage_file  = Test::MockFile->file( cpev::ELEVATE_STAGE_FILE() );
-my $marker_file = Test::MockFile->file( cpev::ELEVATE_SUCCESS_FILE() );
+my $stage_file  = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
+my $marker_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_SUCCESS_FILE() );
 
 my $redhat_release = Test::MockFile->file(q[/etc/redhat-release]);
 $redhat_release->contents("RHEL Before C7\nsome cruft");
 
-my $cpev = bless {}, 'cpev';
+my $mock_marker = Test::MockModule->new('Elevate::Marker');
+$mock_marker->redefine(
+    _write_debug_line => 0,
+);
 
-is $cpev->elevation_startup_marker('deadbeef'), undef, 'elevation_startup_marker';
+is Elevate::Marker::startup('deadbeef'), undef, 'The startup marker returns expected value';
 ok -e $stage_file->path,   "stage_file setup";
 ok !-e $marker_file->path, "marker_file not setup after startup";
 
 $redhat_release->contents("RHEL After A8");
 
-is $cpev->elevation_success_marker(), undef, 'elevation_success_marker';
+is Elevate::Marker::success(), undef, 'The success marker returns expected value';
 ok -e $stage_file->path,   "stage_file setup";
 ok !-e $marker_file->path, "marker_file not setup after until we mark the elevate succeeded";
 
 my $mock_cpev = Test::MockModule->new('cpev');
 $mock_cpev->redefine(
     check_and_create_pidfile => 1,
-    get_stage                => 5,
     get_current_status       => 'running',
-    update_stage_file        => 1,
     _run_service             => 0,
     _notify_success          => 1,
 );
+
+my $mock_stages = Test::MockModule->new('Elevate::Stages');
+$mock_stages->redefine(
+    get_stage => 5,
+);
+
+my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+$mock_stagefile->redefine(
+    update_stage_file => 1,
+);
+
+my $cpev = bless {}, 'cpev';
 
 $cpev->run_service_and_notify();
 ok -e $marker_file->path, "marker_file is setup after elevate succeeds";

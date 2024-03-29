@@ -13,6 +13,7 @@ Capture and reinstall PECL packages.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -47,7 +48,7 @@ sub _backup_pecl_packages ($self) {
 
 sub _check_pecl_packages ($self) {
 
-    my $pecl = cpev::read_stage_file('pecl');
+    my $pecl = Elevate::StageFile::read_stage_file('pecl');
 
     return unless ref $pecl && scalar keys $pecl->%*;
 
@@ -106,11 +107,11 @@ sub _check_pecl_packages ($self) {
 sub _store_pecl_for ( $bin, $name ) {
     my $list = _get_pecl_installed_for($bin);
 
-    cpev::remove_from_stage_file("pecl.$name");
+    Elevate::StageFile::remove_from_stage_file("pecl.$name");
 
     return unless ref $list && scalar keys $list->%*;
 
-    cpev::update_stage_file( { pecl => { $name => $list } } );
+    Elevate::StageFile::update_stage_file( { pecl => { $name => $list } } );
 
     return;
 }

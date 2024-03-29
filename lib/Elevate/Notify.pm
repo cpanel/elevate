@@ -12,6 +12,8 @@ Helpers to display or send some notifications to the customer during the elevati
 
 use cPstrict;
 
+use Elevate::StageFile ();
+
 use Log::Log4perl qw(:easy);
 
 # separate sub, so that it can be silenced during tests:
@@ -21,11 +23,11 @@ sub warn_skip_version_check {
 }
 
 sub add_final_notification ( $msg, $warn_now = 0 ) {
-    my $stage_info = cpev::read_stage_file();
+    my $stage_info = Elevate::StageFile::read_stage_file();
 
     return unless defined $msg && length $msg;
 
-    cpev::update_stage_file( { final_notifications => [$msg] } );    # stacked to the previously stored
+    Elevate::StageFile::update_stage_file( { final_notifications => [$msg] } );    # stacked to the previously stored
 
     if ($warn_now) {
         foreach my $l ( split( "\n", $msg ) ) {

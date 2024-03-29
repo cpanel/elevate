@@ -315,12 +315,15 @@ use Elevate::Database         ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();
+use Elevate::Marker           ();
 use Elevate::Motd             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
 use Elevate::RPM              ();
 use Elevate::Script           ();
 use Elevate::Service          ();
+use Elevate::StageFile        ();
+use Elevate::Stages           ();
 use Elevate::SystemctlService ();
 use Elevate::Usage            ();
 use Elevate::DNF              ();
@@ -331,8 +334,6 @@ use constant VERSION => 1;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
-use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
-use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 
 use constant VALID_STAGES => 5;
 
@@ -428,7 +429,7 @@ sub run ( $pkg, @args ) {
     return $self->do_cleanup()      if $self->getopt('clean');
     return $self->blockers->check() if defined $self->getopt('check');
 
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
 
     if ( $stage == 0 ) {
         print_box_no_log( <<~EOS );
@@ -560,7 +561,7 @@ sub upgrade_to_pretty_name ($self) {    # used by output messages
 }
 
 sub monitor_upgrade ($self) {
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
 
     my $tail_msg = q[Running: tail -f ] . Elevate::Constants::LOG_FILE;
 
@@ -583,7 +584,7 @@ sub monitor_upgrade ($self) {
 }
 
 sub start ($self) {
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
     if ( $stage != 0 ) {
         my $header;
         if ( $stage > VALID_STAGES ) {
@@ -615,12 +616,12 @@ sub start ($self) {
 
     system touch => Elevate::Constants::LOG_FILE;
 
-    $self->bump_stage();    # init stage number to 1
+    Elevate::Stages::bump_stage();    # init stage number to 1
 
     # store the manual reboots flag
     if ( $self->getopt('manual-reboots') ) {
         WARN('Manual Reboot would be required between each stages');
-        update_stage_file( { manual_reboots => 1 } );
+        Elevate::StageFile::update_stage_file( { manual_reboots => 1 } );
     }
 
     $self->_capture_env_variables();    # capture at startup
@@ -635,7 +636,7 @@ sub start ($self) {
         Once the system has been successfully upgraded from 7 to 8 you can then remove that file
         to let the elevation process continue and update cPanel for the updated distribution.
         EOS
-        update_stage_file( { no_leapp => 1 } );
+        Elevate::StageFile::update_stage_file( { no_leapp => 1 } );
     }
 
     # prefer over running step1: so status and notifications are enabled
@@ -645,7 +646,7 @@ sub start ($self) {
 sub _capture_env_variables ($self) {
 
     if ( my $ovl_size = $ENV{LEAPP_OVL_SIZE} ) {
-        update_stage_file( { env => { LEAPP_OVL_SIZE => $ovl_size } } );
+        Elevate::StageFile::update_stage_file( { env => { LEAPP_OVL_SIZE => $ovl_size } } );
     }
 
     return;
@@ -727,7 +728,7 @@ sub continue_elevation ($self) {
     # check that no process is running and remove the pidfile for the other
     $self->check_and_create_pidfile()->remove_pid_file;
 
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
     if ( $stage == 0 ) {
         Elevate::Logger::ERROR_nolog("Looks like no elevate process was started. Please consider running: /scripts/elevate-cpanel --start");
         return;
@@ -759,7 +760,7 @@ sub do_cleanup ($self) {
     $self->service->remove;
 
     $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
-    unlink ELEVATE_STAGE_FILE;
+    Elevate::StageFile::remove_stage_file();
     unlink Elevate::Constants::PID_FILE;
 
     unlink Elevate::Blockers::OVH::OVH_MONITORING_TOUCH_FILE;
@@ -774,11 +775,11 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
     # check it outside the eval block to avoid notification from the command line
     $self->check_and_create_pidfile();
 
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
 
     if ( $stage >= 2 ) {
         my $status = $self->get_current_status();
-        update_stage_file( { status => q[running] } ) if $status ne 'paused';
+        Elevate::StageFile::update_stage_file( { status => q[running] } ) if $status ne 'paused';
     }
 
     my $action_todo;
@@ -793,13 +794,13 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
 
         # only notify a success when reaching the last stage
         if ( $stage == VALID_STAGES ) {
-            update_stage_file( { status => q[success] } );
+            Elevate::StageFile::update_stage_file( { status => q[success] } );
             $self->_notify_success();
-            File::Copy::copy( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
+            Elevate::StageFile::create_success_file();
         }
 
         if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
-            update_stage_file( { status => q[paused] } );
+            Elevate::StageFile::update_stage_file( { status => q[paused] } );
         }
         elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
             $self->reboot();
@@ -808,7 +809,7 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
     else {
         my $error = $@ // q[Unknown error];
 
-        update_stage_file( { status => q[failed] } );
+        Elevate::StageFile::update_stage_file( { status => q[failed] } );
         $self->_notify_error($error);
 
         LOGDIE($error);
@@ -828,7 +829,7 @@ sub check_and_create_pidfile ($self) {
 }
 
 sub check_status ($self) {
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
 
     if ( !$stage ) {
         Elevate::Logger::ERROR_nolog('Elevation process has not started yet.');
@@ -869,7 +870,7 @@ sub _notify_success ($self) {
 The cPanel & WHM server has completed the elevation process from $upgrade_from_name to $pretty_distro_name.
 EOS
 
-    if ( my $warnings = read_stage_file( 'final_notifications', [] ) ) {
+    if ( my $warnings = Elevate::StageFile::read_stage_file( 'final_notifications', [] ) ) {
         if ( scalar @$warnings ) {
             $msg .= "\nThe update to $pretty_distro_name was successful but please note that one ore more notifications require your attention:\n";
 
@@ -886,7 +887,7 @@ EOS
 
 sub _notify_error ( $self, $error = '' ) {
 
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
 
     my $msg = <<"EOS";
 The elevation process failed during stage $stage.
@@ -913,7 +914,7 @@ EOS
 
 sub _run_service ($self) {
 
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
 
     print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
 
@@ -923,7 +924,7 @@ sub _run_service ($self) {
     if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {
         WARN( "Detected " . Cpanel::OS::pretty_distro() . " while running stage $stage: swtiching to stage 4" );
         $stage = 4;
-        _update_stage_number($stage);
+        Elevate::Stages::update_stage_number($stage);
     }
 
     return $stage == 1
@@ -941,7 +942,7 @@ sub _wait_on_pause ($self) {
     my $pause_file = PAUSE_ELEVATE_TOUCHFILE;
     return unless -e $pause_file;
 
-    update_stage_file( { status => q[paused] } );
+    Elevate::StageFile::update_stage_file( { status => q[paused] } );
 
     WARN( <<~"EOS" );
     The elevation process is currently paused by $pause_file
@@ -952,9 +953,9 @@ sub _wait_on_pause ($self) {
         sleep 5;
     }
 
-    update_stage_file( { status => q[running] } );
+    Elevate::StageFile::update_stage_file( { status => q[running] } );
 
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
     INFO("The pause file was removed. Continuing elevate process to stage $stage.");
 
     return 1;
@@ -1025,7 +1026,7 @@ sub run_stage_1 ($self) {
     print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . $self->service->name . " service" );
 
     # store 'upgrade_to' early so later stages can access it
-    update_stage_file( { upgrade_to => $self->upgrade_to } );
+    Elevate::StageFile::update_stage_file( { upgrade_to => $self->upgrade_to } );
 
     return $self->service->install();
 }
@@ -1038,11 +1039,7 @@ Update the current distro packages then reboot.
 
 sub run_stage_2 ($self) {
 
-    my $sum = `/usr/bin/md5sum $0`;
-    chomp $sum;
-    DEBUG( sprintf( "Running $0 (%s/%s)", -s $0, $sum ) );
-
-    $self->elevation_startup_marker($sum);
+    Elevate::Marker::startup();
 
     # Remove scripts/upcp and bin/backup to make sure they don't
     # end up running while ELevate is running.
@@ -1149,7 +1146,7 @@ sub run_stage_4 ($self) {
 
         if ( Cpanel::OS::major() == 7 ) {
             WARN("Detected $current_distro from stage 4, reverting back to stage 3.");
-            _update_stage_number(3);
+            Elevate::Stages::update_stage_number(3);
         }
 
         die( <<~"END");
@@ -1167,7 +1164,7 @@ sub run_stage_4 ($self) {
         END
     }
 
-    my $stash = read_stage_file();
+    my $stash = Elevate::StageFile::read_stage_file();
 
     $stash->{stage4} //= {};    # run once each blocks
 
@@ -1235,7 +1232,8 @@ sub run_stage_5 ($self) {
 
     $self->run_component_once( 'Grub2' => 'post_leapp' );
 
-    $self->elevation_success_marker();
+    Elevate::Marker::success();
+
     $self->restore_outdated_services();
 
     INFO("Updating all packages before final reboot");
@@ -1246,44 +1244,6 @@ sub run_stage_5 ($self) {
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
     return ACTION_REBOOT_NEEDED;
-}
-
-sub _bq_now () {
-    require POSIX;
-    return POSIX::strftime( '%FT%T', gmtime );
-}
-
-sub elevation_startup_marker ( $self, $sum = 'unknown' ) {
-
-    # store some generic informations about the update process
-    update_stage_file(
-        {
-            '_elevate_process' => {
-                script_md5            => $sum,
-                cpanel_build          => $Cpanel::Version::Tiny::VERSION_BUILD,
-                started_at            => _bq_now(),
-                redhat_release_pre    => read_redhat_release(),
-                elevate_version_start => VERSION,
-            }
-        }
-    );
-
-    return;
-}
-
-sub elevation_success_marker ($self) {
-
-    update_stage_file(
-        {
-            '_elevate_process' => {
-                finished_at            => _bq_now(),
-                redhat_release_post    => read_redhat_release(),
-                elevate_version_finish => VERSION,
-            }
-        }
-    );
-
-    return;
 }
 
 sub run_component_once ( $self, $name, $function ) {
@@ -1309,10 +1269,10 @@ sub run_once ( $self, $label, $code = undef ) {
 
     die unless ref $code eq 'CODE';
 
-    my $current_stage = get_stage() // 0;
+    my $current_stage = Elevate::Stages::get_stage() // 0;
     my $stage_name    = 'stage' . $current_stage;
 
-    my $stash = read_stage_file();
+    my $stash = Elevate::StageFile::read_stage_file();
     $stash->{'_run_once'} //= {};
 
     my $full_label = $stage_name . '_' . $label;
@@ -1326,7 +1286,7 @@ sub run_once ( $self, $label, $code = undef ) {
     $code->($self);
 
     # successfully run that block
-    update_stage_file( { _run_once => { $full_label => 1 } } );
+    Elevate::StageFile::update_stage_file( { _run_once => { $full_label => 1 } } );
 
     return;
 }
@@ -1418,7 +1378,7 @@ sub restore_outdated_services ($self) {
 }
 
 sub enable_all_cpanel_services ($self) {
-    my $services = read_stage_file( 'disabled_cpanel_services', [] );
+    my $services = Elevate::StageFile::read_stage_file( 'disabled_cpanel_services', [] );
     unless (@$services) {
         WARN('No cPanel services were disabled!');
     }
@@ -1462,7 +1422,7 @@ sub disable_all_cpanel_services ($self) {
 
         push @disabled_services, $name;
     }
-    update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
+    Elevate::StageFile::update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
 
     return;
 }
@@ -1642,93 +1602,19 @@ sub should_run_leapp ($self) {
     # we store the no_leapp option, but prefer using a positive check instead
     # we need to check to see if the no-leapp option is passed via CLI here too in order
     # to allow users to run this script with the '--check --no-leapp' options
-    my $no_leapp = read_stage_file( 'no_leapp', 0 ) || $self->getopt('no-leapp');
+    my $no_leapp = Elevate::StageFile::read_stage_file( 'no_leapp', 0 ) || $self->getopt('no-leapp');
     return !$no_leapp;
 }
 
 sub get_current_status ($self) {
-    return read_stage_file( 'status', 'unknown' );
-}
-
-sub read_stage_file ( $k = undef, $default = {} ) {
-    my $stage_info = _read_stage_file() // {};
-
-    return $stage_info->{$k} // $default if defined $k;
-    return $stage_info;
-}
-
-sub _read_stage_file {    # can be mocked during unit tests
-    return eval { Cpanel::JSON::LoadFile(ELEVATE_STAGE_FILE) };
-}
-
-sub save_stage_file ($stash) {
-    open( my $fh, '>', ELEVATE_STAGE_FILE ) or LOGDIE( "Failed to open " . ELEVATE_STAGE_FILE . ": $!" );
-    print {$fh} Cpanel::JSON::pretty_canonical_dump($stash);
-    close $fh;
-
-    return 1;
-}
-
-sub update_stage_file ($data) {
-
-    die q[Need a hash] unless ref $data eq 'HASH';
-
-    my $current = read_stage_file();
-    my $merged  = Hash::Merge::merge( $data, $current );
-
-    return save_stage_file($merged);
-}
-
-sub remove_from_stage_file ($key) {
-    return unless length $key;
-
-    my $stage = read_stage_file();
-
-    my @list = split( qr/\./, $key );
-    return unless scalar @list;
-
-    my $to_delete = pop @list;
-
-    my $h = $stage;
-    while ( my $k = shift @list ) {
-        $h = $h->{$k};
-        last unless ref $h;
-    }
-
-    return if scalar @list;
-    return unless exists $h->{$to_delete};
-
-    delete $h->{$to_delete};
-
-    return save_stage_file($stage);
-}
-
-sub get_stage {
-    return read_stage_file( 'stage_number', 0 );
-}
-
-sub bump_stage ( $self, $by = 1 ) {
-
-    return _update_stage_number( get_stage() + $by );
-}
-
-sub _update_stage_number ($stage_id) {
-
-    if ( $stage_id > 10 ) {    # protection for stage
-        require Carp;
-        Carp::confess("Invalid stage number $stage_id");
-    }
-
-    update_stage_file( { stage_number => $stage_id } );
-
-    return $stage_id;
+    return Elevate::StageFile::read_stage_file( 'status', 'unknown' );
 }
 
 sub reboot ($self) {
-    $self->bump_stage();
+    Elevate::Stages::bump_stage();
 
     # protection
-    my $stage = get_stage();
+    my $stage = Elevate::Stages::get_stage();
 
     if ( $stage > VALID_STAGES + 1 ) {
         LOGDIE(qq[Cannot reboot reaching stage $stage]);
@@ -1752,13 +1638,7 @@ sub reboot ($self) {
 }
 
 sub request_manual_reboots() {
-    return !!read_stage_file( 'manual_reboots', 0 );
-}
-
-sub read_redhat_release() {
-    my ($first_line) = split( "\n", Cpanel::LoadFile::loadfile('/etc/redhat-release') // '' );
-
-    return $first_line;
+    return !!Elevate::StageFile::read_stage_file( 'manual_reboots', 0 );
 }
 
 1;

@@ -13,6 +13,7 @@ Blocker to check EasyApache profile compatibility.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::StageFile ();
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -39,7 +40,7 @@ sub _blocker_ea4_profile ($self) {
     INFO("Checking EasyApache profile compatibility with $pretty_distro_name.");
 
     $self->cpev->component('EA4')->backup;                        # _backup_ea4_profile();
-    my $stash        = cpev::read_stage_file();                   # FIXME - move it to a function
+    my $stash        = Elevate::StageFile::read_stage_file();     # FIXME - move it to a function
     my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
     return unless scalar keys $dropped_pkgs->%*;
 
