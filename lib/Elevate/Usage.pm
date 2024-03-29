@@ -23,6 +23,7 @@ sub _OPTIONS {
       upgrade-to=s
       no-leapp
       non-interactive
+      leappbeta
     );
 }
 
@@ -32,7 +33,7 @@ sub _validate_option_combos ($self) {
       clean continue help log service status update version
     );
     my @start_only_options = qw(
-      manual-reboots non-interactive
+      manual-reboots non-interactive leappbeta
     );
 
     # Invoking with no options is permissible
