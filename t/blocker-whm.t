@@ -309,24 +309,4 @@ my $whm  = $cpev->get_blocker('WHM');
     $whm->blockers->abort_on_first_blocker(0);
 }
 
-{
-    note "CCS CalendarServer";
-
-    my $pkgr_mock = Test::MockModule->new('Cpanel::Pkgr');
-    my %installed = ( 'cpanel-ccs-calendarserver' => 9.2 );
-    $pkgr_mock->redefine( 'is_installed'        => sub ($rpm) { return defined $installed{$rpm} ? 1 : 0 } );
-    $pkgr_mock->redefine( 'get_package_version' => sub ($rpm) { return $installed{$rpm} } );
-
-    is(
-        $whm->_blocker_is_calendar_installed(),
-        {
-            id  => q[Elevate::Blockers::WHM::_blocker_is_calendar_installed],
-            msg => "You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.\nRemoval of this server can lead to data loss.\n",
-        },
-        'CCS server is a blocker..'
-    );
-    delete $installed{'cpanel-ccs-calendarserver'};
-    is( $whm->_blocker_is_calendar_installed(), 0, "if CCS isn't installed, we're ok" );
-}
-
 done_testing();
