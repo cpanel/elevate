@@ -257,6 +257,7 @@ use Elevate::Blockers::AutoSSL          ();
 # - fatpack Components
 use Elevate::Components::Base               ();
 use Elevate::Components::AbsoluteSymlinks   ();
+use Elevate::Components::CCS                ();
 use Elevate::Components::cPanelPlugins      ();
 use Elevate::Components::cPanelPrep         ();
 use Elevate::Components::EA4                ();
@@ -943,14 +944,19 @@ sub run_stage_2 ($self) {
 
     Elevate::Marker::startup();
 
+    Elevate::Motd->setup();
+
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
     $self->ssystem_and_die(qw{/usr/bin/yum -y update});
 
+    # This needs to execute before we disable cPanel services
+    # or exporting the CCS data will fail
+    $self->run_component_once( 'CCS'             => 'pre_leapp' );
     $self->run_component_once( 'DatabaseUpgrade' => 'pre_leapp' );
-    $self->run_component_once( 'cPanelPrep',     => 'pre_leapp' );
 
-    Elevate::Motd->setup();
+    # This disable cPanel services
+    $self->run_component_once( 'cPanelPrep' => 'pre_leapp' );
 
     $self->run_component_once( 'SSH'        => 'pre_leapp' );
     $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
@@ -1112,6 +1118,8 @@ sub run_stage_4 ($self) {
             $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp.static --sync});
         }
     );
+
+    $self->run_component_once( 'CCS' => 'post_leapp' );
 
     return ACTION_REBOOT_NEEDED;
 }

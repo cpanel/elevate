@@ -19,7 +19,6 @@ use Cpanel::Backup::Sync    ();
 use Cpanel::Version::Tiny   ();
 use Cpanel::Update::Tiers   ();
 use Cpanel::License         ();
-use Cpanel::Pkgr            ();
 use Cpanel::Unix::PID::Tiny ();
 
 use parent qw{Elevate::Blockers::Base};
@@ -42,7 +41,6 @@ sub check ($self) {
     $ok = 0 unless $self->_blocker_is_sandbox;
     $ok = 0 unless $self->_blocker_is_upcp_running;
     $ok = 0 unless $self->_blocker_is_cpanel_backup_running;
-    $ok = 0 unless $self->_blocker_is_calendar_installed;
 
     return $ok;
 }
@@ -134,17 +132,6 @@ sub _blocker_cpanel_needs_update ($self) {
 sub _blocker_is_sandbox ($self) {
     if ( -e q[/var/cpanel/dev_sandbox] ) {
         return $self->has_blocker('Cannot elevate a sandbox...');
-    }
-
-    return 0;
-}
-
-sub _blocker_is_calendar_installed ($self) {
-    if ( Cpanel::Pkgr::is_installed('cpanel-ccs-calendarserver') ) {
-        return $self->has_blocker( <<~'EOS');
-        You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.
-        Removal of this server can lead to data loss.
-        EOS
     }
 
     return 0;
