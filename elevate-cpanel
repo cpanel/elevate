@@ -6855,7 +6855,7 @@ sub run ( $pkg, @args ) {
     return 0;
 }
 
-sub component ( $self, $name ) {    # FIXME -> get_compoment
+sub component ( $self, $name ) {    # FIXME -> get_component
     my $pkg = qq[Elevate::Components::$name];
 
     # my $sub = $pkg->can( 'new' ) or die qq[Missing new from $pkg];
@@ -7643,7 +7643,7 @@ sub run_stage_5 ($self) {
 sub run_component_once ( $self, $name, $function ) {
 
     my $component = $self->component($name);
-    my $label     = "compoment:$name:$function";
+    my $label     = "component:$name:$function";
     my $sub       = $component->can($function)     #
       or die qq[Missing functon $function from component '$name'];
 
