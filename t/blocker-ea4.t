@@ -24,13 +24,13 @@ my $ea4      = $blockers->_get_blocker_for('EA4');
 
 my $mock_ea4 = Test::MockModule->new('Elevate::Blockers::EA4');
 
-my $mock_compoment_ea4 = Test::MockModule->new('Elevate::Components::EA4');
+my $mock_component_ea4 = Test::MockModule->new('Elevate::Components::EA4');
 
 {
     my $mock_isea4 = Test::MockFile->file( '/etc/cpanel/ea4/is_ea4' => 1 );
     my $type       = '';
 
-    $mock_compoment_ea4->redefine( backup => sub { return; } );
+    $mock_component_ea4->redefine( backup => sub { return; } );
     my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
     $mock_stagefile->redefine(
         _read_stage_file => sub {
@@ -81,7 +81,7 @@ EOS
 }
 
 {
-    $mock_compoment_ea4->redefine( backup => sub { return; } );
+    $mock_component_ea4->redefine( backup => sub { return; } );
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
