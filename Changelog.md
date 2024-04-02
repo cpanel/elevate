@@ -1,3 +1,8 @@
+##### **2024-04-02** - version 32
+
+* Fixed case RE-250: Modularize stage logic.
+* Fixed case RE-274: Update string in last chance message to inform the user of the correct OS that is being updated.
+
 ##### **2024-03-29** - version 31
 * Fixed case RE-275: Add command line arg --leappbeta to use the leapp beta repos
 
