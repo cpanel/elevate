@@ -17,7 +17,6 @@ use Cpanel::JSON ();
 
 use Simple::Accessor qw(
   blockers
-  cpconf
 );
 
 use Log::Log4perl qw(:easy);
@@ -56,10 +55,6 @@ BEGIN {
             return $sub->( $cpev, @args );
         }
     }
-}
-
-sub _build_cpconf ($self) {
-    return Cpanel::Config::LoadCpConf::loadcpconf() // {};
 }
 
 =head2 $self->is_check_mode( @args )
