@@ -36,7 +36,7 @@ package cpev;
 =head1 DESCRIPTION
 
 Wrapper around the ELevate project which is designed to enable migrations
-between major version of RHEL® derivatives.
+between major versions of RHEL® derivatives.
 
 Currently supported upgrade paths:
 
