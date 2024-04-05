@@ -80,7 +80,6 @@ BEGIN {
         'elevate_rpm_url',                    # This is the URL used to install the leapp RPM/repo
         'leapp_repo_prod',                    # This is the repo name for the production repo.
         'leapp_repo_beta',                    # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
-        'is_experimental',                    # This is used to determine if the OS is experimental or not
         'is_supported',                       # This is used to determine if the OS is supported or not
         'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
         'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
