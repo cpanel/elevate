@@ -70,6 +70,10 @@ sub ssystem_and_die ( $self, @args ) {
 
 sub _ssystem ( $command, %opts ) {
     my @args = @{ $command // [] };
+
+    # Only allow the program to be an executable absolute path
+    return 42 if $args[0] !~ '^/' || !-x $args[0];
+
     INFO( "Running: " . join( " ", @args ) );
     INFO();    # Buffer so they can more easily read the output.
 

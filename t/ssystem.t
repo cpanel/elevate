@@ -23,6 +23,11 @@ my $mock_log_file = Test::MockFile->file('/var/log/elevate-cpanel.log');
 
 my $cpev = cpev->new->_init;
 
+is( cpev->ssystem('nope'), 42, q[ssystem( 'nope' ) is disallowed] );
+is( cpev->ssystem('grep'), 42, 'Commands that are not absolute paths are not allowed' );
+
+is( cpev->ssystem('/etc/apache2/conf/httpd.conf'), 42, 'Commands that are not executable are not allowed' );
+
 is( cpev->ssystem("/bin/true"), 0, q[ssystem( "/bin/true" ) == 0] );
 isnt( my $status_false = cpev->ssystem("/bin/false"), 0, q[ssystem( "/bin/false" ) != 0] );
 

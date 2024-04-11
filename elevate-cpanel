@@ -5609,6 +5609,9 @@ EOS
 
     sub _ssystem ( $command, %opts ) {
         my @args = @{ $command // [] };
+
+        return 42 if $args[0] !~ '^/' || !-x $args[0];
+
         INFO( "Running: " . join( " ", @args ) );
         INFO();    # Buffer so they can more easily read the output.
 
