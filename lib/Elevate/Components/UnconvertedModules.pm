@@ -36,7 +36,6 @@ sub _remove_leapp_packages ($self) {
       leapp
       leapp-data-almalinux
       leapp-data-cloudlinux
-      leapp-data-rocky
       leapp-deps
       leapp-repository-deps
       leapp-upgrade-el7toel8

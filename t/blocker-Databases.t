@@ -346,8 +346,6 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
     note 'Test CloudLinux MySQL blocker';
     set_os_to('cloud');
 
-    local *Elevate::OS::upgrade_to = sub { return 'CloudLinux'; };
-
     my $db_version = 106;
 
     my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
