@@ -73,7 +73,6 @@ BEGIN {
     # The value specifies how many args the method is designed to take.
     %methods = map { $_ => 0 } (
         ### General distro specific methods.
-        'available_upgrade_paths',            # This returns a list of possible upgrade paths for the OS
         'default_upgrade_to',                 # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
         'disable_mysql_yum_repos',            # This is a list of mysql repo files to disable
         'ea_alias',                           # This is the value for the --target-os flag used when backing up an EA4 profile
@@ -114,29 +113,6 @@ sub AUTOLOAD {
 }
 
 sub DESTROY { }    # This is a must for autoload modules
-
-=head1 can_upgrade_to
-
-This returns true or false depending on whether the current OS
-is able to upgrade to the requested OS or not.
-
-=cut
-
-sub can_upgrade_to ($flavor) {
-    return grep { $_ eq $flavor } Elevate::OS::available_upgrade_paths();
-}
-
-=head1 upgrade_to
-
-This is the name of the OS we are upgrading to.  Data is stored
-within the stages file.
-
-=cut
-
-sub upgrade_to () {
-    my $default = Elevate::OS::default_upgrade_to();
-    return Elevate::StageFile::read_stage_file( 'upgrade_to', $default );
-}
 
 sub clear_cache () {
     undef $OS unless $INC{'Test/Elevate.pm'};

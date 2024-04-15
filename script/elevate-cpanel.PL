@@ -41,7 +41,6 @@ between major versions of RHEL® derivatives.
 Currently supported upgrade paths:
 
 CentOS 7     => AlmaLinux 8
-CentOS 7     => Rocky Linux 8
 CloudLinux 7 => CloudLinux 8
 
 =head1 SYNOPSIS
@@ -56,13 +55,6 @@ CloudLinux 7 => CloudLinux 8
        --status                                  Check the current elevation status
        --clean                                   Cleanup scripts and files created by elevate-cpanel
        --leappbeta                               Use the special beta repo from leapp. Do this only if instructed to by cPanel
-       --upgrade-to=[rocky|almalinux|cloudlinux] Update to AlmaLinux 8 or Rocky Linux 8
-                                                 [Servers running CentOS 7 will default to 'almalinux']
-                                                 [Servers running CloudLinux 7 will default to 'cloudlinux']
-
-                                                 NOTE: servers running CentOS 7 can only upgrade to almalinux or rocky
-                                                       servers running CloudLinux 7 can only upgrade to cloudlinux
-
        --non-interactive                         Skip the yes/no prompt before proceeding with the upgrade.
 
        --update                                  Instruct the script to replace itself on disk with a downloaded copy of the latest version.
@@ -86,16 +78,7 @@ CloudLinux 7 => CloudLinux 8
 
 You can start an elevation update by running:
 
-    # AlmaLinux 8 update from CentOS 7
     /scripts/elevate-cpanel --start
-    /scripts/elevate-cpanel --start --upgrade-to=almalinux
-
-    # Rocky Linux 8 update from CentOS 7
-    /scripts/elevate-cpanel --start --upgrade-to=rocky
-
-    # CloudLinux 8 update from CloudLinux 7
-    /scripts/elevate-cpanel --start
-    /scripts/elevate-cpanel --start --upgrade-to=cloudlinux
 
 =item Start an installation and skip the confirmation prompt
 
@@ -110,16 +93,7 @@ If you wish to skip this prompt (by assuming yes):
 You can check if your server is compatible with the upgrade process without
 starting an upgrade process.
 
-    # Check AlmaLinux 8 update from CentOS 7
     /scripts/elevate-cpanel --check
-    /scripts/elevate-cpanel --check --upgrade-to=almalinux
-
-    # Check Rocky Linux 8 update from CentOS 7
-    /scripts/elevate-cpanel --check --upgrade-to=rocky
-
-    # Check CloudLinux 8 update from CloudLinux 7
-    /scripts/elevate-cpanel --check
-    /scripts/elevate-cpanel --check --upgrade-to=cloudlinux
 
 This will also save a JSON representation of the blockers to a file, C</var/cpanel/elevate-blockers> by default,
 but passing an optional argument will use the file given instead:
@@ -348,11 +322,6 @@ use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recomme
 use constant ACTION_REBOOT_NEEDED   => 4242;    # just one unique id
 use constant ACTION_PAUSE_REQUESTED => 4243;
 
-# prefer string over integers so we can read the configuration file (no need for bitmask)
-use constant UPGRADE_TO_ALMALINUX  => q[AlmaLinux];
-use constant UPGRADE_TO_ROCKY      => q[Rocky];
-use constant UPGRADE_TO_CLOUDLINUX => q[CloudLinux];
-
 use constant PAUSE_ELEVATE_TOUCHFILE => q[/waiting_for_distro_upgrade];
 
 use Simple::Accessor qw{
@@ -476,43 +445,6 @@ sub get_blocker ( $self, $name ) {    # helper for tests
     $self->blockers->_get_blocker_for($name);
 }
 
-sub _parse_opt_upgrade_to ($self) {
-
-    my $flavor = $self->getopt('upgrade-to');
-
-    if ( !defined $self->getopt('start') && !defined $self->getopt('check') ) {
-        die qq[--upgrade-to option is only supported with --start or --check\n];
-    }
-
-    Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();
-
-    $flavor ||= Elevate::OS::default_upgrade_to();
-
-    $flavor = lc $flavor;
-    if ( !Elevate::OS::can_upgrade_to($flavor) ) {
-        my @available_flavors = Elevate::OS::available_upgrade_paths();
-        my $af                = join( "\n", @available_flavors );
-        die qq[The current OS can only upgrade to the following flavors:\n\n$af\n];
-    }
-
-    $self->_set_upgrade_to($flavor);
-
-    return;
-}
-
-sub _set_upgrade_to ( $self, $flavor ) {
-    my $upgrade_to = UPGRADE_TO_ROCKY if $flavor =~ m/^rocky/a;
-
-    $upgrade_to = UPGRADE_TO_ALMALINUX  if $flavor =~ m/^alma/a;
-    $upgrade_to = UPGRADE_TO_CLOUDLINUX if $flavor =~ m/^cloud/a;
-
-    die qq['$flavor' is not a valid path to upgrade to\n] unless $upgrade_to;
-
-    $self->{upgrade_to} = $upgrade_to;
-
-    return;
-}
-
 sub do_update ($self) {
 
     INFO( "Self-update of script version " . VERSION . " requested." );
@@ -543,21 +475,8 @@ sub do_update ($self) {
     return 0;
 }
 
-sub upgrade_to ($self) {    # main helper to know the upgrade_to distro
-    return $self->{upgrade_to} ? $self->{upgrade_to} : Elevate::OS::upgrade_to();
-}
-
-sub upgrade_to_rocky ($self) {
-    return $self->upgrade_to() eq UPGRADE_TO_ROCKY;
-}
-
-sub upgrade_to_cloudlinux ($self) {
-    return $self->upgrade_to() eq UPGRADE_TO_CLOUDLINUX;
-}
-
 sub upgrade_to_pretty_name ($self) {    # used by output messages
-    return q[Rocky Linux 8] if $self->upgrade_to_rocky;
-    return q[CloudLinux 8]  if $self->upgrade_to_cloudlinux;
+    return q[CloudLinux 8] if Elevate::OS::default_upgrade_to() eq 'CloudLinux';
     return q[AlmaLinux 8];
 }
 
@@ -604,11 +523,6 @@ sub start ($self) {
         EOS
 
     }
-
-    # Do not do this until after we know that the script is not already in progress
-    # Otherwise, it will clear the Elevate::OS cache which can result in the script
-    # failing once leapp has finished upgrading the server
-    $self->_parse_opt_upgrade_to();
 
     # Check for blockers before starting the migration
     return 1 if ( $self->blockers->check() );
@@ -1019,9 +933,6 @@ sub run_stage_1 ($self) {
     return 1 unless _sanity_check();
 
     print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . $self->service->name . " service" );
-
-    # store 'upgrade_to' early so later stages can access it
-    Elevate::StageFile::update_stage_file( { upgrade_to => $self->upgrade_to } );
 
     return $self->service->install();
 }
@@ -1585,7 +1496,7 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
 
 sub post_upgrade_check ($self) {
 
-    my $expect_distro = Elevate::OS::upgrade_to();
+    my $expect_distro = Elevate::OS::default_upgrade_to();
     $expect_distro = lc $expect_distro;
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
