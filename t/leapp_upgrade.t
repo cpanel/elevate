@@ -63,8 +63,10 @@ $mock_elevate->redefine(
 ok Elevate::Leapp::LEAPP_REPORT_JSON(), 'LEAPP_REPORT_JSON defined';
 ok Elevate::Leapp::LEAPP_REPORT_TXT(),  'LEAPP_REPORT_TXT defined';
 
-my $mock_leap_report_json = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_JSON() );
-my $mock_leap_report_txt  = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_TXT() );
+my $mock_leap_report_json  = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_JSON() );
+my $mock_leap_report_txt   = Test::MockFile->file( Elevate::Leapp::LEAPP_REPORT_TXT() );
+my $mock_leapp_upgrade_log = Test::MockFile->file( Elevate::Leapp::LEAPP_UPGRADE_LOG() );
+my $mock_leapp_cont_file   = Test::MockFile->file( Elevate::Leapp::LEAPP_FAIL_CONT_FILE() );
 
 like(
     dies { cpev->leapp->upgrade() },
@@ -305,5 +307,40 @@ my @test_stdout_lines = split( "\n", $test_stdout );
 my $found_error_block = cpev->leapp->extract_error_block_from_output( \@test_stdout_lines );
 
 is $found_error_block, $expected_error_block, 'Properly extracted the error block from leapp stdout';
+
+{
+    my $label = 'LEAPP upgrade log failure checks';
+
+    $mock_elevate_leapp->redefine( '_wait_for_log_contents' => sub { return 1; } );
+    $mock_leapp_upgrade_log->contents('1');
+
+    my $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 0, "$label: check_upgrade_log_for_failures returns the proper value when no errors are found." );
+}
+
+{
+    my $label = 'LEAPP upgrade log failure checks';
+
+    $mock_elevate_leapp->redefine( '_wait_for_log_contents' => sub { return 0; } );
+    $mock_leapp_upgrade_log->contents('1');
+
+    my $out = cpev->leapp->check_upgrade_log_for_failures();
+    $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 1, "$label: check_upgrade_log_for_failures returns the proper value when the upgrade log shows the LEAPP process may not have finished." );
+}
+
+{
+    my $label = 'LEAPP upgrade log failure checks';
+
+    $mock_elevate_leapp->redefine( '_wait_for_log_contents' => sub { return 0; } );
+    my $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 1, "$label: check_upgrade_log_for_failures returns the proper value when the upgrade log does not exist." );
+    undef $out;
+
+    $mock_leapp_cont_file->contents("1");
+    $mock_leapp_upgrade_log->contents('1');
+    $out = cpev->leapp->check_upgrade_log_for_failures();
+    is( $out, 0, "$label: check_upgrade_log_for_failures returns the proper value when the LEAPP process may not have finished, but the touch file exists." );
+}
 
 done_testing;
