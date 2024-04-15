@@ -6,6 +6,7 @@ use FindBin;
 
 use lib "$FindBin::Bin/../lib";
 use lib "$FindBin::Bin/lib";
+use Test::Elevate;
 use Test::Elevate::OS;
 
 use Test2::Bundle::Extended;
@@ -157,6 +158,58 @@ $mock_stagefile->redefine(
         ],
         'The expected things are stashed',
     );
+}
+
+{
+    note 'Test get_local_database_version() behavior';
+
+    my $mysql_version        = 42;
+    my $mysql_version_config = 52;
+
+    my $mock_version = Test::MockModule->new('Cpanel::MysqlUtils::Version');
+    $mock_version->redefine(
+        uncached_mysqlversion => sub {
+            return $mysql_version if $mysql_version;
+            die "MYSQL_VERSION_FAIL";
+        },
+    );
+
+    my $mock_cpconf = Test::MockModule->new('Cpanel::Config::LoadCpConf');
+    $mock_cpconf->redefine(
+        loadcpconf => sub { return { 'mysql-version' => $mysql_version_config }; },
+    );
+
+    # Happy path test
+    is(
+        Elevate::Database::get_local_database_version(),
+        $mysql_version,
+        'Returns result of querying mysql version'
+    );
+    no_messages_seen();
+
+    # Test regular call failing & getting mysql version from the config
+    $mysql_version = 0;
+    is(
+        Elevate::Database::get_local_database_version(),
+        $mysql_version_config,
+        'Returns result of getting mysql version from the config'
+    );
+    message_seen( 'WARN', qr/MYSQL_VERSION_FAIL/ );
+}
+
+{
+    note 'Test is_database_version_supported() behavior';
+
+    my @should_pass = qw(8.0 10.3 10.4 10.5 10.6);
+    my @should_fail = qw(5.0 5.5 5.7 -2 83 3.1415);
+
+    foreach my $pass_version (@should_pass) {
+        ok( Elevate::Database::is_database_version_supported($pass_version), "$pass_version is supported" );
+    }
+
+    foreach my $fail_version (@should_fail) {
+        ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
+    }
 }
 
 done_testing();
