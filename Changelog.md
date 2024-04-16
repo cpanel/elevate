@@ -1,3 +1,9 @@
+##### **2024-04-16** - version 34
+
+* Fixed case RE-171: Provide auto-upgrade mechanism for out-of-date MySQL/MariaDB versions (installed via cPanel, not CloudLinux).
+* Fixed case RE-224: Added in more checks to report potential failures of LEAPP.
+* Fixed case RE-260: Ensure all system calls are executable absolute paths.
+
 ##### **2024-04-09** - version 33
 
 * Removed experimental tag from Cloud Linux 7->8
