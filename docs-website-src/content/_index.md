@@ -11,7 +11,7 @@ Read more from the [Elevate website](https://cpanel.github.io/elevate/).
 
 ## Goal
 
-The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` [CentOS&nbsp;7](https://centos.org) server installation to [AlmaLinux&nbsp;8](https://almalinux.org) or [Rocky&nbsp;Linux&nbsp;8](https://rockylinux.org).
+The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` [CentOS&nbsp;7](https://centos.org) server installation to [AlmaLinux&nbsp;8](https://almalinux.org).
 
 ## Disclaimer
 
@@ -27,7 +27,7 @@ Please contact [cPanel Technical Support](https://docs.cpanel.net/knowledge-base
 
 This project builds on the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of RedHat-based systems.
 
-The [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/) or [Rocky&nbsp;Linux&nbsp;8](https://rockylinux.org). However if you attempt use it directly on a CentOS 7-based [cPanel&nbsp;install](https://cpanel.net/), you will end up with a broken system.
+The [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/). However if you attempt use it directly on a CentOS 7-based [cPanel&nbsp;install](https://cpanel.net/), you will end up with a broken system.
 
 This project was designed to be a wrapper around the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://cpanel.net/) with an aim to minimize outages.
 
@@ -118,13 +118,7 @@ We recommend you check for known blockers before you upgrade. The check is desig
 You can check if your system is ready to upgrade to **AlmaLinux 8** by running:
 ```bash
 # Check AlmaLinux 8 upgrade (dry run mode)
-/scripts/elevate-cpanel --check --upgrade-to=almalinux
-```
-
-You can check if your system is ready to upgrade to **Rocky Linux 8** by running:
-```bash
-# Check Rocky Linux 8 upgrade (dry run mode)
-/scripts/elevate-cpanel --check --upgrade-to=rocky
+/scripts/elevate-cpanel --check
 ```
 
 ### To upgrade
@@ -138,13 +132,7 @@ unreachable during this time.
 You can upgrade to **AlmaLinux 8** by running:
 ```bash
 # Start the migration to AlmaLinux 8
-/scripts/elevate-cpanel --start --upgrade-to=almalinux
-```
-
-You can upgrade to **Rocky Linux 8** by running:
-```bash
-# Start the migration to Rocky Linux 8
-/scripts/elevate-cpanel --start --upgrade-to=rocky
+/scripts/elevate-cpanel --start
 ```
 
 ### Command line options
@@ -154,14 +142,10 @@ You can upgrade to **Rocky Linux 8** by running:
 /scripts/elevate-cpanel --help
 
 # Check if your server is ready for elevation (dry run mode)
-/scripts/elevate-cpanel --check # defaults to AlmaLinux
-/scripts/elevate-cpanel --check --upgrade-to=almalinux
-/scripts/elevate-cpanel --check --upgrade-to=rocky
+/scripts/elevate-cpanel --check
 
 # Start the migration
-/scripts/elevate-cpanel --start # defaults to AlmaLinux
-/scripts/elevate-cpanel --start --upgrade-to=almalinux
-/scripts/elevate-cpanel --start --upgrade-to=rocky
+/scripts/elevate-cpanel --start
 
 ... # expect multiple reboots (~30 min)
 
@@ -205,7 +189,7 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 ### Stage 4
 
-At this stage we should now run Alamalinux 8 (or RockyLinux 8).
+At this stage we should now run Alamalinux 8.
 Update cPanel product for the new distro.
 
 Restore removed packages during the previous stage.
