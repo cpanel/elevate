@@ -84,6 +84,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     package Elevate::Constants;
 
+    use cPstrict;
+
     use constant MINIMUM_LTS_SUPPORTED => 110;
     use constant MAXIMUM_LTS_SUPPORTED => 110;
 
@@ -282,7 +284,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     our $_CHECK_MODE;           # for now global so we can use the helper (move it later to the object)
 
-    sub _build_blockers { [] }
+    sub _build_blockers { return []; }
 
     sub check ($self) {         # do_check - main  entry point
 
@@ -912,7 +914,7 @@ EOS
 
     sub _blocker_is_old_centos7 ($self) {
 
-        if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {
+        if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {    ## no critic(Cpanel::CpanelOS)
             my $pretty_distro_name = $self->upgrade_to_pretty_name();
             return $self->has_blocker(
                 sprintf(
@@ -1079,7 +1081,6 @@ EOS
         Please install it to /scripts/elevate-cpanel and run it again.
         EOS
 
-        return 0;
     }
 
     sub _is_up_to_date ($self) {    # $self is a cpev object here
@@ -1390,7 +1391,6 @@ EOS
     Please upgrade JetBackup before elevate.
     END
 
-        return 0;
     }
 
     sub _use_jetbackup4_or_earlier ($self) {
@@ -2984,7 +2984,11 @@ EOS
         return unless -x IMUNIFY_AGENT;
 
         my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
-        my @features = map { s/\s+//g; $_ } grep { m/\S/ } split( "\n", $output );
+        my @features = map {
+            my $trim_spaces = $_;
+            $trim_spaces =~ s/\s+//g;
+            $trim_spaces;
+        } grep { m/\S/ } split( "\n", $output );
 
         if ( -f IMUNIFY_LICENSE_FILE ) {
             File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
@@ -3051,7 +3055,7 @@ EOS
         while ( time - $start < 60 * 20 ) {    # abort after 20 minutes.
 
             while ( my $read = <$fh> ) {
-                my $partial_line .= $read;
+                $partial_line .= $read;
                 if ( length $read && substr( $partial_line, -1, 1 ) eq "\n" ) {
                     INFO($partial_line);
                     $partial_line = '';
@@ -3094,7 +3098,9 @@ EOS
         return unless $self->has_360_installed;
 
         my $agent_bin    = Elevate::Constants::IMUNIFY_AGENT;
-        my $license_data = eval { Cpanel::JSON::Load(`$agent_bin version --json 2>&1`) } // {};
+        my $out          = $self->ssystem_capture_output( $agent_bin, 'version', '--json' );
+        my $raw_data     = join "\n", @{ $out->{stdout} };
+        my $license_data = eval { Cpanel::JSON::Load($raw_data) } // {};
         if (   !ref $license_data->{'license'}
             || !$license_data->{'license'}->{'status'} ) {
             WARN("Imunify360: Cannot detect license. Skipping upgrade.");
@@ -3459,7 +3465,7 @@ EOS
 
     sub _kernel_check ($self) {
 
-        my @kernel_rpms = `/usr/bin/rpm -qa`;
+        my @kernel_rpms = $self->rpm->get_installed_rpms();
         @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
 
         return unless @kernel_rpms;
@@ -4608,10 +4614,10 @@ EOS
         my $distro;
         my $major;
         if ( !$distro_with_version ) {
-            $distro              = Cpanel::OS::distro();
+            $distro              = Cpanel::OS::distro();    ## no critic(Cpanel::CpanelOS)
             $distro              = 'CentOS'     if $distro eq 'centos';
             $distro              = 'CloudLinux' if $distro eq 'cloudlinux';
-            $major               = Cpanel::OS::major();
+            $major               = Cpanel::OS::major();     ## no critic(Cpanel::CpanelOS)
             $distro_with_version = $distro . $major;
         }
 
@@ -4667,12 +4673,12 @@ EOS
     }
 
     sub supported_methods {
-        return sort keys %methods;
+        return sort keys %methods;                ##no critic qw( ProhibitReturnSort ) - this will always be a list.
     }
 
     our $AUTOLOAD;
 
-    sub AUTOLOAD {
+    sub AUTOLOAD {                                ## no critic(RequireArgUnpacking) - Most of the time we do not need to process args.
         my $sub = $AUTOLOAD;
         $sub =~ s/.*:://;
 
@@ -4683,7 +4689,7 @@ EOS
         return $can->( $i, @_ );
     }
 
-    sub DESTROY { }    # This is a must for autoload modules
+    sub DESTROY { }                               # This is a must for autoload modules
 
     sub clear_cache () {
         undef $OS unless $INC{'Test/Elevate.pm'};
@@ -5368,7 +5374,6 @@ EOS
         }
 
         die qq[$msg\n];
-        return;
     }
 
     sub setup_answer_file ($self) {
@@ -6396,6 +6401,8 @@ EOS
         return unless $self->_validate_option_combos();
 
         return $self->full_help() if $self->getopt('help');
+
+        return;
     }
 
     sub getopt ( $self, $k ) {
@@ -6404,7 +6411,7 @@ EOS
 
     sub help ( $self, $msg = undef, $exit_status = undef ) {
         say $self->_help($msg);
-        exit( $exit_status // 0 );
+        exit( $exit_status // 0 );    ## no critic(Cpanel::NoExitsFromSubroutines)
     }
 
     sub full_help ( $self, $msg = undef, $exit_status = undef ) {
@@ -6414,7 +6421,7 @@ EOS
         my @lines = split "\n", $short_help;
         shift @lines for 1 .. 2;
         say foreach @lines;
-        exit( $exit_status // 0 );
+        exit( $exit_status // 0 );    ## no critic(Cpanel::NoExitsFromSubroutines)
     }
 
     sub _help ( $class, $msg = undef, $verbosity = undef ) {
@@ -6746,7 +6753,7 @@ BEGIN {
     # sanity check before loading the script
     eval { require Cpanel::Version::Tiny } or do {
         warn(qq[This script is designed to only run on cPanel servers.\n]);
-        exit 1;
+        exit 1;    ## no critic(Cpanel::NoExitsFromSubroutines)
     };
 }
 
@@ -6996,7 +7003,7 @@ sub component ( $self, $name ) {    # FIXME -> get_component
 }
 
 sub get_blocker ( $self, $name ) {    # helper for tests
-    $self->blockers->_get_blocker_for($name);
+    return $self->blockers->_get_blocker_for($name);
 }
 
 sub do_update ($self) {
@@ -7166,7 +7173,7 @@ EOS
             )
         ) {
             INFO("The update process has been canceled");
-            exit 0;
+            exit 0;    ## no critic qw(Cpanel::NoExitsFromSubroutines)
         }
     }
 
@@ -7384,7 +7391,7 @@ sub _run_service ($self) {
     $self->_wait_on_pause();    # handle pause when requested
 
     # sanity check
-    if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {
+    if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {    ## no critic(Cpanel::CpanelOS)
         WARN( "Detected " . Cpanel::OS::pretty_distro() . " while running stage $stage: swtiching to stage 4" );
         $stage = 4;
         Elevate::Stages::update_stage_number($stage);
@@ -7451,7 +7458,7 @@ sub present_noc_recommendations () {
 
         if ( $reply !~ m/^y(?:es?)?$/ ) {
             FATAL "Provider recommendations not acknowledged.";
-            exit 1;
+            exit 1;    ## no critic(Cpanel::NoExitsFromSubroutines)
         }
 
         INFO "Provider recommendations acknowledged; continuing.";
@@ -7609,11 +7616,11 @@ sub run_stage_4 ($self) {
         die($message);
     }
 
-    if ( Cpanel::OS::major() != 8 ) {
+    if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         my $current_distro     = Cpanel::OS::pretty_distro();
 
-        if ( Cpanel::OS::major() == 7 ) {
+        if ( Cpanel::OS::major() == 7 ) {    ## no critic(Cpanel::CpanelOS)
             WARN("Detected $current_distro from stage 4, reverting back to stage 3.");
             Elevate::Stages::update_stage_number(3);
         }
@@ -7734,7 +7741,7 @@ sub run_once ( $self, $label, $code = undef ) {
 
     die unless defined $label;
 
-    $code //= cpev->can($label) or Carp::confess(qq[Missing function '$label']);
+    $code //= cpev->can($label) || Carp::confess(qq[Missing function '$label']);
 
     die unless ref $code eq 'CODE';
 
@@ -8053,7 +8060,7 @@ sub post_upgrade_check ($self) {
     my $expect_distro = Elevate::OS::default_upgrade_to();
     $expect_distro = lc $expect_distro;
 
-    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
+    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         die "Your distro does not look like $pretty_distro_name.\n";
     }
@@ -8104,6 +8111,7 @@ sub reboot ($self) {
 
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");
+    return;
 }
 
 sub request_manual_reboots() {

@@ -45,7 +45,7 @@ sub _blocker_os_is_not_supported ($self) {
 
 sub _blocker_is_old_centos7 ($self) {
 
-    if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {
+    if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         return $self->has_blocker(
             sprintf(

@@ -31,10 +31,10 @@ sub factory {
     my $distro;
     my $major;
     if ( !$distro_with_version ) {
-        $distro              = Cpanel::OS::distro();
+        $distro              = Cpanel::OS::distro();    ## no critic(Cpanel::CpanelOS)
         $distro              = 'CentOS'     if $distro eq 'centos';
         $distro              = 'CloudLinux' if $distro eq 'cloudlinux';
-        $major               = Cpanel::OS::major();
+        $major               = Cpanel::OS::major();     ## no critic(Cpanel::CpanelOS)
         $distro_with_version = $distro . $major;
     }
 
@@ -96,12 +96,12 @@ BEGIN {
 }
 
 sub supported_methods {
-    return sort keys %methods;
+    return sort keys %methods;                ##no critic qw( ProhibitReturnSort ) - this will always be a list.
 }
 
 our $AUTOLOAD;
 
-sub AUTOLOAD {
+sub AUTOLOAD {    ## no critic(RequireArgUnpacking) - Most of the time we do not need to process args.
     my $sub = $AUTOLOAD;
     $sub =~ s/.*:://;
 

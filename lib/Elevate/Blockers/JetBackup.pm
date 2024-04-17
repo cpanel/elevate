@@ -36,7 +36,6 @@ sub _blocker_old_jetbackup ($self) {
     Please upgrade JetBackup before elevate.
     END
 
-    return 0;
 }
 
 sub _use_jetbackup4_or_earlier ($self) {
