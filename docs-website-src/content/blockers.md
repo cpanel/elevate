@@ -52,12 +52,12 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
   * You will need to be on a version mentioned in the "Latest cPanel & WHM Builds (All Architectures)" section at http://httpupdate.cpanel.net/
   * Mitigation: `/usr/local/cpanel/scripts/upcp`
 * **nameserver**
-  * cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8 / Rocky 8, it is preferred that you always be on PowerDNS.
+  * cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On AlmaLinux 8, it is preferred that you always be on PowerDNS.
   * Mitigation: `/scripts/setupnameserver powerdns`
 * **MySQL**
   * We will upgrade you automatically to MariaDB 10.6 during elevation if you do not do this in advance.
-* Some **EA4 packages** are not supported on AlmaLinux 8 / Rocky 8.
-  * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8 / Rocky 8. You would need to remove these packages before the upgrading to AlmaLinux 8 / Rocky 8. Doing so might impact your system users. Proceed with caution.
+* Some **EA4 packages** are not supported on AlmaLinux 8.
+  * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8. You would need to remove these packages before the upgrading to AlmaLinux 8. Doing so might impact your system users. Proceed with caution.
 * The system **must** be able to control the boot process by changing the GRUB2 configuration.
   * The reason for this is that the framework which performs the upgrade of distro-provided software needs to be able to run a custom early boot environment (initrd) in order to safely upgrade the distro.
   * We check for this by seeing whether the kernel the system is currently running is the same version as that which the system believes is the default boot option.
