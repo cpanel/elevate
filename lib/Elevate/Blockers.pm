@@ -105,9 +105,6 @@ sub check ($self) {    # do_check - main  entry point
     }
     else {
         my $cmd = q[/scripts/elevate-cpanel --start];
-        if ( my $flavor = $self->cpev->getopt('upgrade-to') ) {
-            $cmd = "$cmd --upgrade-to=$flavor";
-        }
         INFO( <<~"EOS" );
         There are no known blockers to start the elevation process.
         You can consider running:

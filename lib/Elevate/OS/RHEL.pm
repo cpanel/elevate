@@ -63,7 +63,6 @@ use constant vetted_yum_repo => (
   ),
   vetted_mysql_yum_repo_ids;
 
-use constant available_upgrade_paths         => undef;
 use constant default_upgrade_to              => undef;
 use constant ea_alias                        => undef;
 use constant elevate_rpm_url                 => undef;

@@ -40,7 +40,6 @@ sub cpev ($self) {
 BEGIN {
     my @_DELEGATE_TO_CPEV = qw{
       getopt
-      upgrade_to_rocky
       upgrade_to_pretty_name
       should_run_leapp
       ssystem
