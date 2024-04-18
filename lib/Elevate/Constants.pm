@@ -33,4 +33,8 @@ use constant ELEVATE_BACKUP_DIR => "/root/.elevate.backup";
 
 use constant IMUNIFY_AGENT => '/usr/bin/imunify360-agent';
 
+use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
+
+use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
+
 1;
