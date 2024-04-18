@@ -201,7 +201,6 @@ use Log::Log4perl qw(:easy);
 use Config;
 use Carp                  ();
 use Errno                 ();
-use File::Basename        ();
 use File::Copy            ();
 use File::Copy::Recursive ();
 use File::Find            ();
@@ -259,6 +258,7 @@ use Elevate::Blockers::AutoSSL          ();
 use Elevate::Components::Base               ();
 use Elevate::Components::AbsoluteSymlinks   ();
 use Elevate::Components::cPanelPlugins      ();
+use Elevate::Components::cPanelPrep         ();
 use Elevate::Components::EA4                ();
 use Elevate::Components::Grub2              ();
 use Elevate::Components::Imunify            ();
@@ -308,11 +308,7 @@ use Elevate::YUM              ();
 use constant VERSION => 1;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
-use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
-
 use constant VALID_STAGES => 5;
-
-use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
 
 use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recommendations];
 
@@ -947,22 +943,12 @@ sub run_stage_2 ($self) {
 
     Elevate::Marker::startup();
 
-    # Remove scripts/upcp and bin/backup to make sure they don't
-    # end up running while ELevate is running.
-    unlink('/usr/local/cpanel/scripts/upcp');
-    unlink('/usr/local/cpanel/bin/backup');
-
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
     $self->ssystem_and_die(qw{/usr/bin/yum -y update});
 
     $self->run_component_once( 'DatabaseUpgrade' => 'pre_leapp' );
-
-    $self->disable_all_cpanel_services();
-
-    $self->setup_outdated_services();
-
-    system touch => CHKSRVD_SUSPEND_FILE;
+    $self->run_component_once( 'cPanelPrep',     => 'pre_leapp' );
 
     Elevate::Motd->setup();
 
@@ -1141,7 +1127,7 @@ sub run_stage_5 ($self) {
     # we cannot stop the service ( ourself )
     $self->service->disable;
     unlink Elevate::Constants::PID_FILE;
-    unlink CHKSRVD_SUSPEND_FILE;
+    unlink Elevate::Constants::CHKSRVD_SUSPEND_FILE;
     my $el_backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR;
     File::Path::remove_tree($el_backup_dir) if -d $el_backup_dir;
 
@@ -1242,49 +1228,25 @@ sub print_box_no_log ($message) {
     return;
 }
 
-sub setup_outdated_services ($self) {
-
-    my $content = '';
-
-    if ( -e IGNORE_OUTDATED_SERVICES_FILE ) {
-        $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
-    }
-
-    my $service_name = $self->service->short_name;
-
-    return if $content =~ qr{^${service_name}$}m;
-
-    chomp($content);
-
-    $content .= "\n" if length $content;
-    $content .= $service_name . "\n";
-
-    my $dirname = File::Basename::dirname(IGNORE_OUTDATED_SERVICES_FILE);
-    if ( !-d $dirname ) {
-        mkdir($dirname) or die qq[Failed to create directory $dirname - $!];
-    }
-    File::Slurper::write_binary( IGNORE_OUTDATED_SERVICES_FILE, $content );
-
-    return 1;
-}
-
 sub restore_outdated_services ($self) {
 
-    return unless -e IGNORE_OUTDATED_SERVICES_FILE;
+    my $outdated_services_file = Elevate::Constants::IGNORE_OUTDATED_SERVICES_FILE;
 
-    my $content = File::Slurper::read_binary(IGNORE_OUTDATED_SERVICES_FILE) // '';
+    return unless -e $outdated_services_file;
+
+    my $content = File::Slurper::read_binary($outdated_services_file) // '';
 
     my $service_name = $self->service->short_name;
 
     if ( $content =~ s{^$service_name$}{}gm ) {
         1 while chomp $content;
         if ( $content =~ m{^\s*\z} ) {
-            unlink IGNORE_OUTDATED_SERVICES_FILE;
+            unlink $outdated_services_file;
             return 2;
         }
         else {
             $content .= "\n";
-            File::Slurper::write_binary( IGNORE_OUTDATED_SERVICES_FILE, $content );
+            File::Slurper::write_binary( $outdated_services_file, $content );
             return 1;
         }
     }
@@ -1313,31 +1275,6 @@ sub stop_services_before_upcp ($self) {
     $self->ssystem(qw{/scripts/restartsrv_tailwatchd --stop});
     $self->ssystem(qw{/scripts/restartsrv_dovecot    --stop});
     $self->ssystem(qw{/scripts/restartsrv_exim       --stop});
-
-    return;
-}
-
-sub disable_all_cpanel_services ($self) {
-
-    my @cpanel_services = qw/
-      cpanel cpdavd cpgreylistd cphulkd cpipv6
-      cpcleartaskqueue
-      dnsadmin dovecot exim ipaliases mailman
-      mysqld pdns proftpd queueprocd spamd
-      crond tailwatchd
-      lsws
-      /;
-    my @disabled_services;
-
-    foreach my $name (@cpanel_services) {
-        my $service = Elevate::SystemctlService->new( name => $name );
-
-        next unless $service->is_enabled;
-        $service->disable;
-
-        push @disabled_services, $name;
-    }
-    Elevate::StageFile::update_stage_file( { 'disabled_cpanel_services' => [ sort @disabled_services ] } );
 
     return;
 }
