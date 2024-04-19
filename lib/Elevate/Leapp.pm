@@ -355,7 +355,6 @@ EOS
     }
 
     die qq[$msg\n];
-    return;
 }
 
 sub setup_answer_file ($self) {

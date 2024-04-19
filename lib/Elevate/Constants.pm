@@ -14,6 +14,8 @@ if their usage is self contained.
 
 =cut
 
+use cPstrict;
+
 use constant MINIMUM_LTS_SUPPORTED => 110;
 use constant MAXIMUM_LTS_SUPPORTED => 110;
 

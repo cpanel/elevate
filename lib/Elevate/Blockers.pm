@@ -79,7 +79,7 @@ use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
 
 our $_CHECK_MODE;           # for now global so we can use the helper (move it later to the object)
 
-sub _build_blockers { [] }
+sub _build_blockers { return []; }
 
 sub check ($self) {    # do_check - main  entry point
 

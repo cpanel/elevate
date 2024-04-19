@@ -43,7 +43,6 @@ sub _blocker_wrong_location ($self) {
         Please install it to /scripts/elevate-cpanel and run it again.
         EOS
 
-    return 0;
 }
 
 sub _is_up_to_date ($self) {    # $self is a cpev object here

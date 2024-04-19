@@ -192,7 +192,7 @@ BEGIN {
     # sanity check before loading the script
     eval { require Cpanel::Version::Tiny } or do {
         warn(qq[This script is designed to only run on cPanel servers.\n]);
-        exit 1;
+        exit 1;    ## no critic(Cpanel::NoExitsFromSubroutines)
     };
 }
 
@@ -442,7 +442,7 @@ sub component ( $self, $name ) {    # FIXME -> get_component
 }
 
 sub get_blocker ( $self, $name ) {    # helper for tests
-    $self->blockers->_get_blocker_for($name);
+    return $self->blockers->_get_blocker_for($name);
 }
 
 sub do_update ($self) {
@@ -612,7 +612,7 @@ EOS
             )
         ) {
             INFO("The update process has been canceled");
-            exit 0;
+            exit 0;    ## no critic qw(Cpanel::NoExitsFromSubroutines)
         }
     }
 
@@ -830,7 +830,7 @@ sub _run_service ($self) {
     $self->_wait_on_pause();    # handle pause when requested
 
     # sanity check
-    if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {
+    if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {    ## no critic(Cpanel::CpanelOS)
         WARN( "Detected " . Cpanel::OS::pretty_distro() . " while running stage $stage: swtiching to stage 4" );
         $stage = 4;
         Elevate::Stages::update_stage_number($stage);
@@ -897,7 +897,7 @@ sub present_noc_recommendations () {
 
         if ( $reply !~ m/^y(?:es?)?$/ ) {
             FATAL "Provider recommendations not acknowledged.";
-            exit 1;
+            exit 1;    ## no critic(Cpanel::NoExitsFromSubroutines)
         }
 
         INFO "Provider recommendations acknowledged; continuing.";
@@ -1055,11 +1055,11 @@ sub run_stage_4 ($self) {
         die($message);
     }
 
-    if ( Cpanel::OS::major() != 8 ) {
+    if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         my $current_distro     = Cpanel::OS::pretty_distro();
 
-        if ( Cpanel::OS::major() == 7 ) {
+        if ( Cpanel::OS::major() == 7 ) {    ## no critic(Cpanel::CpanelOS)
             WARN("Detected $current_distro from stage 4, reverting back to stage 3.");
             Elevate::Stages::update_stage_number(3);
         }
@@ -1180,7 +1180,7 @@ sub run_once ( $self, $label, $code = undef ) {
 
     die unless defined $label;
 
-    $code //= cpev->can($label) or Carp::confess(qq[Missing function '$label']);
+    $code //= cpev->can($label) || Carp::confess(qq[Missing function '$label']);
 
     die unless ref $code eq 'CODE';
 
@@ -1499,7 +1499,7 @@ sub post_upgrade_check ($self) {
     my $expect_distro = Elevate::OS::default_upgrade_to();
     $expect_distro = lc $expect_distro;
 
-    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {
+    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = $self->upgrade_to_pretty_name();
         die "Your distro does not look like $pretty_distro_name.\n";
     }
@@ -1550,6 +1550,7 @@ sub reboot ($self) {
 
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");
+    return;
 }
 
 sub request_manual_reboots() {

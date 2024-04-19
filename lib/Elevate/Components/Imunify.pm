@@ -89,7 +89,11 @@ sub _capture_imunify_features {
     return unless -x IMUNIFY_AGENT;
 
     my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
-    my @features = map { s/\s+//g; $_ } grep { m/\S/ } split( "\n", $output );
+    my @features = map {
+        my $trim_spaces = $_;
+        $trim_spaces =~ s/\s+//g;
+        $trim_spaces;
+    } grep { m/\S/ } split( "\n", $output );
 
     if ( -f IMUNIFY_LICENSE_FILE ) {
         File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
@@ -159,7 +163,7 @@ sub __monitor_imunify_feature_install ( $feature, $log_file ) {
 
         # Tail the file for new information.
         while ( my $read = <$fh> ) {
-            my $partial_line .= $read;
+            $partial_line .= $read;
             if ( length $read && substr( $partial_line, -1, 1 ) eq "\n" ) {
                 INFO($partial_line);
                 $partial_line = '';
@@ -204,7 +208,9 @@ sub _remove_imunify_360 ($self) {
     return unless $self->has_360_installed;
 
     my $agent_bin    = Elevate::Constants::IMUNIFY_AGENT;
-    my $license_data = eval { Cpanel::JSON::Load(`$agent_bin version --json 2>&1`) } // {};
+    my $out          = $self->ssystem_capture_output( $agent_bin, 'version', '--json' );
+    my $raw_data     = join "\n", @{ $out->{stdout} };
+    my $license_data = eval { Cpanel::JSON::Load($raw_data) } // {};
     if (   !ref $license_data->{'license'}
         || !$license_data->{'license'}->{'status'} ) {
         WARN("Imunify360: Cannot detect license. Skipping upgrade.");
