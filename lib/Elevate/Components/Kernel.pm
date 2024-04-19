@@ -35,7 +35,7 @@ sub post_leapp ($self) {
 
 sub _kernel_check ($self) {
 
-    my @kernel_rpms = `/usr/bin/rpm -qa`;
+    my @kernel_rpms = $self->rpm->get_installed_rpms();
     @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
 
     return unless @kernel_rpms;

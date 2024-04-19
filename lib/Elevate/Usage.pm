@@ -81,6 +81,8 @@ sub init ( $self, @args ) {
     return unless $self->_validate_option_combos();
 
     return $self->full_help() if $self->getopt('help');
+
+    return;
 }
 
 sub getopt ( $self, $k ) {
@@ -97,7 +99,7 @@ $MESSAGE is given to Pod::Usage as its C<-message>.
 
 sub help ( $self, $msg = undef, $exit_status = undef ) {
     say $self->_help($msg);
-    exit( $exit_status // 0 );
+    exit( $exit_status // 0 );    ## no critic(Cpanel::NoExitsFromSubroutines)
 }
 
 =head2 I<OBJ>->full_help( $MESSAGE )
@@ -115,7 +117,7 @@ sub full_help ( $self, $msg = undef, $exit_status = undef ) {
     my @lines = split "\n", $short_help;
     shift @lines for 1 .. 2;
     say foreach @lines;
-    exit( $exit_status // 0 );
+    exit( $exit_status // 0 );    ## no critic(Cpanel::NoExitsFromSubroutines)
 }
 
 sub _help ( $class, $msg = undef, $verbosity = undef ) {
