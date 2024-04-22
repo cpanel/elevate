@@ -267,7 +267,7 @@ sub wait_for_leapp_completion ($self) {
             INFO('Waiting for the LEAPP upgrade process to complete.');
             if ( $elapsed == 0 ) {    # First loop give extra advice
                 INFO( 'This process may take up to ' . int( $time_to_wait_for_leapp_completion / 60 ) . ' minutes.' );
-                INFO( sprintf( "You can `touch %s` if you would like to skip this check.", LEAPP_FAIL_CONT_FILE ) );
+                INFO( 'You can `touch ' . LEAPP_FAIL_CONT_FILE . '` if you would like to skip this check.' );
             }
         }
 
@@ -277,13 +277,17 @@ sub wait_for_leapp_completion ($self) {
 
     # We failed to find the completion message within 10 minutes.
 
-    my $msg = sprintf("The command 'leapp upgrade' did not complete successfully. Please investigate and resolve the issue.\n");
-    $msg .= sprintf("Once resolved, you can continue the upgrade by running the following commands:\n");
-    $msg .= sprintf( "    %s %s\n", "touch", LEAPP_FAIL_CONT_FILE );
-    $msg .= sprintf( "    %s\n",    '/scripts/elevate-cpanel --continue' );
-    $msg .= sprintf("The following log files may help in your investigation.\n");
-    $msg .= sprintf( "    %s\n", $upgrade_log );
-    $msg .= sprintf( "    %s\n", LEAPP_REPORT_TXT );
+    my $touch_file = LEAPP_FAIL_CONT_FILE;
+    my $leapp_txt  = LEAPP_REPORT_TXT;
+    my $msg        = <<~"END";
+    The command 'leapp upgrade' did not complete successfully. Please investigate and resolve the issue.
+    Once resolved, you can continue the upgrade by running the following commands:
+        touch $touch_file
+        /scripts/elevate-cpanel --continue
+    The following log files may help in your investigation.
+        $upgrade_log
+        $leapp_txt
+    END
     ERROR($msg);
 
     return 0;
