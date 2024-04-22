@@ -1050,9 +1050,11 @@ sub run_stage_4 ($self) {
 
     # 10 minute timeout if no completion is seen.
     unless ( $self->leapp->wait_for_leapp_completion ) {
-        my $message = sprintf("The LEAPP upgrade process did not succeed\n");
-        $message .= sprintf( "Review the log at %s for more details\n", Elevate::Constants::LOG_FILE );
-        die($message);
+        my $log_file = Elevate::Constants::LOG_FILE;
+        die(<<~"END");
+        The LEAPP upgrade process did not succeed
+        Review the log at $log_file for more details
+        END
     }
 
     if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
