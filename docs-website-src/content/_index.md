@@ -301,6 +301,73 @@ You can unlock the situation by using the `--clean` option.
    /scripts/elevate-cpanel --start
 ```
 
+### The CCS service will not start after elevate succeeds
+
+This can sometimes occur due to a failed schema update.  When this occurs, we
+recommend that you complete the following steps:
+
+1. Remove the CCS package(s),
+2. Remove the home directory for the packages user,
+3. Reinstall the package,
+4. Finally, ensure that the task queue completes before continuing
+
+**NOTE:** Only remove/install cpanel-z-push if it was installed prior to running
+elevate / is currently installed.  You can check if it is installed with the
+following command:
+
+```
+rpm -q cpanel-z-push
+```
+
+1.  Remove the package(s)
+```
+dnf -y remove cpanel-ccs-calendarserver cpanel-z-push
+```
+
+2.  Remove the `cpnael-ccs` user's home directory
+```
+rm -rf /opt/cpanel-ccs/
+```
+
+3.  Install the package(s)
+```
+dnf -y install cpanel-ccs-calendarserver cpanel-z-push
+```
+
+4.  Clear the queueprocd task queue
+```
+/usr/local/cpanel/bin/servers_queue run
+```
+
+5.  Verify that the cpanel-ccs service is running
+```
+/scripts/restartsrv_cpanel_ccs --status
+```
+
+The output should be similar to the following if the service is up:
+```
+cpanel-ccs (CalendarServer 9.3+fbd0e11675cc0f64a425581b5c8398cc1e09cb6a [Combined] ) is running as cpanel-ccs with PID 1865839 (systemd+/proc check method)
+```
+
+6.  Import the CCS data
+
+### The CCS data failed to import during elevate
+
+This data is exported to `/var/cpanel/elevate_ccs_export/`.
+
+Executing the following Perl one-liner as root will import the data for each user:
+```
+/usr/local/cpanel/3rdparty/bin/perl -MCpanel::Config::Users -e 'require "/var/cpanel/perl5/lib/CCSHooks.pm"; my @users = Cpanel::Config::Users::getcpusers(); foreach my $user (@users) { my $import_data = { user => $user, extract_dir => "/var/cpanel/elevate_ccs_export/$user", }; CCSHooks::pkgacct_restore( undef, $import_data ); }'
+```
+
+To import a single user, use the following one-liner instead:
+```
+/usr/local/cpanel/3rdparty/bin/perl -e 'require "/var/cpanel/perl5/lib/CCSHooks.pm"; my $import_data = { user => "CPTEST", extract_dir => "/var/cpanel/elevate_ccs_export/CPTEST", }; CCSHooks::pkgacct_restore( undef, $import_data );'
+```
+
+**NOTE:**  The above example uses `cptest` as the user.  Replace `cptest` with
+the appropriate username for the user that you wish to import.
+
 ### I need more help?
 
 You can report an issue to [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
