@@ -3,22 +3,18 @@
 # HARNESS-NO-STREAM
 
 use cPstrict;
+use FindBin;
 
 use Test2::V0;
 use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
-use Test::MockModule qw/strict/;
-
-use FindBin;
-
 use Test::MockFile 0.032;
+use Test::MockModule qw/strict/;
 
 use lib $FindBin::Bin . "/lib";
 use Test::Elevate;
-
-use cPstrict;
 
 $INC{'scripts/ElevateCpanel.pm'} = '__TEST__';
 
@@ -308,39 +304,23 @@ my $found_error_block = cpev->leapp->extract_error_block_from_output( \@test_std
 
 is $found_error_block, $expected_error_block, 'Properly extracted the error block from leapp stdout';
 
+note 'LEAPP upgrade log failure checks';
 {
-    my $label = 'LEAPP upgrade log failure checks';
+    $mock_leapp_upgrade_log->unlink;
 
-    $mock_elevate_leapp->redefine( '_wait_for_log_contents' => sub { return 1; } );
-    $mock_leapp_upgrade_log->contents('1');
+    is( cpev->leapp->wait_for_leapp_completion, 0, "wait_for_leapp_completion fails when the upgrade log is missing." );
 
-    my $out = cpev->leapp->check_upgrade_log_for_failures();
-    is( $out, 0, "$label: check_upgrade_log_for_failures returns the proper value when no errors are found." );
-}
-
-{
-    my $label = 'LEAPP upgrade log failure checks';
-
-    $mock_elevate_leapp->redefine( '_wait_for_log_contents' => sub { return 0; } );
-    $mock_leapp_upgrade_log->contents('1');
-
-    my $out = cpev->leapp->check_upgrade_log_for_failures();
-    $out = cpev->leapp->check_upgrade_log_for_failures();
-    is( $out, 1, "$label: check_upgrade_log_for_failures returns the proper value when the upgrade log shows the LEAPP process may not have finished." );
-}
-
-{
-    my $label = 'LEAPP upgrade log failure checks';
-
-    $mock_elevate_leapp->redefine( '_wait_for_log_contents' => sub { return 0; } );
-    my $out = cpev->leapp->check_upgrade_log_for_failures();
-    is( $out, 1, "$label: check_upgrade_log_for_failures returns the proper value when the upgrade log does not exist." );
-    undef $out;
-
+    $mock_leapp_upgrade_log->contents("magic string is missing");
     $mock_leapp_cont_file->contents("1");
-    $mock_leapp_upgrade_log->contents('1');
-    $out = cpev->leapp->check_upgrade_log_for_failures();
-    is( $out, 0, "$label: check_upgrade_log_for_failures returns the proper value when the LEAPP process may not have finished, but the touch file exists." );
+    is( cpev->leapp->wait_for_leapp_completion, 2, "wait_for_leapp_completion is true if skip touch file is in place." );
+
+    $Elevate::Leapp::time_to_wait_for_leapp_completion = 5;
+    $mock_leapp_cont_file->unlink;
+    is( cpev->leapp->wait_for_leapp_completion, 0, "wait_for_leapp_completion fails if magic string never shows up." );
+
+    $mock_leapp_upgrade_log->contents("blah\nblah\nblah Starting stage After of phase FirstBoot blah\ndjdjd\n");
+    is( cpev->leapp->wait_for_leapp_completion, 1, "wait_for_leapp_completion succeeds if magic string shows up." );
 }
 
-done_testing;
+done_testing();
+exit;

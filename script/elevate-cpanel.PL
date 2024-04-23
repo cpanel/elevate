@@ -1034,11 +1034,13 @@ sub run_stage_4 ($self) {
     Cpanel::OS::flush_disk_caches();
     Cpanel::OS::clear_cache_after_cloudlinux_update();
 
-    my $upgrade_errors = $self->leapp->check_upgrade_log_for_failures();
-    if ($upgrade_errors) {
-        my $message = sprintf("The LEAPP upgrade process did not succeed\n");
-        $message .= sprintf( "Review the log at %s for more details\n", Elevate::Constants::LOG_FILE );
-        die($message);
+    # 10 minute timeout if no completion is seen.
+    unless ( $self->leapp->wait_for_leapp_completion ) {
+        my $log_file = Elevate::Constants::LOG_FILE;
+        die(<<~"END");
+        The LEAPP upgrade process did not succeed
+        Review the log at $log_file for more details
+        END
     }
 
     if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
