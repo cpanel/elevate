@@ -11,7 +11,12 @@ Read more from the [Elevate website](https://cpanel.github.io/elevate/).
 
 ## Goal
 
-The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` [CentOS&nbsp;7](https://centos.org) server installation to [AlmaLinux&nbsp;8](https://almalinux.org).
+The cPanel ELevate Project provides a script to upgrade an existing `cPanel & WHM` RHEL 7 based server installation to a RHEL 8 based installation.
+
+For example:
+
+1.  CentOS 7 to AlmaLinux 8
+2.  CloudLinux 7 to CloudLinux 8
 
 ## Disclaimer
 
@@ -27,7 +32,7 @@ Please contact [cPanel Technical Support](https://docs.cpanel.net/knowledge-base
 
 This project builds on the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which leans heavily on the [LEAPP Project](https://leapp.readthedocs.io/en/latest/) created for in-place upgrades of RedHat-based systems.
 
-The [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages from [CentOS&nbsp;7](https://centos.org/) to [AlmaLinux&nbsp;8](https://almalinux.org/). However if you attempt use it directly on a CentOS 7-based [cPanel&nbsp;install](https://cpanel.net/), you will end up with a broken system.
+The [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project is very effective at upgrading the distro packages. However, if you attempt use it directly on a RHEL 7-based [cPanel&nbsp;install](https://cpanel.net/), you will end up with a broken system.
 
 This project was designed to be a wrapper around the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project to allow you to successfully upgrade a [cPanel install](https://cpanel.net/) with an aim to minimize outages.
 
@@ -89,7 +94,7 @@ and then [running pre-checks](#pre-upgrade-checks).
 * x86_64 RPMs not in the primary CentOS repos are upgraded.
   * `rpm -qa|grep el7`
 * EA4 RPMs are incorrect
-  * EA4 provides different dependencies and linkage on C7/A8
+  * EA4 provides different dependencies and linkage on C7/A8 and CL7/CL8
 * cPanel binaries (cpanelsync) are invalid.
 * 3rdparty repo packages are not upgraded (imunify 360, epel, ...).
 * Manually installed Perl XS (arch) CPAN installs invalid.
@@ -98,6 +103,7 @@ and then [running pre-checks](#pre-upgrade-checks).
 * Cpanel::OS distro setting is wrong.
 * MySQL might now not be upgradable (MySQL versions < 8.0 are not normally present on A8).
 * The `nobody` user does not switch from UID 99 to UID 65534 even after upgrading to A8.
+* The cPanel CCS service may not start.
 
 ## Using the script
 
@@ -115,9 +121,9 @@ chmod 700 /scripts/elevate-cpanel
 
 We recommend you check for known blockers before you upgrade. The check is designed to not make any changes to your system.
 
-You can check if your system is ready to upgrade to **AlmaLinux 8** by running:
+You can check if your system is ready to upgrade by running:
 ```bash
-# Check AlmaLinux 8 upgrade (dry run mode)
+# Check upgrade (dry run mode)
 /scripts/elevate-cpanel --check
 ```
 
@@ -129,9 +135,8 @@ Once you have a backup of your server (**The cPanel elevate script does not back
 unreachable during this time.
 
 
-You can upgrade to **AlmaLinux 8** by running:
+You can upgrade by running:
 ```bash
-# Start the migration to AlmaLinux 8
 /scripts/elevate-cpanel --start
 ```
 
@@ -159,7 +164,7 @@ You can upgrade to **AlmaLinux 8** by running:
 /scripts/elevate-cpanel --continue
 ```
 
-## SumUp of upgrade process
+## Summary of upgrade process
 
 The elevate process is divided in multiple `stages`.
 Each `stage` is repsonsible for one part of the upgrade.
@@ -167,7 +172,7 @@ Between each stage a `reboot` is performed before doing a final reboot at the ve
 
 ### Stage 1
 
-Start the elevation process by installing the `elevate-cpanel` service responsible of the multiple reboots.
+Start the elevation process by installing the `elevate-cpanel` service responsible for the multiple reboots.
 
 ### Stage 2
 
@@ -176,7 +181,7 @@ Disable cPanel services and setup motd.
 
 ### Stage 3
 
-Setup the `elevate-release-latest-el7` repo and install leapp packages.
+Setup the elevate repo and install leapp packages.
 Prepare the cPanel packages for the update.
 
 Remove some known conflicting packages and backup some existing configurations. (these packages will be reinstalled druing the next stage).
@@ -189,7 +194,7 @@ In case of failure you probably want to reply to a few extra questions or remove
 
 ### Stage 4
 
-At this stage we should now run Alamalinux 8.
+At this stage we should now run an RHEL 8 based distro.
 Update cPanel product for the new distro.
 
 Restore removed packages during the previous stage.
