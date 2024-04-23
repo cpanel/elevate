@@ -1,3 +1,10 @@
+##### **2024-04-23** - version 35
+
+* Fixed case RE-122: Move logic for prepping cPanel for leapp to a component.
+* Fixed case RE-218: Remove support for elevating to Rocky Linux.
+* Fixed case RE-305: Do not delay 10 minutes when elevate_leap_fail_continue is put in place.
+* Fixed case RE-318: Fix DNS blocker to check the systems name server type.
+
 ##### **2024-04-16** - version 34
 
 * Fixed case RE-171: Provide auto-upgrade mechanism for out-of-date MySQL/MariaDB versions (installed via cPanel, not CloudLinux).
