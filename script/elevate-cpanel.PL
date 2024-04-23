@@ -48,13 +48,13 @@ CloudLinux 7 => CloudLinux 8
     /scripts/elevate-cpanel [OPTIONS]
 
     Optional:
-       --start                                   Start the conversion process
-       --continue                                Continue the conversion: retry the last step
+       --start                                   Start the conversion process.
+       --continue                                Continue the conversion: retry the last step.
        --check[=BLOCKER_FILE]                    Check if your system has any known blockers to upgrade.
-       --log                                     Show the current elevation log
-       --status                                  Check the current elevation status
-       --clean                                   Cleanup scripts and files created by elevate-cpanel
-       --leappbeta                               Use the special beta repo from leapp. Do this only if instructed to by cPanel
+       --log                                     Show the current elevation log.
+       --status                                  Check the current elevation status.
+       --clean                                   Cleanup scripts and files created by elevate-cpanel.
+       --leappbeta                               Use the special beta repo from leapp. Do this only if instructed to by cPanel.
        --non-interactive                         Skip the yes/no prompt before proceeding with the upgrade.
 
        --update                                  Instruct the script to replace itself on disk with a downloaded copy of the latest version.
