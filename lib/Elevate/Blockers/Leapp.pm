@@ -39,8 +39,6 @@ sub check ($self) {
 
     $self->_check_for_fatal_errors($out);
 
-    INFO('Leapp found issues which would prevent the upgrade, more information can be obtained in the files under /var/log/leapp');
-
     return;
 }
 
