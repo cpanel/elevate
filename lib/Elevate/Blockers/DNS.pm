@@ -16,12 +16,20 @@ use Elevate::Constants ();
 
 use parent qw{Elevate::Blockers::Base};
 
+use Cpanel::Config::LoadCpConf ();
+
 use Cwd           ();
 use Log::Log4perl qw(:easy);
 
 sub check ($self) {
 
-    return $self->_blocker_non_bind_powerdns;
+    return $self->_blocker_non_bind_powerdns( _get_nameserver_type() );
+}
+
+sub _get_nameserver_type () {
+
+    my $cpconf = Cpanel::Config::LoadCpConf::loadcpconf();
+    return $cpconf->{'local_nameserver_type'} // '';
 }
 
 sub _blocker_non_bind_powerdns ( $self, $nameserver = '' ) {

@@ -20,6 +20,12 @@ use cPstrict;
 my $cpev_mock = Test::MockModule->new('cpev');
 my $dns_mock  = Test::MockModule->new('Elevate::Blockers::DNS');
 
+my $cpconf;
+my $conf_mock = Test::MockModule->new('Cpanel::Config::LoadCpConf');
+$conf_mock->redefine(
+    loadcpconf => sub { return $cpconf; },
+);
+
 my $cpev = cpev->new;
 my $dns  = $cpev->get_blocker('DNS');
 
@@ -27,8 +33,9 @@ my $dns  = $cpev->get_blocker('DNS');
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
         my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        $cpconf = { 'local_nameserver_type' => 'nsd' };
         is(
-            $dns->_blocker_non_bind_powerdns('nsd'),
+            $dns->check(),
             {
                 id  => q[Elevate::Blockers::DNS::_blocker_non_bind_powerdns],
                 msg => <<~"EOS",
@@ -39,8 +46,9 @@ my $dns  = $cpev->get_blocker('DNS');
             'nsd nameserver is a blocker.'
         );
 
+        $cpconf = { 'local_nameserver_type' => 'mydns' };
         is(
-            $dns->_blocker_non_bind_powerdns('mydns'),
+            $dns->check(),
             {
                 id  => q[Elevate::Blockers::DNS::_blocker_non_bind_powerdns],
                 msg => <<~"EOS",
@@ -51,9 +59,14 @@ my $dns  = $cpev->get_blocker('DNS');
             'mydns nameserver is a blocker.'
         );
 
-        is( $dns->_blocker_non_bind_powerdns('bind'),     0, "if they use bind, we're ok" );
-        is( $dns->_blocker_non_bind_powerdns('powerdns'), 0, "if they use powerdns, we're ok" );
-        is( $dns->_blocker_non_bind_powerdns('disabled'), 0, "if they use no dns, we're ok" );
+        $cpconf = {};
+        is( $dns->check(), 0, "Nothing set, we're ok" );
+        $cpconf = { 'local_nameserver_type' => 'bind' };
+        is( $dns->check(), 0, "if they use bind, we're ok" );
+        $cpconf = { 'local_nameserver_type' => 'powerdns' };
+        is( $dns->check(), 0, "if they use powerdns, we're ok" );
+        $cpconf = { 'local_nameserver_type' => 'disabled' };
+        is( $dns->check(), 0, "if they use no dns, we're ok" );
     }
 }
 
