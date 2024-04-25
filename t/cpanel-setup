@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#                                      Copyright 2024 WebPros International, LLC
+#                                                           All rights reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited.
+
 set -e
 
 ULC=/usr/local/cpanel
@@ -64,4 +69,3 @@ echo "# ............ enable extra target"
 
 echo "# ............. scripts/check_cpanel_pkgs"
 /scripts/check_cpanel_pkgs --fix --no-digest ||:
-
