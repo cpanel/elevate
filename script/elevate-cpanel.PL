@@ -207,7 +207,6 @@ use File::Find            ();
 use File::Path            ();
 use File::Slurper         ();
 use File::Spec            ();
-use File::Temp            ();
 use Hash::Merge           ();
 use IO::Prompt            ();
 use Term::ANSIColor       ();
@@ -288,6 +287,7 @@ use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
 use Elevate::Database         ();
+use Elevate::EA4              ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();
@@ -1358,10 +1358,6 @@ sub clear_cpanel_caches ($self) {
     unlink $_ foreach @files;
 
     return;
-}
-
-sub tmp_dir ($self) {
-    return $self->{tmp} //= File::Temp->newdir();    # auto cleanup on destroy
 }
 
 my $yum_list_cache;
