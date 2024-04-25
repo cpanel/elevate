@@ -1,10 +1,9 @@
 package Perl::Critic::Policy::TryTiny::ProhibitExitingSubroutine;
 
-# cpanel - lib/Perl/Critic/Policy/TryTiny/ProhibitExitingSubroutine.pm
-#                                                  Copyright 2022 cPanel, L.L.C.
+#                                      Copyright 2024 WebPros International, LLC
 #                                                           All rights reserved.
 # copyright@cpanel.net                                         http://cpanel.net
-# This code is subject to the cPanel license. Unauthorized copying is prohibited
+# This code is subject to the cPanel license. Unauthorized copying is prohibited.
 
 use strict;
 use warnings;

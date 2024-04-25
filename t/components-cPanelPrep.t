@@ -1,5 +1,10 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
+#                                      Copyright 2024 WebPros International, LLC
+#                                                           All rights reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited.
+
 package test::cpev::components;
 
 use FindBin;
@@ -137,4 +142,3 @@ my $cpanel_prep = bless {}, 'Elevate::Components::cPanelPrep';
 }
 
 done_testing();
-

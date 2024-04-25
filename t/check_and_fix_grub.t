@@ -1,9 +1,10 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
-# cpanel - t/check_and_fix_grub.t                  Copyright 2023 cPanel, L.L.C.
+#                                      Copyright 2024 WebPros International, LLC
 #                                                           All rights reserved.
 # copyright@cpanel.net                                         http://cpanel.net
-# This code is subject to the cPanel license. Unauthorized copying is prohibited
+# This code is subject to the cPanel license. Unauthorized copying is prohibited.
+
 package test::cpev::blockers;
 
 use FindBin;
