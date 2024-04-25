@@ -308,7 +308,7 @@ You can report an issue to [cPanel Technical Support](https://docs.cpanel.net/kn
 ## Copyright
 
 ```c
-Copyright 2023 cPanel L.L.C.
+Copyright 2024 WebPros International, LLC
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
