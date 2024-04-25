@@ -207,7 +207,6 @@ use File::Find            ();
 use File::Path            ();
 use File::Slurper         ();
 use File::Spec            ();
-use File::Temp            ();
 use Hash::Merge           ();
 use IO::Prompt            ();
 use Term::ANSIColor       ();
@@ -289,6 +288,7 @@ use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
 use Elevate::Database         ();
+use Elevate::EA4              ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();
@@ -1090,7 +1090,8 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'EA4' => 'post_leapp' );
+    $self->run_component_once( 'Imunify' => 'post_leapp' );
+    $self->run_component_once( 'EA4'     => 'post_leapp' );
 
     $self->run_once(
         upcp => sub {
@@ -1332,7 +1333,6 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'JetBackup'     => 'post_leapp' );
     $self->run_component_once( 'Kernel'        => 'post_leapp' );
     $self->run_component_once( 'KernelCare'    => 'post_leapp' );
-    $self->run_component_once( 'Imunify'       => 'post_leapp' );
     $self->run_component_once( 'NixStats'      => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
 
@@ -1359,10 +1359,6 @@ sub clear_cpanel_caches ($self) {
     unlink $_ foreach @files;
 
     return;
-}
-
-sub tmp_dir ($self) {
-    return $self->{tmp} //= File::Temp->newdir();    # auto cleanup on destroy
 }
 
 my $yum_list_cache;

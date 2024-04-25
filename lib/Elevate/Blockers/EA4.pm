@@ -13,7 +13,12 @@ Blocker to check EasyApache profile compatibility.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::EA4       ();
 use Elevate::StageFile ();
+
+use Cpanel::JSON            ();
+use Cpanel::Pkgr            ();
+use Cpanel::SafeRun::Simple ();
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -39,18 +44,10 @@ sub _blocker_ea4_profile ($self) {
 
     INFO("Checking EasyApache profile compatibility with $pretty_distro_name.");
 
-    $self->cpev->component('EA4')->backup;                        # _backup_ea4_profile();
-    my $stash        = Elevate::StageFile::read_stage_file();     # FIXME - move it to a function
-    my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
-    return unless scalar keys $dropped_pkgs->%*;
+    my $check_mode = $self->is_check_mode();
+    Elevate::EA4::backup($check_mode);
 
-    my @incompatible_packages;
-    foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
-        my $type = $dropped_pkgs->{$pkg} // '';
-        next if $type eq 'exp';                          # use of experimental packages is a non blocker
-        next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
-        push @incompatible_packages, $pkg;
-    }
+    my @incompatible_packages = $self->_get_incompatible_packages();
 
     return unless @incompatible_packages;
 
@@ -61,6 +58,86 @@ sub _blocker_ea4_profile ($self) {
     Please remove these packages before continuing the update.
     $list
     EOS
+}
+
+sub _get_incompatible_packages ($self) {
+
+    my $stash        = Elevate::StageFile::read_stage_file();
+    my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
+    return unless scalar keys $dropped_pkgs->%*;
+
+    my @incompatible;
+    my @imunify_pkgs;
+    foreach my $pkg ( sort keys %$dropped_pkgs ) {
+        my $type = $dropped_pkgs->{$pkg} // '';
+        next if $type eq 'exp';                          # use of experimental packages is a non blocker
+        next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
+
+        if ( $pkg =~ m/^(ea-php[0-9]+)/ ) {
+            my $php_pkg = $1;
+            next unless $self->_php_version_is_in_use($php_pkg);
+
+            if ( $self->_php_is_provided_by_imunify_360($php_pkg) ) {
+                push @imunify_pkgs, $pkg;
+                next;
+            }
+        }
+
+        push @incompatible, $pkg;
+    }
+
+    if (@imunify_pkgs) {
+        Elevate::StageFile::update_stage_file( { ea4_imunify_packages => \@imunify_pkgs } );
+    }
+
+    return @incompatible;
+}
+
+sub _php_is_provided_by_imunify_360 ( $self, $php ) {
+    return 0 unless -x Elevate::Constants::IMUNIFY_AGENT;
+
+    my $version = Cpanel::Pkgr::get_package_version($php);
+
+    # If the package is coming from CL, then we can assume
+    # that it is provided by Imunify 360 at this point
+    return $version =~ m/cloudlinux/ ? 1 : 0;
+}
+
+sub _php_version_is_in_use ( $self, $php ) {
+    my $current_php_usage = $self->_get_php_versions_in_use();
+
+    # Always return true if the api call failed
+    return 1 if $current_php_usage->{api_fail};
+
+    return $current_php_usage->{$php} ? 1 : 0;
+}
+
+our $php_versions_in_use;
+
+sub _get_php_versions_in_use ($self) {
+    return $php_versions_in_use if defined $php_versions_in_use && ref $php_versions_in_use eq 'HASH';
+
+    my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
+    my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+    unless ( $result->{metadata}{result} ) {
+
+        WARN( <<~"EOS" );
+        Unable to determine if PHP versions that will be dropped are in use by
+        a domain.  Assuming that they are in use and blocking to be safe.
+
+        EOS
+
+        $php_versions_in_use->{api_fail} = 1;
+        return $php_versions_in_use;
+    }
+
+    foreach my $domain_info ( @{ $result->{data}{versions} } ) {
+        my $php_version = $domain_info->{version};
+        $php_versions_in_use->{$php_version} = 1;
+    }
+
+    return $php_versions_in_use;
 }
 
 1;
