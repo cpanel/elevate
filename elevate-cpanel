@@ -36,6 +36,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/AutoSSL.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Base.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/AbsoluteSymlinks.pm'}   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/CCS.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/cPanelPlugins.pm'}      = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/cPanelPrep.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/EA4.pm'}                = 'script/elevate-cpanel.PL.static';
@@ -2042,7 +2043,6 @@ EOS
     use Cpanel::Version::Tiny   ();
     use Cpanel::Update::Tiers   ();
     use Cpanel::License         ();
-    use Cpanel::Pkgr            ();
     use Cpanel::Unix::PID::Tiny ();
 
     # use Elevate::Blockers::Base();
@@ -2068,7 +2068,6 @@ EOS
         $ok = 0 unless $self->_blocker_is_sandbox;
         $ok = 0 unless $self->_blocker_is_upcp_running;
         $ok = 0 unless $self->_blocker_is_cpanel_backup_running;
-        $ok = 0 unless $self->_blocker_is_calendar_installed;
 
         return $ok;
     }
@@ -2160,17 +2159,6 @@ EOS
     sub _blocker_is_sandbox ($self) {
         if ( -e q[/var/cpanel/dev_sandbox] ) {
             return $self->has_blocker('Cannot elevate a sandbox...');
-        }
-
-        return 0;
-    }
-
-    sub _blocker_is_calendar_installed ($self) {
-        if ( Cpanel::Pkgr::is_installed('cpanel-ccs-calendarserver') ) {
-            return $self->has_blocker( <<~'EOS');
-        You have the cPanel Calendar Server installed. Upgrades with this server in place are not supported.
-        Removal of this server can lead to data loss.
-        EOS
         }
 
         return 0;
@@ -2468,6 +2456,405 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Components/AbsoluteSymlinks.pm
+
+{    # --- BEGIN lib/Elevate/Components/CCS.pm
+
+    package Elevate::Components::CCS;
+
+    use cPstrict;
+
+    use Try::Tiny;
+
+    use File::Path ();
+    use File::Copy ();
+
+    use Cpanel::Autodie       ();
+    use Cpanel::Config::Users ();
+    use Cpanel::JSON          ();
+    use Cpanel::Pkgr          ();
+
+    use Elevate::Notify    ();
+    use Elevate::StageFile ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    use constant CCS_PACKAGE        => 'cpanel-ccs-calendarserver';
+    use constant ZPUSH_PACKAGE      => 'cpanel-z-push';
+    use constant EXPORT_DIR         => '/var/cpanel/elevate_ccs_export';
+    use constant CCS_RESTART_SCRIPT => '/usr/local/cpanel/scripts/restartsrv_cpanel_ccs';
+    use constant TASK_QUEUE_SCRIPT  => '/usr/local/cpanel/bin/servers_queue';
+
+    use constant DUMP_TYPES => (
+        calendars => 'ics',
+        contacts  => 'vcard',
+    );
+
+    sub pre_leapp ($self) {
+        my $ccs_installed = Cpanel::Pkgr::is_installed(CCS_PACKAGE);
+        Elevate::StageFile::update_stage_file( { ccs_installed => $ccs_installed } );
+        return unless $ccs_installed;
+
+        $self->_load_ccs_modules();
+
+        $self->run_once('export_ccs_data');
+        $self->remove_ccs_and_dependencies();
+
+        $self->clean_up_pkg_cruft();
+
+        return;
+    }
+
+    sub clean_up_pkg_cruft ($self) {
+        $self->move_pgsql_directory();
+        $self->remove_cpanel_ccs_home_directory();
+        return;
+    }
+
+    sub remove_cpanel_ccs_home_directory ($self) {
+        File::Path::remove_tree('/opt/cpanel-ccs') if -d '/opt/cpanel-ccs';
+        return;
+    }
+
+    sub move_pgsql_directory ($self) {
+        my $pg_dir        = '/var/lib/pgsql';
+        my $pg_backup_dir = '/var/lib/pgsql_pre_elevate';
+
+        File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
+
+        $pg_backup_dir .= '_' . time() . '_' . $$ if -e $pg_backup_dir;
+
+        File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
+
+        if ( -e $pg_backup_dir ) {
+            die <<~"EOS";
+        Unable to ensure a valid backup path for $pg_dir.
+        Please ensure that '/var/lib/pgsql_pre_elevate' does not exist on your system and execute this script again with
+
+        /scripts/elevate-cpanel --continue
+
+        EOS
+        }
+
+        INFO( <<~"EOS" );
+    Moving the PostgreSQL data dir located at $pg_dir to $pg_backup_dir
+    to ensure a functioning PostgreSQL server after the elevation completes.
+    EOS
+
+        File::Copy::move( $pg_dir, $pg_backup_dir ) if -d $pg_dir;
+
+        return;
+    }
+
+    sub remove_ccs_and_dependencies ($self) {
+
+        my $zpush_installed = Cpanel::Pkgr::is_installed(ZPUSH_PACKAGE);
+        Elevate::StageFile::update_stage_file( { zpush_installed => $zpush_installed } );
+
+        my @ccs_dependencies = qw{
+          postgresql
+          postgresql-devel
+          postgresql-server
+        };
+
+        push @ccs_dependencies, ZPUSH_PACKAGE();
+
+        $self->yum->remove( CCS_PACKAGE(), @ccs_dependencies );
+
+        return;
+    }
+
+    sub _load_ccs_modules ($self) {
+        require Cpanel::LoadModule::Custom;
+
+        Cpanel::LoadModule::Custom::load_perl_module('Cpanel::CCS::Delegates');
+        Cpanel::LoadModule::Custom::load_perl_module('Cpanel::CCS::DBUtils');
+        Cpanel::LoadModule::Custom::load_perl_module('Cpanel::CCS::Userdata');
+
+        return;
+    }
+
+    sub export_ccs_data ($self) {
+        my $export_dir = EXPORT_DIR();
+        INFO("Exporting CCS data to '$export_dir'.  A backup of this data will be left in place after elevate completes.");
+        $self->_ensure_export_directory();
+
+        my @users = Cpanel::Config::Users::getcpusers();
+        foreach my $user (@users) {
+            INFO("    Exporting data for $user");
+            $self->_export_data_for_single_user($user);
+        }
+
+        INFO('Completed exporting CCS data for all users');
+
+        return;
+    }
+
+    sub _export_data_for_single_user ( $self, $user ) {
+        my $users_ccs_info = $self->_get_ccs_info_for_user($user);
+        my @webmail_users  = keys %{ $users_ccs_info->{users} };
+
+        next if ( !@webmail_users );
+
+        $self->_make_backup_paths_for_user($user);
+        $self->_dump_persistence_data_for_user($user);
+        $self->_dump_delegation_data_for_user($user);
+
+        foreach my $webmail_user (@webmail_users) {
+            $self->_process_calendar_and_contacts_for_webmail_user( $user, $webmail_user );
+        }
+
+        return;
+    }
+
+    sub _process_calendar_and_contacts_for_webmail_user ( $self, $user, $webmail_user ) {
+        my $path           = $self->_get_export_path_for_user($user);
+        my $users_ccs_info = $self->_get_ccs_info_for_user($user);
+        my $uuid           = $users_ccs_info->{users}{$webmail_user};
+        my %dump_types     = DUMP_TYPES();
+        my $dbh            = $self->_get_dbh();
+
+        foreach my $type ( keys %dump_types ) {
+            my ( $query_string, $query_args ) = $self->_get_query_for_type( $type, $uuid );
+            my $sth = $dbh->prepare($query_string);
+
+            $sth->execute(@$query_args);
+
+            my $num_rows = $sth->rows;
+            next if !$num_rows;
+
+            my $dump_file = "$path/$type/${uuid}_${type}.$dump_types{$type}";
+
+            Cpanel::Autodie::open( my $dh, ">", $dump_file );
+            binmode( $dh, ":encoding(UTF-8)" ) or die "Can't set binmode to UTF-8 on $dump_file: $!";
+
+            while ( my $text = $sth->fetch ) {
+                for (@$text) {
+                    my $txt = $_;
+                    $txt =~ tr/'//d;
+                    print $dh $txt;
+                }
+            }
+        }
+
+        return;
+    }
+
+    sub _dump_delegation_data_for_user ( $self, $user ) {
+        my $path = $self->_get_export_path_for_user($user);
+        my $dbh  = $self->_get_dbh();
+
+        my @webmail_users_info = Cpanel::CCS::Userdata::get_users($user);
+        my $delegates_ar       = Cpanel::CCS::Delegates::get( @webmail_users_info, $dbh );
+
+        my $delegate_file = $path . '/' . 'delegates.json';
+        Cpanel::JSON::DumpFile( $delegate_file, $delegates_ar );
+        return;
+    }
+
+    sub _dump_persistence_data_for_user ( $self, $user ) {
+        my $path             = $self->_get_export_path_for_user($user);
+        my $persistence_file = $path . '/' . 'persistence.json';
+        my $users_ccs_info   = $self->_get_ccs_info_for_user($user);
+
+        Cpanel::JSON::DumpFile( $persistence_file, $users_ccs_info );
+        return;
+    }
+
+    sub _make_backup_paths_for_user ( $self, $user ) {
+        my $path = $self->_get_export_path_for_user($user);
+        File::Path::make_path($path);
+
+        my %dump_types = DUMP_TYPES();
+        for ( keys(%dump_types) ) { File::Path::make_path("$path/$_"); }
+        return;
+    }
+
+    sub _get_query_for_type ( $self, $type, $uuid ) {
+        my %querydata = (
+            'calendars' => {
+                'args'  => [ $uuid, '1', 'f' ],
+                'query' => "SELECT icalendar_text
+                FROM
+                  calendar_object
+                  INNER JOIN calendar_bind ON calendar_bind.calendar_resource_id = calendar_object.calendar_resource_id
+                  INNER JOIN calendar_metadata ON calendar_metadata.resource_id = calendar_bind.calendar_resource_id
+                  INNER JOIN calendar_home ON calendar_home.resource_id = calendar_bind.calendar_home_resource_id
+                WHERE calendar_home.owner_uid = ?
+                AND calendar_bind.bind_status = ?
+                AND calendar_metadata.is_in_trash = ?;",
+            },
+            'contacts' => {
+                'args'  => [ $uuid, 'f' ],
+                'query' => "SELECT vcard_text
+                FROM
+                  addressbook_object
+                  INNER JOIN addressbook_home ON addressbook_home.resource_id = addressbook_object.addressbook_home_resource_id
+                WHERE addressbook_home.owner_uid = ?
+                AND addressbook_object.is_in_trash = ?;",
+            },
+        );
+
+        return ( $querydata{$type}{'query'}, $querydata{$type}{'args'} );
+    }
+
+    sub _get_dbh ($self) {
+        $self->{dbh} ||= Cpanel::CCS::DBUtils::get_dbh();
+        return $self->{dbh};
+    }
+
+    sub _get_export_path_for_user ( $self, $user ) {
+        $self->{$user}{export_path} ||= EXPORT_DIR() . '/' . $user . '/calendar_and_contacts';
+        return $self->{$user}{export_path};
+    }
+
+    sub _get_ccs_info_for_user ( $self, $user ) {
+        $self->{$user}{info} ||= Cpanel::CCS::Userdata::get_cpanel_account_users_uuids($user);
+        return $self->{$user}{info};
+    }
+
+    sub _ensure_export_directory ($self) {
+        File::Path::make_path(EXPORT_DIR);
+
+        chmod 0700, EXPORT_DIR;
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+        return unless Elevate::StageFile::read_stage_file('ccs_installed');
+
+        $self->_install_ccs_and_dependencies();
+
+        $self->_clear_task_queue();
+
+        $self->_ensure_ccs_service_is_up();
+        $self->run_once('import_ccs_data');
+
+        return;
+    }
+
+    sub _install_ccs_and_dependencies ($self) {
+        my @packages_to_install = ( CCS_PACKAGE() );
+
+        push @packages_to_install, ZPUSH_PACKAGE() if Elevate::StageFile::read_stage_file('zpush_installed');
+
+        $self->dnf->install(@packages_to_install);
+
+        return;
+    }
+
+    sub _clear_task_queue ($self) {
+
+        $self->ssystem( TASK_QUEUE_SCRIPT, 'run' );
+        return;
+    }
+
+    sub _ensure_ccs_service_is_up ($self) {
+
+        INFO('Attempting to ensure that the CCS service is running');
+
+        my $attempts     = 1;
+        my $max_attempts = 5;
+        while ( $attempts <= $max_attempts ) {
+            DEBUG("Attempt $attempts of $max_attempts to verify that the CCS service is up");
+
+            if ( $self->_ccs_service_is_up() ) {
+                INFO('Verified that the CCS service is up');
+                return;
+            }
+
+            $self->remove_ccs_and_dependencies();
+            $self->remove_cpanel_ccs_home_directory();
+            $self->_clear_task_queue();
+            $self->_install_ccs_and_dependencies();
+            $self->_clear_task_queue();
+
+            sleep 5;
+            $attempts++;
+        }
+
+        WARN("Failed to start CCS service.  Importing CCS data may fail.");
+        return;
+    }
+
+    sub _attempt_to_start_service ($self) {
+        $self->ssystem(CCS_RESTART_SCRIPT);
+        return;
+    }
+
+    sub _ccs_service_is_up ($self) {
+        my $out = $self->ssystem_capture_output( CCS_RESTART_SCRIPT, '--status' );
+        return grep { $_ =~ m/is running as cpanel-ccs with PID/ } @{ $out->{stdout} };
+    }
+
+    sub import_ccs_data ($self) {
+        INFO("Importing CCS data");
+
+        my @failed_users;
+        my @users = Cpanel::Config::Users::getcpusers();
+        foreach my $user (@users) {
+            try {
+                INFO("    Importing data for $user");
+                $self->_import_data_for_single_user($user);
+            }
+            catch {
+                push @failed_users, $user;
+            };
+        }
+
+        INFO('Completed importing CCS data for all users');
+
+        if (@failed_users) {
+            my $export_dir = EXPORT_DIR();
+            my $message    = "The CCS data failed to import for the following users:\n\n";
+            $message .= join "\n", sort(@failed_users);
+            $message .= <<~"EOS";
+
+        A backup of this data is located at $export_dir
+
+        If this data is crucial, you may want to consider reaching out to cPanel Support for further assistance:
+
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+
+        EOS
+
+            Elevate::Notify::add_final_notification($message);
+        }
+
+        return;
+    }
+
+    sub _import_data_for_single_user ( $self, $user ) {
+
+        require '/var/cpanel/perl5/lib/CCSHooks.pm';    ##no critic qw(RequireBarewordIncludes)
+
+        my $extract_dir = EXPORT_DIR() . '/' . $user;
+        my $import_data = {
+            user        => $user,
+            extract_dir => $extract_dir,
+        };
+
+        try {
+            CCSHooks::pkgacct_restore( undef, $import_data );
+        }
+        catch {
+            my $err = $_;
+            WARN("Failed to restore CCS data for '$user'");
+            DEBUG($err);
+            die "CCS import failed for $user\n";
+        };
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/CCS.pm
 
 {    # --- BEGIN lib/Elevate/Components/cPanelPlugins.pm
 
@@ -6931,6 +7318,7 @@ use Elevate::Blockers::AutoSSL          ();
 # - fatpack Components
 use Elevate::Components::Base               ();
 use Elevate::Components::AbsoluteSymlinks   ();
+use Elevate::Components::CCS                ();
 use Elevate::Components::cPanelPlugins      ();
 use Elevate::Components::cPanelPrep         ();
 use Elevate::Components::EA4                ();
@@ -7617,14 +8005,19 @@ sub run_stage_2 ($self) {
 
     Elevate::Marker::startup();
 
+    Elevate::Motd->setup();
+
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
     $self->ssystem_and_die(qw{/usr/bin/yum -y update});
 
+    # This needs to execute before we disable cPanel services
+    # or exporting the CCS data will fail
+    $self->run_component_once( 'CCS'             => 'pre_leapp' );
     $self->run_component_once( 'DatabaseUpgrade' => 'pre_leapp' );
-    $self->run_component_once( 'cPanelPrep',     => 'pre_leapp' );
 
-    Elevate::Motd->setup();
+    # This disable cPanel services
+    $self->run_component_once( 'cPanelPrep' => 'pre_leapp' );
 
     $self->run_component_once( 'SSH'        => 'pre_leapp' );
     $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
@@ -7786,6 +8179,8 @@ sub run_stage_4 ($self) {
             $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/upcp.static --sync});
         }
     );
+
+    $self->run_component_once( 'CCS' => 'post_leapp' );
 
     return ACTION_REBOOT_NEEDED;
 }
