@@ -34,12 +34,6 @@ At any given time, the upgrade process may use at or more than 5 GB. If you have
 * **/usr/local/cpanel**: 1.5 GB
 * **/var/lib**: 5 GB
 
-## Unsupported software
-
-The following software is known to lead to a corrupt install if this script is used. We block elevation when it is detected:
-
-* **cPanel CCS Calendar Server** - Requires Postgresql older than 10.0
-
 ## Things you need to upgrade first.
 
 You can discover many of these issues by downloading `elevate-cpanel` and running `/scripts/elevate-cpanel --check`. Below is a summary of the major blockers people might encounter.
