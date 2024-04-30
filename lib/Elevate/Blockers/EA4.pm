@@ -12,10 +12,12 @@ Blocker to check EasyApache profile compatibility.
 
 use cPstrict;
 
+use Elevate::Constants ();
 use Elevate::EA4       ();
 use Elevate::StageFile ();
 
 use Cpanel::JSON            ();
+use Cpanel::Pkgr            ();
 use Cpanel::SafeRun::Simple ();
 
 use parent qw{Elevate::Blockers::Base};
@@ -64,6 +66,7 @@ sub _get_incompatible_packages ($self) {
     return unless scalar keys $dropped_pkgs->%*;
 
     my @incompatible;
+    my @imunify_pkgs;
     foreach my $pkg ( sort keys %$dropped_pkgs ) {
         my $type = $dropped_pkgs->{$pkg} // '';
         next if $type eq 'exp';                          # use of experimental packages is a non blocker
@@ -72,12 +75,31 @@ sub _get_incompatible_packages ($self) {
         if ( $pkg =~ m/^(ea-php[0-9]+)/ ) {
             my $php_pkg = $1;
             next unless $self->_php_version_is_in_use($php_pkg);
+
+            if ( $self->_php_is_provided_by_imunify_360($php_pkg) ) {
+                push @imunify_pkgs, $pkg;
+                next;
+            }
         }
 
         push @incompatible, $pkg;
     }
 
+    if (@imunify_pkgs) {
+        Elevate::StageFile::update_stage_file( { ea4_imunify_packages => \@imunify_pkgs } );
+    }
+
     return @incompatible;
+}
+
+sub _php_is_provided_by_imunify_360 ( $self, $php ) {
+    return 0 unless -x Elevate::Constants::IMUNIFY_AGENT;
+
+    my $version = Cpanel::Pkgr::get_package_version($php);
+
+    # If the package is coming from CL, then we can assume
+    # that it is provided by Imunify 360 at this point
+    return $version =~ m/cloudlinux/ ? 1 : 0;
 }
 
 sub _php_version_is_in_use ( $self, $php ) {

@@ -32,6 +32,7 @@ sub post_leapp ($self) {
 
     $self->run_once('_restore_ea4_profile');
     $self->run_once('_restore_ea_addons');
+    $self->run_once('_restore_imunify_phps');
 
     # This needs to happen last (after EA4 has been reinstalled)
     #
@@ -146,6 +147,15 @@ sub _restore_config_files ($self) {
         $self->rpm->restore_config_files(@config_files_to_restore);
     }
 
+    return;
+}
+
+sub _restore_imunify_phps ($self) {
+
+    my $php_pkgs = Elevate::StageFile::read_stage_file('ea4_imunify_packages');
+    return unless scalar $php_pkgs->@*;
+
+    $self->dnf->install(@$php_pkgs);
     return;
 }
 
