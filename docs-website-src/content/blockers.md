@@ -7,19 +7,24 @@ layout: single
 
 # Known Blockers
 
-The following is a list of install states which the script will intentionally prevent you from upgrading with. This is because the script cannot garantuee a successful upgrade with these conditions in place.
+The following is a list of install states which the script will intentionally prevent you from upgrading with. This is because the script cannot guarantee a successful upgrade with these conditions in place.
 
 ## Basic checks
 
 The following conditions are assumed to be in place any time you run this script:
 
-* You have **CentOS** or **CloudLinux** 7.9 or greater installed.
-* You have cPanel version 110 installed.
 * You are logged in as **root**.
+* The system is running **CentOS** or **CloudLinux** 7.9.
+* You have cPanel version 110 installed.
+* cPanel does not require an update.
+* cPanel has a valid license.
+* **CloudLinux** has a valid license (if applicable).
+* The `elevate-cpanel` script must be running from: `/scripts` or `/usr/local/cpanel/scripts`
+* The `elevate-cpanel` script must be up to date.
 
 ## Conflicting Processes
 
-The following processes are known to conflict with this script and cannot be executed simulaneously.
+The following processes are known to conflict with this script and cannot be executed simultaneously.
 
 * `/usr/local/cpanel/scripts/upcp`
 * `/usr/local/cpanel/bin/backup`
@@ -41,21 +46,29 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
 * **cPanel is up to date**
   * You will need to be on a version mentioned in the "Latest cPanel & WHM Builds (All Architectures)" section at http://httpupdate.cpanel.net/
   * Mitigation: `/usr/local/cpanel/scripts/upcp`
-* **nameserver**
-  * cPanel provides support for a myriad of nameservers. (MyDNS, nsd, bind, powerdns). On RHEL 8 based distros, it is preferred that you always be on PowerDNS.
-  * Mitigation: `/scripts/setupnameserver powerdns`
 * **MySQL**
-  * We will upgrade you automatically to MariaDB 10.6 during elevation if you do not do this in advance.
+  * If the version of MySQL/MariaDB installed on the system is not supported on RHEL 8 based distributions, you **must** upgrade to a supported version. If cPanel manages the MySQL installation, we will offer to upgrade MySQL automatically to MariaDB 10.6 during elevation.
+  * Elevation will block if a MySQL upgrade is in progress.
+  * The system **must** not be setup to use a remote database server.
 * Some **EA4 packages** are not supported on AlmaLinux 8.
   * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8. You would need to remove these packages before upgrading. Doing so might impact your system users. Proceed with caution.
 * The system **must** be able to control the boot process by changing the GRUB2 configuration.
-  * The reason for this is that the framework which performs the upgrade of distro-provided software needs to be able to run a custom early boot environment (initrd) in order to safely upgrade the distro.
+  * The reason for this is that the Leapp framework, which performs the upgrade of distribution-provided software, needs to be able to run a custom early boot environment (initrd) in order to safely upgrade the distribution.
   * We check for this by seeing whether the kernel the system is currently running is the same version as that which the system believes is the default boot option.
-* Your machine has multiple network interface cards (NICs) using kernel-names (`ethX`).
+  * We also check that there is a valid GRUB2 config.
+* We block if your machine has multiple network interface cards (NICs) using kernel-names (`ethX`).
   * Since `ethX` style names are automatically assigned by the kernel, there is no guarantee that this name will remain the same upon upgrade to a new kernel version tier.
-  * The "default" approach in `network-scripts` config files of specificying NICs by `DEVICE` can cause issues due to the above.
+  * The "default" approach in `network-scripts` config files of specifying NICs by `DEVICE` can cause issues due to the above.
   * A more in-depth explanation of *why* this is a problem (and what to do about it) can be found at [freedesktop.org](https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/).
-  * One way to prevent these isssues is to assign a name you want in the configuration and re-initialize NICs ahead of time.
+  * One way to prevent these issues is to assign a custom name in the configuration and re-initialize NICs ahead of time.
+* Running the system in a container-like environment is not supported.
+* If running JetBackup, it **must** be version 5 or greater. Earlier versions are not supported.
+* On **CentOS** 7, the system **must not** have Python 3.6 installed; this will interfere with the upgrade. On **CloudLinux** this is not an issue.
+* Elevation will block if the `sshd` config file is absent or unreadable.
+* These issues with the YUM repositories can cause ELevate to block:
+  * Invalid syntax or use of `\$`. That character is interpolated on RHEL 7 based systems but not on systems that are RHEL 8 based.
+  * Any unsupported repositories that have packages installed
+  * If YUM is in an unstable state (running `yum makecache` fails).
 
 # Other Known Issues
 
@@ -63,7 +76,7 @@ The following is a list of other known issues that could prevent your server's s
 
 ## PostgreSQL
 
-If you are using the PostgreSQL software provided by your distro (which includes PostgreSQL as installed by cPanel), ELevate will upgrade the software packages. However, your PostgreSQL service is unlikely to start properly. The reason for this is that ELevate will **not** attempt to update the data directory being used by your PostgreSQL instance to store settings and databases; and PostgreSQL will detect this condition and refuse to start, to protect your data from corruption, until you have performed this update.
+If you are using the PostgreSQL software provided by your distribution (which includes PostgreSQL as installed by cPanel), ELevate will upgrade the software packages. However, your PostgreSQL service is unlikely to start properly. The reason for this is that ELevate will **not** attempt to update the data directory being used by your PostgreSQL instance to store settings and databases; and PostgreSQL will detect this condition and refuse to start, to protect your data from corruption, until you have performed this update.
 
 To ensure that you are aware of this requirement, if it detects that one or more cPanel accounts have associated PostgreSQL databases, ELevate will block you from beginning the upgrade process until you have created a file at `/var/cpanel/acknowledge_postgresql_for_elevate`.
 
@@ -78,8 +91,12 @@ Once ELevate has completed, you should then perform the update to the PostgreSQL
 
 ## Using OVH proactive intervention monitoring
 
-If you are using a dedicated server hosted at OVH, you should **disable the `proactive monitoring` before starting** the elevation process.
+If you are using a dedicated server hosted at OVH, you should **disable the `proactive monitoring` before starting** the elevation process.  To indicate you have done this, you must create the touch file `/var/cpanel/acknowledge_ovh_monitoring_for_elevate` or elevation will block when it detects that the system is hosted by OVH.
 The proactive monitoring incorrectly detects an issue on your server during one of the reboots.
 Your server would then boot to a rescue mode, interrupting the elevation upgrade.
 
 [Read more about OVH monitoring](https://support.us.ovhcloud.com/hc/en-us/articles/115001821044-Overview-of-OVHcloud-Monitoring-on-Dedicated-Servers)
+
+# Leapp preupgrade (dry run) check
+
+If no issues are found, Elevate will perform one more check before performing the upgrade: it will perform a "dry run" of the Leapp upgrade by executing `leapp preupgrade`.  This will point out any problems that Leapp would encounter during the actual upgrade.  If any errors are found, they will need to be addressed before performing the upgrade.  This test is only performed when the script is invoked with the --start option.
