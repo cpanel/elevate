@@ -1090,7 +1090,8 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'EA4' => 'post_leapp' );
+    $self->run_component_once( 'Imunify' => 'post_leapp' );
+    $self->run_component_once( 'EA4'     => 'post_leapp' );
 
     $self->run_once(
         upcp => sub {
@@ -1332,7 +1333,6 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'JetBackup'     => 'post_leapp' );
     $self->run_component_once( 'Kernel'        => 'post_leapp' );
     $self->run_component_once( 'KernelCare'    => 'post_leapp' );
-    $self->run_component_once( 'Imunify'       => 'post_leapp' );
     $self->run_component_once( 'NixStats'      => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
 
