@@ -1,3 +1,9 @@
+##### **2024-04-30** - version 36
+
+* Fixed case RE-78: Convert CCS blocker to component.
+* Fixed case RE-167: Updated the documentation about the blockers.
+* Fixed case RE-261: In the event of a blocker found by performing a leapp preupgrade, direct the user to the /var/log/leapp directory to find more information.
+
 ##### **2024-04-23** - version 35
 
 * Fixed case RE-122: Move logic for prepping cPanel for leapp to a component.
