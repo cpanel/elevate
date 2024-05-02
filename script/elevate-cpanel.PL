@@ -1338,6 +1338,7 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'MySQL'         => 'post_leapp' );
     $self->run_component_once( 'PerlXS'        => 'post_leapp' );
     $self->run_component_once( 'cPanelPlugins' => 'post_leapp' );
+    $self->run_component_once( 'DatabaseUpgrade' => 'post_leapp' );
     $self->run_component_once( 'PECL'          => 'post_leapp' );
     $self->run_component_once( 'WPToolkit'     => 'post_leapp' );
     $self->run_component_once( 'InfluxDB'      => 'post_leapp' );
