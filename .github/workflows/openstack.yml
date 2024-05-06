@@ -1,0 +1,18 @@
+on: [push]
+
+jobs: 
+    hello_webpros_job:
+        runs-on: self-hosted
+        name: Hello Webpros
+        steps: 
+            - name: Checkout
+              uses: actions/checkout@v4
+            - name: Hello WebPros action step
+              id: hello
+              uses: workflows/openstack@v1
+              with:
+                who-to-greet: 'WebPros Octonaut'
+            - name: Get the output line
+              run: echo "The time was ${{ steps.hello.outputs.time }}"
+
+
