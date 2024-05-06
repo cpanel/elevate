@@ -8,8 +8,8 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
             - name: Hello WebPros action step
+              uses: .github/workflows/openstack/
               id: hello
-              uses: ./workflows/openstack/
               with:
                 who-to-greet: 'WebPros Octonaut'
             - name: Get the output line
