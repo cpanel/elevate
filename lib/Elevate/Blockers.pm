@@ -28,6 +28,7 @@ use Elevate::Blockers::EA4              ();
 use Elevate::Blockers::Grub2            ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();
 use Elevate::Blockers::Python           ();
@@ -52,6 +53,7 @@ our @BLOCKERS = qw{
 
   IsContainer
   ElevateScript
+  MountPoints
   SSH
 
   DiskSpace
