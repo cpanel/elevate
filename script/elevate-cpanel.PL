@@ -245,6 +245,7 @@ use Elevate::Blockers::ElevateScript    ();
 use Elevate::Blockers::Grub2            ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();    # using a constant
 use Elevate::Blockers::Python           ();
