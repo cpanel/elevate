@@ -1,3 +1,7 @@
+##### **2024-05-06** - version 37
+
+* Fixed case RE-306: Add blocker if &#39;/usr&#39; is a separaate private mount point.
+
 ##### **2024-04-30** - version 36
 
 * Fixed case RE-78: Convert CCS blocker to component.
