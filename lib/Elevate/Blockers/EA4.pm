@@ -44,7 +44,8 @@ sub _blocker_ea4_profile ($self) {
 
     INFO("Checking EasyApache profile compatibility with $pretty_distro_name.");
 
-    Elevate::EA4::backup();
+    my $check_mode = $self->is_check_mode();
+    Elevate::EA4::backup($check_mode);
 
     my @incompatible_packages = $self->_get_incompatible_packages();
 
@@ -111,7 +112,7 @@ sub _php_version_is_in_use ( $self, $php ) {
     return $current_php_usage->{$php} ? 1 : 0;
 }
 
-my $php_versions_in_use;
+our $php_versions_in_use;
 
 sub _get_php_versions_in_use ($self) {
     return $php_versions_in_use if defined $php_versions_in_use && ref $php_versions_in_use eq 'HASH';

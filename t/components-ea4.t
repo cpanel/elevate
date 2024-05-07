@@ -96,6 +96,12 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
     $self->{mock_httpd}->redefine( is_ea4 => 0 );
 
     my $ea4 = cpev->new->component('EA4');
+
+    my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+    $mock_elevate_ea4->redefine(
+        _backup_ea_addons => 0,
+    );
+
     is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - not using ea4";
     message_seen( 'WARN' => q[Skipping EA4 backup. EA4 does not appear to be enabled on this system] );
 
@@ -150,7 +156,7 @@ sub test_get_ea4_profile : Test(10) ($self) {
 
     my $ea4 = cpev->new->component('EA4');
 
-    is( $ea4->_get_ea4_profile(), PROFILE_FILE, "_get_ea4_profile" );
+    is( Elevate::EA4::_get_ea4_profile(0), PROFILE_FILE, "_get_ea4_profile" );
     _message_run_ea_current_to_profile( 'cent', 1 );
 
     $output = <<'EOS';
@@ -185,7 +191,7 @@ EOS
     my $f      = q[/etc/cpanel/ea4/profiles/custom/current_state_at_2022-04-05_20:41:25_modified_for_AlmaLinux_8.json];
     my $mock_f = Test::MockFile->file( $f, '{}' );
 
-    is( $ea4->_get_ea4_profile(), $f, "_get_ea4_profile with noise..." );
+    is( Elevate::EA4::_get_ea4_profile(0), $f, "_get_ea4_profile with noise..." );
 
     _message_run_ea_current_to_profile( 'cent', $f );
 
@@ -200,14 +206,14 @@ sub test_get_ea4_profile_check_mode : Test(14) ($self) {
         my $output = qq[void\n];
 
         my $cpev = cpev->new( _is_check_mode => 1 );
-        ok -d $cpev->tmp_dir, "tmp_dir works";
+        ok -d Elevate::EA4::tmp_dir(), "tmp_dir works";
 
         my $mock_b = Test::MockModule->new('Elevate::Blockers')    #
           ->redefine( is_check_mode => 1 );
 
         ok( Elevate::Blockers->is_check_mode(), 'Elevate::Blockers->is_check_mode()' );
 
-        my $expected_profile = $cpev->tmp_dir() . '/ea_profile.json';
+        my $expected_profile = Elevate::EA4::tmp_dir() . '/ea_profile.json';
         {
             open( my $fh, '>', $expected_profile ) or die;
             print {$fh} "...\n";
@@ -221,7 +227,7 @@ sub test_get_ea4_profile_check_mode : Test(14) ($self) {
         );
 
         my $ea4 = $cpev->component('EA4');
-        is( $ea4->_get_ea4_profile(), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
+        is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
 
         my $expected_target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
         message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
@@ -235,10 +241,10 @@ sub test_tmp_dir : Test(3) ($self) {
 
     my $cpev = cpev->new();
 
-    my $tmp = $cpev->tmp_dir;
+    my $tmp = Elevate::EA4::tmp_dir();
     ok -d $tmp;
-    is ref($tmp),      "File::Temp::Dir", "tmp_dir is a File::Temp::Dir object";
-    is $cpev->tmp_dir, "$tmp",            "returns the same tmp_dir";
+    is ref($tmp),               "File::Temp::Dir", "tmp_dir is a File::Temp::Dir object";
+    is Elevate::EA4::tmp_dir(), "$tmp",            "returns the same tmp_dir";
 
     undef $cpev;
 
@@ -285,12 +291,17 @@ sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
 
     my $profile = { my_profile => ['...'] };
 
+    my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+    $mock_elevate_ea4->redefine(
+        _backup_ea_addons => 0,
+    );
+
     $self->_update_profile_file($profile);
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
 
-        is( $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4" );
+        is( $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4" );
         _message_run_ea_current_to_profile( $os, 1 );
     }
 
@@ -323,7 +334,12 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(28) ($self) {
         };
         $self->_update_profile_file($profile);
 
-        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+        $mock_elevate_ea4->redefine(
+            _backup_ea_addons => 0,
+        );
+
+        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
         is Elevate::StageFile::read_stage_file(), {
@@ -375,7 +391,12 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
         };
         $self->_update_profile_file($profile);
 
-        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+        $mock_elevate_ea4->redefine(
+            _backup_ea_addons => 0,
+        );
+
+        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
         is Elevate::StageFile::read_stage_file(), {
@@ -396,7 +417,7 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
         };
         $self->_update_profile_file($profile);
 
-        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
         my $stage = Elevate::StageFile::read_stage_file();
@@ -476,6 +497,37 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
     message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
     message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
     message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
+
+    return;
+}
+
+sub test__restore_imunify_phps : Test(4) ($self) {
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        read_stage_file => [],
+    );
+
+    my $ssystem_cmd;
+    my $mock_elevate = Test::MockModule->new('cpev');
+    $mock_elevate->redefine(
+        ssystem_and_die => sub ( $, @args ) {
+            $ssystem_cmd = join( ' ', @args );
+            return;
+        },
+    );
+
+    my $ea4 = cpev->new->component('EA4');
+
+    is( $ea4->_restore_imunify_phps(), undef, 'returns undef' );
+    is( $ssystem_cmd,                  undef, 'No commands are called when there is nothing to restore' );
+
+    $mock_stagefile->redefine(
+        read_stage_file => [ 'ea-foo', 'ea-bar' ],
+    );
+
+    is( $ea4->_restore_imunify_phps(), undef,                                   'returns undef' );
+    is( $ssystem_cmd,                  '/usr/bin/dnf -y install ea-foo ea-bar', 'The correct command is called when there are packages to install' );
 
     return;
 }

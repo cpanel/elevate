@@ -65,6 +65,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/RHEL.pm'}                       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Database.pm'}                      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/EA4.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Fetch.pm'}                         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Leapp.pm'}                         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Logger.pm'}                        = 'script/elevate-cpanel.PL.static';
@@ -1008,7 +1009,12 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::EA4       ();
     use Elevate::StageFile ();
+
+    use Cpanel::JSON            ();
+    use Cpanel::Pkgr            ();
+    use Cpanel::SafeRun::Simple ();
 
     # use Elevate::Blockers::Base();
     our @ISA;
@@ -1032,18 +1038,10 @@ EOS
 
         INFO("Checking EasyApache profile compatibility with $pretty_distro_name.");
 
-        $self->cpev->component('EA4')->backup;                        # _backup_ea4_profile();
-        my $stash        = Elevate::StageFile::read_stage_file();     # FIXME - move it to a function
-        my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
-        return unless scalar keys $dropped_pkgs->%*;
+        my $check_mode = $self->is_check_mode();
+        Elevate::EA4::backup($check_mode);
 
-        my @incompatible_packages;
-        foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
-            my $type = $dropped_pkgs->{$pkg} // '';
-            next if $type eq 'exp';                          # use of experimental packages is a non blocker
-            next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
-            push @incompatible_packages, $pkg;
-        }
+        my @incompatible_packages = $self->_get_incompatible_packages();
 
         return unless @incompatible_packages;
 
@@ -1054,6 +1052,83 @@ EOS
     Please remove these packages before continuing the update.
     $list
     EOS
+    }
+
+    sub _get_incompatible_packages ($self) {
+
+        my $stash        = Elevate::StageFile::read_stage_file();
+        my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
+        return unless scalar keys $dropped_pkgs->%*;
+
+        my @incompatible;
+        my @imunify_pkgs;
+        foreach my $pkg ( sort keys %$dropped_pkgs ) {
+            my $type = $dropped_pkgs->{$pkg} // '';
+            next if $type eq 'exp';                          # use of experimental packages is a non blocker
+            next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
+
+            if ( $pkg =~ m/^(ea-php[0-9]+)/ ) {
+                my $php_pkg = $1;
+                next unless $self->_php_version_is_in_use($php_pkg);
+
+                if ( $self->_php_is_provided_by_imunify_360($php_pkg) ) {
+                    push @imunify_pkgs, $pkg;
+                    next;
+                }
+            }
+
+            push @incompatible, $pkg;
+        }
+
+        if (@imunify_pkgs) {
+            Elevate::StageFile::update_stage_file( { ea4_imunify_packages => \@imunify_pkgs } );
+        }
+
+        return @incompatible;
+    }
+
+    sub _php_is_provided_by_imunify_360 ( $self, $php ) {
+        return 0 unless -x Elevate::Constants::IMUNIFY_AGENT;
+
+        my $version = Cpanel::Pkgr::get_package_version($php);
+
+        return $version =~ m/cloudlinux/ ? 1 : 0;
+    }
+
+    sub _php_version_is_in_use ( $self, $php ) {
+        my $current_php_usage = $self->_get_php_versions_in_use();
+
+        return 1 if $current_php_usage->{api_fail};
+
+        return $current_php_usage->{$php} ? 1 : 0;
+    }
+
+    our $php_versions_in_use;
+
+    sub _get_php_versions_in_use ($self) {
+        return $php_versions_in_use if defined $php_versions_in_use && ref $php_versions_in_use eq 'HASH';
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        unless ( $result->{metadata}{result} ) {
+
+            WARN( <<~"EOS" );
+        Unable to determine if PHP versions that will be dropped are in use by
+        a domain.  Assuming that they are in use and blocking to be safe.
+
+        EOS
+
+            $php_versions_in_use->{api_fail} = 1;
+            return $php_versions_in_use;
+        }
+
+        foreach my $domain_info ( @{ $result->{data}{versions} } ) {
+            my $php_version = $domain_info->{version};
+            $php_versions_in_use->{$php_version} = 1;
+        }
+
+        return $php_versions_in_use;
     }
 
     1;
@@ -2386,7 +2461,6 @@ EOS
         my @_DELEGATE_TO_CPEV = qw{
           getopt
           upgrade_to_pretty_name
-          tmp_dir
           should_run_leapp
           ssystem
           ssystem_and_die
@@ -3062,39 +3136,19 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants ();
-    use Elevate::OS        ();
-    use Elevate::RPM       ();
+    use Elevate::EA4       ();
     use Elevate::StageFile ();
-    use Elevate::YUM       ();
-
-    use Cwd ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
-
-    use Cpanel::JSON            ();
-    use Cpanel::Pkgr            ();
-    use Cpanel::SafeRun::Simple ();
 
     # use Elevate::Components::Base();
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    use Elevate::Blockers ();
-
-    sub backup ($self) {    # run by the check (should be a dry run mode)
-
-        $self->_backup_ea4_profile;
-        $self->_backup_ea_addons;
-
-        return;
-    }
-
     sub pre_leapp ($self) {    # run to perform the backup
 
         $self->run_once('_backup_ea4_profile');
-        $self->run_once('_backup_ea_addons');
         $self->run_once('_backup_config_files');
         $self->run_once('_cleanup_rpm_db');
 
@@ -3105,9 +3159,15 @@ EOS
 
         $self->run_once('_restore_ea4_profile');
         $self->run_once('_restore_ea_addons');
+        $self->run_once('_restore_imunify_phps');
 
         $self->run_once('_restore_config_files');
 
+        return;
+    }
+
+    sub _backup_ea4_profile ($self) {
+        Elevate::EA4::backup();
         return;
     }
 
@@ -3128,90 +3188,6 @@ EOS
         $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
 
         return;
-    }
-
-    sub _backup_ea_addons ($self) {
-
-        if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
-            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 1 } } );
-        }
-        else {
-            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 0 } } );
-        }
-
-        return;
-    }
-
-    sub _backup_ea4_profile ($self) {    ## _backup_ea4_profile
-
-        my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
-
-        Elevate::StageFile::remove_from_stage_file('ea4');
-        Elevate::StageFile::update_stage_file( { ea4 => { enable => $use_ea4 } } );
-
-        unless ($use_ea4) {
-
-            WARN('Skipping EA4 backup. EA4 does not appear to be enabled on this system');
-
-            return;
-        }
-
-        my $json_path = $self->_get_ea4_profile();
-
-        my $data = { profile => $json_path };
-
-        my $profile = eval { Cpanel::JSON::LoadFile($json_path) } // {};
-        if ( ref $profile->{os_upgrade} && ref $profile->{os_upgrade}->{dropped_pkgs} ) {
-            $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
-        }
-
-        Elevate::StageFile::update_stage_file( { ea4 => $data } );    # FIXME
-
-        return 1;
-    }
-
-    sub _get_ea4_profile ($self) {
-
-        my $ea_alias = Elevate::OS::ea_alias();
-
-        my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
-
-        my $profile_file;
-
-        if ( Elevate::Blockers->is_check_mode() ) {
-
-            $profile_file = $self->tmp_dir() . '/ea_profile.json';
-            push @cmd, "--output=$profile_file";
-        }
-
-        my $cmd_str = join( ' ', @cmd );
-
-        INFO("Running: $cmd_str");
-        my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
-        die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
-
-        if ( !$profile_file ) {
-
-            my @lines = split( "\n", $output );
-
-            if ( scalar @lines == 1 ) {
-                $profile_file = $lines[0];
-            }
-            else {
-                foreach my $l ( reverse @lines ) {
-                    next unless $l =~ m{^/.*\.json};
-                    if ( -f $l ) {
-                        $profile_file = $l;
-                        last;
-                    }
-                }
-            }
-        }
-
-        die "Unable to backup EA4 profile running: $cmd_str" unless length $profile_file && -f $profile_file && -s _;
-        INFO("Backed up EA4 profile to $profile_file");
-
-        return $profile_file;
     }
 
     sub _restore_ea4_profile ($self) {
@@ -3285,6 +3261,15 @@ EOS
             $self->rpm->restore_config_files(@config_files_to_restore);
         }
 
+        return;
+    }
+
+    sub _restore_imunify_phps ($self) {
+
+        my $php_pkgs = Elevate::StageFile::read_stage_file('ea4_imunify_packages');
+        return unless scalar $php_pkgs->@*;
+
+        $self->dnf->install(@$php_pkgs);
         return;
     }
 
@@ -5551,6 +5536,122 @@ EOS
 
 }    # --- END lib/Elevate/Database.pm
 
+{    # --- BEGIN lib/Elevate/EA4.pm
+
+    package Elevate::EA4;
+
+    use cPstrict;
+
+    use File::Temp ();
+
+    use Elevate::OS        ();
+    use Elevate::StageFile ();
+
+    use Cpanel::Config::Httpd   ();
+    use Cpanel::JSON            ();
+    use Cpanel::Pkgr            ();
+    use Cpanel::SafeRun::Simple ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub backup ( $check_mode = 0 ) {
+        Elevate::EA4::_backup_ea4_profile($check_mode);
+        Elevate::EA4::_backup_ea_addons();
+        return;
+    }
+
+    sub _backup_ea4_profile ($check_mode) {
+
+        my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
+
+        Elevate::StageFile::remove_from_stage_file('ea4');
+        Elevate::StageFile::update_stage_file( { ea4 => { enable => $use_ea4 } } );
+
+        unless ($use_ea4) {
+            WARN('Skipping EA4 backup. EA4 does not appear to be enabled on this system');
+            return;
+        }
+
+        my $json_path = Elevate::EA4::_get_ea4_profile($check_mode);
+
+        my $data = { profile => $json_path };
+
+        my $profile = eval { Cpanel::JSON::LoadFile($json_path) } // {};
+        if ( ref $profile->{os_upgrade} && ref $profile->{os_upgrade}->{dropped_pkgs} ) {
+            $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
+        }
+
+        Elevate::StageFile::update_stage_file( { ea4 => $data } );
+
+        return;
+    }
+
+    sub _get_ea4_profile ($check_mode) {
+
+        my $ea_alias = Elevate::OS::ea_alias();
+
+        my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
+
+        my $profile_file;
+        if ($check_mode) {
+
+            $profile_file = Elevate::EA4::tmp_dir() . '/ea_profile.json';
+            push @cmd, "--output=$profile_file";
+        }
+
+        my $cmd_str = join( ' ', @cmd );
+
+        INFO("Running: $cmd_str");
+        my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
+        die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
+
+        if ( !$profile_file ) {
+
+            my @lines = split( "\n", $output );
+
+            if ( scalar @lines == 1 ) {
+                $profile_file = $lines[0];
+            }
+            else {
+                foreach my $l ( reverse @lines ) {
+                    next unless $l =~ m{^/.*\.json};
+                    if ( -f $l ) {
+                        $profile_file = $l;
+                        last;
+                    }
+                }
+            }
+        }
+
+        die "Unable to backup EA4 profile running: $cmd_str" unless length $profile_file && -f $profile_file && -s _;
+        INFO("Backed up EA4 profile to $profile_file");
+
+        return $profile_file;
+    }
+
+    my $tmp_dir;
+
+    sub tmp_dir () {
+        return $tmp_dir //= File::Temp->newdir();    # auto cleanup on destroy
+    }
+
+    sub _backup_ea_addons () {
+
+        if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
+            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 1 } } );
+        }
+        else {
+            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 0 } } );
+        }
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/EA4.pm
+
 {    # --- BEGIN lib/Elevate/Fetch.pm
 
     package Elevate::Fetch;
@@ -7307,7 +7408,6 @@ use File::Find            ();
 use File::Path            ();
 use File::Slurper         ();
 use File::Spec            ();
-use File::Temp            ();
 use Hash::Merge           ();
 use IO::Prompt            ();
 use Term::ANSIColor       ();
@@ -7389,6 +7489,7 @@ use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
 use Elevate::Database         ();
+use Elevate::EA4              ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();
@@ -8190,7 +8291,8 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'EA4' => 'post_leapp' );
+    $self->run_component_once( 'Imunify' => 'post_leapp' );
+    $self->run_component_once( 'EA4'     => 'post_leapp' );
 
     $self->run_once(
         upcp => sub {
@@ -8432,7 +8534,6 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'JetBackup'     => 'post_leapp' );
     $self->run_component_once( 'Kernel'        => 'post_leapp' );
     $self->run_component_once( 'KernelCare'    => 'post_leapp' );
-    $self->run_component_once( 'Imunify'       => 'post_leapp' );
     $self->run_component_once( 'NixStats'      => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
 
@@ -8459,10 +8560,6 @@ sub clear_cpanel_caches ($self) {
     unlink $_ foreach @files;
 
     return;
-}
-
-sub tmp_dir ($self) {
-    return $self->{tmp} //= File::Temp->newdir();    # auto cleanup on destroy
 }
 
 my $yum_list_cache;

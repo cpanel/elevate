@@ -14,7 +14,6 @@ use cPstrict;
 
 use File::Temp ();
 
-use Elevate::Blockers  ();
 use Elevate::OS        ();
 use Elevate::StageFile ();
 
@@ -25,13 +24,13 @@ use Cpanel::SafeRun::Simple ();
 
 use Log::Log4perl qw(:easy);
 
-sub backup () {
-    Elevate::EA4::_backup_ea4_profile();
+sub backup ( $check_mode = 0 ) {
+    Elevate::EA4::_backup_ea4_profile($check_mode);
     Elevate::EA4::_backup_ea_addons();
     return;
 }
 
-sub _backup_ea4_profile () {
+sub _backup_ea4_profile ($check_mode) {
 
     my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
 
@@ -43,7 +42,7 @@ sub _backup_ea4_profile () {
         return;
     }
 
-    my $json_path = Elevate::EA4::_get_ea4_profile();
+    my $json_path = Elevate::EA4::_get_ea4_profile($check_mode);
 
     my $data = { profile => $json_path };
 
@@ -58,14 +57,14 @@ sub _backup_ea4_profile () {
     return;
 }
 
-sub _get_ea4_profile () {
+sub _get_ea4_profile ($check_mode) {
 
     my $ea_alias = Elevate::OS::ea_alias();
 
     my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
 
     my $profile_file;
-    if ( Elevate::Blockers->is_check_mode() ) {
+    if ($check_mode) {
 
         # use a temporary file in check mode
         $profile_file = Elevate::EA4::tmp_dir() . '/ea_profile.json';
