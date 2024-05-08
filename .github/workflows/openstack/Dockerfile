@@ -2,13 +2,7 @@ FROM ubuntu:jammy
 
 RUN <<EOF
 apt-get update
-apt install -y \
-    gnupg \
-    software-properties-common \
-    wget \
-    openssh \
-    openssh-clients \
-    which
+apt install -y gnupg software-properties-common wget openssh openssh-clients which
 wget -O- https://apt.releases.hashicorp.com/gpg | \
     gpg --dearmor | \
     sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
