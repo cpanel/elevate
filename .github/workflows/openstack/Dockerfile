@@ -1,8 +1,8 @@
 FROM ubuntu:jammy
 
 RUN <<EOF
-apt-get update \
-    && apt install -y \
+apt-get update
+apt install -y \
     gnupg \
     software-properties-common \
     wget \
