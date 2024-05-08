@@ -11,6 +11,6 @@ jobs:
               uses: ./.github/workflows/openstack/
               id: verifyinstall
             - name: Verify Terraform Install
-              run: echo "The working version of Hashicorp Terraform: ${{ steps.verifyinstall.outputs.terraform }}"
+              run: echo "The working version of Hashicorp Terraform is ${{ steps.verifyinstall.outputs.terraform }}"
 
 
