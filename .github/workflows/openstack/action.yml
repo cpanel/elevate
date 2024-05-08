@@ -1,17 +1,10 @@
 # action.yml
-name: 'Hello WebPros'
-description: 'Greet someone and record the time'
-inputs:
-  who-to-greet:  # id of input
-    description: 'Who to greet'
-    required: true
-    default: 'WebPros'
+name: 'Build & Prep'
+description: 'Build Docker Instance with Terraform'
 outputs:
-  time: # id of output
-    description: 'The time we greeted you'
+  terraform: # id of output
+    description: 'Version of Terraform verifying it is installed'
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args:
-    - ${{ inputs.who-to-greet }}
 
