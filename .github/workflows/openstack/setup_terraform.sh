@@ -10,6 +10,6 @@ gpg --no-default-keyring \
     --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg \
     --fingerprint
 
-apt update
+apt-get update
 
 apt-get install terraform
