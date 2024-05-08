@@ -22,6 +22,7 @@ sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt update
 sudo apt-get install terraform
 terraform -help
+EOF
 
 COPY entrypoint.sh /entrypoint.sh
 
