@@ -12,7 +12,7 @@ gpg --no-default-keyring \
 
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
     https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-    sudo tee /etc/apt/sources.list.d/hashicorp.list
+    tee /etc/apt/sources.list.d/hashicorp.list
 
 apt-get update
 
