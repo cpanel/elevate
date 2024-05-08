@@ -16,4 +16,4 @@ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
 
 apt-get update
 
-apt-get install terraform
+apt-get install -y terraform
