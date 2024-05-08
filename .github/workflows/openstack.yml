@@ -1,18 +1,16 @@
 on: [push]
 
 jobs: 
-    hello_webpros_job:
+    build_terraform:
         runs-on: self-hosted
-        name: Hello Webpros
+        name: Build Terraform
         steps: 
             - name: Checkout
               uses: actions/checkout@v4
-            - name: Hello WebPros action step
+            - name: Build Terraform
               uses: ./.github/workflows/openstack/
-              id: hello
-              with:
-                who-to-greet: 'WebPros Octonaut'
-            - name: Get the output line
-              run: echo "The time was ${{ steps.hello.outputs.time }}"
+              id: verifyinstall
+            - name: Verify Terraform Install
+              run: echo "The time was ${{ steps.verifyinstall.outputs.terraform }}"
 
 
