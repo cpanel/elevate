@@ -1,6 +1,6 @@
 #!/bin/sh
 
-apt-get install -y gnupg software-properties-common || true
+apt-get install -y gnupg software-properties-common wget || true
 
 wget -O- https://apt.releases.hashicorp.com/gpg | \
     gpg --dearmor | \
