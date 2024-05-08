@@ -1,6 +1,6 @@
 #!/bin/sh
 
-sudo apt-get install -y gnupg software-properties-common || true
+apt-get install -y gnupg software-properties-common || true
 
 wget -O- https://apt.releases.hashicorp.com/gpg | \
     gpg --dearmor | \
@@ -10,6 +10,6 @@ gpg --no-default-keyring \
     --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg \
     --fingerprint
 
-sudo apt update
+apt update
 
-sudo apt-get install terraform
+apt-get install terraform
