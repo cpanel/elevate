@@ -24,9 +24,8 @@ jobs:
                 export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
             - name: Upload Docker Image
               uses: actions/upload-artifact@v4.3.3
-              name: github-terraform-docker
               with:
-                name: terraform-docker
+                name: github-terraform-docker
                 path: artifacts/
                 retention-days: 1
 
