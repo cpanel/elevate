@@ -23,7 +23,7 @@ jobs:
                 export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
                 export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
             - name: Upload Docker Image
-              uses: actions/upload-artifact@v4.3.3
+              uses: actions/upload-artifact@v4
               with:
                 name: github-terraform-docker
                 path: artifacts/
@@ -35,7 +35,7 @@ jobs:
         name: Run Terraform
         steps:
             - name: Checkout
-              uses: actions/checkout@v4.1.7
+              uses: actions/checkout@v4
             - name: Fire Up Terraform Docker Image
               uses: actions/download-artifact@v4
               with:
