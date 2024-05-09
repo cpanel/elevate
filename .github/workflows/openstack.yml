@@ -14,14 +14,14 @@ jobs:
               run: echo "The working version of Hashicorp Terraform is ${{ steps.verifyinstall.outputs.terraform }}"
             - name: Prep Env for Terraform
               run: |
-                export TF_VAR_user=${{ secrets.OS_USERNAME }}
-                export TF_VAR_application_credential_id=${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
-                export TF_VAR_application_credential_secret=${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
-                export TF_VAR_ssh_access_key=${{ secrets.OS_SSH_KEY }}
-                export TF_VAR_os_auth_region=${{ secrets.OS_AUTH_REGION }}
-                export TF_VAR_os_auth_url=${{ secrets.OS_AUTH_URL }}
-                export TF_VAR_os_project_domain_name=${{ secrets.OS_PROJECT_DOMAIN_NAME }}
-                export TF_VAR_os_password=${{ secrets.OS_PASSWORD }}
+                export TF_VAR_user="${{ secrets.OS_USERNAME }}"
+                export TF_VAR_application_credential_id="${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}"
+                export TF_VAR_application_credential_secret="${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}"
+                export TF_VAR_ssh_access_key="${{ secrets.OS_SSH_KEY }}"
+                export TF_VAR_os_auth_region="${{ secrets.OS_AUTH_REGION }}"
+                export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
+                export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
+                export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
     run_terraform:
         runs-on: self-hosted
         needs: build_terraform
