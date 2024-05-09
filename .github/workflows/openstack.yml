@@ -23,16 +23,18 @@ jobs:
                 export TF_VAR_os_project_domain_name=${{ secrets.OS_PROJECT_DOMAIN_NAME }}
                 export TF_VAR_os_password=${{ secrets.OS_PASSWORD }}
     run_terraform:
+        runs-on: self-hosted
         needs: build_terraform
         name: Run Terraform
         steps:
             - name: Terraform Init
-            run: terraform init
+              run: terraform init
             - name: Terraform Plan
-            run: terraform plan
+              run: terraform plan
             - name: Terraform Apply
-            run: terraform apply -auto-approve
+              run: terraform apply -auto-approve
     destroy_terraform:
+        runs-on: self-hosted
         needs: run_terraform
         name: Terraform Destroy
         steps:

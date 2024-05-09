@@ -63,6 +63,7 @@ resource "openstack_compute_instance_v2" "elevatevm" {
       echo "START_REMOTE_EXEC"
       echo -e "\n\tStatus update from within TestVM - woop woop.\n\n"
       echo "waiting on cloud-init..."
+      echo "${var.git_clone_key}" >> /root/.ssh/authorized_keys
       cloud-init status --wait > /dev/null || true
     EOF
     ]
