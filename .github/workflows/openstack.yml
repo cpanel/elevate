@@ -1,7 +1,7 @@
 on: [push]
 
 jobs: 
-    build_terraform:
+    build_terraform_docker:
         runs-on: self-hosted
         name: Build Terraform
         steps: 
@@ -22,21 +22,39 @@ jobs:
                 export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
                 export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
                 export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
+            - name: Upload Docker Image
+              uses: actions/upload-artifact@v4.3.3
+              name: github-terraform-docker
+              with:
+                name: terraform-docker
+                path: artifacts/
+                retention-days: 1
+
     run_terraform:
         runs-on: self-hosted
-        needs: build_terraform
+        needs: build_terraform_docker
         name: Run Terraform
         steps:
+            - name: Checkout
+              uses: actions/checkout@v4.1.7
+            - name: Fire Up Terraform Docker Image
+              uses: actions/download-artifact@v4
+              with:
+                name: github-terraform-docker
+                path: artifacts/
             - name: Terraform Init
               run: terraform init
             - name: Terraform Plan
               run: terraform plan
             - name: Terraform Apply
               run: terraform apply -auto-approve
+
     destroy_terraform:
         runs-on: self-hosted
         needs: run_terraform
         name: Terraform Destroy
         steps:
+            - name: Checkout
+              uses: actions/checkout@v4
             - name: Run Terraform Destroy
               run: terraform destroy -auto-approve 
