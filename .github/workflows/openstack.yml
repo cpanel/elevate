@@ -12,5 +12,29 @@ jobs:
               id: verifyinstall
             - name: Verify Terraform Install
               run: echo "The working version of Hashicorp Terraform is ${{ steps.verifyinstall.outputs.terraform }}"
-
-
+            - name: Prep Env for Terraform
+              run: |
+                export TF_VAR_user=${{ secrets.OS_USERNAME }}
+                export TF_VAR_application_credential_id=${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+                export TF_VAR_application_credential_secret=${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+                export TF_VAR_ssh_access_key=${{ secrets.OS_SSH_KEY }}
+                export TF_VAR_os_auth_region=${{ secrets.OS_AUTH_REGION }}
+                export TF_VAR_os_auth_url=${{ secrets.OS_AUTH_URL }}
+                export TF_VAR_os_project_domain_name=${{ secrets.OS_PROJECT_DOMAIN_NAME }}
+                export TF_VAR_os_password=${{ secrets.OS_PASSWORD }}
+    run_terraform:
+        needs: build_terraform
+        name: Run Terraform
+        steps:
+            - name: Terraform Init
+            run: terraform init
+            - name: Terraform Plan
+            run: terraform plan
+            - name: Terraform Apply
+            run: terraform apply -auto-approve
+    destroy_terraform:
+        needs: run_terraform
+        name: Terraform Destroy
+        steps:
+            - name: Run Terraform Destroy
+              run: terraform destroy -auto-approve 
