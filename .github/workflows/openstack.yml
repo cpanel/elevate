@@ -51,8 +51,11 @@ jobs:
                   export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
                   export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
                   export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
-            - name: Stat Terraform
-              run: stat terraform
+            - name: TF_VAR check
+              run: |
+                env | grep TF_VAR
+            - name: Which Terraform
+              run: which terraform
             - name: Terraform Init
               run: terraform init
             - name: Terraform Plan
