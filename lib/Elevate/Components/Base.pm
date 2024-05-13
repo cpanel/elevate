@@ -30,7 +30,6 @@ BEGIN {
     my @_DELEGATE_TO_CPEV = qw{
       getopt
       upgrade_to_pretty_name
-      tmp_dir
       should_run_leapp
       ssystem
       ssystem_and_die
