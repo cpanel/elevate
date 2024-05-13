@@ -13,6 +13,7 @@ jobs:
               uses: docker/build-push-action@v5
               with:
                 context: ./.github/workflows/openstack/
+                file: ./.github/workflows/openstack/Dockerfile
                 tags: github-terraform-docker:latest
                 outputs: type=docker,dest=/tmp/github-terraform-docker.tar
             - name: Upload Docker Image
@@ -28,10 +29,13 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+            - name: Setup Docker Buildx
+              uses: docker/setup-buildx-action@v3
             - name: Download Docker Image
               uses: actions/download-artifact@v4
               with:
                 name: github-terraform-docker
+                tag: latest
                 path: /tmp
             - name: Load Image
               run: |
