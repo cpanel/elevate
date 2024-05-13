@@ -45,7 +45,7 @@ jobs:
                 path: /tmp
             - name: Load Image
               run: |
-                docker load --input /tmp/github-terraform-docker
+                docker load --input /tmp/github-terraform-docker.tar
                 docker image ls -a
             - name: Terraform Init
               run: terraform init
