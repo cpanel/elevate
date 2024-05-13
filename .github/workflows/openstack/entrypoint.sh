@@ -1,5 +1,5 @@
 #!/bin/sh -l
 
+set -x
 terraform -v | head -n1
-terraform=$(terraform -v | head -n1);
-echo "terraform=$terraform" >> $GITHUB_OUTPUT;
+exec /bin/bash

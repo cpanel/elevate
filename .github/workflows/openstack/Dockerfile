@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-RUN apt-get update
+RUN apt update
 
 COPY setup_terraform.sh /setup_terraform.sh
 COPY entrypoint.sh /entrypoint.sh
