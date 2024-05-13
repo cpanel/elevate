@@ -39,13 +39,11 @@ jobs:
 #              run: |
 #                docker load --input /tmp/github-terraform-docker.tar
 #                docker image ls -a
-            - name: Load Local Docker Image
+            - name: Run Terraform
               uses: addnab/docker-run-action@v3
               with:
                 image: github-terraform-docker:latest
-                run: terraform --version
-            - name: Prep Env for Terraform
-              run: |
+                run: |
                   export TF_VAR_user="${{ secrets.OS_USERNAME }}"
                   export TF_VAR_application_credential_id="${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}"
                   export TF_VAR_application_credential_secret="${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}"
@@ -54,15 +52,10 @@ jobs:
                   export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
                   export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
                   export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
-            - name: TF_VAR check
-              run: |
-                echo ${TF_VAR_user}
-            - name: Terraform Init
-              run: terraform init
-            - name: Terraform Plan
-              run: terraform plan
-            - name: Terraform Apply
-              run: terraform apply -auto-approve
+                  terraform init
+                  terraform plan
+                  terraform apply -auto-approve
+                  terraform destroy -auto-approve
 
     destroy_terraform:
         runs-on: self-hosted
