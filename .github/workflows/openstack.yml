@@ -47,6 +47,8 @@ jobs:
               run: |
                 docker load --input /tmp/github-terraform-docker.tar
                 docker image ls -a
+            - name: Stat Terraform
+              run: stat /usr/bin/terraform
             - name: Terraform Init
               run: terraform init
             - name: Terraform Plan
