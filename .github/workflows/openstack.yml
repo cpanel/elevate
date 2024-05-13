@@ -35,10 +35,10 @@ jobs:
                 name: github-terraform-docker
                 tag: latest
                 path: /tmp
-#            - name: Load Image
-#              run: |
-#                docker load --input /tmp/github-terraform-docker.tar
-#                docker image ls -a
+            - name: Load Image
+              run: |
+                docker load --input /tmp/github-terraform-docker.tar
+                docker image ls -a
             - name: Run Terraform
               uses: addnab/docker-run-action@v3
               with:
