@@ -1,4 +1,4 @@
-FROM ubuntu:jammy
+FROM ubuntu:20.04
 
 RUN apt-get update
 

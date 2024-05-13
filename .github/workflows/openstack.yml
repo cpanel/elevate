@@ -26,8 +26,7 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                 name: github-terraform-docker
-                path: artifacts/
-                retention-days: 1
+                path: /tmp/github-terraform-docker.tar
 
     run_terraform:
         runs-on: self-hosted
@@ -36,11 +35,15 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
-            - name: Fire Up Terraform Docker Image
+            - name: Download Docker Image
               uses: actions/download-artifact@v4
               with:
                 name: github-terraform-docker
-                path: artifacts/
+                path: /tmp
+            - name: Load Image
+              run: |
+                docker load --input /tmp/github-terraform-docker
+                docker image ls -a
             - name: Terraform Init
               run: terraform init
             - name: Terraform Plan
