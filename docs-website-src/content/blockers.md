@@ -80,7 +80,7 @@ The following is a list of other known issues that could prevent your server's s
 
 ## Filesystem
 
-Since elevate needs to reboot your system multiple times as part of the upgrade process, we ensure that the command 'mount -a' succeeds successfully before allowing the elevation to proceed.  The reason for this is that we need to be able to trust that the filesystem remains the same between each reboot.
+Since Elevate needs to reboot your system multiple times as part of the upgrade process, we ensure that the command `mount -a` succeeds before allowing the elevation to proceed.  The reason for this is that we need to be able to trust that the filesystem remains the same between each reboot.
 
 ## PostgreSQL
 
