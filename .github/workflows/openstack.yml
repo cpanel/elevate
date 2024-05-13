@@ -16,11 +16,11 @@ jobs:
                 file: ./.github/workflows/openstack/Dockerfile
                 tags: github-terraform-docker:latest
                 outputs: type=docker,dest=/tmp/github-terraform-docker.tar
-#            - name: Upload Docker Image
-#              uses: actions/upload-artifact@v4
-#              with:
-#                name: github-terraform-docker
-#                path: /tmp/github-terraform-docker.tar
+            - name: Upload Docker Image
+              uses: actions/upload-artifact@v4
+              with:
+                name: github-terraform-docker
+                path: /tmp/github-terraform-docker.tar
 
     run_terraform:
         runs-on: self-hosted
@@ -29,21 +29,16 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
-            - name: Setup Docker Buildx
-              uses: docker/setup-buildx-action@v3
-            - name: Attempt Direct Image Load
+            - name: Download Docker Image
+              uses: actions/download-artifact@v4
+              with:
+                name: github-terraform-docker
+                tag: latest
+                path: /tmp
+            - name: Load Image
               run: |
-                docker run -it github-terraform-docker:latest /bin/sh
-#            - name: Download Docker Image
-#              uses: actions/download-artifact@v4
-#              with:
-#                name: github-terraform-docker
-#                tag: latest
-#                path: /tmp
-#            - name: Load Image
-#              run: |
-#                docker load --input /tmp/github-terraform-docker.tar
-#                docker image ls -a
+                docker load --input /tmp/github-terraform-docker.tar
+                docker image ls -a
             - name: Prep Env for Terraform
               run: |
                   export TF_VAR_user="${{ secrets.OS_USERNAME }}"
