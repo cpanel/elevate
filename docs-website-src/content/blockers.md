@@ -78,6 +78,10 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
 
 The following is a list of other known issues that could prevent your server's successful elevation.
 
+## Filesystem
+
+Since elevate needs to reboot your system multiple times as part of the upgrade process, we ensure that the command 'mount -a' succeeds successfully before allowing the elevation to proceed.  The reason for this is that we need to be able to trust that the filesystem remains the same between each reboot.
+
 ## PostgreSQL
 
 If you are using the PostgreSQL software provided by your distribution (which includes PostgreSQL as installed by cPanel), ELevate will upgrade the software packages. However, your PostgreSQL service is unlikely to start properly. The reason for this is that ELevate will **not** attempt to update the data directory being used by your PostgreSQL instance to store settings and databases; and PostgreSQL will detect this condition and refuse to start, to protect your data from corruption, until you have performed this update.
