@@ -14,10 +14,7 @@ jobs:
               with:
                 context: ./.github/workflows/openstack/
                 tags: github-terraform-docker:latest
-                outputs: type=docker,dest=/tmp/myimage.tar
-                id: verifyinstall
-            - name: Verify Terraform Install
-              run: echo "The working version of Hashicorp Terraform is ${{ steps.verifyinstall.outputs.terraform }}"
+                outputs: type=docker,dest=/tmp/github-terraform-docker.tar
             - name: Prep Env for Terraform
               run: |
                 export TF_VAR_user="${{ secrets.OS_USERNAME }}"
