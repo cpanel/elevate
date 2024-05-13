@@ -29,16 +29,21 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
-            - name: Download Docker Image
-              uses: actions/download-artifact@v4
+#            - name: Download Docker Image
+#              uses: actions/download-artifact@v4
+#              with:
+#                name: github-terraform-docker
+#                tag: latest
+#                path: /tmp
+#            - name: Load Image
+#              run: |
+#                docker load --input /tmp/github-terraform-docker.tar
+#                docker image ls -a
+            - name: Load Local Docker Image
+              uses: addnab/docker-run-action@v3
               with:
-                name: github-terraform-docker
-                tag: latest
-                path: /tmp
-            - name: Load Image
-              run: |
-                docker load --input /tmp/github-terraform-docker.tar
-                docker image ls -a
+                image: github-terraform-docker:latest
+                run: terraform --version
             - name: Prep Env for Terraform
               run: |
                   export TF_VAR_user="${{ secrets.OS_USERNAME }}"
