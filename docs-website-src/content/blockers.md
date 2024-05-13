@@ -51,7 +51,11 @@ You can discover many of these issues by downloading `elevate-cpanel` and runnin
   * Elevation will block if a MySQL upgrade is in progress.
   * The system **must** not be setup to use a remote database server.
 * Some **EA4 packages** are not supported on AlmaLinux 8.
-  * Example: PHP versions 5.4 through 7.1 are available on CentOS 7 but not AlmaLinux 8. You would need to remove these packages before upgrading. Doing so might impact your system users. Proceed with caution.
+  * Example: Ruby 2.4 is available on CentOS 7 but not AlmaLinux 8.  You would need to remove these packages before upgrading.  Doing so might impact your system users.  Proceed with caution.
+  * PHP versions 5.4 through 7.1 are available from cPanel on CentOS 7 but not AlmaLinux 8.
+    * If they are in use by any system users, we block the elevation from proceeding.
+    * If they are **not** in use, we allow the elevation to proceed and these versions of PHP will not be installed after the elevation completes.
+  * If you have Imunify 360 installed, then it can provide hardened PHP for versions 5.1 through 7.1 on AlmaLinux 8 as well as CentOS 7.  We now detect that these PHP versions are provided by Imunify 360 and allow the elevation to proceed.
 * The system **must** be able to control the boot process by changing the GRUB2 configuration.
   * The reason for this is that the Leapp framework, which performs the upgrade of distribution-provided software, needs to be able to run a custom early boot environment (initrd) in order to safely upgrade the distribution.
   * We check for this by seeing whether the kernel the system is currently running is the same version as that which the system believes is the default boot option.
