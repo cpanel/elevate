@@ -16,11 +16,11 @@ jobs:
                 file: ./.github/workflows/openstack/Dockerfile
                 tags: github-terraform-docker:latest
                 outputs: type=docker,dest=/tmp/github-terraform-docker.tar
-            - name: Upload Docker Image
-              uses: actions/upload-artifact@v4
-              with:
-                name: github-terraform-docker
-                path: /tmp/github-terraform-docker.tar
+#            - name: Upload Docker Image
+#              uses: actions/upload-artifact@v4
+#              with:
+#                name: github-terraform-docker
+#                path: /tmp/github-terraform-docker.tar
 
     run_terraform:
         runs-on: self-hosted
@@ -31,16 +31,19 @@ jobs:
               uses: actions/checkout@v4
             - name: Setup Docker Buildx
               uses: docker/setup-buildx-action@v3
-            - name: Download Docker Image
-              uses: actions/download-artifact@v4
-              with:
-                name: github-terraform-docker
-                tag: latest
-                path: /tmp
-            - name: Load Image
+            - name: Attempt Direct Image Load
               run: |
-                docker load --input /tmp/github-terraform-docker.tar
-                docker image ls -a
+                docker run -it github-terraform-docker:latest /bin/sh
+#            - name: Download Docker Image
+#              uses: actions/download-artifact@v4
+#              with:
+#                name: github-terraform-docker
+#                tag: latest
+#                path: /tmp
+#            - name: Load Image
+#              run: |
+#                docker load --input /tmp/github-terraform-docker.tar
+#                docker image ls -a
             - name: Prep Env for Terraform
               run: |
                   export TF_VAR_user="${{ secrets.OS_USERNAME }}"
@@ -53,7 +56,7 @@ jobs:
                   export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
             - name: TF_VAR check
               run: |
-                env | grep TF_VAR
+                echo ${TF_VAR_user}
             - name: Which Terraform
               run: which terraform
             - name: Terraform Init
