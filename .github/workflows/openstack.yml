@@ -57,8 +57,6 @@ jobs:
             - name: TF_VAR check
               run: |
                 echo ${TF_VAR_user}
-            - name: Which Terraform
-              run: which terraform
             - name: Terraform Init
               run: terraform init
             - name: Terraform Plan
