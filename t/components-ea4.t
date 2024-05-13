@@ -532,6 +532,78 @@ sub test__restore_imunify_phps : Test(4) ($self) {
     return;
 }
 
+sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        read_stage_file => [],
+    );
+
+    my $result = 1;
+    my @saferun_calls;
+    my $mock_saferunnoerror = Test::MockModule->new('Cpanel::SafeRun::Simple');
+    $mock_saferunnoerror->redefine(
+        saferunnoerror => sub {
+            my $call_string = join( ' ', @_ );
+            push @saferun_calls, $call_string;
+            return qq|{"metadata":{"result":$result}}|;
+        },
+    );
+
+    my $ea4 = cpev->new->component('EA4');
+
+    is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
+    is( \@saferun_calls,                             [],    'No API calls are made when no data is present in the stage file' );
+
+    $mock_stagefile->redefine(
+        read_stage_file => sub {
+            return [
+                {
+                    version => 'ea-php42',
+                    vhost   => 'foo.tld',
+                    php_fpm => 0,
+                },
+                {
+                    version => 'ea-php99',
+                    vhost   => 'bar.tld',
+                    php_fpm => 1,
+                },
+            ];
+        },
+    );
+
+    is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
+
+    is(
+        \@saferun_calls,
+        [
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php42 vhost=foo.tld php_fpm=0],
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php99 vhost=bar.tld php_fpm=1],
+        ],
+        'The correct API calls are made',
+    );
+
+    $result = 0;
+    undef @saferun_calls;
+
+    is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
+
+    is(
+        \@saferun_calls,
+        [
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php42 vhost=foo.tld php_fpm=0],
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php99 vhost=bar.tld php_fpm=1],
+        ],
+        'The correct API calls are made',
+    );
+
+    message_seen( WARN => qr/Unable to set foo\.tld back to its desired PHP version/ );
+    message_seen( WARN => qr/Unable to set bar\.tld back to its desired PHP version/ );
+    no_messages_seen();
+
+    return;
+}
+
 =pod
 sub test_blocker_ea4_profile : Test(18) ($self) {
 
