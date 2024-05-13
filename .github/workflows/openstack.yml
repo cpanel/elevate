@@ -7,9 +7,15 @@ jobs:
         steps: 
             - name: Checkout
               uses: actions/checkout@v4
-            - name: Build Terraform
-              uses: ./.github/workflows/openstack/
-              id: verifyinstall
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+            - name: Build and export
+              uses: docker/build-push-action@v5
+              with:
+                context: ./.github/workflows/openstack/
+                tags: github-terraform-docker:latest
+                outputs: type=docker,dest=/tmp/myimage.tar
+                id: verifyinstall
             - name: Verify Terraform Install
               run: echo "The working version of Hashicorp Terraform is ${{ steps.verifyinstall.outputs.terraform }}"
             - name: Prep Env for Terraform
