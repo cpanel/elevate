@@ -29,34 +29,101 @@ my $mp   = $cpev->get_blocker('MountPoints');
 
 my @cmds;
 my @stdout;
+my @stderr;
 my $capture_output_status;
 $cpev_mock->redefine(
     ssystem_capture_output => sub ( $, @args ) {
         push @cmds, [@args];
-        return { status => $capture_output_status, stdout => \@stdout, stderr => [] };
+        return { status => $capture_output_status, stdout => \@stdout, stderr => \@stderr };
     },
 );
 
-$capture_output_status = 1;
-is( $mp->check(), undef, 'No blockers are returned when /usr is NOT a separate mount point' );
+{
+    note 'Test _check_for_rhel_23449';
 
-$capture_output_status = 0;
-$stdout[0] = 'shared';
-is( $mp->check(), undef, 'No blockers are returned when /usr is a separate shared mount point' );
+    $capture_output_status = 1;
+    is( $mp->_check_for_rhel_23449(), undef, 'No blockers are returned when /usr is NOT a separate mount point' );
+    is(
+        \@cmds,
+        [
+            [
+                '/usr/bin/findmnt',
+                '-no',
+                'PROPAGATION',
+                '/usr',
+            ],
+        ],
+        'The expected command is called',
+    ) or diag explain \@cmds;
 
-$stdout[0] = 'private';
-my $blocker = $mp->check();
-like(
-    $blocker,
-    {
-        id  => 'Elevate::Blockers::MountPoints::check',
-        msg => qr/The current filesystem setup on your server will prevent/,
-    },
-    'A blocker is returned when /usr is a separate private mount point',
-);
+    $capture_output_status = 0;
+    $stdout[0] = 'shared';
+    is( $mp->_check_for_rhel_23449(), undef, 'No blockers are returned when /usr is a separate shared mount point' );
 
-message_seen( WARN => qr/The current filesystem setup on your server will prevent/ );
+    $stdout[0] = 'private';
+    my $blocker = $mp->_check_for_rhel_23449();
+    like(
+        $blocker,
+        {
+            id  => 'Elevate::Blockers::MountPoints::_check_for_rhel_23449',
+            msg => qr/The current filesystem setup on your server will prevent/,
+        },
+        'A blocker is returned when /usr is a separate private mount point',
+    );
 
-no_messages_seen();
+    message_seen( WARN => qr/The current filesystem setup on your server will prevent/ );
+
+    no_messages_seen();
+}
+
+{
+    note 'Test _ensure_mount_dash_a_succeeds';
+
+    undef @cmds;
+    undef @stdout;
+    undef @stderr;
+    $capture_output_status = undef;
+
+    my $mp_mock = Test::MockModule->new('Elevate::Blockers::MountPoints');
+    $mp_mock->redefine(
+        is_check_mode => 1,
+    );
+
+    is( $mp->_ensure_mount_dash_a_succeeds, undef, 'Returns undef when in check mode' );
+    is( \@cmds,                             [],    'No commands are executed when in check mode' );
+
+    $mp_mock->redefine(
+        is_check_mode => 0,
+    );
+
+    $capture_output_status = 0;
+
+    is( $mp->_ensure_mount_dash_a_succeeds, undef, 'Returns undef when mount -a succeeds' );
+    is(
+        \@cmds,
+        [
+            [
+                '/usr/bin/mount',
+                '-a',
+            ],
+        ],
+        'The expected command is called',
+    );
+
+    $capture_output_status = 42;
+    $stderr[0] = 'mount: mount point does not exist';
+
+    my $blocker = dies { $mp->_ensure_mount_dash_a_succeeds() };
+    like(
+        $blocker,
+        {
+            id  => 'Elevate::Blockers::MountPoints::_ensure_mount_dash_a_succeeds',
+            msg => qr/The following command failed to execute successfully on your server/,
+        },
+        'A blocker is returned when mount -a does not execute successfully',
+    );
+
+    no_messages_seen();
+}
 
 done_testing();
