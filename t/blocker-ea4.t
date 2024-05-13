@@ -114,6 +114,7 @@ EOS
             update_stage_file => sub ($data) {
                 $update_stage_file_data = $data;
             },
+            remove_from_stage_file => 1,
         );
 
         ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs" );
@@ -267,7 +268,7 @@ Please remove these packages before continuing the update.
 
     $mock_ea4->unmock('_get_php_versions_in_use');
 
-    my $mock_result;
+    my $mock_result = 'nope';
     my @saferun_calls;
     my $mock_saferunnoerror = Test::MockModule->new('Cpanel::SafeRun::Simple');
     $mock_saferunnoerror->redefine(
@@ -275,6 +276,12 @@ Please remove these packages before continuing the update.
             @saferun_calls = @_;
             return $mock_result;
         },
+    );
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        update_stage_file      => 1,
+        remove_from_stage_file => 1,
     );
 
     is( $ea4->_get_php_versions_in_use(), { api_fail => 1, }, 'api_fail is set when the API call does not return valid JSON' );

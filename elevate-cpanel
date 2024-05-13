@@ -1081,6 +1081,7 @@ EOS
         }
 
         if (@imunify_pkgs) {
+            Elevate::StageFile::remove_from_stage_file('ea4_imunify_packages');
             Elevate::StageFile::update_stage_file( { ea4_imunify_packages => \@imunify_pkgs } );
         }
 
@@ -1123,7 +1124,11 @@ EOS
             return $php_versions_in_use;
         }
 
-        foreach my $domain_info ( @{ $result->{data}{versions} } ) {
+        my $data = $result->{data}{versions};
+        Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
+        Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $data } );
+
+        foreach my $domain_info (@$data) {
             my $php_version = $domain_info->{version};
             $php_versions_in_use->{$php_version} = 1;
         }
@@ -3179,6 +3184,9 @@ EOS
     use Elevate::EA4       ();
     use Elevate::StageFile ();
 
+    use Cpanel::JSON            ();
+    use Cpanel::SafeRun::Simple ();
+
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
@@ -3202,6 +3210,8 @@ EOS
         $self->run_once('_restore_imunify_phps');
 
         $self->run_once('_restore_config_files');
+
+        $self->run_once('_ensure_sites_use_correct_php_version');
 
         return;
     }
@@ -3311,6 +3321,45 @@ EOS
         return unless scalar $php_pkgs->@*;
 
         $self->dnf->install(@$php_pkgs);
+        return;
+    }
+
+    sub _ensure_sites_use_correct_php_version ($self) {
+
+        my $vhost_versions = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+        return unless ref $vhost_versions eq 'ARRAY';
+        return unless scalar $vhost_versions->@*;
+
+        foreach my $vhost_entry (@$vhost_versions) {
+            my $version = $vhost_entry->{version};
+            my $vhost   = $vhost_entry->{vhost};
+            my $fpm     = $vhost_entry->{php_fpm};
+
+            my @api_cmd = (
+                '/usr/local/cpanel/bin/whmapi1',
+                '--output=json',
+                'php_set_vhost_versions',
+                "version=$version",
+                "vhost=$vhost",
+                "php_fpm=$fpm",
+            );
+
+            my $out    = Cpanel::SafeRun::Simple::saferunnoerror(@api_cmd);
+            my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+            my $api_string = join( ' ', @api_cmd );
+            unless ( $result->{metadata}{result} ) {
+
+                WARN( <<~"EOS" );
+            Unable to set $vhost back to its desired PHP version.  This site may
+            be using the incorrect version of PHP.  To set it back to its
+            original PHP version, execute the following command:
+
+            $api_string
+            EOS
+            }
+        }
+
         return;
     }
 
