@@ -57,12 +57,12 @@ jobs:
                   terraform apply -auto-approve
                   terraform destroy -auto-approve
 
-    destroy_terraform:
-        runs-on: self-hosted
-        needs: run_terraform
-        name: Terraform Destroy
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Run Terraform Destroy
-              run: terraform destroy -auto-approve 
+#    destroy_terraform:
+#        runs-on: self-hosted
+#        needs: run_terraform
+#        name: Terraform Destroy
+#        steps:
+#            - name: Checkout
+#              uses: actions/checkout@v4
+#            - name: Run Terraform Destroy
+#              run: terraform destroy -auto-approve 
