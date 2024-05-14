@@ -87,6 +87,7 @@ sub _get_incompatible_packages ($self) {
     }
 
     if (@imunify_pkgs) {
+        Elevate::StageFile::remove_from_stage_file('ea4_imunify_packages');
         Elevate::StageFile::update_stage_file( { ea4_imunify_packages => \@imunify_pkgs } );
     }
 
@@ -132,7 +133,11 @@ sub _get_php_versions_in_use ($self) {
         return $php_versions_in_use;
     }
 
-    foreach my $domain_info ( @{ $result->{data}{versions} } ) {
+    my $data = $result->{data}{versions};
+    Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
+    Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $data } );
+
+    foreach my $domain_info (@$data) {
         my $php_version = $domain_info->{version};
         $php_versions_in_use->{$php_version} = 1;
     }
