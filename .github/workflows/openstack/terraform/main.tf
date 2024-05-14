@@ -74,7 +74,7 @@ resource "openstack_compute_instance_v2" "elevatevm" {
       /scripts/upcp
       sleep 30
       yes | /scripts/elevate-cpanel --start
-      /scripts/elevate-cpanel --status
+      /scripts/elevate-cpanel --log
     EOF
     ]
     connection {
