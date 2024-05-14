@@ -1,5 +1,0 @@
-export TF_VAR_user=
-export TF_VAR_application_credential_id=
-export TF_VAR_application_credential_secret=
-export TF_VAR_ssh_access_key=
-export TF_VAR_git_clone_key=

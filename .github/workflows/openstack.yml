@@ -52,6 +52,7 @@ jobs:
                   export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
                   export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
                   export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
+                  cd terraform
                   terraform init
                   terraform plan
                   terraform apply -auto-approve
