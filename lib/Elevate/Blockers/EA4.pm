@@ -77,10 +77,15 @@ sub _get_incompatible_packages ($self) {
             my $php_pkg = $1;
             next unless $self->_php_version_is_in_use($php_pkg);
 
-            if ( $self->_php_is_provided_by_imunify_360($php_pkg) ) {
+            if ( $self->_pkg_is_provided_by_imunify_360($php_pkg) ) {
                 push @imunify_pkgs, $pkg;
                 next;
             }
+        }
+
+        if ( $pkg eq 'ea-profiles-cloudlinux' && $self->_pkg_is_provided_by_imunify_360($pkg) ) {
+            push @imunify_pkgs, $pkg;
+            next;
         }
 
         push @incompatible, $pkg;
@@ -94,10 +99,10 @@ sub _get_incompatible_packages ($self) {
     return @incompatible;
 }
 
-sub _php_is_provided_by_imunify_360 ( $self, $php ) {
+sub _pkg_is_provided_by_imunify_360 ( $self, $pkg ) {
     return 0 unless -x Elevate::Constants::IMUNIFY_AGENT;
 
-    my $version = Cpanel::Pkgr::get_package_version($php);
+    my $version = Cpanel::Pkgr::get_package_version($pkg);
 
     # If the package is coming from CL, then we can assume
     # that it is provided by Imunify 360 at this point
