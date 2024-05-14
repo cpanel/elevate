@@ -15,6 +15,9 @@ use cPstrict;
 use Elevate::EA4       ();
 use Elevate::StageFile ();
 
+use Cpanel::JSON            ();
+use Cpanel::SafeRun::Simple ();
+
 use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
@@ -34,7 +37,7 @@ sub post_leapp ($self) {
     $self->run_once('_restore_ea_addons');
     $self->run_once('_restore_imunify_phps');
 
-    # This needs to happen last (after EA4 has been reinstalled)
+    # This needs to happen after EA4 has been reinstalled
     #
     # On a new install, the RPM behavior for %config is to move the preexisting config file
     # to '.rpmorig' and replace the config file with config file provided by the RPM
@@ -46,6 +49,8 @@ sub post_leapp ($self) {
     # step of stage 5 is to reboot the server so the services will be restarted and pick up the configs
     # after this anyway
     $self->run_once('_restore_config_files');
+
+    $self->run_once('_ensure_sites_use_correct_php_version');
 
     return;
 }
@@ -157,6 +162,45 @@ sub _restore_imunify_phps ($self) {
     return unless scalar $php_pkgs->@*;
 
     $self->dnf->install(@$php_pkgs);
+    return;
+}
+
+sub _ensure_sites_use_correct_php_version ($self) {
+
+    my $vhost_versions = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+    return unless ref $vhost_versions eq 'ARRAY';
+    return unless scalar $vhost_versions->@*;
+
+    foreach my $vhost_entry (@$vhost_versions) {
+        my $version = $vhost_entry->{version};
+        my $vhost   = $vhost_entry->{vhost};
+        my $fpm     = $vhost_entry->{php_fpm};
+
+        my @api_cmd = (
+            '/usr/local/cpanel/bin/whmapi1',
+            '--output=json',
+            'php_set_vhost_versions',
+            "version=$version",
+            "vhost=$vhost",
+            "php_fpm=$fpm",
+        );
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(@api_cmd);
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        my $api_string = join( ' ', @api_cmd );
+        unless ( $result->{metadata}{result} ) {
+
+            WARN( <<~"EOS" );
+            Unable to set $vhost back to its desired PHP version.  This site may
+            be using the incorrect version of PHP.  To set it back to its
+            original PHP version, execute the following command:
+
+            $api_string
+            EOS
+        }
+    }
+
     return;
 }
 
