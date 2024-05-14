@@ -65,16 +65,6 @@ resource "openstack_compute_instance_v2" "elevatevm" {
       echo "waiting on cloud-init..."
       echo "${var.ssh_access_key}" >> /root/.ssh/authorized_keys
       cloud-init status --wait > /dev/null || true
-      wget -O /scripts/elevate-cpanel https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel
-      chmod -v 700 /scripts/elevate-cpanel
-      /scripts/elevate-cpanel --check
-      /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.6
-      sleep 120
-      perl -pi*.bak -e 's/^CPANEL=.*/CPANEL=11.110/g' /etc/cpupdate.conf
-      /scripts/upcp
-      sleep 30
-      yes | /scripts/elevate-cpanel --start
-      /scripts/elevate-cpanel --log
     EOF
     ]
     connection {
@@ -84,5 +74,8 @@ resource "openstack_compute_instance_v2" "elevatevm" {
         script_path = "/root/elevate_bootstrap"
         private_key = tls_private_key.ssh.private_key_pem
     }
+  }
+  provisioner "remote-exec" {
+    script = "chmod -v +x /tmp/run_elevate.sh"
   }
 }
