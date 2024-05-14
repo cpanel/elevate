@@ -65,6 +65,11 @@ resource "openstack_compute_instance_v2" "elevatevm" {
       echo "waiting on cloud-init..."
       echo "${var.ssh_access_key}" >> /root/.ssh/authorized_keys
       cloud-init status --wait > /dev/null || true
+      wget -O /scripts/elevate-cpanel https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel
+      chmod -v 700 /scripts/elevate-cpanel
+      /scripts/elevate-cpanel --check
+      /scripts/elevate-cpanel --start
+      /scripts/elevate-cpanel --status
     EOF
     ]
     connection {
