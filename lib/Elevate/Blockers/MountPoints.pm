@@ -20,7 +20,6 @@ use constant MOUNT_BIN   => '/usr/bin/mount';
 use Log::Log4perl qw(:easy);
 
 sub check ($self) {
-    $self->_check_for_rhel_23449();
     $self->_ensure_mount_dash_a_succeeds();
     return;
 }
@@ -59,24 +58,6 @@ sub _ensure_mount_dash_a_succeeds ($self) {
     }
 
     return;
-}
-
-sub _check_for_rhel_23449 ($self) {
-
-    my $out = $self->ssystem_capture_output( FINDMNT_BIN, '-no', 'PROPAGATION', '/usr' );
-
-    # This will return 1 if '/usr' is not a separate mount point
-    return unless $out->{status} == 0;
-    return unless grep { $_ =~ m/private/ } @{ $out->{stdout} };
-
-    return $self->has_blocker( <<~'EOS');
-    The current filesystem setup on your server will prevent 'leapp' from being
-    able to load these packages which will result in 'leapp' failing which will
-    lead to a broken system.  This is being addressed by CloudLinux in
-    CLOS-2492.  A potential fix is currently in testing as of May 6th 2024.
-    Once the fix is released to the public, this blocker will be removed.
-
-    EOS
 }
 
 1;
