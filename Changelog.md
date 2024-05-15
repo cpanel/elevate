@@ -1,3 +1,8 @@
+##### **2024-05-15** - version 38
+
+* Fixed case RE-134: Have script block if mount -a fails to exit cleanly.
+* Fixed case RE-313: Enhance EA4 blocker so that it only blocks on installed PHP versions that are not provided by Imunify 360 and are actively in use by domains on the server.
+
 ##### **2024-05-06** - version 37
 
 * Fixed case RE-306: Add blocker if &#39;/usr&#39; is a separate private mount point.
