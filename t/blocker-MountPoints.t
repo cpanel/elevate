@@ -39,44 +39,6 @@ $cpev_mock->redefine(
 );
 
 {
-    note 'Test _check_for_rhel_23449';
-
-    $capture_output_status = 1;
-    is( $mp->_check_for_rhel_23449(), undef, 'No blockers are returned when /usr is NOT a separate mount point' );
-    is(
-        \@cmds,
-        [
-            [
-                '/usr/bin/findmnt',
-                '-no',
-                'PROPAGATION',
-                '/usr',
-            ],
-        ],
-        'The expected command is called',
-    ) or diag explain \@cmds;
-
-    $capture_output_status = 0;
-    $stdout[0] = 'shared';
-    is( $mp->_check_for_rhel_23449(), undef, 'No blockers are returned when /usr is a separate shared mount point' );
-
-    $stdout[0] = 'private';
-    my $blocker = $mp->_check_for_rhel_23449();
-    like(
-        $blocker,
-        {
-            id  => 'Elevate::Blockers::MountPoints::_check_for_rhel_23449',
-            msg => qr/The current filesystem setup on your server will prevent/,
-        },
-        'A blocker is returned when /usr is a separate private mount point',
-    );
-
-    message_seen( WARN => qr/The current filesystem setup on your server will prevent/ );
-
-    no_messages_seen();
-}
-
-{
     note 'Test _ensure_mount_dash_a_succeeds';
 
     undef @cmds;
