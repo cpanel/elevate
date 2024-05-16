@@ -4915,6 +4915,17 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
+    use constant OBSOLETE_PACKAGES => (
+        'compat-db',
+        'gd-progs',
+        'python-tools',
+        'python2-dnf',
+        'python2-libcomps',
+        'tcp_wrappers-devel',
+        'tkinter',
+        'yum-plugin-universal-hooks',
+    );
+
     sub pre_leapp ($self) {
 
         $self->run_once("_cleanup_rpms");
@@ -4926,6 +4937,14 @@ EOS
 
         $self->rpm->remove_cpanel_arch_rpms();
 
+        $self->_remove_obsolete_packages();
+
+        return;
+    }
+
+    sub _remove_obsolete_packages ($self) {
+        my @pkgs_to_remove = OBSOLETE_PACKAGES();
+        $self->yum->remove(@pkgs_to_remove);
         return;
     }
 
