@@ -49,7 +49,7 @@ resource "openstack_compute_keypair_v2" "tf_remote_key" {
 }
 
 resource "openstack_compute_instance_v2" "elevatevm" {
-  name        = "elevatevm.aw.cpanel.net"
+  name        = "elevate.github.cpanel.net"
   image_id    = sort(data.openstack_images_image_ids_v2.images.ids)[0]
   flavor_name = var.flavor_name
   key_pair    = openstack_compute_keypair_v2.tf_remote_key.name
@@ -61,9 +61,10 @@ resource "openstack_compute_instance_v2" "elevatevm" {
   provisioner "remote-exec" {
     inline = [<<EOF
       echo "START_REMOTE_EXEC"
-      echo -e "\n\tStatus update from within TestVM - woop woop.\n\n"
-      echo "waiting on cloud-init..."
-      echo "${var.ssh_access_key}" >> /root/.ssh/authorized_keys
+      touch /root/.ssh/id_ed25519
+      chmod 600 /root/.ssh/id_ed25519
+      echo "${var.ssh_access_key}" >> /root/.ssh/id_ed25519
+      echo 'waiting on cloud-init...'
       cloud-init status --wait > /dev/null || true
     EOF
     ]
@@ -75,7 +76,5 @@ resource "openstack_compute_instance_v2" "elevatevm" {
         private_key = tls_private_key.ssh.private_key_pem
     }
   }
-  provisioner "remote-exec" {
-    script = "chmod -v +x /tmp/run_elevate.sh"
-  }
 }
+

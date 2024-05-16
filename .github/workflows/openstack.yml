@@ -56,7 +56,28 @@ jobs:
                   terraform init
                   terraform plan
                   terraform apply -auto-approve
-                  terraform destroy -auto-approve
+            - name: Upload Docker Image
+              uses: actions/upload-artifact@v4
+              with:
+                name: github-terraform-docker
+                path: /tmp/github-terraform-docker.tar
+
+#    ssh_to_host:
+#        name: SSH into OpenStack VM
+#        runs-on: self-hosted
+#        needs: run_terraform
+#        steps:
+#        - name: SSH into OpenStack VM and check functionality
+#          uses: applyboy/ssh-action@v1.0.3
+#          with:
+#            host:
+#            username:
+#            password:
+#            port:
+#            script:
+
+
+
 
 #    destroy_terraform:
 #        runs-on: self-hosted
