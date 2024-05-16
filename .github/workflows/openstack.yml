@@ -33,7 +33,6 @@ jobs:
               uses: actions/download-artifact@v4
               with:
                 name: github-terraform-docker
-                tag: latest
                 path: /tmp
             - name: Load Image
               run: |
