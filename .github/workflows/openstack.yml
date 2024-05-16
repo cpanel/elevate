@@ -20,7 +20,7 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                 name: github-terraform-docker-step-1
-                path: /tmp/github-terraform-dockerstep-1.tar
+                path: /tmp/github-terraform-docker-step-1.tar
 
     run_terraform:
         runs-on: self-hosted
