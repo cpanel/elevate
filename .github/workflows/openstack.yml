@@ -55,6 +55,13 @@ jobs:
                   terraform init
                   terraform plan
                   terraform apply -auto-approve
+            - name: Build and export
+              uses: docker/build-push-action@v5
+              with:
+                context: ./.github/workflows/openstack/
+                file: ./.github/workflows/openstack/Dockerfile
+                tags: github-terraform-docker-step-2:latest
+                outputs: type=docker,dest=/tmp/github-terraform-docker-step-2.tar
             - name: Upload Docker Image
               uses: actions/upload-artifact@v4
               with:
@@ -78,12 +85,34 @@ jobs:
 
 
 
-#    destroy_terraform:
-#        runs-on: self-hosted
-#        needs: run_terraform
-#        name: Terraform Destroy
-#        steps:
-#            - name: Checkout
-#              uses: actions/checkout@v4
-#            - name: Run Terraform Destroy
-#              run: terraform destroy -auto-approve 
+    destroy_terraform:
+        runs-on: self-hosted
+        needs: run_terraform
+        name: Terraform Destroy
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+          - name: Download Docker Image
+            uses: actions/download-artifact@v4
+            with:
+              name: github-terraform-docker-step-2
+              path: /tmp
+          - name: Load Image
+            run: |
+              docker load --input /tmp/github-terraform-docker-step-12.tar
+              docker image ls -a
+          - name: Run Terraform
+            uses: addnab/docker-run-action@v3
+            with:
+              image: github-terraform-docker-step-2:latest
+              run: |
+                export TF_VAR_user="${{ secrets.OS_USERNAME }}"
+                export TF_VAR_application_credential_id="${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}"
+                export TF_VAR_application_credential_secret="${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}"
+                export TF_VAR_ssh_access_key="${{ secrets.OS_SSH_KEY }}"
+                export TF_VAR_os_auth_region="${{ secrets.OS_AUTH_REGION }}"
+                export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
+                export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
+                export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
+                cd terraform
+                terraform destroy -auto-approve
