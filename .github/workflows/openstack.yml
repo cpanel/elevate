@@ -55,6 +55,8 @@ jobs:
                   terraform init
                   terraform plan
                   terraform apply -auto-approve
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
             - name: Build and export
               uses: docker/build-push-action@v5
               with:
@@ -99,7 +101,7 @@ jobs:
               path: /tmp
           - name: Load Image
             run: |
-              docker load --input /tmp/github-terraform-docker-step-12.tar
+              docker load --input /tmp/github-terraform-docker-step-2.tar
               docker image ls -a
           - name: Run Terraform
             uses: addnab/docker-run-action@v3
