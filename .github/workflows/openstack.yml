@@ -19,8 +19,8 @@ jobs:
             - name: Upload Docker Image
               uses: actions/upload-artifact@v4
               with:
-                name: github-terraform-docker
-                path: /tmp/github-terraform-docker.tar
+                name: github-terraform-docker-step-1
+                path: /tmp/github-terraform-dockerstep-1.tar
 
     run_terraform:
         runs-on: self-hosted
@@ -32,16 +32,16 @@ jobs:
             - name: Download Docker Image
               uses: actions/download-artifact@v4
               with:
-                name: github-terraform-docker
+                name: github-terraform-docker-step-1
                 path: /tmp
             - name: Load Image
               run: |
-                docker load --input /tmp/github-terraform-docker.tar
+                docker load --input /tmp/github-terraform-docker-step-1.tar
                 docker image ls -a
             - name: Run Terraform
               uses: addnab/docker-run-action@v3
               with:
-                image: github-terraform-docker:latest
+                image: github-terraform-docker-step-1:latest
                 run: |
                   export TF_VAR_user="${{ secrets.OS_USERNAME }}"
                   export TF_VAR_application_credential_id="${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}"
@@ -58,8 +58,8 @@ jobs:
             - name: Upload Docker Image
               uses: actions/upload-artifact@v4
               with:
-                name: github-terraform-docker
-                path: /tmp/github-terraform-docker.tar
+                name: github-terraform-docker-step-2
+                path: /tmp/github-terraform-docker-step-2.tar
 
 #    ssh_to_host:
 #        name: SSH into OpenStack VM
