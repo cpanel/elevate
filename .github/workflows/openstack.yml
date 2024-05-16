@@ -61,7 +61,6 @@ jobs:
               uses: docker/build-push-action@v5
               with:
                 context: ./.github/workflows/openstack/
-                file: ./.github/workflows/openstack/Dockerfile
                 tags: github-terraform-docker-step-2:latest
                 outputs: type=docker,dest=/tmp/github-terraform-docker-step-2.tar
             - name: Upload Docker Image
@@ -90,7 +89,7 @@ jobs:
     destroy_terraform:
         runs-on: self-hosted
         needs: run_terraform
-        name: Terraform Destroy
+        name: Destroy Terraform
         steps:
           - name: Checkout
             uses: actions/checkout@v4
