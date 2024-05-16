@@ -15,7 +15,7 @@ jobs:
                 context: ./.github/workflows/openstack/
                 file: ./.github/workflows/openstack/Dockerfile
                 tags: github-terraform-docker:latest
-                outputs: type=docker,dest=/tmp/github-terraform-docker.tar
+                outputs: type=docker,dest=/tmp/github-terraform-docker-step-1.tar
             - name: Upload Docker Image
               uses: actions/upload-artifact@v4
               with:
