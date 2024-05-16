@@ -24,6 +24,17 @@ use Cpanel::Yum::Vars ();
 
 use parent qw{Elevate::Components::Base};
 
+use constant OBSOLETE_PACKAGES => (
+    'compat-db',
+    'gd-progs',
+    'python-tools',
+    'python2-dnf',
+    'python2-libcomps',
+    'tcp_wrappers-devel',
+    'tkinter',
+    'yum-plugin-universal-hooks',
+);
+
 sub pre_leapp ($self) {
 
     $self->run_once("_cleanup_rpms");
@@ -36,6 +47,18 @@ sub _cleanup_rpms ($self) {
     # potential to remove other things, but the goal here to remove cpanel packages provided by rpm.versions
     $self->rpm->remove_cpanel_arch_rpms();
 
+    # These packages are not available on 8 variants and will be removed by
+    # leapp if we do not remove them manually.  Not necessarily a bug per se,
+    # but it is better if we go ahead and handle removing these packages before
+    # starting leapp
+    $self->_remove_obsolete_packages();
+
+    return;
+}
+
+sub _remove_obsolete_packages ($self) {
+    my @pkgs_to_remove = OBSOLETE_PACKAGES();
+    $self->yum->remove(@pkgs_to_remove);
     return;
 }
 
