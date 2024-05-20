@@ -29,7 +29,7 @@ data "template_cloudinit_config" "config" {
 
   part {
     content_type = "text/cloud-config"
-    content      = file("${path.root}/cloud-config.yaml")
+    content      = "cloud-config.yaml"
   }
 }
 
