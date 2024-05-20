@@ -93,8 +93,8 @@ jobs:
         with:
           name: terraformstatefile
           path: /tmp/
-      - name: Display structure of downloaded files
-        run: ls -R /tmp
+      - name: Deencode Teeraform State File
+        run: openssl enc -d -in /tmp/terraform.tfstate.enc -aes-256-cbc -pbkdf2 -pass pass:"${{ secrets.OS_PASSWORD }}" -out ./terraform.tfstate
       - name: Destroy OpenStack VM
-        run: terraform destroy
+        run: terraform destroy -no-color -auto-approve 
         
