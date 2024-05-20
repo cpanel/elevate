@@ -1,119 +1,31 @@
 on: [push]
 
+env:
+  TF_VAR_user: ${{ secrets.OS_USERNAME }}
+  TF_VAR_application_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+  TF_VAR_application_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  TF_VAR_ssh_access_key: ${{ secrets.OS_SSH_KEY }}
+  TF_VAR_os_auth_region: ${{ secrets.OS_AUTH_REGION }}
+  TF_VAR_os_auth_url: ${{ secrets.OS_AUTH_URL }}
+  TF_VAR_os_project_domain_name: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
+  TF_VAR_os_password: ${{ secrets.OS_PASSWORD }}
+
 jobs: 
-    build_terraform_docker:
+    init_terraform:
         runs-on: self-hosted
-        name: Build Terraform
-        steps: 
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
-            - name: Build and export
-              uses: docker/build-push-action@v5
-              with:
-                context: ./.github/workflows/openstack/
-                file: ./.github/workflows/openstack/Dockerfile
-                tags: github-terraform-docker-step-1:latest
-                outputs: type=docker,dest=/tmp/github-terraform-docker-step-1.tar
-            - name: Upload Docker Image
-              uses: actions/upload-artifact@v4
-              with:
-                name: github-terraform-docker-step-1
-                path: /tmp/github-terraform-docker-step-1.tar
-
-    run_terraform:
-        runs-on: self-hosted
-        needs: build_terraform_docker
-        name: Run Terraform
+        name: Terraform
         steps:
             - name: Checkout
               uses: actions/checkout@v4
-            - name: Download Docker Image
-              uses: actions/download-artifact@v4
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform
               with:
-                name: github-terraform-docker-step-1
-                path: /tmp
-            - name: Load Image
-              run: |
-                docker load --input /tmp/github-terraform-docker-step-1.tar
-                docker image ls -a
-            - name: Run Terraform
-              uses: addnab/docker-run-action@v3
-              with:
-                image: github-terraform-docker-step-1:latest
-                run: |
-                  export TF_VAR_user="${{ secrets.OS_USERNAME }}"
-                  export TF_VAR_application_credential_id="${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}"
-                  export TF_VAR_application_credential_secret="${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}"
-                  export TF_VAR_ssh_access_key="${{ secrets.OS_SSH_KEY }}"
-                  export TF_VAR_os_auth_region="${{ secrets.OS_AUTH_REGION }}"
-                  export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
-                  export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
-                  export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
-                  cd terraform
-                  terraform init
-                  terraform plan
-                  terraform apply -auto-approve
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
-            - name: Build and export
-              uses: docker/build-push-action@v5
-              with:
-                context: ./.github/workflows/openstack/
-                tags: github-terraform-docker-step-2:latest
-                outputs: type=docker,dest=/tmp/github-terraform-docker-step-2.tar
-            - name: Upload Docker Image
-              uses: actions/upload-artifact@v4
-              with:
-                name: github-terraform-docker-step-2
-                path: /tmp/github-terraform-docker-step-2.tar
+                terraform_version: "1.8.3"
+            - run: terraform init
+            - id: plan
+              run: terraform plan -no-color
 
-#    ssh_to_host:
-#        name: SSH into OpenStack VM
-#        runs-on: self-hosted
-#        needs: run_terraform
-#        steps:
-#        - name: SSH into OpenStack VM and check functionality
-#          uses: applyboy/ssh-action@v1.0.3
-#          with:
-#            host:
-#            username:
-#            password:
-#            port:
-#            script:
+            - run: echo ${{ steps.plan.outputs.stdout }}
+            - run: echo ${{ steps.plan.outputs.stderr }}
+            - run: echo ${{ steps.plan.outputs.exitcode }}
 
-
-
-
-    destroy_terraform:
-        runs-on: self-hosted
-        needs: run_terraform
-        name: Destroy Terraform
-        steps:
-          - name: Checkout
-            uses: actions/checkout@v4
-          - name: Download Docker Image
-            uses: actions/download-artifact@v4
-            with:
-              name: github-terraform-docker-step-2
-              path: /tmp
-          - name: Load Image
-            run: |
-              docker load --input /tmp/github-terraform-docker-step-2.tar
-              docker image ls -a
-          - name: Run Terraform
-            uses: addnab/docker-run-action@v3
-            with:
-              image: github-terraform-docker-step-2:latest
-              run: |
-                export TF_VAR_user="${{ secrets.OS_USERNAME }}"
-                export TF_VAR_application_credential_id="${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}"
-                export TF_VAR_application_credential_secret="${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}"
-                export TF_VAR_ssh_access_key="${{ secrets.OS_SSH_KEY }}"
-                export TF_VAR_os_auth_region="${{ secrets.OS_AUTH_REGION }}"
-                export TF_VAR_os_auth_url="${{ secrets.OS_AUTH_URL }}"
-                export TF_VAR_os_project_domain_name="${{ secrets.OS_PROJECT_DOMAIN_NAME }}"
-                export TF_VAR_os_password="${{ secrets.OS_PASSWORD }}"
-                cd terraform
-                terraform destroy -auto-approve
