@@ -11,18 +11,17 @@ env:
   TF_VAR_os_password: ${{ secrets.OS_PASSWORD }}
   tf_working_directory: "./.github/workflows/openstack/terraform"
 
-defaults:
-  run:
-    working-directory: "./.github/workflows/openstack/terraform"
-steps:
-    - uses: actions/checkout@v4
-    - uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: "1.8.3"
-
 jobs: 
     terraform_init:
         runs-on: self-hosted
+        defaults:
+          run:
+            working-directory: "./.github/workflows/openstack/terraform"
+        steps:
+        - uses: actions/checkout@v4
+        - uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: "1.8.3"
         name: Terraform Init
         steps:
           - name: Terraform fmt
