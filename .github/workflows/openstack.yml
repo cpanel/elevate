@@ -22,22 +22,20 @@ jobs:
         - uses: hashicorp/setup-terraform@v3
           with:
             terraform_version: "1.8.3"
-        name: Terraform Init
-        steps:
-          - name: Terraform fmt
-            id: fmt
-            run: terraform fmt -check
-            continue-on-error: true
+        - name: Terraform fmt
+          id: fmt
+          run: terraform fmt -check
+          continue-on-error: true
 
-          - name: Terraform Init
-            id: init
-            run: terraform init
+        - name: Terraform Init
+          id: init
+          run: terraform init
 
-          - name: Terraform Plan
-            id: plan
-            run: terraform plan -no-color
+        - name: Terraform Plan
+          id: plan
+          run: terraform plan -no-color
 
-          - run: echo ${{ steps.plan.outputs.stdout }}
-          - run: echo ${{ steps.plan.outputs.stderr }}
-          - run: echo ${{ steps.plan.outputs.exitcode }}
+        - run: echo ${{ steps.plan.outputs.stdout }}
+        - run: echo ${{ steps.plan.outputs.stderr }}
+        - run: echo ${{ steps.plan.outputs.exitcode }}
 
