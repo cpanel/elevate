@@ -37,12 +37,12 @@ jobs:
         - name: Terraform Plan
           id: plan
           run: |
-            terraform plan -no-color -out=${{ github.workspace }}/tfplan
+            terraform plan -no-color
 
         - name: Terraform Apply
           id: apply
           run: |
-            terraform apply -state=${{ github.workspace }}/new_tfplan -no-color -auto-approve tfplan
+            terraform apply -no-color -auto-approve
 
         - name: Terraform Output File Create
           run: |
