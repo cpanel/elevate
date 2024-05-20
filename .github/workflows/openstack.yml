@@ -61,5 +61,5 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: terraform_output_json
-            path: tf.out.json
+            path: ./tf.out.json
             overwrite: true
