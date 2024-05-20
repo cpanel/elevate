@@ -28,7 +28,7 @@ jobs:
           run: |
             "workdir=pwd" >> $GITHUB_OUTPUT
         
-          run: echo "${{ steps.pwd.outputs.workdir }}"
+        - run: echo "${{ steps.pwd.outputs.workdir }}"
 
 
         - name: Terraform fmt
