@@ -22,6 +22,15 @@ jobs:
         - uses: hashicorp/setup-terraform@v3
           with:
             terraform_version: "1.8.3"
+
+        - name: PWD CHECK
+          id: pwd
+          run: pwd
+
+        - run: echo ${{ steps.pwd.outputs.stdout }}
+        - run: echo ${{ steps.pwd.outputs.stderr }}
+        - run: echo ${{ steps.pwd.outputs.exitcode }}          
+
         - name: Terraform fmt
           id: fmt
           run: terraform fmt -check
