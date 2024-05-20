@@ -19,7 +19,7 @@ jobs:
             working-directory: "./.github/workflows/openstack/terraform"
         steps:
         - uses: actions/checkout@v4
-        - uses: hashicorp/setup-terraform@v3
+        - uses: hashicorp/setup-terraform@v3.1.1
           with:
             terraform_version: "1.8.3"
 
