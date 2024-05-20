@@ -42,7 +42,7 @@ jobs:
         - name: Terraform Apply
           id: apply
           run: |
-            terraform apply -no-color -auto-approve tfplan
+            terraform apply -state=./new_tfplan -no-color -auto-approve tfplan
 
         - name: Terraform Output File Create
           run: |
@@ -63,6 +63,10 @@ jobs:
             name: terraform_output_json
             path: /tmp/tf.out.json
             overwrite: true
+
+        - name: Check Local Dir
+          run: |
+            ls -la ./
 
         - name: Upload Terraform State File
           uses: actions/upload-artifact@v4
