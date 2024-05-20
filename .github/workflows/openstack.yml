@@ -66,10 +66,7 @@ jobs:
 
         - name: Encode Terraform State File
           run: |
-            $StateExists = Test-Path -Path ./terraform.tfstate -PathType Leaf
-            if ($StateExists){
-              openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ secrets.OS_PASSWORD }}" -out ./terraform.tfstate.enc
-            }
+            openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ secrets.OS_PASSWORD }}" -out ./terraform.tfstate.enc
 
         - name: Upload Terraform State File
           uses: actions/upload-artifact@v4
