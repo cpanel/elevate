@@ -39,7 +39,8 @@ jobs:
           run: |
             terraform plan -no-color
 
-        - run: echo ${{ steps.plan.outputs.stdout }}
+        - run: |
+            echo "${{ steps.plan.outputs.stdout }}"
 
         - name: Terraform Apply
           id: apply
