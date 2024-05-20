@@ -37,12 +37,12 @@ jobs:
         - name: Terraform Plan
           id: plan
           run: |
-            terraform plan -no-color
+            terraform plan -no-color -out=./tfplan
 
         - name: Terraform Apply
           id: apply
           run: |
-            terraform apply -no-color -auto-approve
+            terraform apply tfplan -no-color -auto-approve
 
         - name: Terraform Output File Create
           run: |
@@ -64,15 +64,11 @@ jobs:
             path: /tmp/tf.out.json
             overwrite: true
 
-        - name: Encode Terraform State File
-          run: |
-            openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ secrets.OS_PASSWORD }}" -out /tmp/terraform.tfstate.enc
-
         - name: Upload Terraform State File
           uses: actions/upload-artifact@v4
           with:
             name: terraformstatefile
-            path: /tmp/terraform.tfstate.enc
+            path: ./tfplan
             overwrite: true
 
     terraform_openstack_destroy:
@@ -93,8 +89,6 @@ jobs:
         with:
           name: terraformstatefile
           path: /tmp/
-      - name: Deencode Teeraform State File
-        run: openssl enc -d -in /tmp/terraform.tfstate.enc -aes-256-cbc -pbkdf2 -pass pass:"${{ secrets.OS_PASSWORD }}" -out ./terraform.tfstate
       - name: Destroy OpenStack VM
         run: terraform destroy -no-color -auto-approve 
         
