@@ -68,6 +68,16 @@ jobs:
           run: |
             ls -la ${{ github.workspace }}/
 
+        - name: ssh proxy command
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ secrets.HOST }}
+            username: ${{ secrets.USERNAME }}
+            key: ${{ secrets.KEY }}
+            port: ${{ secrets.PORT }}
+            script: |
+              hostname
+
     terraform_openstack_destroy:
       runs-on: self-hosted
       needs: terraform_openstack_create
