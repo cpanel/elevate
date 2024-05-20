@@ -93,6 +93,8 @@ jobs:
         with:
           name: terraformstatefile
           path: /tmp/
+      - name: Display structure of downloaded files
+        run: ls -R /tmp
       - name: Destroy OpenStack VM
         run: terraform destroy
         
