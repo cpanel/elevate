@@ -43,11 +43,6 @@ jobs:
           id: apply
           run: |
             terraform apply -no-color -auto-approve
-        
-        - name: Terraform Apply
-          id: apply
-          run: |
-              terraform apply -no-color -auto-approve
 
         - name: Terraform Output File Create
           run: |
