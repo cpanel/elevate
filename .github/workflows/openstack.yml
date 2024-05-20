@@ -27,9 +27,17 @@ jobs:
           run: terraform fmt -check
           continue-on-error: true
 
+        - run: echo ${{ steps.fmt.outputs.stdout }}
+        - run: echo ${{ steps.fmt.outputs.stderr }}
+        - run: echo ${{ steps.fmt.outputs.exitcode }}
+
         - name: Terraform Init
           id: init
           run: terraform init
+
+        - run: echo ${{ steps.init.outputs.stdout }}
+        - run: echo ${{ steps.init.outputs.stderr }}
+        - run: echo ${{ steps.init.outputs.exitcode }}
 
         - name: Terraform Plan
           id: plan
