@@ -70,6 +70,7 @@ resource "openstack_compute_instance_v2" "elevatevm" {
     ]
     connection {
         type        = "ssh"
+        agent       = "false"
         host        = self.access_ip_v4
         user        = "root"
         script_path = "/root/elevate_bootstrap"
