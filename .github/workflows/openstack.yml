@@ -42,7 +42,7 @@ jobs:
         - name: Terraform Apply
           id: apply
           run: |
-            terraform apply tfplan -no-color -auto-approve
+            terraform apply -no-color -auto-approve tfplan
 
         - name: Terraform Output File Create
           run: |
