@@ -25,17 +25,23 @@ jobs:
 
         - name: Terraform fmt
           id: fmt
-          run: terraform fmt -check
+          run: |
+            terraform fmt -check
           continue-on-error: true
 
         - name: Terraform Init
           id: init
-          run: terraform init
+          run: |
+            terraform init
 
-        - id: plan
-          run: terraform plan -no-color
+        - name: Terraform Plan
+          id: plan
+          run: |
+            terraform plan -no-color
 
-        - run: echo ${{ steps.plan.outputs.stdout }}
+#        - run: echo ${{ steps.plan.outputs.stdout }}
 
-#        - id: apply
-#          run: terraform apply -auto-approve
+        - name: Terraform Apply
+          id: apply
+          run: |
+            terraform apply -auto-approve
