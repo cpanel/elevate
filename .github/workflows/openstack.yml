@@ -14,6 +14,8 @@ jobs:
     init_terraform:
         runs-on: self-hosted
         name: Terraform
+        run:
+          working-directory: ./.github/workflows/openstack/
         steps:
             - name: Checkout
               uses: actions/checkout@v4
