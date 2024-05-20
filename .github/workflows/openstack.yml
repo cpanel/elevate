@@ -19,9 +19,9 @@ jobs:
             working-directory: "./.github/workflows/openstack/terraform"
         steps:
         - uses: actions/checkout@v4
-        - uses: hashicorp/setup-terraform@v3
-          with:
-            terraform_version: "1.8.3"
+#        - uses: hashicorp/setup-terraform@v3
+#          with:
+#            terraform_version: "1.8.3"
 
         - name: Terraform fmt
           id: fmt
@@ -39,10 +39,31 @@ jobs:
           run: |
             terraform plan -no-color
 
-        - run: |
-            echo "${{ steps.plan.outputs.stdout }}"
-
         - name: Terraform Apply
           id: apply
           run: |
-            terraform apply -auto-approve
+            terraform apply -no-color -auto-approve
+        
+        - name: Terraform Apply
+          id: apply
+          run: |
+              terraform apply -no-color -auto-approve
+
+        - name: Terraform Output File Create
+          run: |
+            terraform output -json > tf.out.json
+
+        - name: Get VM IP from Terraform Output File
+          id: get_vm_ip
+          run: echo "VM_IP=$(jq -r '.address.value' tf.out.json) >> "$GITHUB_OUTPUT"
+
+        - name: Export VM_IP to Env
+          env:
+            VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
+
+        - name: Upload Output
+          uses: actions/upload-artifact@v4
+          with:
+            name: terraform_output_json
+            path: tf.out.json
+            overwrite: true
