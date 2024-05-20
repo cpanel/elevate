@@ -19,9 +19,9 @@ jobs:
             working-directory: "./.github/workflows/openstack/terraform"
         steps:
         - uses: actions/checkout@v4
-        - uses: hashicorp/setup-terraform@v3
-          with:
-            terraform_version: "1.8.3"
+#        - uses: hashicorp/setup-terraform@v3
+#          with:
+#            terraform_version: "1.8.3"
 
         - name: Terraform fmt
           id: fmt
@@ -60,6 +60,7 @@ jobs:
         - name: Export VM_IP to Env
           env:
             VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
+          run: echo "The VM IP is $VM_IP"
 
         - name: Upload Output
           uses: actions/upload-artifact@v4
