@@ -78,3 +78,5 @@ jobs:
           name: terraform_output_json
           path: /tmp/
       - name: Destroy OpenStack VM
+        run: terraform destroy
+        
