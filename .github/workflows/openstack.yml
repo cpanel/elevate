@@ -18,13 +18,12 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
             - name: Setup Terraform
-              uses: hashicorp/setup-terraform
+              uses: hashicorp/setup-terraform@v3
               with:
                 terraform_version: "1.8.3"
             - run: terraform init
             - id: plan
               run: terraform plan -no-color
-
             - run: echo ${{ steps.plan.outputs.stdout }}
             - run: echo ${{ steps.plan.outputs.stderr }}
             - run: echo ${{ steps.plan.outputs.exitcode }}
