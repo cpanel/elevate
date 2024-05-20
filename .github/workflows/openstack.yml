@@ -9,24 +9,33 @@ env:
   TF_VAR_os_auth_url: ${{ secrets.OS_AUTH_URL }}
   TF_VAR_os_project_domain_name: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
   TF_VAR_os_password: ${{ secrets.OS_PASSWORD }}
+  tf_actions_working_directory: "./.github/workflows/openstack/terraform"
 
 jobs: 
-    init_terraform:
+    terraform_init:
+      run:
+        working-directory: "./.github/workflows/openstack/terraform"
         runs-on: self-hosted
-        name: Terraform
+        name: Terraform Init
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v3
-              with:
-                terraform_version: "1.8.3"
-            - run: ls -la
-            - run: cd ./.github/workflows/openstack/terraform
-            - run: terraform init
-            - id: plan
-              run: terraform plan -no-color
-            - run: echo ${{ steps.plan.outputs.stdout }}
-            - run: echo ${{ steps.plan.outputs.stderr }}
-            - run: echo ${{ steps.plan.outputs.exitcode }}
+          - uses: actions/checkout@v4
+          - uses: hashicorp/setup-terraform@v3
+            with:
+              terraform_version: "1.8.3"
+          - name: Terraform fmt
+            id: fmt
+            run: terraform fmt -check
+            continue-on-error: true
+
+          - name: Terraform Init
+            id: init
+            run: terraform init
+
+          - name: Terraform Plan
+            id: plan
+            run: terraform plan -no-color
+
+          - run: echo ${{ steps.plan.outputs.stdout }}
+          - run: echo ${{ steps.plan.outputs.stderr }}
+          - run: echo ${{ steps.plan.outputs.exitcode }}
 
