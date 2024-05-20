@@ -12,7 +12,7 @@ env:
   tf_working_directory: "./.github/workflows/openstack/terraform"
 
 jobs: 
-    terraform_openstack:
+    terraform_openstack_create:
         runs-on: self-hosted
         defaults:
           run:
@@ -46,11 +46,11 @@ jobs:
 
         - name: Terraform Output File Create
           run: |
-            terraform output -json > tf.out.json
+            terraform output -json > /tmp/tf.out.json
 
         - name: Get VM IP from Terraform Output File
           id: get_vm_ip
-          run: echo "VM_IP=$(jq -r '.address.value' tf.out.json)" >> "$GITHUB_OUTPUT"
+          run: echo "VM_IP=$(jq -r '.address.value' /tmp/tf.out.json)" >> "$GITHUB_OUTPUT"
 
         - name: Export VM_IP to Env
           env:
@@ -61,5 +61,19 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: terraform_output_json
-            path: ./tf.out.json
+            path: /tmp/tf.out.json
             overwrite: true
+
+    terraform_openstack_destroy:
+      runs-on: self-hosted
+      needs: terraform_openstack_create
+      defaults:
+        run:
+          working-directory: "./.github/workflows/openstack/terraform"
+      steps:
+      - uses: actions/checkout@v4
+      - name: Download Terraform Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tf.out.json
+          path: /tmp/
