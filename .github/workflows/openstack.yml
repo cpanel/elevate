@@ -57,11 +57,25 @@ jobs:
             VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
           run: echo "The VM IP is $VM_IP"
 
-        - name: Upload Output
+        - name: Upload JSON Output
           uses: actions/upload-artifact@v4
           with:
             name: terraform_output_json
             path: /tmp/tf.out.json
+            overwrite: true
+
+        - name: Encode Terraform State File
+          run: |
+            $StateExists = Test-Path -Path ./terraform.tfstate -PathType Leaf
+            if ($StateExists){
+              openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ secrets.OS_PASSWORD }}" -out ./terraform.tfstate.enc
+            }
+
+        - name: Upload Terraform State File
+          uses: actions/upload-artifact@v4
+          with:
+            name: terraformstatefile
+            path: /tmp/terraform.tfstate.enc
             overwrite: true
 
     terraform_openstack_destroy:
@@ -72,10 +86,15 @@ jobs:
           working-directory: "./.github/workflows/openstack/terraform"
       steps:
       - uses: actions/checkout@v4
-      - name: Download Terraform Artifacts
+      - name: Download Terraform Output JSON
         uses: actions/download-artifact@v4
         with:
           name: terraform_output_json
+          path: /tmp/
+      - name: Download Terraform State File
+        uses: actions/download-artifact@v4
+        with:
+          name: terraformstatefile
           path: /tmp/
       - name: Destroy OpenStack VM
         run: terraform destroy
