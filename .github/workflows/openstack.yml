@@ -37,7 +37,5 @@ jobs:
 
         - run: echo ${{ steps.plan.outputs.stdout }}
 
-        - id: apply
-          run: terraform apply -auto-approve
-
-        - run: echo ${{ steps.apply.outputs.stdout }}
+#        - id: apply
+#          run: terraform apply -auto-approve
