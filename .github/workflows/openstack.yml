@@ -26,7 +26,7 @@ jobs:
         - name: PWD CHECK
           id: pwd
           run: |
-            "workdir=pwd" >> $GITHUB_OUTPUT
+            "workdir=$(pwd)" >> $GITHUB_OUTPUT
         
         - run: echo "${{ steps.pwd.outputs.workdir }}"
 
