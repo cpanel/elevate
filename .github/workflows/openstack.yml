@@ -37,20 +37,20 @@ jobs:
         - name: Terraform Plan
           id: plan
           run: |
-            terraform plan -no-color -out=./tfplan
+            terraform plan -no-color -out=${{ github.workspace }}/tfplan
 
         - name: Terraform Apply
           id: apply
           run: |
-            terraform apply -state=./new_tfplan -no-color -auto-approve tfplan
+            terraform apply -state=${{ github.workspace }}/new_tfplan -no-color -auto-approve tfplan
 
         - name: Terraform Output File Create
           run: |
-            terraform output -json > /tmp/tf.out.json
+            terraform output -json > ${{ github.workspace }}/tf.out.json
 
         - name: Get VM IP from Terraform Output File
           id: get_vm_ip
-          run: echo "VM_IP=$(jq -r '.address.value' /tmp/tf.out.json)" >> "$GITHUB_OUTPUT"
+          run: echo "VM_IP=$(jq -r '.address.value' ${{ github.workspace }}/tf.out.json)" >> "$GITHUB_OUTPUT"
 
         - name: Export VM_IP to Env
           env:
@@ -61,18 +61,18 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: terraform_output_json
-            path: /tmp/tf.out.json
+            path: ${{ github.workspace }}/tf.out.json
             overwrite: true
 
         - name: Check Local Dir
           run: |
-            ls -la ./
+            ls -la ${{ github.workspace }}/
 
         - name: Upload Terraform State File
           uses: actions/upload-artifact@v4
           with:
             name: terraformstatefile
-            path: ./tfplan
+            path: ${{ github.workspace }}/tfplan
             overwrite: true
 
     terraform_openstack_destroy:
@@ -82,17 +82,17 @@ jobs:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
       steps:
-      - uses: actions/checkout@v4
+#      - uses: actions/checkout@v4
       - name: Download Terraform Output JSON
         uses: actions/download-artifact@v4
         with:
           name: terraform_output_json
-          path: /tmp/
+          path: ${{ github.workspace }}/
       - name: Download Terraform State File
         uses: actions/download-artifact@v4
         with:
           name: terraformstatefile
-          path: /tmp/
+          path: /${{ github.workspace }}/
       - name: Destroy OpenStack VM
         run: terraform destroy -no-color -auto-approve 
         
