@@ -75,5 +75,5 @@ jobs:
       - name: Download Terraform Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: tf.out.json
+          name: terraform_output_json
           path: /tmp/
