@@ -9,19 +9,22 @@ env:
   TF_VAR_os_auth_url: ${{ secrets.OS_AUTH_URL }}
   TF_VAR_os_project_domain_name: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
   TF_VAR_os_password: ${{ secrets.OS_PASSWORD }}
-  tf_actions_working_directory: "./.github/workflows/openstack/terraform"
+  tf_working_directory: "./.github/workflows/openstack/terraform"
+
+defaults:
+  run:
+    working-directory: "./.github/workflows/openstack/terraform"
+steps:
+    - uses: actions/checkout@v4
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.8.3"
 
 jobs: 
     terraform_init:
-      run:
-        working-directory: "./.github/workflows/openstack/terraform"
         runs-on: self-hosted
         name: Terraform Init
         steps:
-          - uses: actions/checkout@v4
-          - uses: hashicorp/setup-terraform@v3
-            with:
-              terraform_version: "1.8.3"
           - name: Terraform fmt
             id: fmt
             run: terraform fmt -check
