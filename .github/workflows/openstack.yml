@@ -71,10 +71,10 @@ jobs:
         - name: ssh proxy command
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ secrets.HOST }}
+            host: ${{ env.VM_IP }}
             username: ${{ secrets.USERNAME }}
-            key: ${{ secrets.KEY }}
-            port: ${{ secrets.PORT }}
+            key: ${{ secrets.OS_SSH_KEY }}
+            port: '22'
             script: |
               hostname
 
