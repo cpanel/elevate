@@ -63,7 +63,8 @@ resource "openstack_compute_instance_v2" "elevatevm" {
       echo "START_REMOTE_EXEC"
       touch /root/.ssh/id_ed25519
       chmod 600 /root/.ssh/id_ed25519
-      echo "${var.ssh_access_key}" >> /root/.ssh/id_ed25519
+      echo "${var.ssh_private_key}" >> /root/.ssh/id_ed25519
+      echo "${var.ssh_public_key}" >> /root/.ssh/.authorized_keys
       echo 'waiting on cloud-init...'
       cloud-init status --wait > /dev/null || true
     EOF
