@@ -47,7 +47,9 @@ jobs:
 
         - name: Get VM IP from Terraform Output File
           id: get_vm_ip
-          run: echo "VM_IP=$(jq -r '.address.value' ${{ github.workspace }}/tf.out.json)" >> "$GITHUB_OUTPUT"
+          run: |
+            echo "VM_IP=$(jq -r '.address.value' ${{ github.workspace }}/tf.out.json)" >> "$GITHUB_OUTPUT"
+            echo ${VM_IP} > vm_ip
 
         - name: Export VM_IP to Env
           env:
@@ -68,6 +70,9 @@ jobs:
           run:
             working-directory: "./.github/workflows/openstack/terraform"
         steps:
+        - name: Get VM IP
+          id: get_vm_ip
+          run: cat vm_ip >> "$GITHUB_OUTPUT"
         - name: SSH Client Connect
           uses: appleboy/ssh-action@v1.0.3
           with:
