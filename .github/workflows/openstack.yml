@@ -18,6 +18,8 @@ jobs:
         defaults:
           run:
             working-directory: "./.github/workflows/openstack/terraform"
+        outputs:
+            VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
         steps:
         - uses: actions/checkout@v4
         - name: Terraform fmt
@@ -49,7 +51,7 @@ jobs:
           id: get_vm_ip
           run: |
             echo "VM_IP=$(jq -r '.address.value' ${{ github.workspace }}/tf.out.json)" >> "$GITHUB_OUTPUT"
-            echo ${VM_IP} > vm_ip
+            echo "$(jq -r '.address.value' ${{ github.workspace }}/tf.out.json)" > vm_ip
 
         - name: Export VM_IP to Env
           env:
