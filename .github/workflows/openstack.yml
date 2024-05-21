@@ -65,7 +65,7 @@ jobs:
             path: ${{ github.workspace }}/tf.out.json
             overwrite: true
 
-    run_elevate:
+    run_elevate_phase_1:
         runs-on: self-hosted
         needs: terraform_openstack_create
         defaults:
@@ -84,7 +84,15 @@ jobs:
               sleep 120
               perl -pi*.bak -e 's/^CPANEL=.*/CPANEL=11.110/g' /etc/cpupdate.conf
               /scripts/upcp
+              sleep 60
 
+    run_elevate_phase_2:
+      runs-on: self-hosted
+      needs: run_elevate_phase_1
+      defaults:
+        run:
+          working-directory: "./.github/workflows/openstack/terraform"
+      steps:
         - name: SSH - Staging for Elevate 
           uses: appleboy/ssh-action@v1.0.3
           with:
@@ -99,7 +107,7 @@ jobs:
 
     terraform_openstack_destroy:
       runs-on: self-hosted
-      needs: run_elevate
+      needs: run_elevate_phase_2
       defaults:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
