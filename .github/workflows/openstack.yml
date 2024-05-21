@@ -88,7 +88,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.stage_elevate.outputs.VM_IP }}
       steps:
-        - name: Starting Elevate 
+        - name: Starting Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.stage_elevate.outputs.VM_IP }}
@@ -98,13 +98,47 @@ jobs:
             script: |
               wget -O /scripts/elevate-cpanel https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel
               chmod -v +x /scripts/elevate-cpanel
-              /scripts/elevate-cpanel --skip-cpanel-version-check --non-interactive
+              /scripts/elevate-cpanel --skip-cpanel-version-check --non-interactive --start
 
-    terraform_openstack_destroy:
+    watch_for_second_reboot:
       runs-on: self-hosted
       needs: start_elevate
       outputs:
         VM_IP: ${{ needs.start_elevate.outputs.VM_IP }}
+      steps:
+        - name: Starting Elevate 
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.start_elevate.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            timeout: 120
+            script: |
+              /scripts/elevate-cpanel --log
+
+    watch_for_third_reboot:
+      runs-on: self-hosted
+      needs: watch_for_second_reboot
+      outputs:
+        VM_IP: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
+      steps:
+        - name: Starting Elevate 
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            timeout: 360
+            script: |
+              /scripts/elevate-cpanel --log
+
+    terraform_openstack_destroy:
+      runs-on: self-hosted
+      needs: watch_for_third_reboot
+      outputs:
+        VM_IP: ${{ needs.watch_for_third_reboot.outputs.VM_IP }}
       defaults:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
