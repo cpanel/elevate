@@ -65,7 +65,7 @@ jobs:
             path: ${{ github.workspace }}/tf.out.json
             overwrite: true
 
-    run_elevate_phase_1:
+    stage_elevate:
         runs-on: self-hosted
         needs: terraform_openstack_create
         outputs:
@@ -80,34 +80,31 @@ jobs:
             port: '22'
             script: |
               /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.6
-              sleep 120
-              perl -pi*.bak -e 's/^CPANEL=.*/CPANEL=11.110/g' /etc/cpupdate.conf
-              /scripts/upcp
-              sleep 60
+              sleep 80
 
-    run_elevate_phase_2:
+    start_elevate:
       runs-on: self-hosted
-      needs: run_elevate_phase_1
+      needs: stage_elevate
       outputs:
-        VM_IP: ${{ needs.run_elevate_phase_1.outputs.VM_IP }}
+        VM_IP: ${{ needs.stage_elevate.outputs.VM_IP }}
       steps:
-        - name: SSH - Staging for Elevate 
+        - name: Starting Elevate 
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.run_elevate_phase_1.outputs.VM_IP }}
+            host: ${{ needs.stage_elevate.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             script: |
               wget -O /scripts/elevate-cpanel https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel
               chmod -v +x /scripts/elevate-cpanel
-              /scripts/elevate-cpanel --check
+              /scripts/elevate-cpanel --skip-cpanel-version-check --non-interactive
 
     terraform_openstack_destroy:
       runs-on: self-hosted
-      needs: run_elevate_phase_2
+      needs: start_elevate
       outputs:
-        VM_IP: ${{ needs.run_elevate_phase_2.outputs.VM_IP }}
+        VM_IP: ${{ needs.start_elevate.outputs.VM_IP }}
       defaults:
         run:
           working-directory: "./.github/workflows/openstack/terraform"

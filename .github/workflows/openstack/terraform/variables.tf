@@ -41,7 +41,7 @@ variable "ssh_public_key" {
 
 variable "image_name" {
   type    = string
-  default = "11.109.9999.* on CentOS 7"
+  default = "11.110.0.* on CentOS 7"
 }
 
 variable "cpanel_release_version" {
