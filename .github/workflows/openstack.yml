@@ -67,6 +67,7 @@ jobs:
         - name: Check Local Dir
           run: |
             ls -la ${{ github.workspace }}/
+            env
 
         - name: ssh proxy command
           uses: appleboy/ssh-action@v1.0.3
