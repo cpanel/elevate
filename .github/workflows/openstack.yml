@@ -65,13 +65,13 @@ jobs:
             path: ${{ github.workspace }}/tf.out.json
             overwrite: true
 
-    stage_elevate:
-        runs-on: self-hosted
-        needs: terraform_openstack_create
-        outputs:
-          VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
-        steps:
-        - name: SSH - Run Elevate Phase 1
+    start_elevate:
+      runs-on: self-hosted
+      needs: terraform_openstack_create
+      outputs:
+        VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+      steps:
+        - name: Starting Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
@@ -79,26 +79,11 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             script: |
-              /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.6
-              sleep 80
-
-    start_elevate:
-      runs-on: self-hosted
-      needs: stage_elevate
-      outputs:
-        VM_IP: ${{ needs.stage_elevate.outputs.VM_IP }}
-      steps:
-        - name: Starting Elevate
-          uses: appleboy/ssh-action@v1.0.3
-          with:
-            host: ${{ needs.stage_elevate.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            script: |
               wget -O /scripts/elevate-cpanel https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel
               chmod -v +x /scripts/elevate-cpanel
-              /scripts/elevate-cpanel --skip-cpanel-version-check --non-interactive --start
+              /scripts/elevate-cpanel --skip-cpanel-version-check --non-interactive --start &
+              tail -fn0 /var/log/elevate-cpanel.log &
+              tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
 
     watch_for_second_reboot:
       runs-on: self-hosted
@@ -115,7 +100,8 @@ jobs:
             port: '22'
             timeout: 120
             script: |
-              /scripts/elevate-cpanel --log
+              tail -fn0 /var/log/elevate-cpanel.log &
+              tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
 
     watch_for_third_reboot:
       runs-on: self-hosted
@@ -132,7 +118,8 @@ jobs:
             port: '22'
             timeout: 360
             script: |
-              /scripts/elevate-cpanel --log
+              tail -fn0 /var/log/elevate-cpanel.log &
+              tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
 
     terraform_openstack_destroy:
       runs-on: self-hosted
