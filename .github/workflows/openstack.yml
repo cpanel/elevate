@@ -75,7 +75,7 @@ jobs:
           with:
             host: ${{ steps.get_vm_ip.outputs.VM_IP }}
             username: 'root'
-            key: ${{ secrets.OS_PRIVATE_KEY }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             script: |
               hostname
