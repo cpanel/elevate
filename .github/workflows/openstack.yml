@@ -81,6 +81,7 @@ jobs:
             port: '22'
             script: |
               /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.6
+              sleep 120
               perl -pi*.bak -e 's/^CPANEL=.*/CPANEL=11.110/g' /etc/cpupdate.conf
               /scripts/upcp
 
