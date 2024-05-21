@@ -73,8 +73,8 @@ jobs:
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ steps.get_vm_ip.outputs.VM_IP }}
-            username: ${{ secrets.USERNAME }}
-            key: ${{ secrets.OS_SSH_KEY }}
+            username: 'root'
+            key: ${{ env.TF_VAR_ssh_access_key }}
             port: '22'
             script: |
               hostname
