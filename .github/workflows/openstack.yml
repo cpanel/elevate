@@ -72,7 +72,7 @@ jobs:
         - name: ssh proxy command
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ env.VM_IP }}
+            host: ${{ steps.get_vm_ip.outputs.VM_IP }}
             username: ${{ secrets.USERNAME }}
             key: ${{ secrets.OS_SSH_KEY }}
             port: '22'
