@@ -68,9 +68,8 @@ jobs:
     run_elevate_phase_1:
         runs-on: self-hosted
         needs: terraform_openstack_create
-        defaults:
-          run:
-            working-directory: "./.github/workflows/openstack/terraform"
+        outputs:
+          VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
         steps:
         - name: SSH - Run Elevate Phase 1
           uses: appleboy/ssh-action@v1.0.3
@@ -89,14 +88,13 @@ jobs:
     run_elevate_phase_2:
       runs-on: self-hosted
       needs: run_elevate_phase_1
-      defaults:
-        run:
-          working-directory: "./.github/workflows/openstack/terraform"
+      outputs:
+        VM_IP: ${{ needs.run_elevate_phase_1.outputs.VM_IP }}
       steps:
         - name: SSH - Staging for Elevate 
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+            host: ${{ needs.run_elevate_phase_1.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
@@ -108,6 +106,8 @@ jobs:
     terraform_openstack_destroy:
       runs-on: self-hosted
       needs: run_elevate_phase_2
+      outputs:
+        VM_IP: ${{ needs.run_elevate_phase_2.outputs.VM_IP }}
       defaults:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
