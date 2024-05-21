@@ -63,6 +63,7 @@ jobs:
 
     run_elevate:
         runs-on: self-hosted
+        needs: terraform_openstack_create
         defaults:
           run:
             working-directory: "./.github/workflows/openstack/terraform"
