@@ -61,7 +61,7 @@ jobs:
             path: ${{ github.workspace }}/tf.out.json
             overwrite: true
 
-    terraform_openstack_create:
+    run_elevate:
         runs-on: self-hosted
         defaults:
           run:
