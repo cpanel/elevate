@@ -27,9 +27,15 @@ variable "os_project_domain_name" {
     type = string
 }
 
-variable "ssh_access_key" {
+variable "ssh_private_key" {
   type = string
-  description = "SSH public key added to the VMs /root/.ssh/authorized_keys file to allow user access."
+  description = "SSH private key matching the public key added to the VMs /root/.ssh/authorized_keys file to allow user access."
+  sensitive = true
+}
+
+variable "ssh_public_key" {
+  type = string
+  description = "SSH public key matching the public key added to the VMs /root/.ssh/authorized_keys file to allow user access."
   sensitive = true
 }
 
