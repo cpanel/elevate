@@ -72,7 +72,19 @@ jobs:
           run:
             working-directory: "./.github/workflows/openstack/terraform"
         steps:
-        - name: SSH Client Connect
+        - name: SSH - Run Elevate Phase 1
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            script: |
+              /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.6
+              perl -pi*.bak -e 's/^CPANEL=.*/CPANEL=11.110/g' /etc/cpupdate.conf
+              /scripts/upcp
+
+        - name: SSH - Staging for Elevate 
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
@@ -83,12 +95,6 @@ jobs:
               wget -O /scripts/elevate-cpanel https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel
               chmod -v +x /scripts/elevate-cpanel
               /scripts/elevate-cpanel --check
-              /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=10.6
-              sleep 120
-              perl -pi*.bak -e 's/^CPANEL=.*/CPANEL=11.110/g' /etc/cpupdate.conf
-              /scripts/upcp
-              sleep 15
-              
 
     terraform_openstack_destroy:
       runs-on: self-hosted
