@@ -20,10 +20,6 @@ jobs:
             working-directory: "./.github/workflows/openstack/terraform"
         steps:
         - uses: actions/checkout@v4
-#        - uses: hashicorp/setup-terraform@v3.1.1
-#          with:
-#            terraform_version: "1.8.3"
-
         - name: Terraform fmt
           id: fmt
           run: |
@@ -65,12 +61,13 @@ jobs:
             path: ${{ github.workspace }}/tf.out.json
             overwrite: true
 
-        - name: Check Local Dir
-          run: |
-            ls -la ${{ github.workspace }}/
-            env
-
-        - name: ssh proxy command
+    terraform_openstack_create:
+        runs-on: self-hosted
+        defaults:
+          run:
+            working-directory: "./.github/workflows/openstack/terraform"
+        steps:
+        - name: SSH Client Connect
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ steps.get_vm_ip.outputs.VM_IP }}
@@ -87,7 +84,6 @@ jobs:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
       steps:
-#      - uses: actions/checkout@v4
       - name: Download Terraform Output JSON
         uses: actions/download-artifact@v4
         with:
