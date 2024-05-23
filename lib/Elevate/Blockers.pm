@@ -26,6 +26,7 @@ use Elevate::Blockers::Distros          ();
 use Elevate::Blockers::DNS              ();
 use Elevate::Blockers::EA4              ();
 use Elevate::Blockers::Grub2            ();
+use Elevate::Blockers::Imunify          ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
 use Elevate::Blockers::MountPoints      ();
@@ -60,6 +61,7 @@ our @BLOCKERS = qw{
   WHM
   Distros
   CloudLinux
+  Imunify
   DNS
 
   Databases
