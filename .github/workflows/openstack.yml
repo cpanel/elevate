@@ -85,7 +85,7 @@ jobs:
               tail -fn0 /var/log/elevate-cpanel.log &
               tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
 
-    watch_for_second_reboot:
+    wait_for_first_reboot:
       runs-on: self-hosted
       needs: start_elevate
       outputs:
@@ -98,10 +98,17 @@ jobs:
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/glp-temp-key
             chmod 0600 /tmp/glp-temp-key
             ./ssh_retry.sh /tmp/glp-temp-key ${{ needs.start_elevate.outputs.VM_IP }}
+
+    watch_for_second_reboot:
+      runs-on: self-hosted
+      needs: wait_for_first_reboot
+      outputs:
+        VM_IP: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
+      steps:
         - name: Checking Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.start_elevate.outputs.VM_IP }}
+            host: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
