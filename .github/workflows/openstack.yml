@@ -91,7 +91,12 @@ jobs:
       outputs:
         VM_IP: ${{ needs.start_elevate.outputs.VM_IP }}
       steps:
-        - name: Starting Elevate 
+        - name: Wait On Wake From First Reboot
+          run: |
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/glp-temp-key
+            chmod 0600 /tmp/glp-temp-key
+            ./ssh_retry.sh /tmp/glp-temp-key ${{ needs.start_elevate.outputs.VM_IP }}
+        - name: Checking Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.start_elevate.outputs.VM_IP }}
