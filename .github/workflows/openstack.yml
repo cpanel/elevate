@@ -92,6 +92,7 @@ jobs:
         VM_IP: ${{ needs.start_elevate.outputs.VM_IP }}
       steps:
         - name: Wait On Wake From First Reboot
+          working-directory: "./.github/workflows/openstack/"
           run: |
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/glp-temp-key
             chmod 0600 /tmp/glp-temp-key
