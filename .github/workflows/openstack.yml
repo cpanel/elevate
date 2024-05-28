@@ -98,7 +98,7 @@ jobs:
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
-            timeout: 120s
+            timeout: 2m
             script: |
               tail -fn0 /var/log/elevate-cpanel.log &
               tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
@@ -109,14 +109,14 @@ jobs:
       outputs:
         VM_IP: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
       steps:
-        - name: Starting Elevate 
+        - name: Starting Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
-            timeout: 360s
+            timeout: 3m
             script: |
               tail -fn0 /var/log/elevate-cpanel.log &
               tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
