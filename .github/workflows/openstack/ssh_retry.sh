@@ -13,14 +13,14 @@ do
    # We want to exit immediately after we actually connect.
    ssh -i $SSH_KEY root@$HOST exit;
    RETVAL=$?;
-#   [ $RETVAL -eq 0 ] && echo Success;
-#   [ $RETVAL -ne 0 ] && echo Failure;
+   [ $RETVAL -eq 0 ] && echo Success;
+   [ $RETVAL -ne 0 ] && echo Failure;
    RETRIES=$((RETRIES+1));
-#   echo "number of retries: $RETRIES";
+   echo "number of retries: $RETRIES";
    if [ ${RETRIES} -ge ${MAX_RETRIES} ];
    then
        echo "MAX_RETRIES has been reached.";
        exit 1;
    fi;
-   sleep 1;
+   sleep 5;
 done
