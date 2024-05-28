@@ -100,12 +100,12 @@ jobs:
       runs-on: self-hosted
       needs: wait_for_first_reboot
       outputs:
-        VM_IP: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
+        VM_IP: ${{ needs.wait_for_first_reboot.outputs.VM_IP }}
       steps:
         - name: Checking Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
+            host: ${{ needs.wait_for_first_reboot.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
