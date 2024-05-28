@@ -94,10 +94,7 @@ jobs:
         - name: Wait On Wake From First Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
-            ssh-keyscan ${{ needs.start_elevate.outputs.VM_IP }} >> $HOME/.ssh/known_hosts
-            echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/glp-temp-key
-            chmod 0600 /tmp/glp-temp-key
-            ./ssh_retry.sh /tmp/glp-temp-key ${{ needs.start_elevate.outputs.VM_IP }}
+            ./ssh_retry.sh ${{ needs.start_elevate.outputs.VM_IP }}
 
     watch_for_second_reboot:
       runs-on: self-hosted
