@@ -11,12 +11,12 @@ MAX_RETRIES="${RETRY_ARG:=30}";
 while [ $RETVAL -ne 0 ];
 do
    # We want to exit immediately after we actually connect.
-   ssh -i $SSH_KEY root@$HOST exit;
+   ssh -i $SSH_KEY root@$HOST exit 0;
    RETVAL=$?;
-   [ $RETVAL -eq 0 ] && echo Success;
-   [ $RETVAL -ne 0 ] && echo Failure;
+   [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Connected to ${HOST} ##" && exit 0;
    RETRIES=$((RETRIES+1));
-   echo "number of retries: $RETRIES";
+   [ $RETVAL -ne 0 ] && echo "Retrying: Attempt ${RETRIES} ...";
+
    if [ ${RETRIES} -ge ${MAX_RETRIES} ];
    then
        echo "MAX_RETRIES has been reached.";
