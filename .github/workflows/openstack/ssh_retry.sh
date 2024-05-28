@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 RETVAL=1;
 RETRIES=0;
 SSH_KEY=$1;
