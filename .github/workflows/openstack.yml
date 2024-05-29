@@ -111,10 +111,11 @@ jobs:
             port: '22'
             timeout: 60m
             command_timeout: 20m
+            debug: true
             script: |
               set -x
-              tail -fn0 /var/log/elevate-cpanel.log &
-              /scripts/elevate-cpanel --log | awk '/Rebooting into stage 4 of 5/ { print | "exit" }'
+              /scripts/elevate-cpanel --log | awk '/END OF REPORT/ { print | "exit" }' &
+              /scripts/elevate-cpanel --log
     
     wait_for_stage_4_reboot:
       runs-on: self-hosted
