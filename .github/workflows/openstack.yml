@@ -115,7 +115,7 @@ jobs:
             script: |
               set -x
               /scripts/elevate-cpanel --log &
-              REGEX="REBOOT NOWWWW"
+              REGEX="Rebooting into stage 4 of 5"
               RETVAL=1
               while [ $RETVAL -ne 0 ]; do grep "${REGEX}" /var/log/elevate-cpanel.log; RETVAL=$?; [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Reboot text found in /var/log/elevate-cpanel.log  ##" && exit 0; RETRIES=$((RETRIES+1)); [ $RETVAL -ne 0 ] && echo "## [DEBUG]: Retrying Reboot Search: Attempt ${RETRIES} ..."; sleep 1; done
     
