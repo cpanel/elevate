@@ -221,9 +221,9 @@ jobs:
 
     terraform_openstack_destroy:
       runs-on: self-hosted
-      needs: watch_for_final_reboot
+      needs: watch_for_complete
       outputs:
-        VM_IP: ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
+        VM_IP: ${{ needs.watch_for_complete.outputs.VM_IP }}
       defaults:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
