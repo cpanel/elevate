@@ -1,3 +1,8 @@
+##### **2024-05-29** - version 39
+
+* Fixed case RE-132: Have pre_leapp component remove packages that leapp will remove.
+* Fixed case RE-373: Add blocker for an invalid Imunify license.
+
 ##### **2024-05-15** - version 38
 
 * Fixed case RE-134: Have script block if mount -a fails to exit cleanly.
