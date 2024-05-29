@@ -196,49 +196,16 @@ jobs:
           run: |
             ./ssh_retry.sh ${{ needs.watch_for_final_reboot.outputs.VM_IP }}
 
-    watch_for_complete:
+    verify_upgraded_os:
       runs-on: self-hosted
       needs: wait_for_final_reboot
       outputs:
         VM_IP: ${{ needs.wait_for_final_reboot.outputs.VM_IP }}
       steps:
-        - name: Watch Elevate for Post-Install Reboot
-          uses: appleboy/ssh-action@v1.0.3
-          with:
-            host: ${{ needs.wait_for_final_reboot.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 30m
-            command_timeout: 20m
-            script: |
-              set -x
-              /scripts/elevate-cpanel --log &
-              REGEX="Great SUCCESS"
-              RETVAL=1
-              while [ $RETVAL -ne 0 ]; do grep "${REGEX}" /var/log/elevate-cpanel.log; RETVAL=$?; [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Reboot text found in /var/log/elevate-cpanel.log  ##" && exit 0; RETRIES=$((RETRIES+1)); [ $RETVAL -ne 0 ] && echo "## [DEBUG]: Retrying Reboot Search: Attempt ${RETRIES} ..."; sleep 1; done
-
-    wait_for_post_elevate_reboot:
-      runs-on: self-hosted
-      needs: watch_for_complete
-      outputs:
-        VM_IP: ${{ needs.watch_for_complete.outputs.VM_IP }}
-      steps:
-        - name: Wait On Wake From Post-Install Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry.sh ${{ needs.watch_for_complete.outputs.VM_IP }}
-
-    verify_upgraded_os:
-      runs-on: self-hosted
-      needs: wait_for_post_elevate_reboot
-      outputs:
-        VM_IP: ${{ needs.wait_for_post_elevate_reboot.outputs.VM_IP }}
-      steps:
         - name: Verify OS Upgraded and Elevate Complete
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.wait_for_post_elevate_reboot.outputs.VM_IP }}
+            host: ${{ needs.wait_for_final_reboot.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
