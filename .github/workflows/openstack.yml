@@ -85,7 +85,7 @@ jobs:
               tail -fn0 /var/log/elevate-cpanel.log &
               tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
 
-    wait_for_first_reboot:
+    wait_for_stage_3_reboot:
       runs-on: self-hosted
       needs: start_elevate
       outputs:
@@ -96,16 +96,16 @@ jobs:
           run: |
             ./ssh_retry.sh ${{ needs.start_elevate.outputs.VM_IP }}
 
-    watch_for_second_reboot:
+    watch_for_stage_4_reboot:
       runs-on: self-hosted
-      needs: wait_for_first_reboot
+      needs: wait_for_stage_3_reboot
       outputs:
-        VM_IP: ${{ needs.wait_for_first_reboot.outputs.VM_IP }}
+        VM_IP: ${{ needs.wait_for_stage_3_reboot.outputs.VM_IP }}
       steps:
         - name: Checking Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.wait_for_first_reboot.outputs.VM_IP }}
+            host: ${{ needs.wait_for_stage_3_reboot.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
@@ -116,27 +116,27 @@ jobs:
               tail -fn0 /var/log/elevate-cpanel.log &
               tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
     
-    wait_for_second_reboot:
+    wait_for_stage_4_reboot:
       runs-on: self-hosted
-      needs: watch_for_second_reboot
+      needs: watch_for_stage_4_reboot
       outputs:
-        VM_IP: ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
+        VM_IP: ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
       steps:
         - name: Wait On Wake From First Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
-            ./ssh_retry.sh ${{ needs.watch_for_second_reboot.outputs.VM_IP }}
+            ./ssh_retry.sh ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
 
-    watch_for_third_reboot:
+    watch_for_stage_5_reboot:
       runs-on: self-hosted
-      needs: wait_for_second_reboot
+      needs: wait_for_stage_4_reboot
       outputs:
-        VM_IP: ${{ needs.wait_for_second_reboot.outputs.VM_IP }}
+        VM_IP: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
       steps:
         - name: Starting Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.wait_for_second_reboot.outputs.VM_IP }}
+            host: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
@@ -149,9 +149,9 @@ jobs:
 
     terraform_openstack_destroy:
       runs-on: self-hosted
-      needs: watch_for_third_reboot
+      needs: watch_for_stage_5_reboot
       outputs:
-        VM_IP: ${{ needs.watch_for_third_reboot.outputs.VM_IP }}
+        VM_IP: ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
       defaults:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
