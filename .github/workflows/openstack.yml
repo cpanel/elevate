@@ -114,7 +114,7 @@ jobs:
             script: |
               set -x
               tail -fn0 /var/log/elevate-cpanel.log &
-              watch -t -n 0.3 -exec awk '/Rebooting into stage/ { print | "exit" }' /var/log/elevate-cpanel.log
+              tail -f /var/log/elevate-cpanel.log | awk '/Rebooting into stage 4 of 5/ { print | "exit" }'
     
     wait_for_stage_4_reboot:
       runs-on: self-hosted
