@@ -83,7 +83,7 @@ jobs:
               chmod -v +x /scripts/elevate-cpanel
               /scripts/elevate-cpanel --skip-cpanel-version-check --non-interactive --start &
               tail -fn0 /var/log/elevate-cpanel.log &
-              tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage 3 of 5/ { print | "exit" }'
+              /scripts/elevate-cpanel --log | awk '/Rebooting into stage 3 of 5/ { print | "exit" }'
 
     wait_for_stage_3_reboot:
       runs-on: self-hosted
@@ -114,7 +114,7 @@ jobs:
             script: |
               set -x
               tail -fn0 /var/log/elevate-cpanel.log &
-              tail -f /var/log/elevate-cpanel.log | awk '/Rebooting into stage 4 of 5/ { print | "exit" }'
+              /scripts/elevate-cpanel --log | awk '/Rebooting into stage 4 of 5/ { print | "exit" }'
     
     wait_for_stage_4_reboot:
       runs-on: self-hosted
@@ -145,7 +145,7 @@ jobs:
             script: |
               set -x
               tail -fn0 /var/log/elevate-cpanel.log &
-              watch -t -n 0.3 -exec awk '/Rebooting into stage/ { print | "exit" }' /var/log/elevate-cpanel.log
+              /scripts/elevate-cpanel --log | awk '/Doing final reboot/ { print | "exit" }'
 
     terraform_openstack_destroy:
       runs-on: self-hosted
