@@ -109,7 +109,8 @@ jobs:
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
-            timeout: 30m
+            timeout: 60m
+            command_timeout: 20m
             script: |
               tail -fn0 /var/log/elevate-cpanel.log &
               tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
@@ -128,6 +129,7 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             timeout: 30m
+            command_timeout: 20m
             script: |
               tail -fn0 /var/log/elevate-cpanel.log &
               tail -fn0 /var/log/elevate-cpanel.log | awk '/Rebooting into stage/ { print | "exit" }'
