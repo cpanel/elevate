@@ -91,7 +91,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.start_elevate.outputs.VM_IP }}
       steps:
-        - name: Wait On Wake From First Reboot
+        - name: Wait For VM to Come Back From Stage 3 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
             ./ssh_retry.sh ${{ needs.start_elevate.outputs.VM_IP }}
@@ -102,7 +102,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.wait_for_stage_3_reboot.outputs.VM_IP }}
       steps:
-        - name: Checking Elevate
+        - name: Monitor Elevate for Stage 4 Reboot
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.wait_for_stage_3_reboot.outputs.VM_IP }}
@@ -125,7 +125,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
       steps:
-        - name: Wait On Wake From First Reboot
+        - name: Wait For VM to Come Back From Stage 4 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
             ./ssh_retry.sh ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
@@ -136,7 +136,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
       steps:
-        - name: Starting Elevate
+        - name: Monitor Elevate for Stage 5 Reboot
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
@@ -158,7 +158,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
       steps:
-        - name: Wait On Wake From First Reboot
+        - name: Wait For VM to Come Back From Stage 5 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
             ./ssh_retry.sh ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
@@ -169,7 +169,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP }}
       steps:
-        - name: Starting Elevate
+        - name: Watch Elevate for Final Reboot
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP }}
@@ -191,7 +191,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.watch_for_final_reboot.outputs.VM_IP }}
       steps:
-        - name: Wait On Wake From First Reboot
+        - name: Wait For VM to Come Back From Final Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
             ./ssh_retry.sh ${{ needs.watch_for_final_reboot.outputs.VM_IP }}
@@ -202,7 +202,7 @@ jobs:
       outputs:
         VM_IP: ${{ needs.wait_for_final_reboot.outputs.VM_IP }}
       steps:
-        - name: Starting Elevate
+        - name: Watch Elevate for Post-Install Reboot
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.wait_for_final_reboot.outputs.VM_IP }}
@@ -217,13 +217,42 @@ jobs:
               REGEX="Great SUCCESS"
               RETVAL=1
               while [ $RETVAL -ne 0 ]; do grep "${REGEX}" /var/log/elevate-cpanel.log; RETVAL=$?; [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Reboot text found in /var/log/elevate-cpanel.log  ##" && exit 0; RETRIES=$((RETRIES+1)); [ $RETVAL -ne 0 ] && echo "## [DEBUG]: Retrying Reboot Search: Attempt ${RETRIES} ..."; sleep 1; done
-              head -n1 /etc/redhat-release
 
-    terraform_openstack_destroy:
+    wait_for_post_elevate_reboot:
       runs-on: self-hosted
       needs: watch_for_complete
       outputs:
         VM_IP: ${{ needs.watch_for_complete.outputs.VM_IP }}
+      steps:
+        - name: Wait On Wake From Post-Install Reboot
+          working-directory: "./.github/workflows/openstack/"
+          run: |
+            ./ssh_retry.sh ${{ needs.watch_for_complete.outputs.VM_IP }}
+
+    verify_upgraded_os:
+      runs-on: self-hosted
+      needs: wait_for_post_elevate_reboot
+      outputs:
+        VM_IP: ${{ needs.wait_for_post_elevate_reboot.outputs.VM_IP }}
+      steps:
+        - name: Verify OS Upgraded and Elevate Complete
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.wait_for_post_elevate_reboot.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            timeout: 5m
+            command_timeout: 1m
+            script: |
+              set -x
+              cat /etc/redhat-release
+              cat /usr/local/cpanel/version
+              netstat -plan | awk '$7~/\/cp/'
+
+    terraform_openstack_destroy:
+      runs-on: self-hosted
+      needs: verify_upgraded_os
       defaults:
         run:
           working-directory: "./.github/workflows/openstack/terraform"
