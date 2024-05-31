@@ -147,6 +147,7 @@ jobs:
             command_timeout: 20m
             script: |
               set -x
+              cat /etc/redhat-release
               /scripts/elevate-cpanel --log &
               REGEX="Rebooting into stage 5 of 5"
               RETVAL=1
