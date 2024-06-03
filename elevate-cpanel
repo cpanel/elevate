@@ -1978,20 +1978,32 @@ EOS
     sub _yum_is_stable ($self) {
         my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
         if ( $errors =~ m/\S/ms ) {
-            ERROR('yum appears to be unstable. Please address this before upgrading');
-            ERROR($errors);
-            my $id = ref($self) . '::YumMakeCacheError';
-            $self->has_blocker(
-                "yum appears to be unstable. Please address this before upgrading\n$errors",
-                info => {
-                    name  => $id,
-                    error => $errors,
-                },
-                blocker_id => $id,
-                quiet      => 1,
-            );
 
-            return 0;
+            WARN("Initial run of \"yum makecache\" failed: $errors");
+            WARN("Running \"yum clean all\" in an attempt to fix yum");
+
+            my $ret = $self->ssystem_capture_output(qw{/usr/bin/yum clean all});
+            if ( $ret->{status} != 0 ) {
+                WARN( "Errors encountered running \"yum clean all\": " . $ret->{stderr} );
+            }
+
+            $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+            if ( $errors =~ m/\S/ms ) {
+                ERROR('yum appears to be unstable. Please address this before upgrading');
+                ERROR($errors);
+                my $id = ref($self) . '::YumMakeCacheError';
+                $self->has_blocker(
+                    "yum appears to be unstable. Please address this before upgrading\n$errors",
+                    info => {
+                        name  => $id,
+                        error => $errors,
+                    },
+                    blocker_id => $id,
+                    quiet      => 1,
+                );
+
+                return 0;
+            }
         }
 
         if ( opendir( my $dfh, '/var/lib/yum' ) ) {
