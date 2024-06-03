@@ -37,4 +37,8 @@ use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
 
 use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
 
+use constant SBIN_IP => q[/sbin/ip];
+
+use constant ETH_FILE_PREFIX => q[/etc/sysconfig/network-scripts/ifcfg-];
+
 1;
