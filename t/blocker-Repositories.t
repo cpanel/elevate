@@ -179,14 +179,29 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
 # Now we've tested the caller, let's test the code.
 {
     note "Testing _yum_is_stable";
-    my $errors = 'something is not right';
+    my $errors          = 'something is not right';
+    my $yum_clean_error = 'Yum clean failed';
 
     clear_messages_seen();
 
     my $errors_mock = Test::MockModule->new('Cpanel::SafeRun::Errors');
     $errors_mock->redefine( 'saferunonlyerrors' => sub { return $errors } );
 
+    my $run_mock = Test::MockModule->new('Elevate::Roles::Run');
+    $run_mock->redefine(
+        ssystem_capture_output => sub {
+            return {
+                status => 1,
+                stderr => $yum_clean_error,
+                stdout => '',
+            };
+        },
+    );
+
     is( $yum->_yum_is_stable(), 0, "Repositories is not stable and emits STDERR output (but does not exit non-zero)" );
+    message_seen( 'WARN',  "Initial run of \"yum makecache\" failed: $errors" );
+    message_seen( 'WARN',  "Running \"yum clean all\" in an attempt to fix yum" );
+    message_seen( 'WARN',  "Errors encountered running \"yum clean all\": $yum_clean_error" );
     message_seen( 'ERROR', 'yum appears to be unstable. Please address this before upgrading' );
     message_seen( 'ERROR', 'something is not right' );
     no_messages_seen();
