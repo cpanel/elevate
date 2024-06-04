@@ -114,7 +114,7 @@ jobs:
             debug: true
             script: |
               set -x
-              ./.github/workflows/openstack/status_marker.sh 3
+              ./status_marker.sh 3
               /scripts/elevate-cpanel --log &
               REGEX="Rebooting into stage 4 of 5"
               RETVAL=1
@@ -148,7 +148,7 @@ jobs:
             command_timeout: 20m
             script: |
               set -x
-              ./.github/workflows/openstack/status_marker.sh 4
+              ./status_marker.sh 4
               /scripts/elevate-cpanel --log &
               REGEX="Rebooting into stage 5 of 5"
               RETVAL=1
@@ -182,7 +182,7 @@ jobs:
             command_timeout: 20m
             script: |
               set -x
-              ./.github/workflows/openstack/status_marker.sh 5
+              ./status_marker.sh 5
               /scripts/elevate-cpanel --log &
               REGEX="Doing final reboot"
               RETVAL=1
