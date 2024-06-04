@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -x
-
 RETVAL=1;
 RETRIES=0;
 HOST=$1;
@@ -22,7 +20,7 @@ do
 
    if [ ${RETRIES} -ge ${RETRY} ];
    then
-       echo "MAX_RETRIES has been reached.";
+       echo "## [ERROR]: ssh_retry.sh: MAX_RETRIES has been reached.";
        exit 1;
    fi;
    sleep 5;
