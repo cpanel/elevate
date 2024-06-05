@@ -1,3 +1,7 @@
+##### **2024-06-05** - version 40
+
+* Fixed case RE-343: Runs &quot;yum clean all&quot; and retries &quot;yum makecache&quot; if it had initially failed.
+
 ##### **2024-05-29** - version 39
 
 * Fixed case RE-132: Have pre_leapp component remove packages that leapp will remove.
