@@ -1913,10 +1913,13 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
+    use constant YUM_COMPLETE_TRANSACTION_BIN => '/usr/sbin/yum-complete-transaction';
+    use constant FIX_RPM_SCRIPT               => '/usr/local/cpanel/scripts/find_and_fix_rpm_issues';
+
     sub check ($self) {
         my $ok = 1;
-        $ok = 0 unless $self->_blocker_invalid_yum_repos;
-        $ok = 0 unless $self->_yum_is_stable();
+        $ok = 0 if $self->_blocker_invalid_yum_repos;
+        $ok = 0 if $self->_yum_is_stable();
 
         return $ok;
     }
@@ -1992,7 +1995,7 @@ EOS
                 ERROR('yum appears to be unstable. Please address this before upgrading');
                 ERROR($errors);
                 my $id = ref($self) . '::YumMakeCacheError';
-                $self->has_blocker(
+                return $self->has_blocker(
                     "yum appears to be unstable. Please address this before upgrading\n$errors",
                     info => {
                         name  => $id,
@@ -2001,29 +2004,39 @@ EOS
                     blocker_id => $id,
                     quiet      => 1,
                 );
-
-                return 0;
             }
         }
 
         if ( opendir( my $dfh, '/var/lib/yum' ) ) {
             my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
             if (@transactions) {
-                ERROR('There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.');
-                my $id = ref($self) . '::YumUnfinishedTransactions';
+                WARN('There are unfinished yum transactions remaining.');
 
-                $self->has_blocker(
-                    'There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.',
-                    info => {
-                        name         => $id,
-                        error        => 'YUM has unfinished transactions',
-                        transactions => join( "\n", sort @transactions ),
-                    },
-                    blocker_id => $id,
-                    quiet      => 1,
-                );
+                my $yum_ct_bin = YUM_COMPLETE_TRANSACTION_BIN();
 
-                return 0;
+                if ( $self->is_check_mode() ) {
+                    WARN("Unfinished yum transactions detected. Elevate will execute $yum_ct_bin --cleanup-only during upgrade");
+                }
+                else {
+                    if ( -x $yum_ct_bin ) {
+                        INFO('Cleaning up unfinished yum transactions.');
+                        my $ret = $self->ssystem_capture_output( $yum_ct_bin, '--cleanup-only' );
+                        if ( $ret->{status} != 0 ) {
+                            return $self->has_blocker( "Errors encountered running $yum_ct_bin: " . $ret->{stderr} );
+                        }
+
+                        $ret = $self->ssystem_capture_output(FIX_RPM_SCRIPT);
+                        if ( $ret->{status} != 0 ) {
+                            return $self->has_blocker( 'Errors encountered running ' . FIX_RPM_SCRIPT . ': ' . $ret->{stderr} );
+                        }
+                    }
+                    else {
+                        return $self->has_blocker( <<~EOS );
+                    $yum_ct_bin is missing. You must install the yum-utils package
+                    if you wish to clear the unfinished yum transactions.
+                    EOS
+                    }
+                }
             }
         }
         else {
@@ -2031,7 +2044,7 @@ EOS
             ERROR(qq{Could not read directory '/var/lib/yum': $err});
             my $id = ref($self) . '::YumDirUnreadable';
 
-            $self->has_blocker(
+            return $self->has_blocker(
                 qq{Could not read directory '/var/lib/yum': $err},
                 info => {
                     name  => $id,
@@ -2040,11 +2053,9 @@ EOS
                 blocker_id => $id,
                 quiet      => 1,
             );
-
-            return 0;
         }
 
-        return 1;
+        return 0;
     }
 
     sub _check_yum_repos ($self) {
