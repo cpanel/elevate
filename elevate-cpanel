@@ -61,6 +61,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/SSH.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/AutoSSL.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/DatabaseUpgrade.pm'}    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/ELS.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
@@ -5283,6 +5284,56 @@ EOS
 
 }    # --- END lib/Elevate/Components/DatabaseUpgrade.pm
 
+{    # --- BEGIN lib/Elevate/Components/ELS.pm
+
+    package Elevate::Components::ELS;
+
+    use cPstrict;
+
+    use Elevate::OS ();
+
+    use Cpanel::Pkgr ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    use constant ELS_PACKAGE => 'els-define';
+
+    sub pre_leapp ($self) {
+
+        return unless Elevate::OS::remove_els();
+
+        return unless Cpanel::Pkgr::is_installed(ELS_PACKAGE);
+
+        my @files_to_remove = qw{
+          /etc/yum.repos.d/centos7-els.repo
+          /etc/yum.repos.d/centos7-els-rollout.repo
+        };
+
+        foreach my $file (@files_to_remove) {
+            if ( -e $file ) {
+                unlink $file or WARN("Could not remove file $file: $!");
+            }
+        }
+
+        $self->yum->remove(ELS_PACKAGE);
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/ELS.pm
+
 {    # --- BEGIN lib/Elevate/OS.pm
 
     package Elevate::OS;
@@ -5361,6 +5412,7 @@ EOS
             'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
             'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
+            'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
             'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
             'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
@@ -5421,6 +5473,15 @@ EOS
     use constant leapp_repo_prod    => 'elevate';
     use constant name               => 'CentOS7';
     use constant pretty_name        => 'CentOS 7';
+    use constant remove_els         => 1;
+
+    sub vetted_yum_repo ($self) {
+
+        my @repos = $self->SUPER::vetted_yum_repo();
+
+        push @repos, 'centos7-els';
+        return @repos;
+    }
 
     1;
 
@@ -5546,6 +5607,7 @@ EOS
     use constant name                            => 'RHEL';
     use constant pretty_name                     => 'RHEL';
     use constant provides_mysql_governor         => 0;
+    use constant remove_els                      => 0;
     use constant should_check_cloudlinux_license => 0;
     use constant leapp_repo_beta                 => '';       # Unavailable by default.
 
@@ -7639,6 +7701,7 @@ use Elevate::Components::WPToolkit          ();
 use Elevate::Components::SSH                ();
 use Elevate::Components::AutoSSL            ();
 use Elevate::Components::DatabaseUpgrade    ();
+use Elevate::Components::ELS                ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -8668,6 +8731,7 @@ sub run_final_components_pre_leapp ($self) {
     $self->run_component_once( 'NixStats'         => 'pre_leapp' );
     $self->run_component_once( 'LiteSpeed'        => 'pre_leapp' );
     $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
+    $self->run_component_once( 'ELS'              => 'pre_leapp' );
     $self->run_component_once( 'RpmDB'            => 'pre_leapp' );    # remove the RPMs last
 
     return;
