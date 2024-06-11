@@ -179,8 +179,13 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
 # Now we've tested the caller, let's test the code.
 {
     note "Testing _yum_is_stable";
-    my $errors          = 'something is not right';
-    my $yum_clean_error = 'Yum clean failed';
+    my $errors         = 'something is not right';
+    my %ssystem_status = (
+        '/usr/bin/yum'                                                  => 1,
+        Elevate::Blockers::Repositories::YUM_COMPLETE_TRANSACTION_BIN() => 1,
+        Elevate::Blockers::Repositories::FIX_RPM_SCRIPT()               => 1,
+    );
+    my $ssystem_stderr = 'The yum operation has failed';
 
     clear_messages_seen();
 
@@ -190,36 +195,128 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
     my $run_mock = Test::MockModule->new('Elevate::Roles::Run');
     $run_mock->redefine(
         ssystem_capture_output => sub {
+            my $pgm = $_[1];
+            note "Trying to run $pgm";
             return {
-                status => 1,
-                stderr => $yum_clean_error,
+                status => exists $ssystem_status{$pgm} ? $ssystem_status{$pgm} : 0,
+                stderr => $ssystem_stderr,
                 stdout => '',
             };
         },
     );
 
-    is( $yum->_yum_is_stable(), 0, "Repositories is not stable and emits STDERR output (but does not exit non-zero)" );
+    like(
+        $yum->_yum_is_stable(),
+        {
+            id  => q[Elevate::Blockers::Repositories::YumMakeCacheError],
+            msg => qr/yum appears to be unstable/,
+        },
+        "Repositories is not stable and emits STDERR output (but does not exit non-zero)"
+    );
     message_seen( 'WARN',  "Initial run of \"yum makecache\" failed: $errors" );
     message_seen( 'WARN',  "Running \"yum clean all\" in an attempt to fix yum" );
-    message_seen( 'WARN',  "Errors encountered running \"yum clean all\": $yum_clean_error" );
+    message_seen( 'WARN',  "Errors encountered running \"yum clean all\": $ssystem_stderr" );
     message_seen( 'ERROR', 'yum appears to be unstable. Please address this before upgrading' );
     message_seen( 'ERROR', 'something is not right' );
     no_messages_seen();
     $errors = '';
 
+    $mock_yum->redefine( is_check_mode => 1 );
+
     my @mocked;
     push @mocked, Test::MockFile->dir('/var/lib/yum');
 
-    is( $yum->_yum_is_stable(), 0, "/var/lib/yum is missing." );
+    like(
+        $yum->_yum_is_stable(),
+        {
+            id  => q[Elevate::Blockers::Repositories::YumDirUnreadable],
+            msg => qr/Could not read directory/,
+        },
+        "/var/lib/yum is missing."
+    );
     message_seen( 'ERROR' => q{Could not read directory '/var/lib/yum': No such file or directory} );
 
     mkdir '/var/lib/yum';
     push @mocked, Test::MockFile->file( '/var/lib/yum/transaction-all.12345', 'aa' );
-    is( $yum->_yum_is_stable(), 0, "There is an outstanding transaction." );
-    message_seen( 'ERROR', 'There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.' );
+    is( $yum->_yum_is_stable(), 0, "There is an outstanding transaction, check mode." );
+    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
+    message_seen( 'WARN', 'Unfinished yum transactions detected. Elevate will execute /usr/sbin/yum-complete-transaction --cleanup-only during upgrade' );
+    no_messages_seen();
+
+    $mock_yum->redefine( is_check_mode => 0 );
+    my $mock_yct_bin = Test::MockFile->file( Elevate::Blockers::Repositories::YUM_COMPLETE_TRANSACTION_BIN() );
+
+    like(
+        $yum->_yum_is_stable(),
+        {
+            id  => qr/Elevate::Blockers::Repositories/,
+            msg => qr/You must install the yum-utils package/,
+        },
+        "There is an outstanding transaction, start mode. And yum-complete-transaction is missing."
+    );
+    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
+    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    no_messages_seen();
+
+    # Make it exist but not be executable
+    $mock_yct_bin->contents('stuff');
+    $mock_yct_bin->chmod(0644);
+
+    like(
+        $yum->_yum_is_stable(),
+        {
+            id  => qr/Elevate::Blockers::Repositories/,
+            msg => qr/You must install the yum-utils package/,
+        },
+        "There is an outstanding transaction, start mode. And yum-complete-transaction not executable."
+    );
+    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
+    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    no_messages_seen();
+
+    # Make it executable, but  fail when run
+    $mock_yct_bin->chmod(0755);
+
+    note explain \%ssystem_status;
+
+    like(
+        $yum->_yum_is_stable(),
+        {
+            id  => qr/Elevate::Blockers::Repositories/,
+            msg => "Errors encountered running " . $mock_yct_bin->path() . ": $ssystem_stderr",
+        },
+        "There is an outstanding transaction, start mode. And yum-complete-transaction fails."
+    );
+    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
+    message_seen( 'INFO', 'Cleaning up unfinished yum transactions.' );
+    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    no_messages_seen();
+
+    $ssystem_status{ Elevate::Blockers::Repositories::YUM_COMPLETE_TRANSACTION_BIN() } = 0;
+
+    like(
+        $yum->_yum_is_stable(),
+        {
+            id  => qr/Elevate::Blockers::Repositories/,
+            msg => "Errors encountered running " . Elevate::Blockers::Repositories::FIX_RPM_SCRIPT() . ": $ssystem_stderr",
+        },
+        "There is an outstanding transaction, start mode. And the fix rpm script failed"
+    );
+    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
+    message_seen( 'INFO', 'Cleaning up unfinished yum transactions.' );
+    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    no_messages_seen();
+
+    $ssystem_status{ Elevate::Blockers::Repositories::FIX_RPM_SCRIPT() } = 0;
+
+    is( $yum->_yum_is_stable(), 0, "There is an outstanding transaction, start mode. And nothing fails." );
+    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
+    message_seen( 'INFO', 'Cleaning up unfinished yum transactions.' );
+    no_messages_seen();
 
     unlink '/var/lib/yum/transaction-all.12345';
-    is( $yum->_yum_is_stable(), 1, "No outstanding yum transactions are found. we're good to go!" );
+    is( $yum->_yum_is_stable(), 0, "No outstanding yum transactions are found. we're good to go!" );
+    no_messages_seen();
 }
 
 done_testing();
