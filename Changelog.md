@@ -1,3 +1,7 @@
+##### **2024-06-12** - version 41
+
+* Fixed case RE-338: No longer blocks if there are unfinished yum transactions.
+
 ##### **2024-06-05** - version 40
 
 * Fixed case RE-343: Runs &quot;yum clean all&quot; and retries &quot;yum makecache&quot; if it had initially failed.
