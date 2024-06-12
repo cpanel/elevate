@@ -62,7 +62,7 @@ We do **not** support running the system in a container-like environment.
 
 To run the ELevate script successfully, you will need to be on a version mentioned in the _Latest cPanel & WHM Builds (All Architectures)_ section at http://httpupdate.cpanel.net/.
 
-If you are not on a version mentioned in <a href="http://httpupdate.cpanel.net/" "target=_blank">_Latest cPanel & WHM Builds (All Architectures)_</a> section, run the `/usr/local/cpanel/scripts/upcp` script to update.
+If you are not on a version mentioned in [Latest cPanel & WHM Builds (All Architectures)](http://httpupdate.cpanel.net/) section, run the `/usr/local/cpanel/scripts/upcp` script to update.
 
 ### EA4 packages
 
