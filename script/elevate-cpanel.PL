@@ -248,7 +248,6 @@ use Elevate::Blockers::JetBackup        ();
 use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();    # using a constant
-use Elevate::Blockers::Python           ();
 use Elevate::Blockers::Repositories     ();    # using a constant
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
