@@ -205,18 +205,26 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
         },
     );
 
+    my $error_msg = <<~'EOS';
+    '/usr/bin/yum makecache' failed to return cleanly.  This could be due to a temporary mirror problem or it could be indicative of a larger issue such as a broken repository.  Since this script relies heavily on yum, this will need to be addressed before upgrading.
+
+    You may want to consider reaching out to cPanel Support for assistance:
+
+    https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+    EOS
+
     like(
         $yum->_yum_is_stable(),
         {
             id  => q[Elevate::Blockers::Repositories::YumMakeCacheError],
-            msg => qr/yum appears to be unstable/,
+            msg => qr/'\/usr\/bin\/yum makecache' failed to return cleanly/,
         },
         "Repositories is not stable and emits STDERR output (but does not exit non-zero)"
     );
     message_seen( 'WARN',  "Initial run of \"yum makecache\" failed: $errors" );
     message_seen( 'WARN',  "Running \"yum clean all\" in an attempt to fix yum" );
     message_seen( 'WARN',  "Errors encountered running \"yum clean all\": $ssystem_stderr" );
-    message_seen( 'ERROR', 'yum appears to be unstable. Please address this before upgrading' );
+    message_seen( 'ERROR', $error_msg );
     message_seen( 'ERROR', 'something is not right' );
     no_messages_seen();
     $errors = '';
