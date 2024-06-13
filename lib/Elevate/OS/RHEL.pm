@@ -70,7 +70,6 @@ use constant is_supported                    => 1;
 use constant leapp_can_handle_epel           => 0;
 use constant leapp_can_handle_imunify        => 0;
 use constant leapp_can_handle_kernelcare     => 0;
-use constant leapp_can_handle_python36       => 0;
 use constant leapp_data_package              => undef;
 use constant leapp_flag                      => undef;
 use constant name                            => 'RHEL';
