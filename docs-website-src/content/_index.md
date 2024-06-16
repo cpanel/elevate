@@ -324,7 +324,7 @@ rpm -q cpanel-z-push
 dnf -y remove cpanel-ccs-calendarserver cpanel-z-push
 ```
 
-2.  Remove the `cpnael-ccs` user's home directory
+2.  Remove the `cpanel-ccs` user's home directory
 ```
 rm -rf /opt/cpanel-ccs/
 ```
