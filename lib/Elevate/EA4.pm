@@ -14,6 +14,7 @@ use cPstrict;
 
 use File::Temp ();
 
+use Elevate::Constants ();
 use Elevate::OS        ();
 use Elevate::StageFile ();
 
@@ -23,6 +24,8 @@ use Cpanel::Pkgr            ();
 use Cpanel::SafeRun::Simple ();
 
 use Log::Log4perl qw(:easy);
+
+use constant IMUNIFY_AGENT => Elevate::Constants::IMUNIFY_AGENT;
 
 sub backup ( $check_mode = 0 ) {
     Elevate::EA4::_backup_ea4_profile($check_mode);
@@ -57,9 +60,36 @@ sub _backup_ea4_profile ($check_mode) {
     return;
 }
 
+sub _imunify360_is_installed_and_provides_hardened_php () {
+    return 0 unless -x IMUNIFY_AGENT;
+
+    my $out          = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{version --json} );
+    my $license_data = eval { Cpanel::JSON::Load($out) } // {};
+
+    return 0 unless ref $license_data->{license};
+
+    if ( $license_data->{'license'}->{'license_type'} eq 'imunify360' ) {
+
+        my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
+        my @features = map {
+            my $trim_spaces = $_;
+            $trim_spaces =~ s/\s+//g;
+            $trim_spaces;
+        } grep { m/\S/ } split( "\n", $output );
+
+        foreach my $feature (@features) {
+            return 1 if $feature eq 'hardened-php';
+        }
+    }
+
+    return 0;
+}
+
 sub _get_ea4_profile ($check_mode) {
 
     my $ea_alias = Elevate::OS::ea_alias();
+
+    $ea_alias = 'CloudLinux_8' if Elevate::EA4::_imunify360_is_installed_and_provides_hardened_php();
 
     my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
 
