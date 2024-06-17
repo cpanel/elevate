@@ -95,7 +95,7 @@ sub _yum_is_stable ($self) {
     if ( $errors =~ m/\S/ms ) {
 
         my $error_msg = <<~'EOS';
-        '/usr/bin/yum makecache' failed to return cleanly.  This could be due to a temporary mirror problem or it could be indicative of a larger issue such as a broken repository.  Since this script relies heavily on yum, this will need to be addressed before upgrading.
+        '/usr/bin/yum makecache' failed to return cleanly. This could be due to a temporary mirror problem, or it could indicate a larger issue, such as a broken repository. Since this script relies heavily on yum, you will need to address this issue before upgrading.
 
         You may want to consider reaching out to cPanel Support for assistance:
 
