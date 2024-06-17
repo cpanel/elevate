@@ -155,8 +155,7 @@ Please remove these packages before continuing the update.
         }, "blocker with expected error" or diag explain $blocker;
 
         $mock_ea4->redefine(
-            _php_version_is_in_use          => 1,
-            _pkg_is_provided_by_imunify_360 => 0,
+            _php_version_is_in_use => 1,
         );
 
         $stage_ea4->{'dropped_pkgs'} = {
@@ -185,8 +184,7 @@ Please remove these packages before continuing the update.
           or diag explain $blocker;
 
         $mock_ea4->redefine(
-            _php_version_is_in_use          => 0,
-            _pkg_is_provided_by_imunify_360 => 0,
+            _php_version_is_in_use => 0,
         );
 
         $stage_ea4->{'dropped_pkgs'} = {
@@ -195,52 +193,6 @@ Please remove these packages before continuing the update.
 
         ok !$ea4->_blocker_ea4_profile(), 'No blocker when dropped package is an ea-php version that is not in use';
         ea_info_check($target_os);
-
-        $mock_ea4->redefine(
-            _php_version_is_in_use          => 0,
-            _pkg_is_provided_by_imunify_360 => 1,
-        );
-
-        ok !$ea4->_blocker_ea4_profile(), 'No blocker when dropped package is an ea-php version that is in use but provided by Imunify 360';
-        ea_info_check($target_os);
-
-        is(
-            $update_stage_file_data,
-            {},
-            'No ea-php packages need to be installed for Imunify 360 when the PHP version is not in use'
-        ) or diag explain $update_stage_file_data;
-
-        $stage_ea4->{'dropped_pkgs'} = {
-            'ea-php42'               => 'reg',
-            'ea-profiles-cloudlinux' => 'reg',
-        };
-
-        ok !$ea4->_blocker_ea4_profile(), 'No blocker when dropped package is "ea-profiles-cloudlinux" and provided by Imunify 360';
-        ea_info_check($target_os);
-
-        is(
-            $update_stage_file_data,
-            {
-                ea4_imunify_packages => ['ea-profiles-cloudlinux'],
-            },
-            'No blocker for ea-profiles-cloudlinux provided by Imunify 360'
-        );
-
-        $mock_ea4->redefine(
-            _php_version_is_in_use          => 1,
-            _pkg_is_provided_by_imunify_360 => 1,
-        );
-
-        ok !$ea4->_blocker_ea4_profile(), 'No blocker when dropped package is an ea-php version that is in use but provided by Imunify 360';
-        ea_info_check($target_os);
-
-        is(
-            $update_stage_file_data,
-            {
-                ea4_imunify_packages => [ 'ea-php42', 'ea-profiles-cloudlinux' ],
-            },
-            'No ea-php packages need to be installed for Imunify 360 when the PHP version is not in use'
-        ) or diag explain $update_stage_file_data;
 
         $stage_ea4 = {};
     }
