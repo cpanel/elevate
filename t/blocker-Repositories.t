@@ -208,7 +208,7 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
     my $error_msg = <<~'EOS';
     '/usr/bin/yum makecache' failed to return cleanly. This could be due to a temporary mirror problem, or it could indicate a larger issue, such as a broken repository. Since this script relies heavily on yum, you will need to address this issue before upgrading.
 
-    You may want to consider reaching out to cPanel Support for assistance:
+    If you need assistance, open a ticket with cPanel Support, as outlined here:
 
     https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
     EOS
