@@ -3,6 +3,8 @@
 use cPstrict;
 use File::Slurper qw/read_text write_text/;
 
+use DateTime ();
+
 my $changelog = 'Changelog.md';
 
 my $to = read_text('version');
@@ -10,11 +12,74 @@ chomp $to;
 my $from = $to - 1;
 
 print `git tag v$to`;
-my $new_changelog_content = `/usr/local/cpanel/build-tools/generate_changelog --from v$from --to v$to --markdown 2>/dev/null`;
+
+my @changelog_entries;
+my ( $case, $changelog_entry );
+my $changelog_started = 0;
+my $new_commit        = 1;
+my $git_logs          = `git log v$from..v$to`;
+my @lines             = split "\n", $git_logs;
+foreach my $line (@lines) {
+    $new_commit = $line =~ /^commit / ? 1 : 0;
+    if ($new_commit) {
+
+        # Capture the data from the previous commit
+        if ($changelog_entry) {
+            if ($case) {
+                $changelog_entry = "* Fixed case $case: $changelog_entry";
+            }
+            else {
+                $changelog_entry = "* $changelog_entry";
+            }
+
+            push @changelog_entries, $changelog_entry;
+        }
+
+        # Reset for a new commit
+        $case              = undef;
+        $changelog_entry   = undef;
+        $changelog_started = 0;
+    }
+
+    # Parse an ongoing commit
+    else {
+        if ( $line =~ /^\s*Case ([A-Z]+-[0-9]+):/ ) {
+            $case = $1;
+        }
+        elsif ( $line =~ /^\s*Changelog: (.*)/ ) {
+            $changelog_entry = $1;
+            $changelog_entry =~ s/\s+$//;
+            $changelog_started = 1;
+        }
+        elsif ($changelog_started) {
+            $line =~ s/^\s+//;
+            $changelog_entry .= ' ' . $line;
+            $changelog_entry =~ s/\s+$//;
+        }
+    }
+}
+
+# Capture the data from the last commit
+if ($changelog_entry) {
+    if ($case) {
+        $changelog_entry = "* Fixed case $case: $changelog_entry";
+    }
+    else {
+        $changelog_entry = "* $changelog_entry";
+    }
+
+    push @changelog_entries, $changelog_entry;
+}
+
 print `git tag -d v$to`;
 
-$new_changelog_content =~ s/^.+\n.+\n//m;
-$new_changelog_content =~ s/^(.+\d\*\*)/$1 - version $to/;
+my $date                  = DateTime->now->ymd;
+my $new_changelog_entries = join "\n", @changelog_entries;
+my $new_changelog_content = <<"EOS";
+##### **$date** - version $to
+
+$new_changelog_entries
+EOS
 
 my $content = $new_changelog_content . "\n" . read_text($changelog);
 
