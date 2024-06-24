@@ -194,6 +194,12 @@ BEGIN {
         warn(qq[This script is designed to only run on cPanel servers.\n]);
         exit 1;    ## no critic(Cpanel::NoExitsFromSubroutines)
     };
+
+    $ENV{LANG}        = "C";
+    $ENV{LANGUAGE}    = "C";
+    $ENV{LC_ALL}      = "C";
+    $ENV{LC_MESSAGES} = "C";
+    $ENV{LC_CTYPE}    = "C";
 }
 
 use Log::Log4perl qw(:easy);
