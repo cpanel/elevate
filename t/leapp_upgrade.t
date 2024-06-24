@@ -313,6 +313,16 @@ note 'LEAPP upgrade log failure checks';
 {
     $mock_leapp_upgrade_log->unlink;
 
+    $mock_elevate->redefine(
+        should_run_leapp => 0,
+    );
+
+    is( cpev->leapp->wait_for_leapp_completion, 1, 'wait_for_leapp_completion returns early when it should NOT run leapp' );
+
+    $mock_elevate->redefine(
+        should_run_leapp => 1,
+    );
+
     is( cpev->leapp->wait_for_leapp_completion, 0, "wait_for_leapp_completion fails when the upgrade log is missing." );
 
     $mock_leapp_upgrade_log->contents("magic string is missing");

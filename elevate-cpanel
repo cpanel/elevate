@@ -6081,6 +6081,9 @@ EOS
     }
 
     sub wait_for_leapp_completion ($self) {
+
+        return 1 unless $self->cpev->should_run_leapp();
+
         my $upgrade_log = LEAPP_UPGRADE_LOG;
 
         if ( !-e $upgrade_log ) {
