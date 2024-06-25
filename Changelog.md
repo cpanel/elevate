@@ -1,3 +1,10 @@
+##### **2024-06-25** - version 42
+
+* Fixed case RE-450: Set locale environment variables to "C" before elevating.
+* Fixed case RE-475: Teach wait_for_leapp_completion() about the no-leapp option
+* Fixed case RE-336: Removed python36 blocker on CloudLinux/CentOS 7
+* Fixed case RE-337: Convert multiple NICs blocker to component
+
 ##### **2024-06-12** - version 41
 
 * Fixed case RE-338: No longer blocks if there are unfinished yum transactions.
