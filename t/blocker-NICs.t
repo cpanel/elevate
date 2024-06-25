@@ -23,10 +23,16 @@ use Test::Elevate;
 use cPstrict;
 
 my $cpev_mock = Test::MockModule->new('cpev');
-my $nics_mock = Test::MockModule->new('Elevate::Blockers::NICs');
+my $nics_mock = Test::MockModule->new('Elevate::NICs');
 
 my $cpev = cpev->new;
 my $nics = $cpev->get_blocker('NICs');
+
+my $user_consent   = 0;
+my $mock_io_prompt = Test::MockModule->new('IO::Prompt');
+$mock_io_prompt->redefine(
+    prompt => sub { return $user_consent; },
+);
 
 ## Make sure we have NICs that would fail
 #my $mock_ip_addr = q{1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
@@ -57,7 +63,9 @@ my $nics = $cpev->get_blocker('NICs');
     # The NICs blocker runs /sbin/ip which breaks because Cpanel::SafeRun::Simple
     # opens /dev/null which Test::MockFile does not mock and is annoyed by it
 
-    my $sbin_ip = Test::MockFile->file('/sbin/ip');
+    my $sbin_ip    = Test::MockFile->file('/sbin/ip');
+    my $ifcfg_eth0 = Test::MockFile->file( '/etc/sysconfig/network-scripts/ifcfg-eth0', 'mocked' );
+    my $ifcfg_eth1 = Test::MockFile->file( '/etc/sysconfig/network-scripts/ifcfg-eth1', 'mocked' );
     note "checking kernel-named NICs";
 
     # what happens if /sbin/ip is not available
@@ -76,22 +84,24 @@ my $nics = $cpev->get_blocker('NICs');
     $sbin_ip->contents('');
     chmod 755, $sbin_ip->path();
 
-    $nics_mock->redefine( '_get_nics' => sub { qw< eth0 eth1 > } );
-    is(
+    $nics_mock->redefine( 'get_nics' => sub { qw< eth0 eth1 > } );
+    like(
         $nics->_blocker_bad_nics_naming(),
         {
             id  => q[Elevate::Blockers::NICs::_blocker_bad_nics_naming],
-            msg => <<~'EOS',
-        Your machine has multiple network interface cards (NICs) using kernel-names (ethX).
-        Since the upgrade process cannot guarantee their stability after upgrade, you cannot upgrade.
-
-        Please provide those interfaces new names before continuing the update.
-        EOS
+            msg => qr/To have this script perform the upgrade/,
         },
         q{What happens when ip addr returns eth0 and eth1}
     );
 
-    $nics_mock->redefine( '_get_nics' => sub { qw< w0p1lan > } );
+    $user_consent = 1;
+    is(
+        $nics->_blocker_bad_nics_naming(),
+        0,
+        'No blocker when the user consents to the script renaming the NICs'
+    );
+
+    $nics_mock->redefine( 'get_nics' => sub { qw< w0p1lan > } );
     $errors_mock->redefine(
         'saferunnoerror' => sub {
             $_[0] eq '/sbin/ip' ? '' : $errors_mock->original('saferunnoerror');
@@ -99,6 +109,16 @@ my $nics = $cpev->get_blocker('NICs');
     );
 
     is( $nics->_blocker_bad_nics_naming(), 0, "No blocker with w0p1lan ethernet card" );
+
+    unlink '/etc/sysconfig/network-scripts/ifcfg-eth1';
+    like(
+        $nics->_nics_have_missing_ifcfg_files( 'eth0', 'eth1' ),
+        {
+            id  => q[Elevate::Blockers::NICs::_nics_have_missing_ifcfg_files],
+            msg => qr/This script is unable to rename the following network interface cards\ndue to a missing ifcfg file/,
+        },
+        'Blocker when the ifcfg does not exist'
+    );
 }
 
 done_testing();
