@@ -83,7 +83,6 @@ BEGIN {
         'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
         'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
         'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
-        'leapp_can_handle_python36',          # This is used to determine if we can skip the python36 blocker or not
         'leapp_data_pkg',                     # This is used to determine which leapp data package to install
         'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
         'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)

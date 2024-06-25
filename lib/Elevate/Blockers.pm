@@ -32,7 +32,6 @@ use Elevate::Blockers::JetBackup        ();
 use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();
-use Elevate::Blockers::Python           ();
 use Elevate::Blockers::ElevateScript    ();
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
@@ -72,7 +71,6 @@ our @BLOCKERS = qw{
   BootKernel
   Grub2
   OVH
-  Python
   AbsoluteSymlinks
   AutoSSL
 };

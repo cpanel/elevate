@@ -141,10 +141,6 @@ Once ELevate has completed, you should perform the update to the PostgreSQL data
 3. Invoke the `postgresql-setup` tool: `/usr/bin/postgresql-setup --upgrade`.
 4. In the root user's WHM, navigate to the "Configure PostgreSQL" area and click on "Install Config". This should restore the additions cPanel makes to the PostgreSQL access controls in order to allow phpPgAdmin to function.
 
-### Python version
-
-On **CentOS** 7, the system **must not** have Python 3.6 installed; this will interfere with the upgrade. On **CloudLinux**, this is not an issue.
-
 #### The sshd config file
 
 The script will not run successfully if the `sshd` config file is absent or unreadable.

@@ -30,7 +30,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/MountPoints.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/NICs.pm'}                 = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/OVH.pm'}                  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Python.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Repositories.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/SSH.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/WHM.pm'}                  = 'script/elevate-cpanel.PL.static';
@@ -253,7 +252,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Blockers::MountPoints      ();
     use Elevate::Blockers::NICs             ();
     use Elevate::Blockers::OVH              ();
-    use Elevate::Blockers::Python           ();
     use Elevate::Blockers::ElevateScript    ();
     use Elevate::Blockers::SSH              ();
     use Elevate::Blockers::WHM              ();
@@ -292,7 +290,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
       BootKernel
       Grub2
       OVH
-      Python
       AbsoluteSymlinks
       AutoSSL
     };
@@ -1919,37 +1916,6 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Blockers/OVH.pm
-
-{    # --- BEGIN lib/Elevate/Blockers/Python.pm
-
-    package Elevate::Blockers::Python;
-
-    use cPstrict;
-
-    # use Elevate::Blockers::Base();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
-
-    use Elevate::OS ();
-
-    use Cpanel::Pkgr ();
-
-    sub check ($self) {
-        return if Elevate::OS::leapp_can_handle_python36();
-
-        my $pkg = Cpanel::Pkgr::what_provides('python36');
-        return unless $pkg && Cpanel::Pkgr::is_installed($pkg);
-        return $self->has_blocker( <<~"END" );
-    A package providing python36 has been detected as installed.
-    This can interfere with the elevation process.
-    Please remove it before elevation:
-    yum remove $pkg
-    END
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Blockers/Python.pm
 
 {    # --- BEGIN lib/Elevate/Blockers/Repositories.pm
 
@@ -5516,7 +5482,6 @@ EOS
             'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
             'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
             'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
-            'leapp_can_handle_python36',          # This is used to determine if we can skip the python36 blocker or not
             'leapp_data_pkg',                     # This is used to determine which leapp data package to install
             'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
             'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
@@ -5608,7 +5573,6 @@ EOS
     use constant leapp_can_handle_epel           => 1;
     use constant leapp_can_handle_imunify        => 1;
     use constant leapp_can_handle_kernelcare     => 1;
-    use constant leapp_can_handle_python36       => 1;
     use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
     use constant leapp_flag                      => '--nowarn';
     use constant name                            => 'CloudLinux7';
@@ -5701,7 +5665,6 @@ EOS
     use constant leapp_can_handle_epel           => 0;
     use constant leapp_can_handle_imunify        => 0;
     use constant leapp_can_handle_kernelcare     => 0;
-    use constant leapp_can_handle_python36       => 0;
     use constant leapp_data_package              => undef;
     use constant leapp_flag                      => undef;
     use constant name                            => 'RHEL';
@@ -7806,7 +7769,6 @@ use Elevate::Blockers::JetBackup        ();
 use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();    # using a constant
-use Elevate::Blockers::Python           ();
 use Elevate::Blockers::Repositories     ();    # using a constant
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();

@@ -22,7 +22,6 @@ use constant leapp_repo_beta                 => 'elevate-updates-testing';
 use constant leapp_can_handle_epel           => 1;
 use constant leapp_can_handle_imunify        => 1;
 use constant leapp_can_handle_kernelcare     => 1;
-use constant leapp_can_handle_python36       => 1;
 use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
 use constant leapp_flag                      => '--nowarn';
 use constant name                            => 'CloudLinux7';
