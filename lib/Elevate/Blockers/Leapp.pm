@@ -59,6 +59,7 @@ sub _check_for_inhibitors ($self) {
         qw(
           check_installed_devel_kernels
           cl_mysql_repository_setup
+          persistentnetnamesdisable
           verify_check_results
         )
     );

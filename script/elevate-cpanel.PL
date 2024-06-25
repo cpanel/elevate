@@ -270,6 +270,7 @@ use Elevate::Components::LiteSpeed          ();
 use Elevate::Components::KernelCare         ();
 use Elevate::Components::Kernel             ();
 use Elevate::Components::MySQL              ();
+use Elevate::Components::NICs               ();
 use Elevate::Components::NixStats           ();
 use Elevate::Components::PECL               ();
 use Elevate::Components::PerlXS             ();
@@ -295,6 +296,7 @@ use Elevate::Leapp            ();
 use Elevate::Logger           ();
 use Elevate::Marker           ();
 use Elevate::Motd             ();
+use Elevate::NICs             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
 use Elevate::RPM              ();
@@ -964,6 +966,7 @@ sub run_stage_2 ($self) {
     $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
+    $self->run_component_once( 'NICs'       => 'pre_leapp' );
 
     return ACTION_REBOOT_NEEDED;
 }
