@@ -62,7 +62,7 @@ We do **not** support running the system in a container-like environment.
 
 To run the ELevate script successfully, you will need to be on a version mentioned in the _Latest cPanel & WHM Builds (All Architectures)_ section at http://httpupdate.cpanel.net/.
 
-If you are not on a version mentioned in <a href="http://httpupdate.cpanel.net/" "target=_blank">_Latest cPanel & WHM Builds (All Architectures)_</a> section, run the `/usr/local/cpanel/scripts/upcp` script to update.
+If you are not on a version mentioned in [Latest cPanel & WHM Builds (All Architectures)](http://httpupdate.cpanel.net/) section, run the `/usr/local/cpanel/scripts/upcp` script to update.
 
 ### EA4 packages
 
@@ -101,20 +101,16 @@ If you are running JetBackup, it **must** be version 5 or greater. Earlier versi
 
 ### Multiple network interface cards using kernel names
 
-We block if your machine has multiple network interface cards (NICs) using kernel names (`ethX`).
-  * Since `ethX` style names are automatically assigned by the kernel, there is no guarantee that this name will remain the same upon upgrade to a new kernel version tier.
-  * The "default" approach in `network-scripts` config files of specifying NICs by `DEVICE` can cause issues due to the above.
-  * To find a more in-depth explanation of *why* this is a problem (and what to do about it), read Freedesktop.org's <a href="https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/" target="_blank">Predictable Network Interface Names</a> documentation.
-
-One way to prevent these issues is to assign a custom name in the configuration and re-initialize NICs ahead of time.
+If your machine has multiple network interface cards (NICs) using kernel names (`ethX`), we offer to automatically update the name from `ethX` to `cpethX` during elevation.
+  * To find a more in-depth explanation of *why* this name change is necessary, read Freedesktop.org's <a href="https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/" target="_blank">Predictable Network Interface Names</a> documentation.
 
 ### MySQL version
 
 A MySQL upgrade **cannot be** in progress.
 
-If the version of MySQL/MariaDB installed on the system is not supported on RHEL 8-based distributions, you **must** upgrade to a supported version. If cPanel manages the MySQL installation, we will offer to upgrade MySQL automatically to MariaDB 10.6 during elevation.
+If the local version of MySQL/MariaDB installed on the system is not supported on RHEL 8-based distributions, you **must** upgrade to a supported version. If cPanel manages the MySQL installation, we will offer to upgrade MySQL automatically to MariaDB 10.6 during elevation.
 
-The system **must** not be set up to use a remote database server.
+**NOTE:** In cases where an upgrade is necessary **and** the system is set up to use a remote server, a local server will be temporarily configured and enabled for the duration of the elevation, and the remote instance will be re-enabled once the elevation completes.
 
 ## OVH proactive intervention monitoring
 
@@ -151,3 +147,5 @@ These issues with the YUM repositories can cause ELevate to block your upgrade:
   * Invalid syntax or use of `\$`. That character is interpolated on RHEL 7-based systems, but not on systems that are RHEL 8-based.
   * Any unsupported repositories that have packages installed.
   * If YUM is in an unstable state (running `yum makecache` fails).
+
+If any unfinished yum transactions are detected, ELevate will attempt to complete them by executing `/usr/sbin/yum-complete-transaction --cleanup-only`. If this fails, ELevate will block you from beginning the upgrade process until you manually resolve any outstanding issues or transactions.
