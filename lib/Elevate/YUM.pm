@@ -12,6 +12,8 @@ Logic wrapping the 'yum' system binary
 
 use cPstrict;
 
+use Elevate::Constants ();
+
 use Log::Log4perl qw(:easy);
 
 use Simple::Accessor qw{
@@ -63,6 +65,33 @@ sub install ( $self, @pkgs ) {
     return;
 }
 
+sub repolist_all ($self) {
+    return $self->repolist("all");
+}
+
+sub repolist_enabled ($self) {
+    return $self->repolist("enabled");
+}
+
+sub repolist ( $self, @options ) {
+    my $pkgmgr = $self->pkgmgr;
+
+    my $out   = $self->cpev->ssystem_hide_and_capture_output( $pkgmgr, '-q', 'repolist', @options );
+    my @lines = @{ $out->{stdout} };
+
+    # The first line is just header info
+    shift @lines;
+
+    my @repos;
+    foreach my $line (@lines) {
+        my $repo = ( split( '\s+', $line ) )[0];
+
+        push @repos, $repo;
+    }
+
+    return @repos;
+}
+
 # No cache here since this is currently only called one time from a blocker
 # Consider adding a cache if we ever call it anywhere else
 sub get_extra_packages ($self) {
@@ -107,6 +136,7 @@ sub get_extra_packages ($self) {
         next if $package eq 'filesystem';
         next if $package eq 'basesystem';
         next if $package eq 'virt-what';
+        next if ( scalar grep { $_ eq $package } Elevate::Constants::R1SOFT_AGENT_PACKAGES );
 
         push @extra_packages, { package => $package, version => $version, arch => $arch };
     }
