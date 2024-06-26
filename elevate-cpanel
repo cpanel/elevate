@@ -1067,7 +1067,6 @@ EOS
         return unless scalar keys $dropped_pkgs->%*;
 
         my @incompatible;
-        my @imunify_pkgs;
         foreach my $pkg ( sort keys %$dropped_pkgs ) {
             my $type = $dropped_pkgs->{$pkg} // '';
             next if $type eq 'exp';                          # use of experimental packages is a non blocker
@@ -1077,34 +1076,11 @@ EOS
                 my $php_pkg = $1;
                 next unless $self->_php_version_is_in_use($php_pkg);
 
-                if ( $self->_pkg_is_provided_by_imunify_360($php_pkg) ) {
-                    push @imunify_pkgs, $pkg;
-                    next;
-                }
             }
-
-            if ( $pkg eq 'ea-profiles-cloudlinux' && $self->_pkg_is_provided_by_imunify_360($pkg) ) {
-                push @imunify_pkgs, $pkg;
-                next;
-            }
-
             push @incompatible, $pkg;
         }
 
-        if (@imunify_pkgs) {
-            Elevate::StageFile::remove_from_stage_file('ea4_imunify_packages');
-            Elevate::StageFile::update_stage_file( { ea4_imunify_packages => \@imunify_pkgs } );
-        }
-
         return @incompatible;
-    }
-
-    sub _pkg_is_provided_by_imunify_360 ( $self, $pkg ) {
-        return 0 unless -x Elevate::Constants::IMUNIFY_AGENT;
-
-        my $version = Cpanel::Pkgr::get_package_version($pkg);
-
-        return $version =~ m/cloudlinux/ ? 1 : 0;
     }
 
     sub _php_version_is_in_use ( $self, $php ) {
@@ -3291,7 +3267,6 @@ EOS
 
         $self->run_once('_restore_ea4_profile');
         $self->run_once('_restore_ea_addons');
-        $self->run_once('_restore_imunify_phps');
 
         $self->run_once('_restore_config_files');
 
@@ -3395,16 +3370,6 @@ EOS
             $self->rpm->restore_config_files(@config_files_to_restore);
         }
 
-        return;
-    }
-
-    sub _restore_imunify_phps ($self) {
-
-        my $php_pkgs = Elevate::StageFile::read_stage_file('ea4_imunify_packages');
-        return unless ref $php_pkgs eq 'ARRAY';
-        return unless scalar $php_pkgs->@*;
-
-        $self->dnf->install(@$php_pkgs);
         return;
     }
 
@@ -5825,6 +5790,7 @@ EOS
 
     use File::Temp ();
 
+    use Elevate::Constants ();
     use Elevate::OS        ();
     use Elevate::StageFile ();
 
@@ -5835,6 +5801,8 @@ EOS
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant IMUNIFY_AGENT => Elevate::Constants::IMUNIFY_AGENT;
 
     sub backup ( $check_mode = 0 ) {
         Elevate::EA4::_backup_ea4_profile($check_mode);
@@ -5868,9 +5836,36 @@ EOS
         return;
     }
 
+    sub _imunify360_is_installed_and_provides_hardened_php () {
+        return 0 unless -x IMUNIFY_AGENT;
+
+        my $out          = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{version --json} );
+        my $license_data = eval { Cpanel::JSON::Load($out) } // {};
+
+        return 0 unless ref $license_data->{license};
+
+        if ( $license_data->{'license'}->{'license_type'} eq 'imunify360' ) {
+
+            my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
+            my @features = map {
+                my $trim_spaces = $_;
+                $trim_spaces =~ s/\s+//g;
+                $trim_spaces;
+            } grep { m/\S/ } split( "\n", $output );
+
+            foreach my $feature (@features) {
+                return 1 if $feature eq 'hardened-php';
+            }
+        }
+
+        return 0;
+    }
+
     sub _get_ea4_profile ($check_mode) {
 
         my $ea_alias = Elevate::OS::ea_alias();
+
+        $ea_alias = 'CloudLinux_8' if Elevate::EA4::_imunify360_is_installed_and_provides_hardened_php();
 
         my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
 
