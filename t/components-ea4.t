@@ -45,7 +45,8 @@ sub startup : Test(startup) ($self) {
 
     $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
-    $self->{mock_profile} = Test::MockFile->file(PROFILE_FILE);
+    $self->{mock_profile}       = Test::MockFile->file(PROFILE_FILE);
+    $self->{mock_imunify_agent} = Test::MockFile->file( Elevate::EA4::IMUNIFY_AGENT() );
 
     $self->{mock_httpd} = Test::MockModule->new('Cpanel::Config::Httpd');
 
@@ -198,7 +199,7 @@ EOS
     return;
 }
 
-sub test_get_ea4_profile_check_mode : Test(14) ($self) {
+sub test_get_ea4_profile_check_mode : Test(19) ($self) {
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
@@ -232,6 +233,20 @@ sub test_get_ea4_profile_check_mode : Test(14) ($self) {
         my $expected_target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
         message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
         message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
+
+        # The expected target is CloudLinux_8 when Imunify 360 provides
+        # hardened PHP
+        if ( $os eq 'cent' ) {
+            my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+            $mock_elevate_ea4->redefine(
+                _imunify360_is_installed_and_provides_hardened_php => 1,
+            );
+
+            is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
+
+            message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=CloudLinux_8 --output=$expected_profile" );
+            message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
+        }
     }
 
     return;
@@ -497,37 +512,6 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
     message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
     message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
     message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
-
-    return;
-}
-
-sub test__restore_imunify_phps : Test(4) ($self) {
-
-    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
-    $mock_stagefile->redefine(
-        read_stage_file => [],
-    );
-
-    my $ssystem_cmd;
-    my $mock_elevate = Test::MockModule->new('cpev');
-    $mock_elevate->redefine(
-        ssystem_and_die => sub ( $, @args ) {
-            $ssystem_cmd = join( ' ', @args );
-            return;
-        },
-    );
-
-    my $ea4 = cpev->new->component('EA4');
-
-    is( $ea4->_restore_imunify_phps(), undef, 'returns undef' );
-    is( $ssystem_cmd,                  undef, 'No commands are called when there is nothing to restore' );
-
-    $mock_stagefile->redefine(
-        read_stage_file => [ 'ea-foo', 'ea-bar' ],
-    );
-
-    is( $ea4->_restore_imunify_phps(), undef,                                   'returns undef' );
-    is( $ssystem_cmd,                  '/usr/bin/dnf -y install ea-foo ea-bar', 'The correct command is called when there are packages to install' );
 
     return;
 }
