@@ -61,6 +61,7 @@ use constant vetted_yum_repo => (
     qr/^jetapps-(?:stable|beta|edge)$/,
     'kernelcare',
     'updates',
+    'r1soft',
     qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
   ),
   vetted_mysql_yum_repo_ids;

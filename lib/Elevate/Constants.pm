@@ -41,4 +41,15 @@ use constant SBIN_IP => q[/sbin/ip];
 
 use constant ETH_FILE_PREFIX => q[/etc/sysconfig/network-scripts/ifcfg-];
 
+use constant R1SOFT_REPO               => 'r1soft';
+use constant R1SOFT_REPO_FILE          => '/etc/yum.repos.d/r1soft.repo';
+use constant R1SOFT_MAIN_AGENT_PACKAGE => 'serverbackup-agent';
+use constant R1SOFT_AGENT_PACKAGES => qw{
+  r1soft-getmodule
+  serverbackup-agent
+  serverbackup-async-agent-2-6
+  serverbackup-enterprise-agent
+  serverbackup-setup
+};
+
 1;
