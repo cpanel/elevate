@@ -111,7 +111,7 @@ sub _blocker_grub_not_installed ($self) {
     The grub2-pc package is not installed. The GRUB2 boot loader is
     required to upgrade via leapp.
 
-    You may want to consider reaching out to cPanel Support for assistance:
+    If you need assistance, open a ticket with cPanel Support, as outlined here
     https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
     EOS
 }
@@ -124,7 +124,7 @@ sub _blocker_grub_config_missing ($self) {
         return $self->has_blocker( <<~EOS );
         The GRUB2 config file is missing.
 
-        You may want to consider reaching out to cPanel Support for assistance:
+        If you need assistance, open a ticket with cPanel Support, as outlined here
         https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
         EOS
     }
