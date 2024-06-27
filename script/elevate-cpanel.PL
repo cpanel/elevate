@@ -525,7 +525,7 @@ sub start ($self) {
         You can check the log by running:
             /scripts/elevate-cpanel --log
         or check the elevation status:
-            /scripts/elevate-cpanel --check
+            /scripts/elevate-cpanel --status
         EOS
 
     }

@@ -90,6 +90,17 @@ sub check ($self) {    # do_check - main  entry point
         return 1;
     }
 
+    my $stage = Elevate::Stages::get_stage();
+    if ( $stage != 0 && $stage <= cpev::VALID_STAGES() ) {
+        die <<~"EOS";
+        An elevation process is currently in progress: running stage $stage
+        You can check the log by running:
+            /scripts/elevate-cpanel --log
+        or check the elevation status:
+            /scripts/elevate-cpanel --status
+        EOS
+    }
+
     Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();
 
     # If no argument passed to --check, use default path:
