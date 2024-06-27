@@ -1,7 +1,7 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
 use cPstrict;
-use File::Slurper qw/read_text write_text/;
+use File::Slurper qw/read_text write_binary/;
 
 use DateTime ();
 
@@ -83,7 +83,7 @@ EOS
 
 my $content = $new_changelog_content . "\n" . read_text($changelog);
 
-write_text( $changelog, $content );
+write_binary( $changelog, $content );
 
 print `git diff Changelog.md`;
 
