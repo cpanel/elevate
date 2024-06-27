@@ -55,6 +55,11 @@ sub instance {
     $OS = eval { factory(); };
 
     if ( !$OS ) {
+
+        # Ensure that we don't just fail silently if we hit this while tailing
+        # the elevate log
+        DEBUG("Unable to acquire Elevate::OS instance, dying") unless -t STDOUT;
+
         my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
         die "This script is only designed to upgrade the following OSs:\n\n$supported_distros\n";
     }
