@@ -92,7 +92,7 @@ $mock_unknown_repo->contents( <<EOS );
 [MyRepo]
 enabled=0
 EOS
-is $yum->_check_yum_repos(), {}, "Using an unknown disabled repo";
+is $yum->_check_yum_repos(), { $unvetted => 1 }, "Using an unknown disabled repo";
 
 $mock_unknown_repo->contents( <<EOS );
 [MyRepo]
@@ -316,6 +316,78 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
 
     unlink '/var/lib/yum/transaction-all.12345';
     is( $yum->_yum_is_stable(), 0, "No outstanding yum transactions are found. we're good to go!" );
+    no_messages_seen();
+}
+
+{
+    note 'Testing pacakges installed without associated repos blocker';
+
+    my $stdout = <<'EOS';
+Loaded plugins: fastestmirror, universal-hooks
+Loading mirror speeds from cached hostfile
+ * cpanel-addons-production-feed: 184.94.196.92
+ * epel: mirror.compevo.com
+Extra Packages
+build.noarch                                      20161128-233.1.234.cpanel
+                                                                       @cp-dev-tools
+build-mkbaselibs.noarch                           20161128-233.1.234.cpanel
+                                                                       @cp-dev-tools
+cp-dev-tools-release.noarch                       1-3.3.cpanel         installed
+cpanel-3rdparty-bin.noarch                        108.1-1.cp108~el7    installed
+cpanel-ace-editor.noarch                          1.3.1-1.cp108~el7    installed
+cpanel-analog.x86_64                              6.0-1.cp108~el7      installed
+cpanel-angular-chosen.noarch                      1.4.0-1.cp108~el7    installed
+cpanel-angular-growl-2.noarch                     0.7.3-1.cp108~el7    installed
+cpanel-angular-minicolors.noarch                  0.0.11-1.cp108~el7   installed
+cpanel-angular-ui-bootstrap.noarch                1.2.5-1.cp108~el7    installed
+cpanel-angular-ui-bootstrap-devel.noarch          1.2.5-1.cp108~el7    installed
+cpanel-angular-ui-scroll.noarch                   1.6.1-1.cp108~el7    installed
+cpanel-angularjs.noarch                           1.4.4-1.cp108~el7    installed
+cpanel-awstats.noarch                             7.8-1.cp108~el7      installed
+cpanel-banners-plugin.noarch                      1.0.0-9.16.2.cpanel  installed
+cpanel-bindp.x86_64                               1.0.0-1.cp108~el7    installed
+cpanel-boost.x86_64                               1.80-1.cp110~el7     installed
+cpanel-boost-program-options.x86_64               1.80-1.cp110~el7     installed
+cpanel-bootstrap.noarch                           3.1.1-2.cp108~el7    installed
+cpanel-bootstrap-devel.noarch                     3.1.1-2.cp108~el7    installed
+cpanel-bootstrap-rtl.noarch                       0.9.16-1.cp108~el7   installed
+cpanel-bootstrap-rtl-devel.noarch                 0.9.16-1.cp108~el7   installed
+cpanel-bootstrap5.noarch                          5.1.3-1.cp108~el7    installed
+EOS
+
+    my @stdout_lines = split "\n", $stdout;
+
+    my $run_mock = Test::MockModule->new('Elevate::Roles::Run');
+    $run_mock->redefine(
+        ssystem_hide_and_capture_output => sub {
+            my $pgm = $_[1];
+            note "Trying to run $pgm";
+            return {
+                status => 0,
+                stdout => \@stdout_lines,
+            };
+        },
+    );
+
+    like(
+        $yum->_blocker_packages_installed_without_associated_repo(),
+        {
+            id  => 'Elevate::Blockers::Repositories::_blocker_packages_installed_without_associated_repo',
+            msg => qr/There are packages installed that do not have associated repositories/,
+        },
+        'Packages installed without an associated repo',
+    );
+
+    message_seen( 'WARN', qr/There are packages installed that do not have associated repositories/ );
+
+    @stdout_lines = ();
+
+    is(
+        $yum->_blocker_packages_installed_without_associated_repo(),
+        undef,
+        'No packages installed without an associated repo',
+    );
+
     no_messages_seen();
 }
 

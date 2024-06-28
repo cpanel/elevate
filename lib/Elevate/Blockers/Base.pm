@@ -17,6 +17,7 @@ use Cpanel::JSON ();
 
 use Simple::Accessor qw(
   blockers
+  yum
 );
 
 use Log::Log4perl qw(:easy);
@@ -32,6 +33,10 @@ sub _build_blockers {
     Carp::confess(q[Missing blockers]);
 }
 
+sub _build_yum ($self) {
+    return Elevate::YUM->new( cpev => $self );
+}
+
 sub cpev ($self) {
     return $self->blockers->cpev;
 }
@@ -44,6 +49,7 @@ BEGIN {
       should_run_leapp
       ssystem
       ssystem_capture_output
+      ssystem_hide_and_capture_output
     };
 
     foreach my $subname (@_DELEGATE_TO_CPEV) {
