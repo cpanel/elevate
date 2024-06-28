@@ -28,10 +28,24 @@ use constant FIX_RPM_SCRIPT               => '/usr/local/cpanel/scripts/find_and
 
 sub check ($self) {
     my $ok = 1;
+    $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
     $ok = 0 if $self->_blocker_invalid_yum_repos;
     $ok = 0 if $self->_yum_is_stable();
 
     return $ok;
+}
+
+sub _blocker_packages_installed_without_associated_repo ($self) {
+    my @extra_packages = $self->yum->get_extra_packages();
+    return unless scalar @extra_packages;
+
+    my @packages   = map { $_->{package} } @extra_packages;
+    my $pkg_string = join "\n", @packages;
+    return $self->has_blocker( <<~EOS );
+    There are packages installed that do not have associated repositories:
+
+    $pkg_string
+    EOS
 }
 
 sub _blocker_invalid_yum_repos ($self) {
@@ -209,7 +223,6 @@ sub _check_yum_repos ($self) {
 
         my $check_last_known_repo = sub {
             return unless length $current_repo_name;
-            return unless $current_repo_enabled;
 
             my $is_vetted = grep { $current_repo_name =~ m/$_/ } @vetted_repos;
 
@@ -239,6 +252,8 @@ sub _check_yum_repos ($self) {
                     $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
                 }
                 else {
+                    return unless $current_repo_enabled;
+
                     INFO( sprintf( "Unsupported YUM repo enabled '%s' without packages installed from %s, these will be disabled before ELevation", $current_repo_name, $path ) );
 
                     # no packages installed need to disable it
@@ -247,6 +262,8 @@ sub _check_yum_repos ($self) {
                 }
             }
             elsif ( !$current_repo_use_valid_syntax ) {
+                return unless $current_repo_enabled;
+
                 WARN( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
                 unless ( grep { $_ eq $path } $self->{_yum_repos_path_using_invalid_syntax}->@* ) {
                     my $blocker_id = ref($self) . '::YumRepoConfigInvalidSyntax';
