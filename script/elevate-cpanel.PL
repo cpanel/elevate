@@ -287,6 +287,7 @@ use Elevate::Components::WPToolkit          ();
 use Elevate::Components::SSH                ();
 use Elevate::Components::AutoSSL            ();
 use Elevate::Components::DatabaseUpgrade    ();
+use Elevate::Components::ELS                ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -1318,6 +1319,7 @@ sub run_final_components_pre_leapp ($self) {
     $self->run_component_once( 'NixStats'         => 'pre_leapp' );
     $self->run_component_once( 'LiteSpeed'        => 'pre_leapp' );
     $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
+    $self->run_component_once( 'ELS'              => 'pre_leapp' );
     $self->run_component_once( 'RpmDB'            => 'pre_leapp' );    # remove the RPMs last
 
     return;
