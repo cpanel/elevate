@@ -1,3 +1,7 @@
+##### **2024-07-01** - version 44
+
+* Fixed case RE-368: Remove 'ELS for CentOS 7' prior to elevation.
+
 ##### **2024-06-26** - version 43
 
 * Fixed case RE-403: Use 'CloudLinux_8' target to backup EA4 profile on servers with Imunify 360 installed and providing the hardened PHP feature
