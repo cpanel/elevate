@@ -1,3 +1,7 @@
+##### **2024-07-03** - version 45
+
+* Case RE-500: Disable cloudlinux elevations until bugs related to dnf/spacewalk are addressed in upstream leapp.
+
 ##### **2024-07-01** - version 44
 
 * Fixed case RE-368: Remove 'ELS for CentOS 7' prior to elevation.
