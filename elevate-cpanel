@@ -5583,7 +5583,7 @@ EOS
 
         my @repos = $self->SUPER::vetted_yum_repo();
 
-        push @repos, 'centos7-els';
+        push @repos, qr/centos7[-]*els(-rollout-[0-9]+|)/;
         return @repos;
     }
 
