@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.7.0
+        uses: actions/checkout@4a93e7cbdd6398d42facf1d1470c7491c3bfb899bedf96104a84e6b18be7bcee
       - name: Setup PATH
         run: |
           echo $CPANEL_BIN_PATH >> $GITHUB_PATH;
