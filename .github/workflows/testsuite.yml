@@ -16,6 +16,7 @@ jobs:
       PERL_USE_UNSAFE_INC: 1
       CPANEL_BIN_PATH: /usr/local/cpanel/3rdparty/bin
       CPANEL_PERL: /usr/local/cpanel/3rdparty/perl/536/bin/perl
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     runs-on: ubuntu-latest
 
@@ -27,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@4a93e7cbdd6398d42facf1d1470c7491c3bfb899bedf96104a84e6b18be7bcee
+        uses: actions/checkout@v3
       - name: Setup PATH
         run: |
           echo $CPANEL_BIN_PATH >> $GITHUB_PATH;
