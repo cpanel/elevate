@@ -27,6 +27,8 @@ use Cpanel::SafeRun::Object     ();
 
 use Log::Log4perl qw(:easy);
 
+use Carp ();
+
 sub ssystem_capture_output ( $, @args ) {
 
     my %opts;
@@ -65,7 +67,7 @@ sub ssystem ( $, @args ) {
 
 sub ssystem_and_die ( $self, @args ) {
     $self->ssystem(@args) or return 0;
-    die "command failed. Fix it and run command.";
+    Carp::croak("command failed. Fix it and run command.");
 }
 
 sub _ssystem ( $command, %opts ) {

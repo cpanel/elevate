@@ -28,7 +28,7 @@ cover:
 	find cover_db -type d -exec chmod 755 {} \;
 
 tags:
-	/usr/bin/ctags -R --languages=perl elevate-cpanel t
+	/usr/bin/ctags -R --languages=perl --extra=+q script lib t
 
 elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 	USE_CPANEL_PERL_FOR_PERLSTATIC=1 maint/perlpkg.static \
