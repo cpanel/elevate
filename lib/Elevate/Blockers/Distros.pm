@@ -39,12 +39,7 @@ sub check ($self) {
 }
 
 sub _blocker_os_is_not_supported ($self) {
-    my $is_supported = Elevate::OS::is_supported();    # dies
-    unless ($is_supported) {
-        return $self->has_blocker( <<~'EOS' );
-        elevate-cpanel for CloudLinux 7 has been disabled due to problems with the upstream leapp package. See https://go.cpanel.net/elevate-cloudlinux-disabled for more information. The stability of your upgrade is our highest priority. We will re-enable it when this has been resolved.
-        EOS
-    }
+    Elevate::OS::is_supported();    # dies
     return 0;
 }
 
@@ -80,15 +75,7 @@ upgrade via this script.  Never allow a cache to be used here.
 
 sub bail_out_on_inappropriate_distro () {
     Elevate::OS::clear_cache();
-    my $is_supported = Elevate::OS::is_supported();    # dies
-
-    unless ($is_supported) {
-        FATAL( <<~'EOS' );
-        elevate-cpanel for CloudLinux 7 has been disabled due to problems with the upstream leapp package. See https://go.cpanel.net/elevate-cloudlinux-disabled for more information. The stability of your upgrade is our highest priority. We will re-enable it when this has been resolved.
-        EOS
-        exit 1;                                        ## no critic(Cpanel::NoExitsFromSubroutines)
-    }
-
+    Elevate::OS::is_supported();    # dies
     return;
 }
 

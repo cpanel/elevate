@@ -14,8 +14,6 @@ use Log::Log4perl qw(:easy);
 
 use parent 'Elevate::OS::RHEL';
 
-# RE-500: temporarily disable until upstream leapp bug is resolved
-use constant is_supported                    => 0;
 use constant default_upgrade_to              => 'CloudLinux';
 use constant ea_alias                        => 'CloudLinux_8';
 use constant elevate_rpm_url                 => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
