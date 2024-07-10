@@ -1,3 +1,12 @@
+##### **2024-07-10** - version 46
+
+* Re-enable cloudlinux elevations after bugs related to dnf/spacewalk were addressed in upstream leapp.
+* Fixed case RE-361: Make it more clear why yum makecache failures are a problem
+* Fixed case RE-466: Improve error output when the script aborts due to a failed external command.
+* Fixed case RE-534: Don't block on ELS rollout repo slots
+* Fixed case RE-420: Block when packages are installed from a disabled repo
+* Fixed case RE-505: Do not allow check to run in the middle of an elevation
+
 ##### **2024-07-03** - version 45
 
 * Case RE-500: Disable cloudlinux elevations until bugs related to dnf/spacewalk are addressed in upstream leapp.
