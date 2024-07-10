@@ -310,6 +310,17 @@ BEGIN {    # Suppress load of all of these at earliest point.
             return 1;
         }
 
+        my $stage = Elevate::Stages::get_stage();
+        if ( $stage != 0 && $stage <= cpev::VALID_STAGES() ) {
+            die <<~"EOS";
+        An elevation process is currently in progress: running stage $stage
+        You can check the log by running:
+            /scripts/elevate-cpanel --log
+        or check the elevation status:
+            /scripts/elevate-cpanel --status
+        EOS
+        }
+
         Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();
 
         my $blocker_file = $self->cpev->getopt('check') || ELEVATE_BLOCKER_FILE;
@@ -5495,6 +5506,9 @@ EOS
         $OS = eval { factory(); };
 
         if ( !$OS ) {
+
+            DEBUG("Unable to acquire Elevate::OS instance, dying") unless -t STDOUT;
+
             my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
             die "This script is only designed to upgrade the following OSs:\n\n$supported_distros\n";
         }
@@ -8126,7 +8140,7 @@ sub start ($self) {
         You can check the log by running:
             /scripts/elevate-cpanel --log
         or check the elevation status:
-            /scripts/elevate-cpanel --check
+            /scripts/elevate-cpanel --status
         EOS
 
     }
