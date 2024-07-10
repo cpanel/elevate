@@ -94,6 +94,14 @@ sub _yum_is_stable ($self) {
     my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
     if ( $errors =~ m/\S/ms ) {
 
+        my $error_msg = <<~'EOS';
+        '/usr/bin/yum makecache' failed to return cleanly. This could be due to a temporary mirror problem, or it could indicate a larger issue, such as a broken repository. Since this script relies heavily on yum, you will need to address this issue before upgrading.
+
+        If you need assistance, open a ticket with cPanel Support, as outlined here:
+
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+        EOS
+
         WARN("Initial run of \"yum makecache\" failed: $errors");
         WARN("Running \"yum clean all\" in an attempt to fix yum");
 
@@ -104,11 +112,11 @@ sub _yum_is_stable ($self) {
 
         $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
         if ( $errors =~ m/\S/ms ) {
-            ERROR('yum appears to be unstable. Please address this before upgrading');
+            ERROR($error_msg);
             ERROR($errors);
             my $id = ref($self) . '::YumMakeCacheError';
             return $self->has_blocker(
-                "yum appears to be unstable. Please address this before upgrading\n$errors",
+                "$error_msg" . "$errors",
                 info => {
                     name  => $id,
                     error => $errors,
