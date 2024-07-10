@@ -58,14 +58,7 @@ my $distros = $cpev->get_blocker('Distros');
     Cpanel::OS::clear_cache_after_cloudlinux_update();
     unmock_os();
     $f = Test::MockFile->symlink( 'linux|cloudlinux|7|9|2009', '/var/cpanel/caches/Cpanel-OS' );
-    like(
-        $distros->check(),
-        {
-            id  => 'Elevate::Blockers::Distros::_blocker_os_is_not_supported',
-            msg => qr/elevate-cpanel for CloudLinux 7 has been disabled due to problems with the upstream leapp package/,
-        },
-        'CL7 is supported.',
-    );
+    is( $distros->check(), 0, 'CL7 is supported.' );
 
     undef $f;
     Cpanel::OS::clear_cache_after_cloudlinux_update();
