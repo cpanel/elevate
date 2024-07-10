@@ -2742,43 +2742,12 @@ EOS
     }
 
     sub clean_up_pkg_cruft ($self) {
-        $self->move_pgsql_directory();
         $self->remove_cpanel_ccs_home_directory();
         return;
     }
 
     sub remove_cpanel_ccs_home_directory ($self) {
         File::Path::remove_tree('/opt/cpanel-ccs') if -d '/opt/cpanel-ccs';
-        return;
-    }
-
-    sub move_pgsql_directory ($self) {
-        my $pg_dir        = '/var/lib/pgsql';
-        my $pg_backup_dir = '/var/lib/pgsql_pre_elevate';
-
-        File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
-
-        $pg_backup_dir .= '_' . time() . '_' . $$ if -e $pg_backup_dir;
-
-        File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
-
-        if ( -e $pg_backup_dir ) {
-            die <<~"EOS";
-        Unable to ensure a valid backup path for $pg_dir.
-        Please ensure that '/var/lib/pgsql_pre_elevate' does not exist on your system and execute this script again with
-
-        /scripts/elevate-cpanel --continue
-
-        EOS
-        }
-
-        INFO( <<~"EOS" );
-    Moving the PostgreSQL data dir located at $pg_dir to $pg_backup_dir
-    to ensure a functioning PostgreSQL server after the elevation completes.
-    EOS
-
-        File::Copy::move( $pg_dir, $pg_backup_dir ) if -d $pg_dir;
-
         return;
     }
 

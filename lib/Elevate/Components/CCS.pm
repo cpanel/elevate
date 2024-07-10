@@ -61,7 +61,6 @@ sub pre_leapp ($self) {
 }
 
 sub clean_up_pkg_cruft ($self) {
-    $self->move_pgsql_directory();
     $self->remove_cpanel_ccs_home_directory();
     return;
 }
@@ -76,48 +75,6 @@ to start after the elevation has completed
 
 sub remove_cpanel_ccs_home_directory ($self) {
     File::Path::remove_tree('/opt/cpanel-ccs') if -d '/opt/cpanel-ccs';
-    return;
-}
-
-=head1 move_pgsql_directory
-
-Removing the PKG will leave this directory in place
-This results in PostGreSQL/CCS failing to start after leapp completes
-
-=cut
-
-sub move_pgsql_directory ($self) {
-    my $pg_dir        = '/var/lib/pgsql';
-    my $pg_backup_dir = '/var/lib/pgsql_pre_elevate';
-
-    # Remove the backup path if it exists as a directory
-    File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
-
-    # If we were unable to remove the backup path above, then change it to something that
-    # should be unique
-    $pg_backup_dir .= '_' . time() . '_' . $$ if -e $pg_backup_dir;
-
-    # Make sure the path that should be unique does not exist
-    File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
-
-    # Give it up if we still do not have a candidate to back the data up to
-    if ( -e $pg_backup_dir ) {
-        die <<~"EOS";
-        Unable to ensure a valid backup path for $pg_dir.
-        Please ensure that '/var/lib/pgsql_pre_elevate' does not exist on your system and execute this script again with
-
-        /scripts/elevate-cpanel --continue
-
-        EOS
-    }
-
-    INFO( <<~"EOS" );
-    Moving the PostgreSQL data dir located at $pg_dir to $pg_backup_dir
-    to ensure a functioning PostgreSQL server after the elevation completes.
-    EOS
-
-    File::Copy::move( $pg_dir, $pg_backup_dir ) if -d $pg_dir;
-
     return;
 }
 
