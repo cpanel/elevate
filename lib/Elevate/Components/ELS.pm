@@ -25,8 +25,6 @@ sub pre_leapp ($self) {
 
     return unless Elevate::OS::remove_els();
 
-    return unless Cpanel::Pkgr::is_installed(ELS_PACKAGE);
-
     my @files_to_remove = qw{
       /etc/yum.repos.d/centos7-els.repo
       /etc/yum.repos.d/centos7-els-rollout.repo
@@ -38,7 +36,7 @@ sub pre_leapp ($self) {
         }
     }
 
-    $self->yum->remove(ELS_PACKAGE);
+    $self->yum->remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
 
     return;
 }
