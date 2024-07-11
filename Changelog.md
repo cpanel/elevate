@@ -1,3 +1,7 @@
+##### **2024-07-11** - version 47
+
+* Fixed case RE-542:  Add jetapps-* to the list of vetted repos
+
 ##### **2024-07-10** - version 46
 
 * Re-enable cloudlinux elevations after bugs related to dnf/spacewalk were addressed in upstream leapp.
