@@ -15,6 +15,9 @@ use cPstrict;
 use Elevate::Constants ();
 use Elevate::StageFile ();
 
+use Cpanel::JSON            ();
+use Cpanel::SafeRun::Simple ();
+
 use Cwd           ();
 use Log::Log4perl qw(:easy);
 
@@ -35,9 +38,19 @@ sub post_leapp ($self) {
 }
 
 sub _backup_pecl_packages ($self) {
-    my @ea_versions = qw{ea-php70 ea-php71 ea-php72 ea-php73 ea-php74 ea-php80};
+    my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_installed_versions});
+    my $result = eval { Cpanel::JSON::Load($out); } // {};
 
-    foreach my $v (@ea_versions) {
+    unless ( $result->{metadata}{result} ) {
+        WARN( <<~"EOS" );
+        Unable to determine the installed PHP versions.
+        Assuming that backing up PECL packages is not relevant as such.
+
+        EOS
+        return;
+    }
+
+    foreach my $v ( @{ $result->{'data'}{'versions'} } ) {
         _store_pecl_for( qq[/opt/cpanel/$v/root/usr/bin/pecl], $v );
     }
 
