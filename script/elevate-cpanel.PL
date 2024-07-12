@@ -1307,8 +1307,8 @@ sub run_final_components_pre_leapp ($self) {
     # order matters
     $self->run_component_once( 'RmMod'            => 'pre_leapp' );
     $self->run_component_once( 'Imunify'          => 'pre_leapp' );
-    $self->run_component_once( 'EA4'              => 'pre_leapp' );
     $self->run_component_once( 'PECL'             => 'pre_leapp' );
+    $self->run_component_once( 'EA4'              => 'pre_leapp' );
     $self->run_component_once( 'MySQL'            => 'pre_leapp' );
     $self->run_component_once( 'Repositories'     => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );
