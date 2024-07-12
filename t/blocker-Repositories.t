@@ -35,6 +35,7 @@ my $unvetted            = 'UNVETTED';
 my $invalid_syntax      = 'INVALID_SYNTAX';
 my $rpms_from_unvetted  = 'USE_RPMS_FROM_UNVETTED_REPO';
 my $unused_repo_enabled = 'HAS_UNUSED_REPO_ENABLED';
+my $duplicate           = 'DUPLICATE_IDS';
 
 my $path_yum_repos_d = '/etc/yum.repos.d';
 
@@ -175,6 +176,44 @@ $cpev_mock->redefine( 'get_installed_rpms_in_repo' => sub { return ( 'solitaire.
 $mock_vetted_repo->contents($valid_syn_acks);
 $mock_unknown_repo->contents($invalid_synax);
 is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $invalid_syntax => 1 }, "syntax errors and unvetted repos w/installed RPMs are both reported";
+
+undef $mock_unknown_repo;
+
+my $mock_base_repo = Test::MockFile->file("$path_yum_repos_d/CentOS-Base.repo");
+$mock_base_repo->contents( <<'EOS' );
+[base]
+name=CentOS-$releasever - Base
+baseurl=https://vault.centos.org/7.9.2009/os/$basearch
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+EOS
+
+$mock_vetted_repo->contents( <<'EOS' );
+[MariaDB102]
+name=MariaDB102
+baseurl=http://yum.mariadb.org/10.2/c$releasever-$basearch
+enabled=1
+EOS
+
+is $yum->_check_yum_repos(), {}, q[No duplicate IDs found];
+
+my $mock_duplicate_repo = Test::MockFile->file("$path_yum_repos_d/MariaDB106.repo");
+$mock_duplicate_repo->contents( <<'EOS' );
+[MariaDB102]
+name=MariaDB102
+baseurl=http://yum.mariadb.org/10.2/c$releasever-$basearch
+enabled=1
+
+[base]
+name=CentOS-$releasever - Base
+baseurl=https://vault.centos.org/7.9.2009/os/$basearch
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+EOS
+
+is $yum->_check_yum_repos(), { $duplicate => 1, }, q[Duplicate IDs found when a repo with duplicate IDs exists];
+
+is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.repo', 'base' => '/etc/yum.repos.d/MariaDB106.repo' }, q[Expected duplicate IDs found] or diag explain $yum->{_duplicate_repoids};
 
 # Now we've tested the caller, let's test the code.
 {
