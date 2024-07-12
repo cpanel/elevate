@@ -78,7 +78,15 @@ sub _imunify360_is_installed_and_provides_hardened_php () {
         } grep { m/\S/ } split( "\n", $output );
 
         foreach my $feature (@features) {
-            return 1 if $feature eq 'hardened-php';
+
+            # If Imunify 360 provides hardened PHP and
+            # the ea-cpanel-tools has been updated to the
+            # CL version, then we can assume that this system
+            # is using CL EA4
+            if ( $feature eq 'hardened-php' ) {
+                my $version = Cpanel::Pkgr::get_package_version('ea-cpanel-tools');
+                return $version =~ m{cloudlinux} ? 1 : 0;
+            }
         }
     }
 
