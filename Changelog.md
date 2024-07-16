@@ -1,3 +1,7 @@
+##### **2024-07-16** - version 48
+
+* Fixed case RE-538: Have ELS component always remove the ELS repo files if they exist
+
 ##### **2024-07-11** - version 47
 
 * Fixed case RE-542:  Add jetapps-* to the list of vetted repos
