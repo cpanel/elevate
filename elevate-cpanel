@@ -7985,7 +7985,7 @@ use Elevate::DNF              ();
 use Elevate::YUM              ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 48;
+use constant VERSION => 49;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant VALID_STAGES => 5;
