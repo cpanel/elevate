@@ -328,6 +328,7 @@ use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recomme
 
 use constant ACTION_REBOOT_NEEDED   => 4242;    # just one unique id
 use constant ACTION_PAUSE_REQUESTED => 4243;
+use constant ACTION_CONTINUE        => 4244;
 
 use constant PAUSE_ELEVATE_TOUCHFILE => q[/waiting_for_distro_upgrade];
 
@@ -511,6 +512,9 @@ sub monitor_upgrade ($self) {
 }
 
 sub start ($self) {
+
+    return 1 unless _sanity_check();
+
     my $stage = Elevate::Stages::get_stage();
     if ( $stage != 0 ) {
         my $header;
@@ -538,8 +542,6 @@ sub start ($self) {
 
     system touch => Elevate::Constants::LOG_FILE;
 
-    Elevate::Stages::bump_stage();    # init stage number to 1
-
     # store the manual reboots flag
     if ( $self->getopt('manual-reboots') ) {
         WARN('Manual Reboot would be required between each stages');
@@ -561,8 +563,8 @@ sub start ($self) {
         Elevate::StageFile::update_stage_file( { no_leapp => 1 } );
     }
 
-    # prefer over running step1: so status and notifications are enabled
-    return $self->run_service_and_notify();
+    # This starts the service for us:
+    return $self->service->install();
 }
 
 sub _capture_env_variables ($self) {
@@ -649,11 +651,6 @@ sub continue_elevation ($self) {
         Elevate::Logger::ERROR_nolog("Looks like no elevate process was started. Please consider running: /scripts/elevate-cpanel --start");
         return;
     }
-    elsif ( $stage == 1 ) {
-        Elevate::Logger::INFO_nolog("Continuing elevate process from stage 1 (service not setup yet)");
-        $self->run_stage_1();
-        return;
-    }
 
     $self->_capture_env_variables();    # capture env before restart
 
@@ -671,11 +668,13 @@ sub continue_elevation ($self) {
     }
 }
 
-sub do_cleanup ($self) {
+sub do_cleanup ( $self, $handle_service_manually = 0 ) {
 
-    $self->service->remove;
+    if ( !$handle_service_manually ) {
+        $self->service->remove;
+        $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+    }
 
-    $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
     Elevate::StageFile::remove_stage_file();
     unlink Elevate::Constants::PID_FILE;
 
@@ -699,37 +698,40 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
     }
 
     my $action_todo;
-    my $ok = eval {
-        $action_todo = $self->_run_service();
-        1;
-    };
+    do {
+        my $ok = eval {
+            $action_todo = $self->_run_service();
+            1;
+        };
 
-    $action_todo //= 0;
+        $action_todo //= 0;
 
-    if ($ok) {
+        if ($ok) {
 
-        # only notify a success when reaching the last stage
-        if ( $stage == VALID_STAGES ) {
-            Elevate::StageFile::update_stage_file( { status => q[success] } );
-            $self->_notify_success();
-            Elevate::StageFile::create_success_file();
+            # only notify a success when reaching the last stage
+            if ( $stage == VALID_STAGES ) {
+                Elevate::StageFile::update_stage_file( { status => q[success] } );
+                $self->_notify_success();
+                Elevate::StageFile::create_success_file();
+            }
+
+            if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
+                Elevate::StageFile::update_stage_file( { status => q[paused] } );
+            }
+            elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
+                $self->reboot();
+            }
+
         }
+        else {
+            my $error = $@ // q[Unknown error];
 
-        if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
-            Elevate::StageFile::update_stage_file( { status => q[paused] } );
+            Elevate::StageFile::update_stage_file( { status => q[failed] } );
+            $self->_notify_error($error);
+
+            LOGDIE($error);
         }
-        elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
-            $self->reboot();
-        }
-    }
-    else {
-        my $error = $@ // q[Unknown error];
-
-        Elevate::StageFile::update_stage_file( { status => q[failed] } );
-        $self->_notify_error($error);
-
-        LOGDIE($error);
-    }
+    } while ( $action_todo == ACTION_CONTINUE );
 
     return $action_todo;
 }
@@ -832,7 +834,7 @@ sub _run_service ($self) {
 
     my $stage = Elevate::Stages::get_stage();
 
-    print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
+    print_box( "Starting stage $stage of " . VALID_STAGES );
 
     $self->_wait_on_pause();    # handle pause when requested
 
@@ -928,20 +930,18 @@ responsible of the multiple reboots.
 
 sub run_stage_1 ($self) {
 
-    # do not leave cruft behing when aborting
-    my $abort = sub {
-        $self->do_cleanup();
-        exit 42;    ## no critic(Cpanel::NoExitsFromSubroutines) catching signals
-    };
+    Elevate::Marker::startup();
 
-    local $SIG{'INT'} = $abort;
-    local $SIG{'HUP'} = $abort;
+    Elevate::Motd->setup();
 
-    return 1 unless _sanity_check();
+    if ( !$self->should_run_leapp() ) {
+        Elevate::Stages::bump_stage();
+        return ACTION_CONTINUE;
+    }
 
-    print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . $self->service->name . " service" );
+    $self->run_component_once( 'Grub2' => 'mark_cmdline' );
 
-    return $self->service->install();
+    return ACTION_REBOOT_NEEDED;
 }
 
 =head2 run_stage_2
@@ -952,9 +952,7 @@ Update the current distro packages then reboot.
 
 sub run_stage_2 ($self) {
 
-    Elevate::Marker::startup();
-
-    Elevate::Motd->setup();
+    $self->run_component_once( 'Grub2' => 'verify_cmdline' );
 
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
