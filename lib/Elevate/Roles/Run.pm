@@ -108,9 +108,9 @@ sub _ssystem ( $command, %opts ) {
         keep_env     => $opts{keep_env} // 0,
         read_timeout => 0,
     );
-    INFO();    # Buffer so they can more easily read the output.
+    INFO() unless $opts{should_hide_output};    # Buffer so they can more easily read the output.
 
-    $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
+    $? = $sr->CHILD_ERROR;                      ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
 
     if ( $opts{should_capture_output} ) {
         $capture_output->{status} = $?;
