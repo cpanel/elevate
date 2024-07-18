@@ -12,6 +12,8 @@ Blocker to check if the Yum repositories are compliant with the elevate process.
 
 use cPstrict;
 
+use File::Copy ();
+
 use Cpanel::OS             ();
 use Cpanel::JSON           ();
 use Cpanel::Update::Config ();
@@ -71,12 +73,32 @@ sub _blocker_invalid_yum_repos ($self) {
 
         if ( !$self->is_check_mode() ) {    # autofix when --check is not used
             $self->_autofix_yum_repos();
+            $self->_autofix_duplicate_repoids();
 
             # perform a second check to make sure we are in good shape
             $status_hr = $self->_check_yum_repos();
         }
 
         return 0 unless _yum_status_hr_contains_blocker($status_hr);
+
+        if ( $status_hr->{DUPLICATE_IDS} ) {
+            my $duplicate_ids = join "\n", keys $self->{_duplicate_repoids}->%*;
+            my $dupe_id_msg   = <<~"EOS";
+            One or more enable YUM repo have repositories defined multiple times:
+
+            $duplicate_ids
+
+            A possible resolution for this issue is to either remove the duplicate
+            repository definitions or change the repoids of the conflicting
+            repositories on the system to prevent the conflict.
+            EOS
+
+            my $blocker_id = ref($self) . '::' . 'DuplicateRepoIds';
+            $self->has_blocker(
+                $dupe_id_msg,
+                blocker_id => $blocker_id,
+            );
+        }
 
         for my $unsupported_repo ( @{ $self->{_yum_repos_unsupported_with_packages} } ) {
             my $blocker_id = ref($self) . '::' . $unsupported_repo->{'name'};
@@ -90,14 +112,14 @@ sub _blocker_invalid_yum_repos ($self) {
         }
     }
 
-    return 0;
+    return 1;
 }
 
 sub _yum_status_hr_contains_blocker ($status_hr) {
     return 0 if ref $status_hr ne 'HASH' || !scalar keys( %{$status_hr} );
 
     # Not using List::Util here already, so not gonna use first()
-    my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO};
+    my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO DUPLICATE_IDS};
     foreach my $blocked (@blockers) {
         return 1 if $status_hr->{$blocked};
     }
@@ -205,12 +227,15 @@ sub _check_yum_repos ($self) {
     $self->{_yum_repos_path_using_invalid_syntax} = [];
     $self->{_yum_repos_to_disable}                = [];
     $self->{_yum_repos_unsupported_with_packages} = [];
+    $self->{_duplicate_repoids}                   = [];
 
     my @vetted_repos = Elevate::OS::vetted_yum_repo();
 
     my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 
     my %status;
+    my %repoids;
+    my %duplicate_repoids;
     opendir( my $dh, $repo_dir ) or do {
         ERROR("Cannot read directory $repo_dir - $!");
         return;
@@ -305,6 +330,12 @@ sub _check_yum_repos ($self) {
                 $current_repo_enabled          = 1;    # assume enabled unless explicitely disabled
                 $current_repo_use_valid_syntax = 1;
 
+                # Check for duplicate repo IDs
+                if ( $repoids{$current_repo_name} ) {
+                    $duplicate_repoids{$current_repo_name} = $path;
+                }
+                $repoids{$current_repo_name} = 1;
+
                 next;
             }
             next unless defined $current_repo_name;
@@ -318,7 +349,25 @@ sub _check_yum_repos ($self) {
         # check the last repo found
         $check_last_known_repo->();
     }
+
+    if ( scalar keys %duplicate_repoids ) {
+        $status{DUPLICATE_IDS} = 1;
+        $self->{_duplicate_repoids} = \%duplicate_repoids;
+    }
+
     return \%status;
+}
+
+sub _autofix_duplicate_repoids ($self) {
+    my %duplicate_ids = $self->{_duplicate_repoids}->%*;
+    foreach my $id ( keys %duplicate_ids ) {
+        if ( $id =~ m/^MariaDB[0-9]+/ ) {
+            my $path = $duplicate_ids{$id};
+            File::Copy::move( $path, "$path.disabled_by_elevate" );
+        }
+    }
+
+    return;
 }
 
 sub _autofix_yum_repos ($self) {
