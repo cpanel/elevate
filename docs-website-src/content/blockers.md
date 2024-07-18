@@ -14,7 +14,7 @@ The ELevate script upgrades an existing cPanel & WHM RHEL 7-based server install
 We assume the following conditions any time you run the ELevate script:
 
 * You are logged in as `root`.
-* The system is running **CentOS** or **CloudLinux** 7.9.
+* The system is running **CentOS 7** or **CloudLinux 7** with the latest version 7.9.
 * You are running cPanel version 110.
 * cPanel does not require an update.
 * cPanel has a valid license.
