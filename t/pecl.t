@@ -157,4 +157,14 @@ EOS
 
 }
 
+# Test _backup_pecl_packages
+$list_output = '{"metadata":{"reason":"OK","result":1,"command":"php_get_installed_versions","version":1},"data":{"versions":["ea-php80","ea-php81","ea-php82"]}}';
+my @stored;
+$mock_pecl->redefine(
+    _store_pecl_for => sub { push @stored, $_[1] },
+);
+
+$pecl->_backup_pecl_packages();
+is \@stored, [qw{ea-php80 ea-php81 ea-php82 cpanel}], "Got the expeced versions to store in _backup_pecl_packages";
+
 done_testing;
