@@ -1,3 +1,8 @@
+##### **2024-07-23** - version 49
+
+* Fixed Case RE-72: Update PECL check to run before EA in pre_leapp phase; use php_get_installed_versions to determine EA PHP package versions.
+* Fixed Case RE-452: Add blocker for duplicate repo IDs
+
 ##### **2024-07-16** - version 48
 
 * Fixed case RE-538: Have ELS component always remove the ELS repo files if they exist
