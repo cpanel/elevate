@@ -28,7 +28,7 @@ sub _check_imunify_license ($self) {
     return unless -x Elevate::Constants::IMUNIFY_AGENT;
 
     my $agent_bin    = Elevate::Constants::IMUNIFY_AGENT;
-    my $out          = $self->ssystem_capture_output( $agent_bin, 'version', '--json' );
+    my $out          = $self->ssystem_hide_and_capture_output( $agent_bin, 'version', '--json' );
     my $raw_data     = join "\n", @{ $out->{stdout} };
     my $license_data = eval { Cpanel::JSON::Load($raw_data) } // {};
 
