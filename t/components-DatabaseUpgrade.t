@@ -1,11 +1,12 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
+package test::cpev::components;
 
 #                                      Copyright 2024 WebPros International, LLC
 #                                                           All rights reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
 
-package test::cpev::components;
+use cPstrict;
 
 use FindBin;
 
@@ -19,11 +20,6 @@ use Test::MockFile   qw/strict/;
 
 use lib $FindBin::Bin . "/lib";
 use Test::Elevate;
-
-use cPstrict;
-
-use strict;
-use warnings;
 
 use constant PROFILE_FILE => Elevate::Components::DatabaseUpgrade::MYSQL_PROFILE_FILE;
 
@@ -117,7 +113,8 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
 {
     note('Checking _ensure_localhost_mysql_profile_is_active');
 
-    my $mock_mysqlutils = Test::MockModule->new('Cpanel::MysqlUtils::MyCnf::Basic');
+    my $saved_db_file_mock = Test::MockFile->file('/var/cpanel/elevate-mysql-profile');
+    my $mock_mysqlutils    = Test::MockModule->new('Cpanel::MysqlUtils::MyCnf::Basic');
     $mock_mysqlutils->redefine( 'is_local_mysql', 1 );
 
     my $instantiated_pm = 0;
@@ -128,7 +125,30 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
     is $instantiated_pm, 0, 'ProfileManager instance not created when is_local_mysql returns true';
 
     $mock_mysqlutils->redefine( 'is_local_mysql', 0 );
-    $mock_pm->redefine( 'validate_profile', sub { die 'foo' } );
+    $mock_pm->redefine(
+        'validate_profile', sub { die 'foo' },
+        'read_profiles',
+        sub {
+            return {
+                'localhost' => {
+                    'mysql_port' => '3306',
+                    'mysql_pass' => 'hunter2',
+                    'mysql_host' => 'localhost',
+                    'mysql_user' => 'azurediamond',
+                    'setup_via'  => 'Auto-Migrated active profile',
+                    'active'     => 0,
+                },
+                'remote' => {
+                    'mysql_port' => '69420',
+                    'mysql_pass' => 'NHTSA_R00lz',
+                    'mysql_host' => 'test.test',
+                    'mysql_user' => 'crash_test_dummy',
+                    'setup_via'  => "The People's Quality Front",
+                    'active'     => 1
+                },
+            };
+        },
+    );
 
     like(
         dies { $db_upgrade->_ensure_localhost_mysql_profile_is_active(0) },
@@ -146,10 +166,12 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
         'Died as expected when _activate_localhost_profile fails and should_create_localhost_profile is false'
     );
 
+    $mock_pm->redefine( 'validate_profile', sub { die "whugg" } );
     my $created_new_localhost_profile = 0;
     $mock_db_upgrade->redefine( '_create_new_localhost_profile', sub { $created_new_localhost_profile = 1 } );
     eval { $db_upgrade->_ensure_localhost_mysql_profile_is_active(1) };
     is $created_new_localhost_profile, 1, '_create_new_localhost_profile() was called when existing profile failed to validate/activate';
+    message_seen( 'INFO', qr{Saving the currently active MySQL Profile \(remote\) to /var/cpanel/elevate-mysql-profile} );
     message_seen( 'INFO', qr/Attempting to create new localhost MySQL profile/ );
 
     clear_messages_seen();
