@@ -36,10 +36,10 @@ sub pre_leapp ($self) {
     # We don't auto-upgrade the database if provided by cloudlinux
     return if Elevate::Database::is_database_provided_by_cloudlinux();
 
+    $self->_ensure_localhost_mysql_profile_is_active(1);
+
     # If the database version is supported on the new OS version, then no need to upgrade
     return if Elevate::Database::is_database_version_supported( Elevate::Database::get_local_database_version() );
-
-    $self->_ensure_localhost_mysql_profile_is_active(1);
 
     Elevate::Database::upgrade_database_server();
 
@@ -47,40 +47,45 @@ sub pre_leapp ($self) {
 }
 
 sub post_leapp ($self) {
+    return unless -e MYSQL_PROFILE_FILE;
 
-    if ( -e MYSQL_PROFILE_FILE ) {
-        my $original_profile = File::Slurper::read_text(MYSQL_PROFILE_FILE) // 'localhost';
-        INFO(qq{Reactivating "$original_profile" MySQL profile});
+    my $original_profile = File::Slurper::read_text(MYSQL_PROFILE_FILE) // 'localhost';
+    INFO(qq{Reactivating "$original_profile" MySQL profile});
 
-        my $output = $self->ssystem_capture_output( '/usr/local/cpanel/scripts/manage_mysql_profiles', '--activate', "$original_profile" );
-        my $stdout = join qq{\n}, @{ $output->{'stdout'} };
+    my $output = $self->ssystem_capture_output( '/usr/local/cpanel/scripts/manage_mysql_profiles', '--activate', "$original_profile" );
+    my $stdout = join qq{\n}, @{ $output->{'stdout'} };
 
-        unless ( $stdout =~ m{MySQL profile activation done} ) {
-            die <<~"EOS";
-            Unable to reactivate the original remote MySQL profile "$original_profile":
+    unless ( $stdout =~ m{MySQL profile activation done} ) {
+        die <<~"EOS";
+        Unable to reactivate the original remote MySQL profile "$original_profile":
 
-            $stdout
+        $stdout
 
-            Please resolve the reported problems then run this script again with:
+        Please resolve the reported problems then run this script again with:
 
-            /scripts/elevate-cpanel --continue
+        /scripts/elevate-cpanel --continue
 
-            EOS
-        }
-
-        unlink MYSQL_PROFILE_FILE;
+        EOS
     }
+
+    unlink MYSQL_PROFILE_FILE or WARN( "Could not delete " . MYSQL_PROFILE_FILE . ": $!" );
 
     return;
 }
 
 sub _ensure_localhost_mysql_profile_is_active ( $self, $should_create_localhost_profile ) {
-
-    if ( Cpanel::MysqlUtils::MyCnf::Basic::is_local_mysql() ) {
-        return;
-    }
+    return if Cpanel::MysqlUtils::MyCnf::Basic::is_local_mysql();
 
     my $profile_manager = Cpanel::MysqlUtils::RemoteMySQL::ProfileManager->new();
+
+    # Immediately record the currently active profile, as othrewise you can
+    # miss it in the try/catch below. Default to localhost, because if there's
+    # no answer, something's probably wrong in a way we don't *want* to touch.
+    my $profile = $profile_manager->get_active_profile('dont_die') || 'localhost';
+    if ($should_create_localhost_profile) {
+        INFO( "Saving the currently active MySQL Profile ($profile) to " . MYSQL_PROFILE_FILE );
+        File::Slurper::write_text( MYSQL_PROFILE_FILE, $profile );
+    }
 
     # Validate that the current “localhost” profile exists, and contains valid settings.
     try {
@@ -90,23 +95,16 @@ sub _ensure_localhost_mysql_profile_is_active ( $self, $should_create_localhost_
 
     # Otherwise attempt to recreate it, overwriting the existing profile.
     catch {
-        if ($should_create_localhost_profile) {
-            INFO("Attempting to create new localhost MySQL profile...");
-            $self->_create_new_localhost_profile($profile_manager);
-            $self->_ensure_localhost_mysql_profile_is_active(0);
-        }
-        else {
-            die "Unable to generate/enable localhost MySQL profile: $_\n";
-        }
+        die "Unable to generate/enable localhost MySQL profile: $_\n" unless $should_create_localhost_profile;
+        INFO("Attempting to create new localhost MySQL profile...");
+        $self->_create_new_localhost_profile($profile_manager);
+        $self->_ensure_localhost_mysql_profile_is_active(0);
     };
 
     return;
 }
 
 sub _create_new_localhost_profile ( $self, $profile_manager ) {
-
-    my $active_profile = $profile_manager->get_active_profile('dont_die');
-    File::Slurper::write_text( MYSQL_PROFILE_FILE, $active_profile );
 
     my $password = Cpanel::PasswdStrength::Generate::generate_password( 16, no_othersymbols => 1 );
 
