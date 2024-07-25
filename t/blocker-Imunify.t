@@ -36,7 +36,7 @@ my $imunify = $cpev->get_blocker('Imunify');
     my @cmds;
     my @stdout;
     $cpev_mock->redefine(
-        ssystem_capture_output => sub ( $, @args ) {
+        ssystem_hide_and_capture_output => sub ( $, @args ) {
             push @cmds, [@args];
             return { status => 0, stdout => \@stdout, stderr => [] };
         },
