@@ -4292,11 +4292,9 @@ EOS
     my $cnf_file = '/etc/my.cnf';
 
     sub pre_leapp ($self) {
+        return if Elevate::Database::is_database_provided_by_cloudlinux();
 
-        Elevate::Database::is_database_provided_by_cloudlinux()
-          ? $self->run_once('_remove_cpanel_mysql_packages')
-          : $self->run_once("_cleanup_mysql_packages");
-
+        $self->run_once("_cleanup_mysql_packages");
         return;
     }
 
