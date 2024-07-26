@@ -34,6 +34,7 @@ BEGIN {
       ssystem
       ssystem_and_die
       ssystem_capture_output
+      ssystem_hide_and_capture_output
       remove_rpms_from_repos
     };
 
