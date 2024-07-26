@@ -5316,11 +5316,11 @@ EOS
 
         INFO("Removing Wordpress Toolkit");
 
-        INFO("Removing the rpm wp-toolkit-cpanel (--noscripts)");
+        INFO("Removing the rpm wp-toolkit-cpanel");
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
 
-        my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
+        my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e wp-toolkit-cpanel});
         DEBUG($output) if $output;
 
         cpev::yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
