@@ -12,8 +12,12 @@ Capture and reinstall MySQL packages.
 
 use cPstrict;
 
+use Try::Tiny;
+
 use File::Copy    ();
 use Log::Log4perl qw(:easy);
+
+use Cpanel::JSON ();
 
 use Elevate::Database  ();
 use Elevate::Notify    ();
@@ -83,86 +87,89 @@ sub _remove_cpanel_mysql_packages ($self) {
 
 sub _reinstall_mysql_packages {
 
-    my $mysql_version = Elevate::StageFile::read_stage_file( 'mysql-version', '' ) or return;
-    my $enabled       = Elevate::StageFile::read_stage_file( 'mysql-enabled', '' ) or return;
+    my $upgrade_version     = Elevate::StageFile::read_stage_file( 'mysql-version', '' ) or return;
+    my $upgrade_dbtype_name = Elevate::Database::get_database_type_name_from_version($upgrade_version);
+    my $enabled             = Elevate::StageFile::read_stage_file( 'mysql-enabled', '' ) or return;
 
-    INFO("Restoring MySQL $mysql_version");
-
-    my ( $major, $minor ) = split( /\./, $mysql_version );
-
-    # Try to restore any .rpmsave'd configs before we reinstall
-    # It *should be here* given we put it there, so no need to do a -f/-s check
-    INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
-    File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
+    INFO("Restoring $upgrade_dbtype_name $upgrade_version");
 
     if ( !$enabled ) {
-        INFO("MySQL is not enabled. This will cause the MySQL upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
+        INFO("$upgrade_dbtype_name is not enabled. This will cause the $upgrade_dbtype_name upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
         Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1});
 
         # Pray it goes ok, as what exactly do you want me to do if this reports failure? May as well just move forward in this case without checking.
     }
 
-    my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
-    die qq[Failed to restore MySQL $mysql_version] if $?;
-
-    if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
-        my $id = $1;
-
-        INFO("Restoring MySQL via upgrade_id $id");
-        INFO('Waiting for MySQL installation');
-
-        my $status = '';
-
-        my $c = 0;
-
-        my $wait_more = 30;
-        while (1) {
-            $c   = ( $c + 1 ) % 10;
-            $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-            if ($?) {
-                last if !$enabled;
-                die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id];
-            }
-
-            if ( $out =~ m{\sstate:\s*inprogress} ) {
-                print ".";
-                print "\n" if $c == 0;
-                sleep 5;
-                next;
-            }
-
-            if ( $out =~ m{\sstate:\s*(\w+)} ) {
-                $status = $1;
-            }
-
-            # we cannot trust the whmapi1 call (race condition) CPANEL-43253
-            if ( $status ne 'success' && --$wait_more > 0 ) {
-                sleep 1;
-                next;
-            }
-
-            last;
-        }
-
-        print "\n"                                                                                                          if $c;          # clear the last "." from above
-        Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0}) if !$enabled;
-
-        if ( $status eq 'success' ) {
-            INFO("MySQL $mysql_version restored");
-        }
-        else {
-            my $msg = "Failed to restore MySQL $mysql_version: upgrade $id status '$status'";
-
-            FATAL($msg);
-            FATAL("$out");
-
-            Elevate::Notify::add_final_notification($msg);
-            return;
-        }
+    try {
+        Elevate::Database::upgrade_database_server();
     }
-    else {
-        die qq[Cannot find upgrade_id from start_background_mysql_upgrade:\n$out];
+    catch {
+        LOGDIE( <<~"EOS" );
+        Unable to install $upgrade_dbtype_name $upgrade_version.  To attempt to
+        install the database server manually, execute:
+
+        /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade veresion=$upgrade_version
+
+        To have this script attempt to install $upgrade_dbtype_name $upgrade_version
+        for you, execute this script again with the continue flag
+
+        /scripts/elevate-cpanel --continue
+
+        Or once the issue has been resolved manually, execute
+
+        /scripts/elevate-cpanel --continue
+
+        to complete the ELevation process.
+        EOS
+    };
+
+    # No point in restoring my.cnf if the database service is disabled
+    if ( !$enabled ) {
+        Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0});
+        return;
     }
+
+    # In case the pre elevate file causes issues for whatever reason
+    File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_leapp_orig" );
+
+    # Try to restore any .rpmsave'd configs after we reinstall
+    # It *should be here* given we put it there, so no need to do a -f/-s check
+    INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
+    File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
+
+    # Return if MySQL restarts successfully
+    my $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
+    my @restart_lines = split "\n", $restart_out;
+
+    DEBUG('Restarting Database server with restored my.cnf in place');
+    DEBUG($restart_out);
+    return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
+
+    # The database server is not able to start with the pre_leapp version of
+    # my.cnf in place.  Revert to the standard one that was created
+    # in the post_leapp restore
+    INFO('The database server failed to start.  Restoring my.cnf to default.');
+    File::Copy::copy( "$cnf_file.elevate_post_leapp_orig", $cnf_file );
+
+    $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
+    @restart_lines = split "\n", $restart_out;
+
+    DEBUG('Restarting Database server with original my.cnf in place');
+    DEBUG($restart_out);
+    return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
+
+    # If the database server is still unable to start, die as this
+    # component likely failed with an unexpected/unknown error
+    LOGDIE( <<~'EOS' );
+    The database server was unable to start after the attempted restoration.
+
+    Check the elevate log located at '/var/log/elevate-cpanel.log' for further
+    details.
+
+    Additionally, you may wish to inspect the database error log for further
+    details.  This log is located at '/var/lib/mysql/$HOSTNAME.err' where
+    $HOSTNAME is the hostname of your server by default.
+    EOS
 
     return;
 }
