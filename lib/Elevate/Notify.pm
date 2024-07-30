@@ -50,6 +50,7 @@ sub send_notification ( $subject, $msg, %opts ) {
     return;
 }
 
+# NOTE: change notification capturing in Test::Elevate if sub signature changes
 sub _send_notification ( $subject, $msg, %opts ) {
 
     my $is_success = delete $opts{is_success};
