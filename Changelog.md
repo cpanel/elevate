@@ -1,3 +1,12 @@
+##### **2024-08-01** - version 50
+
+* Fixed case RE-514: Check whether leapp can control the boot process before significant and irreversible changes are applied to the system.
+* Fixed case RE-113: Stop using the --noscripts flag when erasing wp-toolkit-cpanel in pre-leapp stage.
+* Fixed case RE-404: Do not log output of Imunify license check
+* Fixed case RE-502: Enable elevate on systems with the R1Soft Backup Agent installed.
+* Fixed case RE-544: Do not cleanup database packages if the database is provided by CloudLinux
+* Fixed case RE-535: Have check that Imunify 360 provides hardened PHP ensure that the 'ea-cpanel-tools' package is provided by the CloudLinux repository
+
 ##### **2024-07-23** - version 49
 
 * Fixed Case RE-72: Update PECL check to run before EA in pre_leapp phase; use php_get_installed_versions to determine EA PHP package versions.
