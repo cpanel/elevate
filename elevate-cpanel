@@ -6274,7 +6274,11 @@ EOS
             } grep { m/\S/ } split( "\n", $output );
 
             foreach my $feature (@features) {
-                return 1 if $feature eq 'hardened-php';
+
+                if ( $feature eq 'hardened-php' ) {
+                    my $version = Cpanel::Pkgr::get_package_version('ea-cpanel-tools');
+                    return $version =~ m{cloudlinux} ? 1 : 0;
+                }
             }
         }
 
