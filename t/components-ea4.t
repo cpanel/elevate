@@ -455,8 +455,7 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
     my $cpev_mock = Test::MockModule->new('cpev');
 
     $cpev_mock->redefine(
-        get_installed_rpms_in_repo => sub { return ( 'ea-foo', 'ea-bar', 'ea-nginx' ) },
-        ssystem_capture_output     => sub ( $, @args ) {
+        ssystem_capture_output => sub ( $, @args ) {
             my $pkg         = pop @args;
             my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
             my $ret         = {
@@ -464,6 +463,13 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
                 stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
             };
             return $ret;
+        },
+    );
+
+    my $mock_rpm = Test::MockModule->new('Elevate::RPM');
+    $mock_rpm->redefine(
+        get_installed_rpms => sub {
+            return ( 'ea-foo', 'ea-bar', 'ea-nginx', 'not-an-ea-package' );
         },
     );
 

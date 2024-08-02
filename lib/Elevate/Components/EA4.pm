@@ -118,8 +118,7 @@ sub _backup_config_files ($self) {
 
     Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-    my $ea4_regex        = qr/^EA4(:?-c7)?/a;
-    my $ea4_config_files = $self->rpm->get_config_files_for_repo($ea4_regex);
+    my $ea4_config_files = $self->rpm->get_config_files_for_pkg_prefix('ea-');
 
     Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
