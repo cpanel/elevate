@@ -973,6 +973,20 @@ sub run_stage_2 ($self) {
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
     $self->run_component_once( 'NICs'       => 'pre_leapp' );
 
+    # Imunify depends on EA4 so the Imunify component needs to
+    # run before EA4 is removed.  However, Imunify 360 can provide
+    # hardened PHP so the EA4 profile backup needs to run before
+    # Imunify is removed, so I split some of the EA4 logic out
+    # to be executed before Imunify and left the removal until
+    # after Imunify
+    $self->run_component_once( 'EA4'     => 'pre_imunify' );
+    $self->run_component_once( 'Imunify' => 'pre_leapp' );
+    $self->run_component_once( 'PECL'    => 'pre_leapp' );
+    $self->run_component_once( 'EA4'     => 'pre_leapp' );
+
+    # This reboot will invalidate the cPanel license causing
+    # further whmapi1 calls to fail until stage 4
+    # if the NICs need to be renamed
     return ACTION_REBOOT_NEEDED;
 }
 
@@ -1305,9 +1319,6 @@ sub run_final_components_pre_leapp ($self) {
 
     # order matters
     $self->run_component_once( 'RmMod'            => 'pre_leapp' );
-    $self->run_component_once( 'Imunify'          => 'pre_leapp' );
-    $self->run_component_once( 'PECL'             => 'pre_leapp' );
-    $self->run_component_once( 'EA4'              => 'pre_leapp' );
     $self->run_component_once( 'MySQL'            => 'pre_leapp' );
     $self->run_component_once( 'Repositories'     => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );

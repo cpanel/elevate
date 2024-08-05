@@ -22,12 +22,15 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {    # run to perform the backup
-
+sub pre_imunify ($self) {
+    $self->run_once('_gather_php_usage');
     $self->run_once('_backup_ea4_profile');
     $self->run_once('_backup_config_files');
-    $self->run_once('_cleanup_rpm_db');
+    return;
+}
 
+sub pre_leapp ($self) {
+    $self->run_once('_cleanup_rpm_db');
     return;
 }
 
@@ -190,6 +193,13 @@ sub _ensure_sites_use_correct_php_version ($self) {
         }
     }
 
+    return;
+}
+
+sub _gather_php_usage ($self) {
+    my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
+    Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
+    Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $php_get_vhost_versions } );
     return;
 }
 
