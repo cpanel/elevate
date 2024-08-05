@@ -206,7 +206,7 @@ Please remove these packages before continuing the update.
     $mock_ea4->unmock('_php_version_is_in_use');
 
     $mock_ea4->redefine(
-        _get_php_versions_in_use => sub ($self) {
+        _get_php_usage => sub ($self) {
             return {
                 api_fail => 1,
             };
@@ -217,7 +217,7 @@ Please remove these packages before continuing the update.
 
     my $is_installed = 1;
     $mock_ea4->redefine(
-        _get_php_versions_in_use => sub ($self) {
+        _get_php_usage => sub ($self) {
             return {
                 'ea-php42' => $is_installed,
             };
@@ -234,7 +234,7 @@ Please remove these packages before continuing the update.
 {
     note 'Testing _get_php_versions_in_use';
 
-    $mock_ea4->unmock('_get_php_versions_in_use');
+    $mock_ea4->unmock('_get_php_usage');
 
     my $mock_result = 'nope';
     my @saferun_calls;
@@ -252,16 +252,16 @@ Please remove these packages before continuing the update.
         remove_from_stage_file => 1,
     );
 
-    is( $ea4->_get_php_versions_in_use(), { api_fail => 1, }, 'api_fail is set when the API call does not return valid JSON' );
+    is( $ea4->_get_php_usage(), { api_fail => 1, }, 'api_fail is set when the API call does not return valid JSON' );
 
     is( \@saferun_calls, [qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions}], 'The expected API call is made' );
 
-    message_seen( WARN => qr/Unable to determine if PHP versions that will be dropped are in use/ );
+    message_seen( WARN => qr/The php_get_vhost_versions API call failed/ );
 
-    $ea4->_get_php_versions_in_use();
+    $ea4->_get_php_usage();
     is( \@saferun_calls, [qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions}], 'The API call is only made one time' );
 
-    local $Elevate::Blockers::EA4::php_versions_in_use = undef;
+    local $Elevate::Blockers::EA4::php_usage = undef;
     $mock_result = {
         metadata => {
             result => 1,
@@ -284,7 +284,7 @@ Please remove these packages before continuing the update.
     $mock_result = Cpanel::JSON::Dump($mock_result);
 
     is(
-        $ea4->_get_php_versions_in_use(),
+        $ea4->_get_php_usage(),
         {
             'ea-php1' => 1,
             'ea-php2' => 1,

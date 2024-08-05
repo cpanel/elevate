@@ -84,7 +84,7 @@ sub _get_incompatible_packages ($self) {
 }
 
 sub _php_version_is_in_use ( $self, $php ) {
-    my $current_php_usage = $self->_get_php_versions_in_use();
+    my $current_php_usage = $self->_get_php_usage();
 
     # Always return true if the api call failed
     return 1 if $current_php_usage->{api_fail};
@@ -92,36 +92,23 @@ sub _php_version_is_in_use ( $self, $php ) {
     return $current_php_usage->{$php} ? 1 : 0;
 }
 
-our $php_versions_in_use;
+our $php_usage;
 
-sub _get_php_versions_in_use ($self) {
-    return $php_versions_in_use if defined $php_versions_in_use && ref $php_versions_in_use eq 'HASH';
+sub _get_php_usage ($self) {
+    return $php_usage if defined $php_usage && ref $php_usage eq 'HASH';
 
-    my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
-    my $result = eval { Cpanel::JSON::Load($out); } // {};
-
-    unless ( $result->{metadata}{result} ) {
-
-        WARN( <<~"EOS" );
-        Unable to determine if PHP versions that will be dropped are in use by
-        a domain.  Assuming that they are in use and blocking to be safe.
-
-        EOS
-
-        $php_versions_in_use->{api_fail} = 1;
-        return $php_versions_in_use;
+    my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
+    if ( !defined $php_get_vhost_versions ) {
+        $php_usage->{api_fail} = 1;
+        return $php_usage;
     }
 
-    my $data = $result->{data}{versions};
-    Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
-    Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $data } );
-
-    foreach my $domain_info (@$data) {
+    foreach my $domain_info (@$php_get_vhost_versions) {
         my $php_version = $domain_info->{version};
-        $php_versions_in_use->{$php_version} = 1;
+        $php_usage->{$php_version} = 1;
     }
 
-    return $php_versions_in_use;
+    return $php_usage;
 }
 
 1;

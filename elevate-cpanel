@@ -1114,43 +1114,30 @@ EOS
     }
 
     sub _php_version_is_in_use ( $self, $php ) {
-        my $current_php_usage = $self->_get_php_versions_in_use();
+        my $current_php_usage = $self->_get_php_usage();
 
         return 1 if $current_php_usage->{api_fail};
 
         return $current_php_usage->{$php} ? 1 : 0;
     }
 
-    our $php_versions_in_use;
+    our $php_usage;
 
-    sub _get_php_versions_in_use ($self) {
-        return $php_versions_in_use if defined $php_versions_in_use && ref $php_versions_in_use eq 'HASH';
+    sub _get_php_usage ($self) {
+        return $php_usage if defined $php_usage && ref $php_usage eq 'HASH';
 
-        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
-        my $result = eval { Cpanel::JSON::Load($out); } // {};
-
-        unless ( $result->{metadata}{result} ) {
-
-            WARN( <<~"EOS" );
-        Unable to determine if PHP versions that will be dropped are in use by
-        a domain.  Assuming that they are in use and blocking to be safe.
-
-        EOS
-
-            $php_versions_in_use->{api_fail} = 1;
-            return $php_versions_in_use;
+        my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
+        if ( !defined $php_get_vhost_versions ) {
+            $php_usage->{api_fail} = 1;
+            return $php_usage;
         }
 
-        my $data = $result->{data}{versions};
-        Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
-        Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $data } );
-
-        foreach my $domain_info (@$data) {
+        foreach my $domain_info (@$php_get_vhost_versions) {
             my $php_version = $domain_info->{version};
-            $php_versions_in_use->{$php_version} = 1;
+            $php_usage->{$php_version} = 1;
         }
 
-        return $php_versions_in_use;
+        return $php_usage;
     }
 
     1;
@@ -3358,12 +3345,15 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {    # run to perform the backup
-
+    sub pre_imunify ($self) {
+        $self->run_once('_gather_php_usage');
         $self->run_once('_backup_ea4_profile');
         $self->run_once('_backup_config_files');
-        $self->run_once('_cleanup_rpm_db');
+        return;
+    }
 
+    sub pre_leapp ($self) {
+        $self->run_once('_cleanup_rpm_db');
         return;
     }
 
@@ -3513,6 +3503,13 @@ EOS
             }
         }
 
+        return;
+    }
+
+    sub _gather_php_usage ($self) {
+        my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
+        Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
+        Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $php_get_vhost_versions } );
         return;
     }
 
@@ -6348,6 +6345,29 @@ EOS
         return;
     }
 
+    my $php_get_vhost_versions;
+
+    sub php_get_vhost_versions () {
+        return $php_get_vhost_versions if defined $php_get_vhost_versions && ref $php_get_vhost_versions eq 'HASH';
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        unless ( $result->{metadata}{result} ) {
+
+            WARN( <<~"EOS" );
+        The php_get_vhost_versions API call failed. Unable to determine current
+        PHP usage by domain.
+
+        EOS
+
+            return;
+        }
+
+        my $php_get_vhost_versions = $result->{data}{versions};
+        return $php_get_vhost_versions;
+    }
+
     1;
 
 }    # --- END lib/Elevate/EA4.pm
@@ -8988,6 +9008,20 @@ sub run_stage_2 ($self) {
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
     $self->run_component_once( 'NICs'       => 'pre_leapp' );
 
+    # Imunify depends on EA4 so the Imunify component needs to
+    # run before EA4 is removed.  However, Imunify 360 can provide
+    # hardened PHP so the EA4 profile backup needs to run before
+    # Imunify is removed, so I split some of the EA4 logic out
+    # to be executed before Imunify and left the removal until
+    # after Imunify
+    $self->run_component_once( 'EA4'     => 'pre_imunify' );
+    $self->run_component_once( 'Imunify' => 'pre_leapp' );
+    $self->run_component_once( 'PECL'    => 'pre_leapp' );
+    $self->run_component_once( 'EA4'     => 'pre_leapp' );
+
+    # This reboot will invalidate the cPanel license causing
+    # further whmapi1 calls to fail until stage 4
+    # if the NICs need to be renamed
     return ACTION_REBOOT_NEEDED;
 }
 
@@ -9320,9 +9354,6 @@ sub run_final_components_pre_leapp ($self) {
 
     # order matters
     $self->run_component_once( 'RmMod'            => 'pre_leapp' );
-    $self->run_component_once( 'Imunify'          => 'pre_leapp' );
-    $self->run_component_once( 'PECL'             => 'pre_leapp' );
-    $self->run_component_once( 'EA4'              => 'pre_leapp' );
     $self->run_component_once( 'MySQL'            => 'pre_leapp' );
     $self->run_component_once( 'Repositories'     => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );
