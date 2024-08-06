@@ -3441,8 +3441,7 @@ EOS
 
         Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-        my $ea4_regex        = qr/^EA4(:?-c7)?/a;
-        my $ea4_config_files = $self->rpm->get_config_files_for_repo($ea4_regex);
+        my $ea4_config_files = $self->rpm->get_config_files_for_pkg_prefix('ea-');
 
         Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
@@ -7226,10 +7225,11 @@ EOS
         die q[Missing cpev];
     }
 
-    sub get_config_files_for_repo ( $self, $repo ) {
+    sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
 
-        my @installed    = cpev::get_installed_rpms_in_repo($repo);
-        my $config_files = $self->_get_config_files( \@installed );
+        my @installed_rpms = $self->get_installed_rpms(q[%{NAME}\n]);
+        my @ea_rpms        = grep { $_ =~ qr/^\Q$prefix\E/ } @installed_rpms;
+        my $config_files   = $self->_get_config_files( \@ea_rpms );
 
         return $config_files;
     }
@@ -7288,8 +7288,15 @@ EOS
         return;
     }
 
-    sub get_installed_rpms ($self) {
-        my $out = $self->cpev->ssystem_capture_output( $rpm, '-qa' );
+    sub get_installed_rpms ( $self, $format = undef ) {
+        my @args = qw{-qa};
+
+        if ($format) {
+            push @args, '--queryformat';
+            push @args, $format;
+        }
+
+        my $out = $self->cpev->ssystem_capture_output( $rpm, @args );
         return @{ $out->{stdout} };
     }
 
