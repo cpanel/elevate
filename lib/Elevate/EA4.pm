@@ -159,4 +159,27 @@ sub _backup_ea_addons () {
     return;
 }
 
+my $php_get_vhost_versions;
+
+sub php_get_vhost_versions () {
+    return $php_get_vhost_versions if defined $php_get_vhost_versions && ref $php_get_vhost_versions eq 'HASH';
+
+    my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
+    my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+    unless ( $result->{metadata}{result} ) {
+
+        WARN( <<~"EOS" );
+        The php_get_vhost_versions API call failed. Unable to determine current
+        PHP usage by domain.
+
+        EOS
+
+        return;
+    }
+
+    my $php_get_vhost_versions = $result->{data}{versions};
+    return $php_get_vhost_versions;
+}
+
 1;
