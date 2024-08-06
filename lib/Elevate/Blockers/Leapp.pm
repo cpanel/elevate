@@ -57,6 +57,7 @@ sub _check_for_inhibitors ($self) {
 
     my $inhibitors = $self->cpev->leapp->search_report_file_for_inhibitors(
         qw(
+          check_detected_devices_and_drivers
           check_installed_devel_kernels
           cl_mysql_repository_setup
           persistentnetnamesdisable
