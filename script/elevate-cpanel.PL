@@ -1335,18 +1335,19 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_component_once( 'MySQL'         => 'post_leapp' );
-    $self->run_component_once( 'PerlXS'        => 'post_leapp' );
-    $self->run_component_once( 'cPanelPlugins' => 'post_leapp' );
-    $self->run_component_once( 'PECL'          => 'post_leapp' );
-    $self->run_component_once( 'WPToolkit'     => 'post_leapp' );
-    $self->run_component_once( 'InfluxDB'      => 'post_leapp' );
-    $self->run_component_once( 'JetBackup'     => 'post_leapp' );
-    $self->run_component_once( 'Kernel'        => 'post_leapp' );
-    $self->run_component_once( 'KernelCare'    => 'post_leapp' );
-    $self->run_component_once( 'NixStats'      => 'post_leapp' );
-    $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
-    $self->run_component_once( 'R1Soft'        => 'post_leapp' );
+    $self->run_component_once( 'MySQL'           => 'post_leapp' );
+    $self->run_component_once( 'PerlXS'          => 'post_leapp' );
+    $self->run_component_once( 'cPanelPlugins'   => 'post_leapp' );
+    $self->run_component_once( 'DatabaseUpgrade' => 'post_leapp' );
+    $self->run_component_once( 'PECL'            => 'post_leapp' );
+    $self->run_component_once( 'WPToolkit'       => 'post_leapp' );
+    $self->run_component_once( 'InfluxDB'        => 'post_leapp' );
+    $self->run_component_once( 'JetBackup'       => 'post_leapp' );
+    $self->run_component_once( 'Kernel'          => 'post_leapp' );
+    $self->run_component_once( 'KernelCare'      => 'post_leapp' );
+    $self->run_component_once( 'NixStats'        => 'post_leapp' );
+    $self->run_component_once( 'LiteSpeed'       => 'post_leapp' );
+    $self->run_component_once( 'R1Soft'          => 'post_leapp' );
 
     return;
 }

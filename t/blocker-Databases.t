@@ -49,34 +49,6 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 }
 
 {
-    note 'Remote MySQL blocker';
-
-    clear_messages_seen();
-
-    my $is_remote_mysql = 0;
-
-    my $mock_basic = Test::MockModule->new('Cpanel::MysqlUtils::MyCnf::Basic');
-    $mock_basic->redefine(
-        is_remote_mysql => sub { return $is_remote_mysql; },
-    );
-
-    is( $db->_blocker_remote_mysql(), 0, 'No blocker if remote MySQL disabled' );
-    no_messages_seen();
-
-    # Test blocker on remote mysql
-    $is_remote_mysql = 1;
-    like(
-        $db->_blocker_remote_mysql(),
-        {
-            id  => q[Elevate::Blockers::Databases::_blocker_remote_mysql],
-            msg => qr/The system is currently setup to use a remote database server/,
-        },
-        'Returns blocker if remote MySQL is enabled'
-    );
-    message_seen( 'WARN', qr/remote database server/ );
-}
-
-{
     note 'cPanel MySQL behavior';
 
     clear_messages_seen();
