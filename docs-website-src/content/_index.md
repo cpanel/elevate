@@ -18,7 +18,7 @@ For example:
 1.  CentOS 7 to AlmaLinux 8
 2.  CloudLinux 7 to CloudLinux 8
 
-[![Intro video to Elevate](docs/elevate-video.png)](https://www.youtube.com/watch?v=Ag9-RneFqmc)
+[![Intro video to Elevate](elevate-video.png)](https://www.youtube.com/watch?v=Ag9-RneFqmc)
 
 
 ## Disclaimer
