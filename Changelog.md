@@ -1,3 +1,11 @@
+##### **2024-08-07** - version 51
+
+* Fixed case RE-543: Restore my.cnf after installing the database server during post_leapp
+* Fixed case RE-611: Move logic to gather and store php usage to a component
+* Fixed case RE-499: Fix restore logic for config files of packages provided by EA4
+* Fixed case RE-614: Add 'check_detected_devices_and_drivers' to list of inhibitors to ignore in the leapp preupgrade check to prepare for upstream leapp version 0.19.0
+* Fixed case RE-34: Unblock remote MySQL blocker by temporarily disabling the remote profile during the upgrade.
+
 ##### **2024-08-01** - version 50
 
 * Fixed case RE-514: Check whether leapp can control the boot process before significant and irreversible changes are applied to the system.
