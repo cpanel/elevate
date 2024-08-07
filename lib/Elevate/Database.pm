@@ -141,7 +141,7 @@ sub upgrade_database_server () {
     );
 
     if ($failed_step) {
-        FATAL("FAILED to upgrade to $upgrade_dbtype_name $upgrade_version");
+        LOGDIE("FAILED to upgrade to $upgrade_dbtype_name $upgrade_version");
     }
     else {
         INFO("Finished upgrade to $upgrade_dbtype_name $upgrade_version");
