@@ -279,6 +279,7 @@ use Elevate::Components::NICs               ();
 use Elevate::Components::NixStats           ();
 use Elevate::Components::PECL               ();
 use Elevate::Components::PerlXS             ();
+use Elevate::Components::PostgreSQL         ();
 use Elevate::Components::UnconvertedModules ();
 use Elevate::Components::Repositories       ();
 use Elevate::Components::RpmDB              ();
@@ -1320,6 +1321,7 @@ sub run_final_components_pre_leapp ($self) {
     # order matters
     $self->run_component_once( 'RmMod'            => 'pre_leapp' );
     $self->run_component_once( 'MySQL'            => 'pre_leapp' );
+    $self->run_component_once( 'PostgreSQL'       => 'pre_leapp' );
     $self->run_component_once( 'Repositories'     => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );
     $self->run_component_once( 'PerlXS'           => 'pre_leapp' );
@@ -1348,6 +1350,7 @@ sub post_leapp_update_restore ($self) {
     # plugins can use MySQL - restore database earlier
     $self->run_component_once( 'MySQL'           => 'post_leapp' );
     $self->run_component_once( 'PerlXS'          => 'post_leapp' );
+    $self->run_component_once( 'PostgreSQL'      => 'post_leapp' );
     $self->run_component_once( 'cPanelPlugins'   => 'post_leapp' );
     $self->run_component_once( 'DatabaseUpgrade' => 'post_leapp' );
     $self->run_component_once( 'PECL'            => 'post_leapp' );

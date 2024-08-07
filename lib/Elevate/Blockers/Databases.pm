@@ -27,82 +27,12 @@ use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
 
-use constant POSTGRESQL_ACK_TOUCH_FILE => q[/var/cpanel/acknowledge_postgresql_for_elevate];
-
 sub check ($self) {
     my $ok = 1;
-    $self->_warning_if_postgresql_installed;
-    $ok = 0 unless $self->_blocker_acknowledge_postgresql_datadir;
     $ok = 0 unless $self->_blocker_old_mysql;
     $ok = 0 unless $self->_blocker_mysql_upgrade_in_progress;
     $self->_warning_mysql_not_enabled();
     return $ok;
-}
-
-sub _warning_if_postgresql_installed ($self) {
-    return 0 unless Cpanel::Pkgr::is_installed('postgresql-server');
-
-    my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
-    my ($old_version) = $pg_full_ver =~ m/^(\d+\.\d+)/a;
-    return 1 if !$old_version || $old_version >= 10;
-
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    WARN("You have postgresql-server version $old_version installed. This will be upgraded irreversibly to version 10.0 when you switch to $pretty_distro_name");
-
-    return 2;
-}
-
-sub _blocker_acknowledge_postgresql_datadir ($self) {
-
-    return 0 unless Cpanel::Pkgr::is_installed('postgresql-server');
-
-    my $touch_file = POSTGRESQL_ACK_TOUCH_FILE;
-    return 0 if -e $touch_file;
-
-    my @users_with_dbs = $self->_has_mapped_postgresql_dbs();
-    return 0 unless scalar @users_with_dbs;
-
-    my $message = <<~"EOS";
-    One or more users on your system have associated PostgreSQL databases.
-    ELevate may upgrade the software packages associated with PostgreSQL
-    automatically, but if it does, it will *NOT* automatically update the
-    PostgreSQL data directory to work with the new version. Without an update
-    to the data directory, the upgraded PostgreSQL software will not start, in
-    order to ensure that your data does not become corrupted.
-
-    For more information about PostgreSQL upgrades, please consider the
-    following resources:
-
-    https://cpanel.github.io/elevate/blockers/#postgresql
-    https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deploying_different_types_of_servers/using-databases#migrating-to-a-rhel-8-version-of-postgresql_using-postgresql
-    https://www.postgresql.org/docs/10/pgupgrade.html
-
-    When you are ready to acknowledge that you have prepared to update the
-    PostgreSQL data directory, or that this warning does not apply to you,
-    please touch the following file to continue with the ELevate process:
-
-    > touch $touch_file
-
-    The following user(s) have PostgreSQL databases associated with their cPanel accounts:
-    EOS
-
-    $message .= join "\n", sort(@users_with_dbs);
-
-    return $self->has_blocker($message);
-}
-
-sub _has_mapped_postgresql_dbs ($self) {
-
-    my $dbindex = eval { Cpanel::DB::Map::Collection::Index->new( { db => 'PGSQL' } ); };
-    if ( my $exception = $@ ) {
-        ERROR( 'Unable to read the database index file:  ' . Cpanel::Exception::get_string($exception) );
-        $self->has_blocker("Unable to read the database index file; you may need to rebuild it by running: /usr/local/cpanel/bin/dbindex");
-        return ();
-    }
-
-    my %user_hash = map { $dbindex->{dbindex}{$_} => 1 } keys %{ $dbindex->{dbindex} };
-
-    return ( keys %user_hash );
 }
 
 sub _blocker_old_mysql ($self) {
