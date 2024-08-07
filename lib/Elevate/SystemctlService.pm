@@ -83,6 +83,15 @@ sub remove ($self) {
     return;
 }
 
+sub start ($self) {
+
+    return if $self->is_active;
+
+    $self->ssystem( '/usr/bin/systemctl', 'start', $self->name );
+
+    return;
+}
+
 sub stop ($self) {
 
     return unless $self->is_active;
@@ -99,6 +108,20 @@ sub disable ( $self, %opts ) {
     my $now = $opts{'now'} // 1;    # by default disable it now...
 
     my @args = qw{ disable };
+    push @args, '--now' if $now;
+
+    $self->ssystem( '/usr/bin/systemctl', @args, $self->name );
+
+    return;
+}
+
+sub enable ( $self, %opts ) {
+
+    return if $self->is_enabled;
+
+    my $now = $opts{'now'} // 1;    # by default enable it now...
+
+    my @args = qw{ enable };
     push @args, '--now' if $now;
 
     $self->ssystem( '/usr/bin/systemctl', @args, $self->name );

@@ -52,4 +52,6 @@ use constant R1SOFT_AGENT_PACKAGES => qw{
   serverbackup-setup
 };
 
+use constant POSTGRESQL_SYSTEM_DATADIR => '/var/lib/pgsql/data';
+
 1;
