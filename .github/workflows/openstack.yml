@@ -83,18 +83,53 @@ jobs:
               chmod -v +x /scripts/elevate-cpanel
               /scripts/elevate-cpanel --skip-cpanel-version-check --non-interactive --start &
               /scripts/elevate-cpanel --log &
-              /scripts/elevate-cpanel --log | awk '/Rebooting into stage 3 of 5/ { print | "exit" }'
+              /scripts/elevate-cpanel --log | awk '/Rebooting into stage 2 of 5/ { print | "exit" }'
 
-    wait_for_stage_3_reboot:
+    wait_for_stage_2_reboot:
       runs-on: self-hosted
       needs: start_elevate
       outputs:
         VM_IP: ${{ needs.start_elevate.outputs.VM_IP }}
       steps:
-        - name: Wait For VM to Come Back From Stage 3 Reboot
+        - name: Wait For VM to Come Back From Stage 2 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
             ./ssh_retry.sh ${{ needs.start_elevate.outputs.VM_IP }}
+
+    watch_for_stage_3_reboot:
+      runs-on: self-hosted
+      needs: wait_for_stage_2_reboot
+      outputs:
+        VM_IP: ${{ needs.wait_for_stage_2_reboot.outputs.VM_IP }}
+      steps:
+        - name: Monitor Elevate for Stage 3 Reboot
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.wait_for_stage_2_reboot.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            timeout: 60m
+            command_timeout: 20m
+            debug: true
+            script: |
+              set -x
+              ./status_marker.sh 3
+              /scripts/elevate-cpanel --log &
+              REGEX="Rebooting into stage 3 of 5"
+              RETVAL=1
+              while [ $RETVAL -ne 0 ]; do grep "${REGEX}" /var/log/elevate-cpanel.log; RETVAL=$?; [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Reboot text found in /var/log/elevate-cpanel.log  ##" && exit 0; RETRIES=$((RETRIES+1)); [ $RETVAL -ne 0 ] && echo "## [DEBUG]: Retrying Reboot Search: Attempt ${RETRIES} ..."; sleep 1; done
+    
+    wait_for_stage_3_reboot:
+      runs-on: self-hosted
+      needs: watch_for_stage_3_reboot
+      outputs:
+        VM_IP: ${{ needs.watch_for_stage_3_reboot.outputs.VM_IP }}
+      steps:
+        - name: Wait For VM to Come Back From Stage 3 Reboot
+          working-directory: "./.github/workflows/openstack/"
+          run: |
+            ./ssh_retry.sh ${{ needs.watch_for_stage_3_reboot.outputs.VM_IP }}
 
     watch_for_stage_4_reboot:
       runs-on: self-hosted
@@ -109,17 +144,16 @@ jobs:
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
-            timeout: 60m
+            timeout: 30m
             command_timeout: 20m
-            debug: true
             script: |
               set -x
-              ./status_marker.sh 3
+              ./status_marker.sh 4
               /scripts/elevate-cpanel --log &
               REGEX="Rebooting into stage 4 of 5"
               RETVAL=1
               while [ $RETVAL -ne 0 ]; do grep "${REGEX}" /var/log/elevate-cpanel.log; RETVAL=$?; [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Reboot text found in /var/log/elevate-cpanel.log  ##" && exit 0; RETRIES=$((RETRIES+1)); [ $RETVAL -ne 0 ] && echo "## [DEBUG]: Retrying Reboot Search: Attempt ${RETRIES} ..."; sleep 1; done
-    
+
     wait_for_stage_4_reboot:
       runs-on: self-hosted
       needs: watch_for_stage_4_reboot
@@ -131,50 +165,16 @@ jobs:
           run: |
             ./ssh_retry.sh ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
 
-    watch_for_stage_5_reboot:
+    watch_for_final_reboot:
       runs-on: self-hosted
       needs: wait_for_stage_4_reboot
       outputs:
         VM_IP: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
       steps:
-        - name: Monitor Elevate for Stage 5 Reboot
-          uses: appleboy/ssh-action@v1.0.3
-          with:
-            host: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 30m
-            command_timeout: 20m
-            script: |
-              set -x
-              ./status_marker.sh 4
-              /scripts/elevate-cpanel --log &
-              REGEX="Rebooting into stage 5 of 5"
-              RETVAL=1
-              while [ $RETVAL -ne 0 ]; do grep "${REGEX}" /var/log/elevate-cpanel.log; RETVAL=$?; [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Reboot text found in /var/log/elevate-cpanel.log  ##" && exit 0; RETRIES=$((RETRIES+1)); [ $RETVAL -ne 0 ] && echo "## [DEBUG]: Retrying Reboot Search: Attempt ${RETRIES} ..."; sleep 1; done
-
-    wait_for_stage_5_reboot:
-      runs-on: self-hosted
-      needs: watch_for_stage_5_reboot
-      outputs:
-        VM_IP: ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
-      steps:
-        - name: Wait For VM to Come Back From Stage 5 Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry.sh ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
-
-    watch_for_final_reboot:
-      runs-on: self-hosted
-      needs: wait_for_stage_5_reboot
-      outputs:
-        VM_IP: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP }}
-      steps:
         - name: Watch Elevate for Final Reboot
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP }}
+            host: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
