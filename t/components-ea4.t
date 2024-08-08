@@ -45,7 +45,8 @@ sub startup : Test(startup) ($self) {
 
     $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
-    $self->{mock_profile} = Test::MockFile->file(PROFILE_FILE);
+    $self->{mock_profile}       = Test::MockFile->file(PROFILE_FILE);
+    $self->{mock_imunify_agent} = Test::MockFile->file( Elevate::EA4::IMUNIFY_AGENT() );
 
     $self->{mock_httpd} = Test::MockModule->new('Cpanel::Config::Httpd');
 
@@ -96,6 +97,12 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
     $self->{mock_httpd}->redefine( is_ea4 => 0 );
 
     my $ea4 = cpev->new->component('EA4');
+
+    my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+    $mock_elevate_ea4->redefine(
+        _backup_ea_addons => 0,
+    );
+
     is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - not using ea4";
     message_seen( 'WARN' => q[Skipping EA4 backup. EA4 does not appear to be enabled on this system] );
 
@@ -150,7 +157,7 @@ sub test_get_ea4_profile : Test(10) ($self) {
 
     my $ea4 = cpev->new->component('EA4');
 
-    is( $ea4->_get_ea4_profile(), PROFILE_FILE, "_get_ea4_profile" );
+    is( Elevate::EA4::_get_ea4_profile(0), PROFILE_FILE, "_get_ea4_profile" );
     _message_run_ea_current_to_profile( 'cent', 1 );
 
     $output = <<'EOS';
@@ -185,14 +192,14 @@ EOS
     my $f      = q[/etc/cpanel/ea4/profiles/custom/current_state_at_2022-04-05_20:41:25_modified_for_AlmaLinux_8.json];
     my $mock_f = Test::MockFile->file( $f, '{}' );
 
-    is( $ea4->_get_ea4_profile(), $f, "_get_ea4_profile with noise..." );
+    is( Elevate::EA4::_get_ea4_profile(0), $f, "_get_ea4_profile with noise..." );
 
     _message_run_ea_current_to_profile( 'cent', $f );
 
     return;
 }
 
-sub test_get_ea4_profile_check_mode : Test(14) ($self) {
+sub test_get_ea4_profile_check_mode : Test(19) ($self) {
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
@@ -200,14 +207,14 @@ sub test_get_ea4_profile_check_mode : Test(14) ($self) {
         my $output = qq[void\n];
 
         my $cpev = cpev->new( _is_check_mode => 1 );
-        ok -d $cpev->tmp_dir, "tmp_dir works";
+        ok -d Elevate::EA4::tmp_dir(), "tmp_dir works";
 
         my $mock_b = Test::MockModule->new('Elevate::Blockers')    #
           ->redefine( is_check_mode => 1 );
 
         ok( Elevate::Blockers->is_check_mode(), 'Elevate::Blockers->is_check_mode()' );
 
-        my $expected_profile = $cpev->tmp_dir() . '/ea_profile.json';
+        my $expected_profile = Elevate::EA4::tmp_dir() . '/ea_profile.json';
         {
             open( my $fh, '>', $expected_profile ) or die;
             print {$fh} "...\n";
@@ -221,11 +228,25 @@ sub test_get_ea4_profile_check_mode : Test(14) ($self) {
         );
 
         my $ea4 = $cpev->component('EA4');
-        is( $ea4->_get_ea4_profile(), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
+        is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
 
         my $expected_target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
         message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
         message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
+
+        # The expected target is CloudLinux_8 when Imunify 360 provides
+        # hardened PHP
+        if ( $os eq 'cent' ) {
+            my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+            $mock_elevate_ea4->redefine(
+                _imunify360_is_installed_and_provides_hardened_php => 1,
+            );
+
+            is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
+
+            message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=CloudLinux_8 --output=$expected_profile" );
+            message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
+        }
     }
 
     return;
@@ -235,10 +256,10 @@ sub test_tmp_dir : Test(3) ($self) {
 
     my $cpev = cpev->new();
 
-    my $tmp = $cpev->tmp_dir;
+    my $tmp = Elevate::EA4::tmp_dir();
     ok -d $tmp;
-    is ref($tmp),      "File::Temp::Dir", "tmp_dir is a File::Temp::Dir object";
-    is $cpev->tmp_dir, "$tmp",            "returns the same tmp_dir";
+    is ref($tmp),               "File::Temp::Dir", "tmp_dir is a File::Temp::Dir object";
+    is Elevate::EA4::tmp_dir(), "$tmp",            "returns the same tmp_dir";
 
     undef $cpev;
 
@@ -285,12 +306,17 @@ sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
 
     my $profile = { my_profile => ['...'] };
 
+    my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+    $mock_elevate_ea4->redefine(
+        _backup_ea_addons => 0,
+    );
+
     $self->_update_profile_file($profile);
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
 
-        is( $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4" );
+        is( $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4" );
         _message_run_ea_current_to_profile( $os, 1 );
     }
 
@@ -323,7 +349,12 @@ sub test_backup_and_restore_ea4_profile_dropped_packages : Test(28) ($self) {
         };
         $self->_update_profile_file($profile);
 
-        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+        $mock_elevate_ea4->redefine(
+            _backup_ea_addons => 0,
+        );
+
+        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
         is Elevate::StageFile::read_stage_file(), {
@@ -375,7 +406,12 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
         };
         $self->_update_profile_file($profile);
 
-        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+        $mock_elevate_ea4->redefine(
+            _backup_ea_addons => 0,
+        );
+
+        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
         is Elevate::StageFile::read_stage_file(), {
@@ -396,7 +432,7 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
         };
         $self->_update_profile_file($profile);
 
-        is $ea4->_backup_ea4_profile(), 1, "backup_ea4_profile - using ea4";
+        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
         _message_run_ea_current_to_profile( $os, 1 );
 
         my $stage = Elevate::StageFile::read_stage_file();
@@ -419,8 +455,7 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
     my $cpev_mock = Test::MockModule->new('cpev');
 
     $cpev_mock->redefine(
-        get_installed_rpms_in_repo => sub { return ( 'ea-foo', 'ea-bar', 'ea-nginx' ) },
-        ssystem_capture_output     => sub ( $, @args ) {
+        ssystem_capture_output => sub ( $, @args ) {
             my $pkg         = pop @args;
             my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
             my $ret         = {
@@ -428,6 +463,13 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
                 stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
             };
             return $ret;
+        },
+    );
+
+    my $mock_rpm = Test::MockModule->new('Elevate::RPM');
+    $mock_rpm->redefine(
+        get_installed_rpms => sub {
+            return ( 'ea-foo', 'ea-bar', 'ea-nginx', 'not-an-ea-package' );
         },
     );
 
@@ -476,6 +518,78 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
     message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
     message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
     message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
+
+    return;
+}
+
+sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        read_stage_file => [],
+    );
+
+    my $result = 1;
+    my @saferun_calls;
+    my $mock_saferunnoerror = Test::MockModule->new('Cpanel::SafeRun::Simple');
+    $mock_saferunnoerror->redefine(
+        saferunnoerror => sub {
+            my $call_string = join( ' ', @_ );
+            push @saferun_calls, $call_string;
+            return qq|{"metadata":{"result":$result}}|;
+        },
+    );
+
+    my $ea4 = cpev->new->component('EA4');
+
+    is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
+    is( \@saferun_calls,                             [],    'No API calls are made when no data is present in the stage file' );
+
+    $mock_stagefile->redefine(
+        read_stage_file => sub {
+            return [
+                {
+                    version => 'ea-php42',
+                    vhost   => 'foo.tld',
+                    php_fpm => 0,
+                },
+                {
+                    version => 'ea-php99',
+                    vhost   => 'bar.tld',
+                    php_fpm => 1,
+                },
+            ];
+        },
+    );
+
+    is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
+
+    is(
+        \@saferun_calls,
+        [
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php42 vhost=foo.tld php_fpm=0],
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php99 vhost=bar.tld php_fpm=1],
+        ],
+        'The correct API calls are made',
+    );
+
+    $result = 0;
+    undef @saferun_calls;
+
+    is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
+
+    is(
+        \@saferun_calls,
+        [
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php42 vhost=foo.tld php_fpm=0],
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php99 vhost=bar.tld php_fpm=1],
+        ],
+        'The correct API calls are made',
+    );
+
+    message_seen( WARN => qr/Unable to set foo\.tld back to its desired PHP version/ );
+    message_seen( WARN => qr/Unable to set bar\.tld back to its desired PHP version/ );
+    no_messages_seen();
 
     return;
 }

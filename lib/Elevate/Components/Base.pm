@@ -30,11 +30,11 @@ BEGIN {
     my @_DELEGATE_TO_CPEV = qw{
       getopt
       upgrade_to_pretty_name
-      tmp_dir
       should_run_leapp
       ssystem
       ssystem_and_die
       ssystem_capture_output
+      ssystem_hide_and_capture_output
       remove_rpms_from_repos
     };
 

@@ -24,11 +24,12 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/EA4.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/ElevateScript.pm'}        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Grub2.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/Imunify.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/IsContainer.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/JetBackup.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/MountPoints.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/NICs.pm'}                 = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/OVH.pm'}                  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Blockers/Python.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Repositories.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/SSH.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/WHM.pm'}                  = 'script/elevate-cpanel.PL.static';
@@ -48,6 +49,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/KernelCare.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Kernel.pm'}             = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/MySQL.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/NICs.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/NixStats.pm'}           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/PECL.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/PerlXS.pm'}             = 'script/elevate-cpanel.PL.static';
@@ -59,16 +61,20 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/SSH.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/AutoSSL.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/DatabaseUpgrade.pm'}    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/ELS.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/R1Soft.pm'}             = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/RHEL.pm'}                       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Database.pm'}                      = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/EA4.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Fetch.pm'}                         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Leapp.pm'}                         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Logger.pm'}                        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Marker.pm'}                        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Motd.pm'}                          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/NICs.pm'}                          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Notify.pm'}                        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Roles/Run.pm'}                     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/RPM.pm'}                           = 'script/elevate-cpanel.PL.static';
@@ -109,6 +115,21 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use constant IGNORE_OUTDATED_SERVICES_FILE => q[/etc/cpanel/local/ignore_outdated_services];
 
+    use constant SBIN_IP => q[/sbin/ip];
+
+    use constant ETH_FILE_PREFIX => q[/etc/sysconfig/network-scripts/ifcfg-];
+
+    use constant R1SOFT_REPO               => 'r1soft';
+    use constant R1SOFT_REPO_FILE          => '/etc/yum.repos.d/r1soft.repo';
+    use constant R1SOFT_MAIN_AGENT_PACKAGE => 'serverbackup-agent';
+    use constant R1SOFT_AGENT_PACKAGES => qw{
+      r1soft-getmodule
+      serverbackup-agent
+      serverbackup-async-agent-2-6
+      serverbackup-enterprise-agent
+      serverbackup-setup
+    };
+
     1;
 
 }    # --- END lib/Elevate/Constants.pm
@@ -124,6 +145,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Simple::Accessor qw(
       blockers
+      yum
     );
 
     # use Log::Log4perl qw(:easy);
@@ -138,6 +160,10 @@ BEGIN {    # Suppress load of all of these at earliest point.
         Carp::confess(q[Missing blockers]);
     }
 
+    sub _build_yum ($self) {
+        return Elevate::YUM->new( cpev => $self );
+    }
+
     sub cpev ($self) {
         return $self->blockers->cpev;
     }
@@ -149,6 +175,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
           should_run_leapp
           ssystem
           ssystem_capture_output
+          ssystem_hide_and_capture_output
         };
 
         foreach my $subname (@_DELEGATE_TO_CPEV) {
@@ -238,11 +265,12 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Blockers::DNS              ();
     use Elevate::Blockers::EA4              ();
     use Elevate::Blockers::Grub2            ();
+    use Elevate::Blockers::Imunify          ();
     use Elevate::Blockers::IsContainer      ();
     use Elevate::Blockers::JetBackup        ();
+    use Elevate::Blockers::MountPoints      ();
     use Elevate::Blockers::NICs             ();
     use Elevate::Blockers::OVH              ();
-    use Elevate::Blockers::Python           ();
     use Elevate::Blockers::ElevateScript    ();
     use Elevate::Blockers::SSH              ();
     use Elevate::Blockers::WHM              ();
@@ -263,12 +291,14 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
       IsContainer
       ElevateScript
+      MountPoints
       SSH
 
       DiskSpace
       WHM
       Distros
       CloudLinux
+      Imunify
       DNS
 
       Databases
@@ -279,7 +309,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
       BootKernel
       Grub2
       OVH
-      Python
       AbsoluteSymlinks
       AutoSSL
     };
@@ -297,6 +326,17 @@ BEGIN {    # Suppress load of all of these at earliest point.
         if ( $self->cpev->service->is_active ) {
             WARN("An elevation process is already in progress.");
             return 1;
+        }
+
+        my $stage = Elevate::Stages::get_stage();
+        if ( $stage != 0 && $stage <= cpev::VALID_STAGES() ) {
+            die <<~"EOS";
+        An elevation process is currently in progress: running stage $stage
+        You can check the log by running:
+            /scripts/elevate-cpanel --log
+        or check the elevation status:
+            /scripts/elevate-cpanel --status
+        EOS
         }
 
         Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();
@@ -564,7 +604,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Cpanel::SafeRun::Simple            ();
     use Cpanel::DB::Map::Collection::Index ();
     use Cpanel::Exception                  ();
-    use Cpanel::MysqlUtils::MyCnf::Basic   ();
 
     # use Elevate::Blockers::Base();
     our @ISA;
@@ -579,7 +618,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
         my $ok = 1;
         $self->_warning_if_postgresql_installed;
         $ok = 0 unless $self->_blocker_acknowledge_postgresql_datadir;
-        $ok = 0 unless $self->_blocker_remote_mysql;
         $ok = 0 unless $self->_blocker_old_mysql;
         $ok = 0 unless $self->_blocker_mysql_upgrade_in_progress;
         $self->_warning_mysql_not_enabled();
@@ -650,21 +688,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
         my %user_hash = map { $dbindex->{dbindex}{$_} => 1 } keys %{ $dbindex->{dbindex} };
 
         return ( keys %user_hash );
-    }
-
-    sub _blocker_remote_mysql ($self) {
-
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
-
-        if ( Cpanel::MysqlUtils::MyCnf::Basic::is_remote_mysql() ) {
-            return $self->has_blocker( <<~"EOS" );
-        The system is currently setup to use a remote database server.
-        We cannot elevate the system to $pretty_distro_name
-        unless the system is configured to use the local database server.
-        EOS
-        }
-
-        return 0;
     }
 
     sub _blocker_old_mysql ($self) {
@@ -1005,7 +1028,12 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::EA4       ();
     use Elevate::StageFile ();
+
+    use Cpanel::JSON            ();
+    use Cpanel::Pkgr            ();
+    use Cpanel::SafeRun::Simple ();
 
     # use Elevate::Blockers::Base();
     our @ISA;
@@ -1029,18 +1057,10 @@ EOS
 
         INFO("Checking EasyApache profile compatibility with $pretty_distro_name.");
 
-        $self->cpev->component('EA4')->backup;                        # _backup_ea4_profile();
-        my $stash        = Elevate::StageFile::read_stage_file();     # FIXME - move it to a function
-        my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
-        return unless scalar keys $dropped_pkgs->%*;
+        my $check_mode = $self->is_check_mode();
+        Elevate::EA4::backup($check_mode);
 
-        my @incompatible_packages;
-        foreach my $pkg ( sort keys $dropped_pkgs->%* ) {
-            my $type = $dropped_pkgs->{$pkg} // '';
-            next if $type eq 'exp';                          # use of experimental packages is a non blocker
-            next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
-            push @incompatible_packages, $pkg;
-        }
+        my @incompatible_packages = $self->_get_incompatible_packages();
 
         return unless @incompatible_packages;
 
@@ -1051,6 +1071,56 @@ EOS
     Please remove these packages before continuing the update.
     $list
     EOS
+    }
+
+    sub _get_incompatible_packages ($self) {
+
+        my $stash        = Elevate::StageFile::read_stage_file();
+        my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
+        return unless scalar keys $dropped_pkgs->%*;
+
+        my @incompatible;
+        foreach my $pkg ( sort keys %$dropped_pkgs ) {
+            my $type = $dropped_pkgs->{$pkg} // '';
+            next if $type eq 'exp';                          # use of experimental packages is a non blocker
+            next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
+
+            if ( $pkg =~ m/^(ea-php[0-9]+)/ ) {
+                my $php_pkg = $1;
+                next unless $self->_php_version_is_in_use($php_pkg);
+
+            }
+            push @incompatible, $pkg;
+        }
+
+        return @incompatible;
+    }
+
+    sub _php_version_is_in_use ( $self, $php ) {
+        my $current_php_usage = $self->_get_php_usage();
+
+        return 1 if $current_php_usage->{api_fail};
+
+        return $current_php_usage->{$php} ? 1 : 0;
+    }
+
+    our $php_usage;
+
+    sub _get_php_usage ($self) {
+        return $php_usage if defined $php_usage && ref $php_usage eq 'HASH';
+
+        my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
+        if ( !defined $php_get_vhost_versions ) {
+            $php_usage->{api_fail} = 1;
+            return $php_usage;
+        }
+
+        foreach my $domain_info (@$php_get_vhost_versions) {
+            my $php_version = $domain_info->{version};
+            $php_usage->{$php_version} = 1;
+        }
+
+        return $php_usage;
     }
 
     1;
@@ -1140,12 +1210,11 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    use constant {
-        GRUB2_WORKAROUND_NONE      => 0,
-        GRUB2_WORKAROUND_OLD       => 1,
-        GRUB2_WORKAROUND_NEW       => 2,
-        GRUB2_WORKAROUND_UNCERTAIN => -1,
-    };
+    use constant GRUB2_WORKAROUND_NONE => 0;
+    use constant GRUB2_WORKAROUND_OLD  => 1;
+    use constant GRUB2_WORKAROUND_NEW  => 2;
+
+    use constant GRUB2_WORKAROUND_UNCERTAIN => -1;
 
     sub GRUB2_PREFIX_DEBIAN { return '/boot/grub' }
     sub GRUB2_PREFIX_RHEL   { return '/boot/grub2' }
@@ -1230,7 +1299,7 @@ EOS
     The grub2-pc package is not installed. The GRUB2 boot loader is
     required to upgrade via leapp.
 
-    You may want to consider reaching out to cPanel Support for assistance:
+    If you need assistance, open a ticket with cPanel Support, as outlined here
     https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
     EOS
     }
@@ -1243,7 +1312,7 @@ EOS
             return $self->has_blocker( <<~EOS );
         The GRUB2 config file is missing.
 
-        You may want to consider reaching out to cPanel Support for assistance:
+        If you need assistance, open a ticket with cPanel Support, as outlined here
         https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
         EOS
         }
@@ -1325,6 +1394,52 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Blockers/Grub2.pm
+
+{    # --- BEGIN lib/Elevate/Blockers/Imunify.pm
+
+    package Elevate::Blockers::Imunify;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+
+    use Cpanel::JSON ();
+
+    # use Elevate::Blockers::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub check ($self) {
+        return $self->_check_imunify_license();
+    }
+
+    sub _check_imunify_license ($self) {
+        return unless -x Elevate::Constants::IMUNIFY_AGENT;
+
+        my $agent_bin    = Elevate::Constants::IMUNIFY_AGENT;
+        my $out          = $self->ssystem_hide_and_capture_output( $agent_bin, 'version', '--json' );
+        my $raw_data     = join "\n", @{ $out->{stdout} };
+        my $license_data = eval { Cpanel::JSON::Load($raw_data) } // {};
+
+        if ( !ref $license_data->{license} || !$license_data->{license}->{status} ) {
+
+            my $pretty_distro_name = $self->upgrade_to_pretty_name();
+            return $self->has_blocker( <<~"EOS");
+        The Imunify license is reporting that it is not currently valid.  Since
+        Imunify is installed on this system, a valid Imunify license is required
+        to ELevate to $pretty_distro_name.
+        EOS
+        }
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Blockers/Imunify.pm
 
 {    # --- BEGIN lib/Elevate/Blockers/IsContainer.pm
 
@@ -1423,6 +1538,65 @@ EOS
 
 }    # --- END lib/Elevate/Blockers/JetBackup.pm
 
+{    # --- BEGIN lib/Elevate/Blockers/MountPoints.pm
+
+    package Elevate::Blockers::MountPoints;
+
+    use cPstrict;
+
+    # use Elevate::Blockers::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
+
+    use constant FINDMNT_BIN => '/usr/bin/findmnt';
+    use constant MOUNT_BIN   => '/usr/bin/mount';
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub check ($self) {
+        $self->_ensure_mount_dash_a_succeeds();
+        return;
+    }
+
+    sub _ensure_mount_dash_a_succeeds ($self) {
+
+        return if $self->is_check_mode();
+
+        my $ret    = $self->ssystem_capture_output( MOUNT_BIN, '-a' );
+        my $stderr = join "\n", @{ $ret->{stderr} };
+        if ( $ret->{status} != 0 ) {
+
+            $self->blockers->abort_on_first_blocker(1);
+
+            my $bin = MOUNT_BIN();
+            return $self->has_blocker( <<~"EOS");
+        The following command failed to execute successfully on your server:
+
+        $bin -a
+
+        The following message was given as the reason for the failure:
+
+        $stderr
+
+        Since this script will need to reboot your server, we need to ensure a
+        consistent file system in between in each reboot.  Please review the
+        entries in '/etc/fstab' and ensure that each entry is valid and that
+        '$bin -a' returns exit code 0 before continuing.
+
+        If your '/etc/fstab' file has not been customized, you may want to
+        consider reaching out to cPanel Support for assistance:
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+        EOS
+        }
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Blockers/MountPoints.pm
+
 {    # --- BEGIN lib/Elevate/Blockers/NICs.pm
 
     package Elevate::Blockers::NICs;
@@ -1430,17 +1604,17 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::NICs      ();
 
     # use Elevate::Blockers::Base();
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
 
-    use Cwd ();
-
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    use constant SBIN_IP => q[/sbin/ip];
+    use constant ETH_FILE_PREFIX => Elevate::Constants::ETH_FILE_PREFIX;
+    use constant SBIN_IP         => Elevate::Constants::SBIN_IP;
 
     sub check ($self) {
         return 1 unless $self->should_run_leapp;    # skip when --no-leapp is provided
@@ -1449,38 +1623,90 @@ EOS
 
     sub _blocker_bad_nics_naming ($self) {
         return $self->has_blocker( q[Missing ] . SBIN_IP . ' binary' ) unless -x SBIN_IP;
-        my @eths = _get_nics();
+        my @eths = Elevate::NICs::get_nics();
         if ( @eths >= 2 ) {
-            return $self->has_blocker( <<~'EOS');
-        Your machine has multiple network interface cards (NICs) using kernel-names (ethX).
-        Since the upgrade process cannot guarantee their stability after upgrade, you cannot upgrade.
-
-        Please provide those interfaces new names before continuing the update.
+            WARN( <<~'EOS' );
+        Your machine has multiple network interface cards (NICs) using
+        kernel-names (ethX).
         EOS
+
+            if ( $self->is_check_mode() ) {
+                INFO( <<~'EOS' );
+            Since the upgrade process cannot guarantee their stability after
+            upgrade, we will need to rename these interfaces before upgrading.
+            EOS
+                return 0;
+            }
+
+            return if $self->_nics_have_missing_ifcfg_files(@eths);
+
+            my $pretty_distro_name = $self->upgrade_to_pretty_name();
+            WARN( <<~"EOS" );
+        Prior to elevating this system to $pretty_distro_name, we will
+        automatically rename these interfaces.
+
+        EOS
+
+            if ( !$self->getopt('non-interactive') ) {
+                if (
+                    !IO::Prompt::prompt(
+                        '-one_char',
+                        '-yes_no',
+                        '-tty',
+                        -default => 'y',
+                        'Do you consent to renaming your NICs to use non kernel-names [Y/n]: ',
+                    )
+                ) {
+                    return $self->has_blocker( <<~"EOS" );
+                The system cannot be elevated to $pretty_distro_name until the
+                NICs using kernel-names (ethX) have been updated with new names.
+
+                Please provide those interfaces new names before continuing the
+                update.
+
+                To have this script perform the upgrade, run this script again
+                and consent to allow it to rename the NICs.
+                EOS
+                }
+            }
         }
 
         return 0;
     }
 
-    sub _get_nics {
-        my $ip_info = Cpanel::SafeRun::Errors::saferunnoerror( SBIN_IP, 'addr' ) // '';
+    sub _nics_have_missing_ifcfg_files ( $self, @nics ) {
 
-        my @eths;
-        foreach my $line ( split /\n/xms, $ip_info ) {
-            $line =~ /^[0-9]+: \s (eth[0-9]):/xms
-              or next;
+        my @nics_missing_nic_path;
+        foreach my $nic (@nics) {
+            my $nic_path = ETH_FILE_PREFIX . $nic;
 
-            my $eth   = $1;
-            my $value = readlink "/sys/class/net/$eth"
-              or next;
+            my $err_msg = <<~"EOS";
+        The file for the network interface card (NIC) using kernel-name ($nic) does
+        not exist at the expected location ($nic_path).  We are unable to
+        change the name of this NIC due to this.  You will need to resolve this
+        issue manually before elevate can continue.
 
-            $value =~ m{/virtual/}xms
-              and next;
+        EOS
 
-            push @eths, $eth;
+            unless ( -s $nic_path ) {
+                ERROR($err_msg);
+                push @nics_missing_nic_path, $nic;
+            }
         }
 
-        return @eths;
+        if (@nics_missing_nic_path) {
+            my $missing_nics = join "\n", @nics_missing_nic_path;
+            return $self->has_blocker( <<~"EOS" );
+        This script is unable to rename the following network interface cards
+        due to a missing ifcfg file:
+
+        $missing_nics
+
+        Please provide these interfaces new names before continuing the update.
+        EOS
+        }
+
+        return;
     }
 
     1;
@@ -1667,42 +1893,13 @@ EOS
 
 }    # --- END lib/Elevate/Blockers/OVH.pm
 
-{    # --- BEGIN lib/Elevate/Blockers/Python.pm
-
-    package Elevate::Blockers::Python;
-
-    use cPstrict;
-
-    # use Elevate::Blockers::Base();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
-
-    use Elevate::OS ();
-
-    use Cpanel::Pkgr ();
-
-    sub check ($self) {
-        return if Elevate::OS::leapp_can_handle_python36();
-
-        my $pkg = Cpanel::Pkgr::what_provides('python36');
-        return unless $pkg && Cpanel::Pkgr::is_installed($pkg);
-        return $self->has_blocker( <<~"END" );
-    A package providing python36 has been detected as installed.
-    This can interfere with the elevation process.
-    Please remove it before elevation:
-    yum remove $pkg
-    END
-    }
-
-    1;
-
-}    # --- END lib/Elevate/Blockers/Python.pm
-
 {    # --- BEGIN lib/Elevate/Blockers/Repositories.pm
 
     package Elevate::Blockers::Repositories;
 
     use cPstrict;
+
+    use File::Copy ();
 
     use Cpanel::OS             ();
     use Cpanel::JSON           ();
@@ -1718,12 +1915,29 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
+    use constant YUM_COMPLETE_TRANSACTION_BIN => '/usr/sbin/yum-complete-transaction';
+    use constant FIX_RPM_SCRIPT               => '/usr/local/cpanel/scripts/find_and_fix_rpm_issues';
+
     sub check ($self) {
         my $ok = 1;
-        $ok = 0 unless $self->_blocker_invalid_yum_repos;
-        $ok = 0 unless $self->_yum_is_stable();
+        $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
+        $ok = 0 if $self->_blocker_invalid_yum_repos;
+        $ok = 0 if $self->_yum_is_stable();
 
         return $ok;
+    }
+
+    sub _blocker_packages_installed_without_associated_repo ($self) {
+        my @extra_packages = $self->yum->get_extra_packages();
+        return unless scalar @extra_packages;
+
+        my @packages   = map { $_->{package} } @extra_packages;
+        my $pkg_string = join "\n", @packages;
+        return $self->has_blocker( <<~EOS );
+    There are packages installed that do not have associated repositories:
+
+    $pkg_string
+    EOS
     }
 
     sub _blocker_invalid_yum_repos ($self) {
@@ -1749,11 +1963,31 @@ EOS
 
             if ( !$self->is_check_mode() ) {    # autofix when --check is not used
                 $self->_autofix_yum_repos();
+                $self->_autofix_duplicate_repoids();
 
                 $status_hr = $self->_check_yum_repos();
             }
 
             return 0 unless _yum_status_hr_contains_blocker($status_hr);
+
+            if ( $status_hr->{DUPLICATE_IDS} ) {
+                my $duplicate_ids = join "\n", keys $self->{_duplicate_repoids}->%*;
+                my $dupe_id_msg   = <<~"EOS";
+            One or more enable YUM repo have repositories defined multiple times:
+
+            $duplicate_ids
+
+            A possible resolution for this issue is to either remove the duplicate
+            repository definitions or change the repoids of the conflicting
+            repositories on the system to prevent the conflict.
+            EOS
+
+                my $blocker_id = ref($self) . '::' . 'DuplicateRepoIds';
+                $self->has_blocker(
+                    $dupe_id_msg,
+                    blocker_id => $blocker_id,
+                );
+            }
 
             for my $unsupported_repo ( @{ $self->{_yum_repos_unsupported_with_packages} } ) {
                 my $blocker_id = ref($self) . '::' . $unsupported_repo->{'name'};
@@ -1767,13 +2001,13 @@ EOS
             }
         }
 
-        return 0;
+        return 1;
     }
 
     sub _yum_status_hr_contains_blocker ($status_hr) {
         return 0 if ref $status_hr ne 'HASH' || !scalar keys( %{$status_hr} );
 
-        my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO};
+        my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO DUPLICATE_IDS};
         foreach my $blocked (@blockers) {
             return 1 if $status_hr->{$blocked};
         }
@@ -1783,40 +2017,70 @@ EOS
     sub _yum_is_stable ($self) {
         my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
         if ( $errors =~ m/\S/ms ) {
-            ERROR('yum appears to be unstable. Please address this before upgrading');
-            ERROR($errors);
-            my $id = ref($self) . '::YumMakeCacheError';
-            $self->has_blocker(
-                "yum appears to be unstable. Please address this before upgrading\n$errors",
-                info => {
-                    name  => $id,
-                    error => $errors,
-                },
-                blocker_id => $id,
-                quiet      => 1,
-            );
 
-            return 0;
+            my $error_msg = <<~'EOS';
+        '/usr/bin/yum makecache' failed to return cleanly. This could be due to a temporary mirror problem, or it could indicate a larger issue, such as a broken repository. Since this script relies heavily on yum, you will need to address this issue before upgrading.
+
+        If you need assistance, open a ticket with cPanel Support, as outlined here:
+
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+        EOS
+
+            WARN("Initial run of \"yum makecache\" failed: $errors");
+            WARN("Running \"yum clean all\" in an attempt to fix yum");
+
+            my $ret = $self->ssystem_capture_output(qw{/usr/bin/yum clean all});
+            if ( $ret->{status} != 0 ) {
+                WARN( "Errors encountered running \"yum clean all\": " . $ret->{stderr} );
+            }
+
+            $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+            if ( $errors =~ m/\S/ms ) {
+                ERROR($error_msg);
+                ERROR($errors);
+                my $id = ref($self) . '::YumMakeCacheError';
+                return $self->has_blocker(
+                    "$error_msg" . "$errors",
+                    info => {
+                        name  => $id,
+                        error => $errors,
+                    },
+                    blocker_id => $id,
+                    quiet      => 1,
+                );
+            }
         }
 
         if ( opendir( my $dfh, '/var/lib/yum' ) ) {
             my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
             if (@transactions) {
-                ERROR('There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.');
-                my $id = ref($self) . '::YumUnfinishedTransactions';
+                WARN('There are unfinished yum transactions remaining.');
 
-                $self->has_blocker(
-                    'There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.',
-                    info => {
-                        name         => $id,
-                        error        => 'YUM has unfinished transactions',
-                        transactions => join( "\n", sort @transactions ),
-                    },
-                    blocker_id => $id,
-                    quiet      => 1,
-                );
+                my $yum_ct_bin = YUM_COMPLETE_TRANSACTION_BIN();
 
-                return 0;
+                if ( $self->is_check_mode() ) {
+                    WARN("Unfinished yum transactions detected. Elevate will execute $yum_ct_bin --cleanup-only during upgrade");
+                }
+                else {
+                    if ( -x $yum_ct_bin ) {
+                        INFO('Cleaning up unfinished yum transactions.');
+                        my $ret = $self->ssystem_capture_output( $yum_ct_bin, '--cleanup-only' );
+                        if ( $ret->{status} != 0 ) {
+                            return $self->has_blocker( "Errors encountered running $yum_ct_bin: " . $ret->{stderr} );
+                        }
+
+                        $ret = $self->ssystem_capture_output(FIX_RPM_SCRIPT);
+                        if ( $ret->{status} != 0 ) {
+                            return $self->has_blocker( 'Errors encountered running ' . FIX_RPM_SCRIPT . ': ' . $ret->{stderr} );
+                        }
+                    }
+                    else {
+                        return $self->has_blocker( <<~EOS );
+                    $yum_ct_bin is missing. You must install the yum-utils package
+                    if you wish to clear the unfinished yum transactions.
+                    EOS
+                    }
+                }
             }
         }
         else {
@@ -1824,7 +2088,7 @@ EOS
             ERROR(qq{Could not read directory '/var/lib/yum': $err});
             my $id = ref($self) . '::YumDirUnreadable';
 
-            $self->has_blocker(
+            return $self->has_blocker(
                 qq{Could not read directory '/var/lib/yum': $err},
                 info => {
                     name  => $id,
@@ -1833,11 +2097,9 @@ EOS
                 blocker_id => $id,
                 quiet      => 1,
             );
-
-            return 0;
         }
 
-        return 1;
+        return 0;
     }
 
     sub _check_yum_repos ($self) {
@@ -1845,12 +2107,15 @@ EOS
         $self->{_yum_repos_path_using_invalid_syntax} = [];
         $self->{_yum_repos_to_disable}                = [];
         $self->{_yum_repos_unsupported_with_packages} = [];
+        $self->{_duplicate_repoids}                   = [];
 
         my @vetted_repos = Elevate::OS::vetted_yum_repo();
 
         my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 
         my %status;
+        my %repoids;
+        my %duplicate_repoids;
         opendir( my $dh, $repo_dir ) or do {
             ERROR("Cannot read directory $repo_dir - $!");
             return;
@@ -1871,7 +2136,6 @@ EOS
 
             my $check_last_known_repo = sub {
                 return unless length $current_repo_name;
-                return unless $current_repo_enabled;
 
                 my $is_vetted = grep { $current_repo_name =~ m/$_/ } @vetted_repos;
 
@@ -1901,6 +2165,8 @@ EOS
                         $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
                     }
                     else {
+                        return unless $current_repo_enabled;
+
                         INFO( sprintf( "Unsupported YUM repo enabled '%s' without packages installed from %s, these will be disabled before ELevation", $current_repo_name, $path ) );
 
                         push( $self->{_yum_repos_to_disable}->@*, $current_repo_name );
@@ -1908,6 +2174,8 @@ EOS
                     }
                 }
                 elsif ( !$current_repo_use_valid_syntax ) {
+                    return unless $current_repo_enabled;
+
                     WARN( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
                     unless ( grep { $_ eq $path } $self->{_yum_repos_path_using_invalid_syntax}->@* ) {
                         my $blocker_id = ref($self) . '::YumRepoConfigInvalidSyntax';
@@ -1941,6 +2209,11 @@ EOS
                     $current_repo_enabled          = 1;    # assume enabled unless explicitely disabled
                     $current_repo_use_valid_syntax = 1;
 
+                    if ( $repoids{$current_repo_name} ) {
+                        $duplicate_repoids{$current_repo_name} = $path;
+                    }
+                    $repoids{$current_repo_name} = 1;
+
                     next;
                 }
                 next unless defined $current_repo_name;
@@ -1952,7 +2225,25 @@ EOS
 
             $check_last_known_repo->();
         }
+
+        if ( scalar keys %duplicate_repoids ) {
+            $status{DUPLICATE_IDS} = 1;
+            $self->{_duplicate_repoids} = \%duplicate_repoids;
+        }
+
         return \%status;
+    }
+
+    sub _autofix_duplicate_repoids ($self) {
+        my %duplicate_ids = $self->{_duplicate_repoids}->%*;
+        foreach my $id ( keys %duplicate_ids ) {
+            if ( $id =~ m/^MariaDB[0-9]+/ ) {
+                my $path = $duplicate_ids{$id};
+                File::Copy::move( $path, "$path.disabled_by_elevate" );
+            }
+        }
+
+        return;
     }
 
     sub _autofix_yum_repos ($self) {
@@ -2249,8 +2540,10 @@ EOS
 
         my $inhibitors = $self->cpev->leapp->search_report_file_for_inhibitors(
             qw(
+              check_detected_devices_and_drivers
               check_installed_devel_kernels
               cl_mysql_repository_setup
+              persistentnetnamesdisable
               verify_check_results
             )
         );
@@ -2347,11 +2640,11 @@ EOS
         my @_DELEGATE_TO_CPEV = qw{
           getopt
           upgrade_to_pretty_name
-          tmp_dir
           should_run_leapp
           ssystem
           ssystem_and_die
           ssystem_capture_output
+          ssystem_hide_and_capture_output
           remove_rpms_from_repos
         };
 
@@ -3023,42 +3316,28 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants ();
-    use Elevate::OS        ();
-    use Elevate::RPM       ();
+    use Elevate::EA4       ();
     use Elevate::StageFile ();
-    use Elevate::YUM       ();
 
-    use Cwd ();
+    use Cpanel::JSON            ();
+    use Cpanel::SafeRun::Simple ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
-
-    use Cpanel::JSON            ();
-    use Cpanel::Pkgr            ();
-    use Cpanel::SafeRun::Simple ();
 
     # use Elevate::Components::Base();
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    use Elevate::Blockers ();
-
-    sub backup ($self) {    # run by the check (should be a dry run mode)
-
-        $self->_backup_ea4_profile;
-        $self->_backup_ea_addons;
-
+    sub pre_imunify ($self) {
+        $self->run_once('_gather_php_usage');
+        $self->run_once('_backup_ea4_profile');
+        $self->run_once('_backup_config_files');
         return;
     }
 
-    sub pre_leapp ($self) {    # run to perform the backup
-
-        $self->run_once('_backup_ea4_profile');
-        $self->run_once('_backup_ea_addons');
-        $self->run_once('_backup_config_files');
+    sub pre_leapp ($self) {
         $self->run_once('_cleanup_rpm_db');
-
         return;
     }
 
@@ -3069,6 +3348,13 @@ EOS
 
         $self->run_once('_restore_config_files');
 
+        $self->run_once('_ensure_sites_use_correct_php_version');
+
+        return;
+    }
+
+    sub _backup_ea4_profile ($self) {
+        Elevate::EA4::backup();
         return;
     }
 
@@ -3089,90 +3375,6 @@ EOS
         $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
 
         return;
-    }
-
-    sub _backup_ea_addons ($self) {
-
-        if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
-            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 1 } } );
-        }
-        else {
-            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 0 } } );
-        }
-
-        return;
-    }
-
-    sub _backup_ea4_profile ($self) {    ## _backup_ea4_profile
-
-        my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
-
-        Elevate::StageFile::remove_from_stage_file('ea4');
-        Elevate::StageFile::update_stage_file( { ea4 => { enable => $use_ea4 } } );
-
-        unless ($use_ea4) {
-
-            WARN('Skipping EA4 backup. EA4 does not appear to be enabled on this system');
-
-            return;
-        }
-
-        my $json_path = $self->_get_ea4_profile();
-
-        my $data = { profile => $json_path };
-
-        my $profile = eval { Cpanel::JSON::LoadFile($json_path) } // {};
-        if ( ref $profile->{os_upgrade} && ref $profile->{os_upgrade}->{dropped_pkgs} ) {
-            $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
-        }
-
-        Elevate::StageFile::update_stage_file( { ea4 => $data } );    # FIXME
-
-        return 1;
-    }
-
-    sub _get_ea4_profile ($self) {
-
-        my $ea_alias = Elevate::OS::ea_alias();
-
-        my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
-
-        my $profile_file;
-
-        if ( Elevate::Blockers->is_check_mode() ) {
-
-            $profile_file = $self->tmp_dir() . '/ea_profile.json';
-            push @cmd, "--output=$profile_file";
-        }
-
-        my $cmd_str = join( ' ', @cmd );
-
-        INFO("Running: $cmd_str");
-        my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
-        die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
-
-        if ( !$profile_file ) {
-
-            my @lines = split( "\n", $output );
-
-            if ( scalar @lines == 1 ) {
-                $profile_file = $lines[0];
-            }
-            else {
-                foreach my $l ( reverse @lines ) {
-                    next unless $l =~ m{^/.*\.json};
-                    if ( -f $l ) {
-                        $profile_file = $l;
-                        last;
-                    }
-                }
-            }
-        }
-
-        die "Unable to backup EA4 profile running: $cmd_str" unless length $profile_file && -f $profile_file && -s _;
-        INFO("Backed up EA4 profile to $profile_file");
-
-        return $profile_file;
     }
 
     sub _restore_ea4_profile ($self) {
@@ -3213,8 +3415,7 @@ EOS
 
         Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-        my $ea4_regex        = qr/^EA4(:?-c7)?/a;
-        my $ea4_config_files = $self->rpm->get_config_files_for_repo($ea4_regex);
+        my $ea4_config_files = $self->rpm->get_config_files_for_pkg_prefix('ea-');
 
         Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
@@ -3249,6 +3450,52 @@ EOS
         return;
     }
 
+    sub _ensure_sites_use_correct_php_version ($self) {
+
+        my $vhost_versions = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+        return unless ref $vhost_versions eq 'ARRAY';
+        return unless scalar $vhost_versions->@*;
+
+        foreach my $vhost_entry (@$vhost_versions) {
+            my $version = $vhost_entry->{version};
+            my $vhost   = $vhost_entry->{vhost};
+            my $fpm     = $vhost_entry->{php_fpm};
+
+            my @api_cmd = (
+                '/usr/local/cpanel/bin/whmapi1',
+                '--output=json',
+                'php_set_vhost_versions',
+                "version=$version",
+                "vhost=$vhost",
+                "php_fpm=$fpm",
+            );
+
+            my $out    = Cpanel::SafeRun::Simple::saferunnoerror(@api_cmd);
+            my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+            my $api_string = join( ' ', @api_cmd );
+            unless ( $result->{metadata}{result} ) {
+
+                WARN( <<~"EOS" );
+            Unable to set $vhost back to its desired PHP version.  This site may
+            be using the incorrect version of PHP.  To set it back to its
+            original PHP version, execute the following command:
+
+            $api_string
+            EOS
+            }
+        }
+
+        return;
+    }
+
+    sub _gather_php_usage ($self) {
+        my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
+        Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
+        Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $php_get_vhost_versions } );
+        return;
+    }
+
     1;
 
 }    # --- END lib/Elevate/Components/EA4.pm
@@ -3270,6 +3517,7 @@ EOS
     use Cpanel::JSON            ();
     use Cpanel::Pkgr            ();
     use Cpanel::SafeRun::Simple ();
+    use Cpanel::SafeRun::Object ();
 
     # use Elevate::Components::Base();
     our @ISA;
@@ -3279,6 +3527,118 @@ EOS
 
     use constant GRUB_EDITENV  => '/usr/bin/grub2-editenv';
     use constant GRUB_ENV_FILE => '/boot/grub2/grubenv';
+
+    use constant GRUBBY_PATH  => '/usr/sbin/grubby';
+    use constant CMDLINE_PATH => '/proc/cmdline';
+
+    use constant EX_UNAVAILABLE => 69;
+
+    sub _call_grubby ( $self, @args ) {
+
+        my %opts = (
+            should_capture_output => 0,
+            should_hide_output    => 0,
+            die_on_error          => 0,
+        );
+
+        if ( ref $args[0] eq 'HASH' ) {
+            my %opt_args = %{ shift @args };
+            foreach my $key ( keys %opt_args ) {
+                $opts{$key} = $opt_args{$key};
+            }
+        }
+
+        unshift @args, GRUBBY_PATH;
+
+        return $opts{die_on_error} ? $self->ssystem_and_die(@args) : $self->ssystem( \%opts, @args );
+    }
+
+    sub _default_kernel ($self) {
+        return $self->_call_grubby( { should_capture_output => 1, should_hide_output => 1 }, '--default-kernel' )->{'stdout'}->[0] // '';
+    }
+
+    sub _persistent_id {
+        my $id = Elevate::StageFile::read_stage_file( 'bootloader_random_tag', '' );
+        return $id if $id;
+
+        $id = int( rand(100000) );
+        Elevate::StageFile::update_stage_file( { 'bootloader_random_tag', $id } );
+        return $id;
+    }
+
+    sub mark_cmdline ($self) {
+        my $arg = "elevate-" . _persistent_id;
+        INFO("Marking default boot entry with additional parameter \"$arg\".");
+
+        my $kernel_path = $self->_default_kernel;
+        $self->_call_grubby( { die_on_error => 1 }, "--update-kernel=$kernel_path", "--args=$arg" );
+
+        return;
+    }
+
+    sub _remove_but_dont_stop_service ($self) {
+
+        $self->cpev->service->disable();
+        $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+
+        return;
+    }
+
+    sub verify_cmdline ($self) {
+        if ( $self->cpev->should_run_leapp() ) {
+            my $arg = "elevate-" . _persistent_id;
+            INFO("Checking for \"$arg\" in booted kernel's command line...");
+
+            my $kernel_cmdline = eval { File::Slurper::read_binary(CMDLINE_PATH) } // '';
+            DEBUG( CMDLINE_PATH . " contains: $kernel_cmdline" );
+
+            my $detected = scalar grep { $_ eq $arg } split( ' ', $kernel_cmdline );
+            if ($detected) {
+                INFO("Parameter detected; restoring entry to original state.");
+            }
+            else {
+                ERROR("Parameter not detected. Attempt to upgrade is being aborted.");
+            }
+
+            my $kernel_path = $self->_default_kernel;
+            my $result      = $self->_call_grubby( "--update-kernel=$kernel_path", "--remove-args=$arg" );
+            WARN("Unable to restore original command line. This should not cause problems but is unusual.") if $result != 0;
+
+            if ( !$detected ) {
+
+                my $stage              = Elevate::Stages::get_stage();
+                my $pretty_distro_name = $self->cpev->upgrade_to_pretty_name();
+                my $msg                = <<"EOS";
+The elevation process failed during stage $stage.
+
+Specifically, the script could not prove that the system has control over its
+own boot process using the utilities the operating system provides.
+
+For this reason, the elevation process has terminated before making any
+irreversible changes.
+
+You can check the error log by running:
+
+    $0
+
+Before you can run the elevation process, you must provide for the ability for
+the system to manipulate its own boot process. Then you can start the elevation
+process anew:
+
+    $0 --start
+
+EOS
+                Elevate::Notify::send_notification( qq[Failed to update to $pretty_distro_name] => $msg );
+
+                $self->cpev->do_cleanup(1);
+                $self->_remove_but_dont_stop_service();
+
+                exit EX_UNAVAILABLE;    ## no critic(Cpanel::NoExitsFromSubroutines)
+            }
+        }
+
+        return;
+    }
 
     sub pre_leapp ($self) {
 
@@ -4009,10 +4369,14 @@ EOS
 
     use cPstrict;
 
+    use Try::Tiny;
+
     use File::Copy ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use Cpanel::JSON ();
 
     use Elevate::Database  ();
     use Elevate::Notify    ();
@@ -4025,11 +4389,9 @@ EOS
     my $cnf_file = '/etc/my.cnf';
 
     sub pre_leapp ($self) {
+        return if Elevate::Database::is_database_provided_by_cloudlinux();
 
-        Elevate::Database::is_database_provided_by_cloudlinux()
-          ? $self->run_once('_remove_cpanel_mysql_packages')
-          : $self->run_once("_cleanup_mysql_packages");
-
+        $self->run_once("_cleanup_mysql_packages");
         return;
     }
 
@@ -4070,82 +4432,78 @@ EOS
 
     sub _reinstall_mysql_packages {
 
-        my $mysql_version = Elevate::StageFile::read_stage_file( 'mysql-version', '' ) or return;
-        my $enabled       = Elevate::StageFile::read_stage_file( 'mysql-enabled', '' ) or return;
+        my $upgrade_version     = Elevate::StageFile::read_stage_file( 'mysql-version', '' ) or return;
+        my $upgrade_dbtype_name = Elevate::Database::get_database_type_name_from_version($upgrade_version);
+        my $enabled             = Elevate::StageFile::read_stage_file( 'mysql-enabled', '' ) or return;
 
-        INFO("Restoring MySQL $mysql_version");
-
-        my ( $major, $minor ) = split( /\./, $mysql_version );
-
-        INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
-        File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file ) or WARN("Couldn't restore $cnf_file.rpmsave: $!");
+        INFO("Restoring $upgrade_dbtype_name $upgrade_version");
 
         if ( !$enabled ) {
-            INFO("MySQL is not enabled. This will cause the MySQL upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
+            INFO("$upgrade_dbtype_name is not enabled. This will cause the $upgrade_dbtype_name upgrade tool to fail. Temporarily enabling it to ensure the upgrade succeeds.");
             Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=1});
 
         }
 
-        my $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade}, "version=$mysql_version" );
-        die qq[Failed to restore MySQL $mysql_version] if $?;
-
-        if ( $out =~ m{\supgrade_id:\s*(\S+)} ) {
-            my $id = $1;
-
-            INFO("Restoring MySQL via upgrade_id $id");
-            INFO('Waiting for MySQL installation');
-
-            my $status = '';
-
-            my $c = 0;
-
-            my $wait_more = 30;
-            while (1) {
-                $c   = ( $c + 1 ) % 10;
-                $out = Cpanel::SafeRun::Simple::saferunnoerror( qw{/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status }, "upgrade_id=$id" );
-                if ($?) {
-                    last if !$enabled;
-                    die qq[Failed to restore MySQL $mysql_version: cannot check upgrade_id=$id];
-                }
-
-                if ( $out =~ m{\sstate:\s*inprogress} ) {
-                    print ".";
-                    print "\n" if $c == 0;
-                    sleep 5;
-                    next;
-                }
-
-                if ( $out =~ m{\sstate:\s*(\w+)} ) {
-                    $status = $1;
-                }
-
-                if ( $status ne 'success' && --$wait_more > 0 ) {
-                    sleep 1;
-                    next;
-                }
-
-                last;
-            }
-
-            print "\n"                                                                                                          if $c;          # clear the last "." from above
-            Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0}) if !$enabled;
-
-            if ( $status eq 'success' ) {
-                INFO("MySQL $mysql_version restored");
-            }
-            else {
-                my $msg = "Failed to restore MySQL $mysql_version: upgrade $id status '$status'";
-
-                FATAL($msg);
-                FATAL("$out");
-
-                Elevate::Notify::add_final_notification($msg);
-                return;
-            }
+        try {
+            Elevate::Database::upgrade_database_server();
         }
-        else {
-            die qq[Cannot find upgrade_id from start_background_mysql_upgrade:\n$out];
+        catch {
+            LOGDIE( <<~"EOS" );
+        Unable to install $upgrade_dbtype_name $upgrade_version.  To attempt to
+        install the database server manually, execute:
+
+        /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade veresion=$upgrade_version
+
+        To have this script attempt to install $upgrade_dbtype_name $upgrade_version
+        for you, execute this script again with the continue flag
+
+        /scripts/elevate-cpanel --continue
+
+        Or once the issue has been resolved manually, execute
+
+        /scripts/elevate-cpanel --continue
+
+        to complete the ELevation process.
+        EOS
+        };
+
+        if ( !$enabled ) {
+            Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 configureservice service=mysql enabled=0});
+            return;
         }
+
+        File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_leapp_orig" );
+
+        INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
+        File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
+
+        my $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
+        my @restart_lines = split "\n", $restart_out;
+
+        DEBUG('Restarting Database server with restored my.cnf in place');
+        DEBUG($restart_out);
+        return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
+
+        INFO('The database server failed to start.  Restoring my.cnf to default.');
+        File::Copy::copy( "$cnf_file.elevate_post_leapp_orig", $cnf_file );
+
+        $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
+        @restart_lines = split "\n", $restart_out;
+
+        DEBUG('Restarting Database server with original my.cnf in place');
+        DEBUG($restart_out);
+        return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
+
+        LOGDIE( <<~'EOS' );
+    The database server was unable to start after the attempted restoration.
+
+    Check the elevate log located at '/var/log/elevate-cpanel.log' for further
+    details.
+
+    Additionally, you may wish to inspect the database error log for further
+    details.  This log is located at '/var/lib/mysql/$HOSTNAME.err' where
+    $HOSTNAME is the hostname of your server by default.
+    EOS
 
         return;
     }
@@ -4208,6 +4566,97 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Components/MySQL.pm
+
+{    # --- BEGIN lib/Elevate/Components/NICs.pm
+
+    package Elevate::Components::NICs;
+
+    use cPstrict;
+
+    use File::Slurper ();
+
+    use Elevate::Constants ();
+    use Elevate::NICs      ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    use constant ETH_FILE_PREFIX           => Elevate::Constants::ETH_FILE_PREFIX;
+    use constant NIC_PREFIX                => q[cp];
+    use constant PERSISTENT_NET_RULES_PATH => q[/etc/udev/rules.d/70-persistent-net.rules];
+
+    sub pre_leapp ($self) {
+
+        $self->_rename_nics();
+
+        return;
+    }
+
+    sub _rename_nics ($self) {
+
+        my @nics = Elevate::NICs::get_nics();
+        return unless scalar @nics > 1;
+
+        foreach my $nic (@nics) {
+            my $nic_path = ETH_FILE_PREFIX . $nic;
+
+            my $die_msg = <<~"EOS";
+        The file for the network interface card (NIC) using kernel-name ($nic) does
+        not exist at the expected location ($nic_path).  We are unable to
+        change the name of this NIC due to this.  You will need to resolve this
+        issue manually before elevate can continue.  Once the issue has been
+        resolved, you can continue this script by executing:
+
+        /scripts/elevate-cpanel --continue
+        EOS
+            die "$die_msg\n" unless -s $nic_path;
+
+            my $new_nic = NIC_PREFIX . $nic;
+            INFO("Renaming $nic to $new_nic");
+
+            my $device_line_found = 0;
+            my $txt               = File::Slurper::read_binary($nic_path);
+            my @nic_lines         = split( "\n", $txt );
+            foreach my $line (@nic_lines) {
+                if ( $line =~ m{^\s*DEVICE\s*=\s*\Q$nic\E\s*$} ) {
+                    $device_line_found = 1;
+                    $line              = "DEVICE=$new_nic";
+                    last;
+                }
+            }
+            die qq[Unable to rename $nic to $new_nic.  The line beginning with 'DEVICE' in $nic_path was not found.\n] unless $device_line_found;
+
+            my $new_nic_path = ETH_FILE_PREFIX . $new_nic;
+            File::Slurper::write_binary( $new_nic_path, join( "\n", @nic_lines ) );
+
+            unlink $nic_path;
+
+            next unless -s PERSISTENT_NET_RULES_PATH;
+            my $rules_txt   = File::Slurper::read_binary( PERSISTENT_NET_RULES_PATH() );
+            my @rules_lines = split( "\n", $rules_txt );
+            foreach my $line (@rules_lines) {
+                $line =~ s/NAME="\Q$nic\E"/NAME="$new_nic"/;
+            }
+
+            my $new_rules_txt = join( "\n", @rules_lines );
+            $new_rules_txt .= "\n";
+            File::Slurper::write_binary( PERSISTENT_NET_RULES_PATH(), $new_rules_txt );
+        }
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/NICs.pm
 
 {    # --- BEGIN lib/Elevate/Components/NixStats.pm
 
@@ -4367,6 +4816,9 @@ EOS
     use Elevate::Constants ();
     use Elevate::StageFile ();
 
+    use Cpanel::JSON            ();
+    use Cpanel::SafeRun::Simple ();
+
     use Cwd ();
 
     # use Log::Log4perl qw(:easy);
@@ -4391,9 +4843,19 @@ EOS
     }
 
     sub _backup_pecl_packages ($self) {
-        my @ea_versions = qw{ea-php70 ea-php71 ea-php72 ea-php73 ea-php74 ea-php80};
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_installed_versions});
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
 
-        foreach my $v (@ea_versions) {
+        unless ( $result->{metadata}{result} ) {
+            WARN( <<~"EOS" );
+        Unable to determine the installed PHP versions.
+        Assuming that backing up PECL packages is not relevant as such.
+
+        EOS
+            return;
+        }
+
+        foreach my $v ( @{ $result->{'data'}{'versions'} } ) {
             _store_pecl_for( qq[/opt/cpanel/$v/root/usr/bin/pecl], $v );
         }
 
@@ -4814,6 +5276,17 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
+    use constant OBSOLETE_PACKAGES => (
+        'compat-db',
+        'gd-progs',
+        'python-tools',
+        'python2-dnf',
+        'python2-libcomps',
+        'tcp_wrappers-devel',
+        'tkinter',
+        'yum-plugin-universal-hooks',
+    );
+
     sub pre_leapp ($self) {
 
         $self->run_once("_cleanup_rpms");
@@ -4825,6 +5298,14 @@ EOS
 
         $self->rpm->remove_cpanel_arch_rpms();
 
+        $self->_remove_obsolete_packages();
+
+        return;
+    }
+
+    sub _remove_obsolete_packages ($self) {
+        my @pkgs_to_remove = OBSOLETE_PACKAGES();
+        $self->yum->remove(@pkgs_to_remove);
         return;
     }
 
@@ -4939,11 +5420,11 @@ EOS
 
         INFO("Removing Wordpress Toolkit");
 
-        INFO("Removing the rpm wp-toolkit-cpanel (--noscripts)");
+        INFO("Removing the rpm wp-toolkit-cpanel");
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
 
-        my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e --noscripts wp-toolkit-cpanel});
+        my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e wp-toolkit-cpanel});
         DEBUG($output) if $output;
 
         cpev::yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
@@ -5079,6 +5560,20 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
+    use Cpanel::MysqlUtils::RemoteMySQL::ProfileManager ();
+
+    use File::Slurper;
+    use Try::Tiny;
+
+    use Cpanel::MysqlUtils::MyCnf::Basic                ();
+    use Cpanel::MysqlUtils::RemoteMySQL::ProfileManager ();
+    use Cpanel::PasswdStrength::Generate                ();
+    use Cpanel::JSON                                    ();
+    use Cpanel::SafeRun::Simple                         ();
+    use Cpanel::Encoder::URI                            ();
+
+    use constant MYSQL_PROFILE_FILE => '/var/cpanel/elevate-mysql-profile';
+
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
@@ -5086,9 +5581,200 @@ EOS
 
         return if Elevate::Database::is_database_provided_by_cloudlinux();
 
+        $self->_ensure_localhost_mysql_profile_is_active(1);
+
         return if Elevate::Database::is_database_version_supported( Elevate::Database::get_local_database_version() );
 
         Elevate::Database::upgrade_database_server();
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+        return unless -e MYSQL_PROFILE_FILE;
+
+        my $original_profile = File::Slurper::read_text(MYSQL_PROFILE_FILE) // 'localhost';
+        INFO(qq{Reactivating "$original_profile" MySQL profile});
+
+        my $output = $self->ssystem_capture_output( '/usr/local/cpanel/scripts/manage_mysql_profiles', '--activate', "$original_profile" );
+        my $stdout = join qq{\n}, @{ $output->{'stdout'} };
+
+        unless ( $stdout =~ m{MySQL profile activation done} ) {
+            die <<~"EOS";
+        Unable to reactivate the original remote MySQL profile "$original_profile":
+
+        $stdout
+
+        Please resolve the reported problems then run this script again with:
+
+        /scripts/elevate-cpanel --continue
+
+        EOS
+        }
+
+        unlink MYSQL_PROFILE_FILE or WARN( "Could not delete " . MYSQL_PROFILE_FILE . ": $!" );
+
+        return;
+    }
+
+    sub _ensure_localhost_mysql_profile_is_active ( $self, $should_create_localhost_profile ) {
+        return if Cpanel::MysqlUtils::MyCnf::Basic::is_local_mysql();
+
+        my $profile_manager = Cpanel::MysqlUtils::RemoteMySQL::ProfileManager->new();
+
+        my $profile = $profile_manager->get_active_profile('dont_die') || 'localhost';
+        if ($should_create_localhost_profile) {
+            INFO( "Saving the currently active MySQL Profile ($profile) to " . MYSQL_PROFILE_FILE );
+            File::Slurper::write_text( MYSQL_PROFILE_FILE, $profile );
+        }
+
+        try {
+            $profile_manager->validate_profile('localhost');
+            $self->_activate_localhost_profile($profile_manager);
+        }
+
+        catch {
+            die "Unable to generate/enable localhost MySQL profile: $_\n" unless $should_create_localhost_profile;
+            INFO("Attempting to create new localhost MySQL profile...");
+            $self->_create_new_localhost_profile($profile_manager);
+            $self->_ensure_localhost_mysql_profile_is_active(0);
+        };
+
+        return;
+    }
+
+    sub _create_new_localhost_profile ( $self, $profile_manager ) {
+
+        my $password = Cpanel::PasswdStrength::Generate::generate_password( 16, no_othersymbols => 1 );
+
+        try {
+            $profile_manager->create_profile(
+                {
+                    'name'       => 'localhost',
+                    'mysql_user' => 'root',
+                    'mysql_pass' => $password,
+                    'mysql_host' => 'localhost',
+                    'mysql_port' => Cpanel::MysqlUtils::MyCnf::Basic::getmydbport('root') || 3306,
+                    'setup_via'  => 'Auto-generated localhost profile during elevate.',
+                },
+                { 'overwrite' => 1 },
+            );
+        }
+        catch {
+            die <<~"EOS";
+        Unable to generate a functioning MySQL DB profile for the local MySQL server.
+
+        The following error was encountered:
+
+        $@
+        EOS
+        };
+
+        $self->_set_local_mysql_root_password($password);
+
+        $profile_manager->save_changes_to_disk();
+
+        $self->_activate_localhost_profile($profile_manager);
+
+        return;
+    }
+
+    sub _set_local_mysql_root_password ( $self, $password ) {
+        INFO("Resetting password for local root MySQL user...");
+
+        my $encoded_password = Cpanel::Encoder::URI::uri_encode_str($password);
+
+        my $output = Cpanel::SafeRun::Simple::saferunnoerror( q{/bin/sh}, q{-c}, qq{/usr/local/cpanel/bin/whmapi1 --output=json set_local_mysql_root_password password='$encoded_password'} );
+        my $result = eval { Cpanel::JSON::Load($output); } // {};
+
+        unless ( $result->{metadata}{result} ) {
+
+            my $errors = join qq{\n\n}, @{ $result->{'metadata'}{'errors'} };
+
+            die <<~"EOS";
+        Unable to set root password for the localhost MySQL server.
+
+        The following errors occurred:
+
+        $errors
+
+        Please resolve the reported problems then run this script again with:
+
+        /scripts/elevate-cpanel --continue
+
+        EOS
+        }
+
+        return;
+    }
+
+    sub _activate_localhost_profile {
+        my ( $self, $profile_manager ) = @_;
+
+        if ($profile_manager) {
+            $profile_manager->{'_transaction_obj'}->close_or_die();
+        }
+
+        INFO("Activating “localhost” MySQL profile");
+
+        my $output = $self->ssystem_capture_output(qw{/usr/local/cpanel/scripts/manage_mysql_profiles --activate localhost});
+        my $stdout = join qq{\n}, @{ $output->{'stdout'} };
+
+        if ( $stdout !~ m{MySQL profile activation done} ) {
+            die <<~"EOS";
+        Unable to activate a MySQL DB profile for "localhost":
+
+        $stdout
+
+        Please resolve the reported problems then run this script again with:
+
+        /scripts/elevate-cpanel --continue
+
+        EOS
+        }
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/DatabaseUpgrade.pm
+
+{    # --- BEGIN lib/Elevate/Components/ELS.pm
+
+    package Elevate::Components::ELS;
+
+    use cPstrict;
+
+    use Elevate::OS ();
+
+    use Cpanel::Pkgr ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    use constant ELS_PACKAGE => 'els-define';
+
+    sub pre_leapp ($self) {
+
+        return unless Elevate::OS::remove_els();
+
+        my @files_to_remove = qw{
+          /etc/yum.repos.d/centos7-els.repo
+          /etc/yum.repos.d/centos7-els-rollout.repo
+        };
+
+        foreach my $file (@files_to_remove) {
+            if ( -e $file ) {
+                unlink $file or WARN("Could not remove file $file: $!");
+            }
+        }
+
+        $self->yum->remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
 
         return;
     }
@@ -5100,7 +5786,134 @@ EOS
 
     1;
 
-}    # --- END lib/Elevate/Components/DatabaseUpgrade.pm
+}    # --- END lib/Elevate/Components/ELS.pm
+
+{    # --- BEGIN lib/Elevate/Components/R1Soft.pm
+
+    package Elevate::Components::R1Soft;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+    use Elevate::StageFile ();
+
+    use Cpanel::Pkgr ();
+
+    use File::Slurper ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_leapp ($self) {
+
+        my $r1soft_agent_installed = 0;
+        my $r1soft_repo_present    = 0;
+        my $r1soft_repo_enabled    = 0;
+
+        if ( Cpanel::Pkgr::is_installed(Elevate::Constants::R1SOFT_MAIN_AGENT_PACKAGE) ) {
+            $r1soft_agent_installed = 1;
+
+            my @repo_list = $self->yum->repolist_enabled();
+
+            if ( scalar grep { index( $_, Elevate::Constants::R1SOFT_REPO ) == 0 } @repo_list ) {
+                $r1soft_repo_present = 1;
+                $r1soft_repo_enabled = 1;
+            }
+            else {
+                @repo_list = $self->yum->repolist_all();
+
+                if ( scalar grep { index( $_, Elevate::Constants::R1SOFT_REPO ) == 0 } @repo_list ) {
+                    $r1soft_repo_present = 1;
+                }
+            }
+
+            $self->yum->remove(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
+        }
+
+        Elevate::StageFile::update_stage_file(
+            {
+                r1soft => {
+                    agent_installed => $r1soft_agent_installed,
+                    repo_present    => $r1soft_repo_present,
+                    repo_enabled    => $r1soft_repo_enabled,
+                }
+            }
+        );
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+
+        my $r1soft_info = Elevate::StageFile::read_stage_file('r1soft');
+
+        return unless $r1soft_info->{agent_installed};
+
+        $self->yum->install('kernel-devel');
+
+        if ( !$r1soft_info->{repo_present} ) {
+
+            $self->_create_r1soft_repo();
+        }
+        else {
+            $self->_enable_r1soft_repo() unless $r1soft_info->{repo_enabled};
+        }
+
+        $self->yum->install(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
+
+        if ( !$r1soft_info->{repo_present} || !$r1soft_info->{repo_enabled} ) {
+            $self->_disable_r1soft_repo();
+        }
+
+        return;
+    }
+
+    sub _enable_r1soft_repo ($self) {
+        return $self->_run_yum_config_manager( '--enable', Elevate::Constants::R1SOFT_REPO );
+    }
+
+    sub _disable_r1soft_repo ($self) {
+        return $self->_run_yum_config_manager( '--disable', Elevate::Constants::R1SOFT_REPO );
+    }
+
+    sub _run_yum_config_manager ( $self, @args ) {
+        my $yum_config = Cpanel::Binaries::path('yum-config-manager');
+
+        my $err = $self->ssystem( $yum_config, @args );
+        ERROR("Error running $yum_config: $err") if $err;
+
+        return $err;
+    }
+
+    sub _create_r1soft_repo ($self) {
+
+        my $yum_repo_contents = <<~"EOS";
+    [r1soft]
+    name=R1Soft Repository Server
+    baseurl=https://repo.r1soft.com/yum/stable/\$basearch/
+    enabled=1
+    gpgcheck=0
+    EOS
+
+        if ( -e Elevate::Constants::R1SOFT_REPO_FILE ) {
+            ERROR( "Cannot create R1Soft repo. File already exists: " . Elevate::Constants::R1SOFT_REPO_FILE );
+            return;
+        }
+
+        File::Slurper::write_binary( Elevate::Constants::R1SOFT_REPO_FILE, $yum_repo_contents );
+
+        chmod 0644, Elevate::Constants::R1SOFT_REPO_FILE;
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/R1Soft.pm
 
 {    # --- BEGIN lib/Elevate/OS.pm
 
@@ -5150,6 +5963,9 @@ EOS
         $OS = eval { factory(); };
 
         if ( !$OS ) {
+
+            DEBUG("Unable to acquire Elevate::OS instance, dying") unless -t STDOUT;
+
             my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
             die "This script is only designed to upgrade the following OSs:\n\n$supported_distros\n";
         }
@@ -5174,12 +5990,12 @@ EOS
             'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
             'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
             'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
-            'leapp_can_handle_python36',          # This is used to determine if we can skip the python36 blocker or not
             'leapp_data_pkg',                     # This is used to determine which leapp data package to install
             'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
             'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
             'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
+            'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
             'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
             'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
@@ -5240,6 +6056,15 @@ EOS
     use constant leapp_repo_prod    => 'elevate';
     use constant name               => 'CentOS7';
     use constant pretty_name        => 'CentOS 7';
+    use constant remove_els         => 1;
+
+    sub vetted_yum_repo ($self) {
+
+        my @repos = $self->SUPER::vetted_yum_repo();
+
+        push @repos, qr/centos7[-]*els(-rollout-[0-9]+|)/;
+        return @repos;
+    }
 
     1;
 
@@ -5266,7 +6091,6 @@ EOS
     use constant leapp_can_handle_epel           => 1;
     use constant leapp_can_handle_imunify        => 1;
     use constant leapp_can_handle_kernelcare     => 1;
-    use constant leapp_can_handle_python36       => 1;
     use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
     use constant leapp_flag                      => '--nowarn';
     use constant name                            => 'CloudLinux7';
@@ -5346,8 +6170,11 @@ EOS
         'imunify360-ea-php-hardened',
         qr/^imunify360-rollout-[0-9]+$/,
         'influxdb',
+        'jetapps',
+        qr/^jetapps-(?:stable|beta|edge)$/,
         'kernelcare',
         'updates',
+        'r1soft',
         qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
       ),
       vetted_mysql_yum_repo_ids;
@@ -5359,12 +6186,12 @@ EOS
     use constant leapp_can_handle_epel           => 0;
     use constant leapp_can_handle_imunify        => 0;
     use constant leapp_can_handle_kernelcare     => 0;
-    use constant leapp_can_handle_python36       => 0;
     use constant leapp_data_package              => undef;
     use constant leapp_flag                      => undef;
     use constant name                            => 'RHEL';
     use constant pretty_name                     => 'RHEL';
     use constant provides_mysql_governor         => 0;
+    use constant remove_els                      => 0;
     use constant should_check_cloudlinux_license => 0;
     use constant leapp_repo_beta                 => '';       # Unavailable by default.
 
@@ -5499,7 +6326,7 @@ EOS
         );
 
         if ($failed_step) {
-            FATAL("FAILED to upgrade to $upgrade_dbtype_name $upgrade_version");
+            LOGDIE("FAILED to upgrade to $upgrade_dbtype_name $upgrade_version");
         }
         else {
             INFO("Finished upgrade to $upgrade_dbtype_name $upgrade_version");
@@ -5511,6 +6338,179 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Database.pm
+
+{    # --- BEGIN lib/Elevate/EA4.pm
+
+    package Elevate::EA4;
+
+    use cPstrict;
+
+    use File::Temp ();
+
+    use Elevate::Constants ();
+    use Elevate::OS        ();
+    use Elevate::StageFile ();
+
+    use Cpanel::Config::Httpd   ();
+    use Cpanel::JSON            ();
+    use Cpanel::Pkgr            ();
+    use Cpanel::SafeRun::Simple ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant IMUNIFY_AGENT => Elevate::Constants::IMUNIFY_AGENT;
+
+    sub backup ( $check_mode = 0 ) {
+        Elevate::EA4::_backup_ea4_profile($check_mode);
+        Elevate::EA4::_backup_ea_addons();
+        return;
+    }
+
+    sub _backup_ea4_profile ($check_mode) {
+
+        my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
+
+        Elevate::StageFile::remove_from_stage_file('ea4');
+        Elevate::StageFile::update_stage_file( { ea4 => { enable => $use_ea4 } } );
+
+        unless ($use_ea4) {
+            WARN('Skipping EA4 backup. EA4 does not appear to be enabled on this system');
+            return;
+        }
+
+        my $json_path = Elevate::EA4::_get_ea4_profile($check_mode);
+
+        my $data = { profile => $json_path };
+
+        my $profile = eval { Cpanel::JSON::LoadFile($json_path) } // {};
+        if ( ref $profile->{os_upgrade} && ref $profile->{os_upgrade}->{dropped_pkgs} ) {
+            $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
+        }
+
+        Elevate::StageFile::update_stage_file( { ea4 => $data } );
+
+        return;
+    }
+
+    sub _imunify360_is_installed_and_provides_hardened_php () {
+        return 0 unless -x IMUNIFY_AGENT;
+
+        my $out          = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{version --json} );
+        my $license_data = eval { Cpanel::JSON::Load($out) } // {};
+
+        return 0 unless ref $license_data->{license};
+
+        if ( $license_data->{'license'}->{'license_type'} eq 'imunify360' ) {
+
+            my $output   = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{features list} );
+            my @features = map {
+                my $trim_spaces = $_;
+                $trim_spaces =~ s/\s+//g;
+                $trim_spaces;
+            } grep { m/\S/ } split( "\n", $output );
+
+            foreach my $feature (@features) {
+
+                if ( $feature eq 'hardened-php' ) {
+                    my $version = Cpanel::Pkgr::get_package_version('ea-cpanel-tools');
+                    return $version =~ m{cloudlinux} ? 1 : 0;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    sub _get_ea4_profile ($check_mode) {
+
+        my $ea_alias = Elevate::OS::ea_alias();
+
+        $ea_alias = 'CloudLinux_8' if Elevate::EA4::_imunify360_is_installed_and_provides_hardened_php();
+
+        my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
+
+        my $profile_file;
+        if ($check_mode) {
+
+            $profile_file = Elevate::EA4::tmp_dir() . '/ea_profile.json';
+            push @cmd, "--output=$profile_file";
+        }
+
+        my $cmd_str = join( ' ', @cmd );
+
+        INFO("Running: $cmd_str");
+        my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
+        die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
+
+        if ( !$profile_file ) {
+
+            my @lines = split( "\n", $output );
+
+            if ( scalar @lines == 1 ) {
+                $profile_file = $lines[0];
+            }
+            else {
+                foreach my $l ( reverse @lines ) {
+                    next unless $l =~ m{^/.*\.json};
+                    if ( -f $l ) {
+                        $profile_file = $l;
+                        last;
+                    }
+                }
+            }
+        }
+
+        die "Unable to backup EA4 profile running: $cmd_str" unless length $profile_file && -f $profile_file && -s _;
+        INFO("Backed up EA4 profile to $profile_file");
+
+        return $profile_file;
+    }
+
+    my $tmp_dir;
+
+    sub tmp_dir () {
+        return $tmp_dir //= File::Temp->newdir();    # auto cleanup on destroy
+    }
+
+    sub _backup_ea_addons () {
+
+        if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
+            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 1 } } );
+        }
+        else {
+            Elevate::StageFile::update_stage_file( { ea4 => { nginx => 0 } } );
+        }
+
+        return;
+    }
+
+    my $php_get_vhost_versions;
+
+    sub php_get_vhost_versions () {
+        return $php_get_vhost_versions if defined $php_get_vhost_versions && ref $php_get_vhost_versions eq 'HASH';
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        unless ( $result->{metadata}{result} ) {
+
+            WARN( <<~"EOS" );
+        The php_get_vhost_versions API call failed. Unable to determine current
+        PHP usage by domain.
+
+        EOS
+
+            return;
+        }
+
+        my $php_get_vhost_versions = $result->{data}{versions};
+        return $php_get_vhost_versions;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/EA4.pm
 
 {    # --- BEGIN lib/Elevate/Fetch.pm
 
@@ -5773,6 +6773,9 @@ EOS
     }
 
     sub wait_for_leapp_completion ($self) {
+
+        return 1 unless $self->cpev->should_run_leapp();
+
         my $upgrade_log = LEAPP_UPGRADE_LOG;
 
         if ( !-e $upgrade_log ) {
@@ -6151,6 +7154,42 @@ EOS
 
 }    # --- END lib/Elevate/Motd.pm
 
+{    # --- BEGIN lib/Elevate/NICs.pm
+
+    package Elevate::NICs;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+
+    use Cpanel::SafeRun::Errors ();
+
+    sub get_nics () {
+        my $sbin_ip = Elevate::Constants::SBIN_IP();
+        my $ip_info = Cpanel::SafeRun::Errors::saferunnoerror( $sbin_ip, 'addr' ) // '';
+
+        my @eths;
+        foreach my $line ( split /\n/xms, $ip_info ) {
+            $line =~ /^[0-9]+: \s (eth[0-9]):/xms
+              or next;
+
+            my $eth   = $1;
+            my $value = readlink "/sys/class/net/$eth"
+              or next;
+
+            $value =~ m{/virtual/}xms
+              and next;
+
+            push @eths, $eth;
+        }
+
+        return @eths;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/NICs.pm
+
 {    # --- BEGIN lib/Elevate/Notify.pm
 
     package Elevate::Notify;
@@ -6233,6 +7272,8 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
+    use Carp ();
+
     sub ssystem_capture_output ( $, @args ) {
 
         my %opts;
@@ -6271,7 +7312,7 @@ EOS
 
     sub ssystem_and_die ( $self, @args ) {
         $self->ssystem(@args) or return 0;
-        die "command failed. Fix it and run command.";
+        Carp::croak("command failed. Fix it and run command.");
     }
 
     sub _ssystem ( $command, %opts ) {
@@ -6310,9 +7351,9 @@ EOS
             keep_env     => $opts{keep_env} // 0,
             read_timeout => 0,
         );
-        INFO();    # Buffer so they can more easily read the output.
+        INFO() unless $opts{should_hide_output};    # Buffer so they can more easily read the output.
 
-        $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
+        $? = $sr->CHILD_ERROR;                      ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
 
         if ( $opts{should_capture_output} ) {
             $capture_output->{status} = $?;
@@ -6345,10 +7386,11 @@ EOS
         die q[Missing cpev];
     }
 
-    sub get_config_files_for_repo ( $self, $repo ) {
+    sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
 
-        my @installed    = cpev::get_installed_rpms_in_repo($repo);
-        my $config_files = $self->_get_config_files( \@installed );
+        my @installed_rpms = $self->get_installed_rpms(q[%{NAME}\n]);
+        my @ea_rpms        = grep { $_ =~ qr/^\Q$prefix\E/ } @installed_rpms;
+        my $config_files   = $self->_get_config_files( \@ea_rpms );
 
         return $config_files;
     }
@@ -6407,8 +7449,15 @@ EOS
         return;
     }
 
-    sub get_installed_rpms ($self) {
-        my $out = $self->cpev->ssystem_capture_output( $rpm, '-qa' );
+    sub get_installed_rpms ( $self, $format = undef ) {
+        my @args = qw{-qa};
+
+        if ($format) {
+            push @args, '--queryformat';
+            push @args, $format;
+        }
+
+        my $out = $self->cpev->ssystem_capture_output( $rpm, @args );
         return @{ $out->{stdout} };
     }
 
@@ -7003,6 +8052,8 @@ EOS
 
     use cPstrict;
 
+    use Elevate::Constants ();
+
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
@@ -7053,6 +8104,77 @@ EOS
         $self->cpev->ssystem_and_die( $pkgmgr, '-y', 'install', @pkgs );
 
         return;
+    }
+
+    sub repolist_all ($self) {
+        return $self->repolist("all");
+    }
+
+    sub repolist_enabled ($self) {
+        return $self->repolist("enabled");
+    }
+
+    sub repolist ( $self, @options ) {
+        my $pkgmgr = $self->pkgmgr;
+
+        my $out   = $self->cpev->ssystem_hide_and_capture_output( $pkgmgr, '-q', 'repolist', @options );
+        my @lines = @{ $out->{stdout} };
+
+        shift @lines;
+
+        my @repos;
+        foreach my $line (@lines) {
+            my $repo = ( split( '\s+', $line ) )[0];
+
+            push @repos, $repo;
+        }
+
+        return @repos;
+    }
+
+    sub get_extra_packages ($self) {
+        my $pkgmgr = $self->pkgmgr;
+
+        my $out   = $self->cpev->ssystem_hide_and_capture_output( $pkgmgr, 'list', 'extras' );
+        my @lines = @{ $out->{stdout} };
+        while ( my $line = shift @lines ) {
+            last if $line && $line =~ m/^Extra Packages/;
+        }
+
+        my @extra_packages;
+        while ( my $line = shift @lines ) {
+            chomp $line;
+            my ( $package, $version, $repo ) = split( qr{\s+}, $line );
+
+            if ( !length $version ) {
+                my $extra_line = shift @lines;
+                chomp $extra_line;
+                $extra_line =~ s/^\s+//;
+                ( $version, $repo ) = split( ' ', $extra_line );
+            }
+            if ( !length $repo ) {
+                $repo = shift @lines;
+                chomp $repo;
+                $repo =~ s/\s+//g;
+            }
+            length $repo or next;    # We screwed up the parse. move on.
+
+            $repo eq 'installed' or next;
+
+            $package =~ s/\.(noarch|x86_64)$//;
+            my $arch = $1 // '?';
+
+            next if $package =~ m/^cpanel-/;
+            next if $package =~ m/^kernel/;
+            next if $package eq 'filesystem';
+            next if $package eq 'basesystem';
+            next if $package eq 'virt-what';
+            next if ( scalar grep { $_ eq $package } Elevate::Constants::R1SOFT_AGENT_PACKAGES );
+
+            push @extra_packages, { package => $package, version => $version, arch => $arch };
+        }
+
+        return @extra_packages;
     }
 
     1;
@@ -7255,6 +8377,12 @@ BEGIN {
         warn(qq[This script is designed to only run on cPanel servers.\n]);
         exit 1;    ## no critic(Cpanel::NoExitsFromSubroutines)
     };
+
+    $ENV{LANG}        = "C";
+    $ENV{LANGUAGE}    = "C";
+    $ENV{LC_ALL}      = "C";
+    $ENV{LC_MESSAGES} = "C";
+    $ENV{LC_CTYPE}    = "C";
 }
 
 use Log::Log4perl qw(:easy);
@@ -7268,7 +8396,6 @@ use File::Find            ();
 use File::Path            ();
 use File::Slurper         ();
 use File::Spec            ();
-use File::Temp            ();
 use Hash::Merge           ();
 use IO::Prompt            ();
 use Term::ANSIColor       ();
@@ -7304,11 +8431,12 @@ use Elevate::Blockers::DNS              ();
 use Elevate::Blockers::EA4              ();
 use Elevate::Blockers::ElevateScript    ();
 use Elevate::Blockers::Grub2            ();
+use Elevate::Blockers::Imunify          ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();    # using a constant
-use Elevate::Blockers::Python           ();
 use Elevate::Blockers::Repositories     ();    # using a constant
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
@@ -7330,6 +8458,7 @@ use Elevate::Components::LiteSpeed          ();
 use Elevate::Components::KernelCare         ();
 use Elevate::Components::Kernel             ();
 use Elevate::Components::MySQL              ();
+use Elevate::Components::NICs               ();
 use Elevate::Components::NixStats           ();
 use Elevate::Components::PECL               ();
 use Elevate::Components::PerlXS             ();
@@ -7341,6 +8470,8 @@ use Elevate::Components::WPToolkit          ();
 use Elevate::Components::SSH                ();
 use Elevate::Components::AutoSSL            ();
 use Elevate::Components::DatabaseUpgrade    ();
+use Elevate::Components::ELS                ();
+use Elevate::Components::R1Soft             ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -7349,11 +8480,13 @@ use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
 use Elevate::Database         ();
+use Elevate::EA4              ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();
 use Elevate::Marker           ();
 use Elevate::Motd             ();
+use Elevate::NICs             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
 use Elevate::RPM              ();
@@ -7367,7 +8500,7 @@ use Elevate::DNF              ();
 use Elevate::YUM              ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 37;
+use constant VERSION => 52;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant VALID_STAGES => 5;
@@ -7379,6 +8512,7 @@ use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recomme
 
 use constant ACTION_REBOOT_NEEDED   => 4242;    # just one unique id
 use constant ACTION_PAUSE_REQUESTED => 4243;
+use constant ACTION_CONTINUE        => 4244;
 
 use constant PAUSE_ELEVATE_TOUCHFILE => q[/waiting_for_distro_upgrade];
 
@@ -7562,6 +8696,9 @@ sub monitor_upgrade ($self) {
 }
 
 sub start ($self) {
+
+    return 1 unless _sanity_check();
+
     my $stage = Elevate::Stages::get_stage();
     if ( $stage != 0 ) {
         my $header;
@@ -7577,7 +8714,7 @@ sub start ($self) {
         You can check the log by running:
             /scripts/elevate-cpanel --log
         or check the elevation status:
-            /scripts/elevate-cpanel --check
+            /scripts/elevate-cpanel --status
         EOS
 
     }
@@ -7588,8 +8725,6 @@ sub start ($self) {
     $self->give_last_chance();
 
     system touch => Elevate::Constants::LOG_FILE;
-
-    Elevate::Stages::bump_stage();    # init stage number to 1
 
     # store the manual reboots flag
     if ( $self->getopt('manual-reboots') ) {
@@ -7612,8 +8747,8 @@ sub start ($self) {
         Elevate::StageFile::update_stage_file( { no_leapp => 1 } );
     }
 
-    # prefer over running step1: so status and notifications are enabled
-    return $self->run_service_and_notify();
+    # This starts the service for us:
+    return $self->service->install();
 }
 
 sub _capture_env_variables ($self) {
@@ -7700,11 +8835,6 @@ sub continue_elevation ($self) {
         Elevate::Logger::ERROR_nolog("Looks like no elevate process was started. Please consider running: /scripts/elevate-cpanel --start");
         return;
     }
-    elsif ( $stage == 1 ) {
-        Elevate::Logger::INFO_nolog("Continuing elevate process from stage 1 (service not setup yet)");
-        $self->run_stage_1();
-        return;
-    }
 
     $self->_capture_env_variables();    # capture env before restart
 
@@ -7722,11 +8852,13 @@ sub continue_elevation ($self) {
     }
 }
 
-sub do_cleanup ($self) {
+sub do_cleanup ( $self, $handle_service_manually = 0 ) {
 
-    $self->service->remove;
+    if ( !$handle_service_manually ) {
+        $self->service->remove;
+        $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+    }
 
-    $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
     Elevate::StageFile::remove_stage_file();
     unlink Elevate::Constants::PID_FILE;
 
@@ -7750,37 +8882,40 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
     }
 
     my $action_todo;
-    my $ok = eval {
-        $action_todo = $self->_run_service();
-        1;
-    };
+    do {
+        my $ok = eval {
+            $action_todo = $self->_run_service();
+            1;
+        };
 
-    $action_todo //= 0;
+        $action_todo //= 0;
 
-    if ($ok) {
+        if ($ok) {
 
-        # only notify a success when reaching the last stage
-        if ( $stage == VALID_STAGES ) {
-            Elevate::StageFile::update_stage_file( { status => q[success] } );
-            $self->_notify_success();
-            Elevate::StageFile::create_success_file();
+            # only notify a success when reaching the last stage
+            if ( $stage == VALID_STAGES ) {
+                Elevate::StageFile::update_stage_file( { status => q[success] } );
+                $self->_notify_success();
+                Elevate::StageFile::create_success_file();
+            }
+
+            if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
+                Elevate::StageFile::update_stage_file( { status => q[paused] } );
+            }
+            elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
+                $self->reboot();
+            }
+
         }
+        else {
+            my $error = $@ // q[Unknown error];
 
-        if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
-            Elevate::StageFile::update_stage_file( { status => q[paused] } );
+            Elevate::StageFile::update_stage_file( { status => q[failed] } );
+            $self->_notify_error($error);
+
+            LOGDIE($error);
         }
-        elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
-            $self->reboot();
-        }
-    }
-    else {
-        my $error = $@ // q[Unknown error];
-
-        Elevate::StageFile::update_stage_file( { status => q[failed] } );
-        $self->_notify_error($error);
-
-        LOGDIE($error);
-    }
+    } while ( $action_todo == ACTION_CONTINUE );
 
     return $action_todo;
 }
@@ -7883,7 +9018,7 @@ sub _run_service ($self) {
 
     my $stage = Elevate::Stages::get_stage();
 
-    print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
+    print_box( "Starting stage $stage of " . VALID_STAGES );
 
     $self->_wait_on_pause();    # handle pause when requested
 
@@ -7979,20 +9114,18 @@ responsible of the multiple reboots.
 
 sub run_stage_1 ($self) {
 
-    # do not leave cruft behing when aborting
-    my $abort = sub {
-        $self->do_cleanup();
-        exit 42;    ## no critic(Cpanel::NoExitsFromSubroutines) catching signals
-    };
+    Elevate::Marker::startup();
 
-    local $SIG{'INT'} = $abort;
-    local $SIG{'HUP'} = $abort;
+    Elevate::Motd->setup();
 
-    return 1 unless _sanity_check();
+    if ( !$self->should_run_leapp() ) {
+        Elevate::Stages::bump_stage();
+        return ACTION_CONTINUE;
+    }
 
-    print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . $self->service->name . " service" );
+    $self->run_component_once( 'Grub2' => 'mark_cmdline' );
 
-    return $self->service->install();
+    return ACTION_REBOOT_NEEDED;
 }
 
 =head2 run_stage_2
@@ -8003,9 +9136,7 @@ Update the current distro packages then reboot.
 
 sub run_stage_2 ($self) {
 
-    Elevate::Marker::startup();
-
-    Elevate::Motd->setup();
+    $self->run_component_once( 'Grub2' => 'verify_cmdline' );
 
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
@@ -8023,7 +9154,22 @@ sub run_stage_2 ($self) {
     $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
+    $self->run_component_once( 'NICs'       => 'pre_leapp' );
 
+    # Imunify depends on EA4 so the Imunify component needs to
+    # run before EA4 is removed.  However, Imunify 360 can provide
+    # hardened PHP so the EA4 profile backup needs to run before
+    # Imunify is removed, so I split some of the EA4 logic out
+    # to be executed before Imunify and left the removal until
+    # after Imunify
+    $self->run_component_once( 'EA4'     => 'pre_imunify' );
+    $self->run_component_once( 'Imunify' => 'pre_leapp' );
+    $self->run_component_once( 'PECL'    => 'pre_leapp' );
+    $self->run_component_once( 'EA4'     => 'pre_leapp' );
+
+    # This reboot will invalidate the cPanel license causing
+    # further whmapi1 calls to fail until stage 4
+    # if the NICs need to be renamed
     return ACTION_REBOOT_NEEDED;
 }
 
@@ -8150,7 +9296,8 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'EA4' => 'post_leapp' );
+    $self->run_component_once( 'Imunify' => 'post_leapp' );
+    $self->run_component_once( 'EA4'     => 'post_leapp' );
 
     $self->run_once(
         upcp => sub {
@@ -8355,9 +9502,6 @@ sub run_final_components_pre_leapp ($self) {
 
     # order matters
     $self->run_component_once( 'RmMod'            => 'pre_leapp' );
-    $self->run_component_once( 'Imunify'          => 'pre_leapp' );
-    $self->run_component_once( 'EA4'              => 'pre_leapp' );
-    $self->run_component_once( 'PECL'             => 'pre_leapp' );
     $self->run_component_once( 'MySQL'            => 'pre_leapp' );
     $self->run_component_once( 'Repositories'     => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );
@@ -8368,6 +9512,8 @@ sub run_final_components_pre_leapp ($self) {
     $self->run_component_once( 'NixStats'         => 'pre_leapp' );
     $self->run_component_once( 'LiteSpeed'        => 'pre_leapp' );
     $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
+    $self->run_component_once( 'ELS'              => 'pre_leapp' );
+    $self->run_component_once( 'R1Soft'           => 'pre_leapp' );
     $self->run_component_once( 'RpmDB'            => 'pre_leapp' );    # remove the RPMs last
 
     return;
@@ -8383,18 +9529,19 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_component_once( 'MySQL'         => 'post_leapp' );
-    $self->run_component_once( 'PerlXS'        => 'post_leapp' );
-    $self->run_component_once( 'cPanelPlugins' => 'post_leapp' );
-    $self->run_component_once( 'PECL'          => 'post_leapp' );
-    $self->run_component_once( 'WPToolkit'     => 'post_leapp' );
-    $self->run_component_once( 'InfluxDB'      => 'post_leapp' );
-    $self->run_component_once( 'JetBackup'     => 'post_leapp' );
-    $self->run_component_once( 'Kernel'        => 'post_leapp' );
-    $self->run_component_once( 'KernelCare'    => 'post_leapp' );
-    $self->run_component_once( 'Imunify'       => 'post_leapp' );
-    $self->run_component_once( 'NixStats'      => 'post_leapp' );
-    $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
+    $self->run_component_once( 'MySQL'           => 'post_leapp' );
+    $self->run_component_once( 'PerlXS'          => 'post_leapp' );
+    $self->run_component_once( 'cPanelPlugins'   => 'post_leapp' );
+    $self->run_component_once( 'DatabaseUpgrade' => 'post_leapp' );
+    $self->run_component_once( 'PECL'            => 'post_leapp' );
+    $self->run_component_once( 'WPToolkit'       => 'post_leapp' );
+    $self->run_component_once( 'InfluxDB'        => 'post_leapp' );
+    $self->run_component_once( 'JetBackup'       => 'post_leapp' );
+    $self->run_component_once( 'Kernel'          => 'post_leapp' );
+    $self->run_component_once( 'KernelCare'      => 'post_leapp' );
+    $self->run_component_once( 'NixStats'        => 'post_leapp' );
+    $self->run_component_once( 'LiteSpeed'       => 'post_leapp' );
+    $self->run_component_once( 'R1Soft'          => 'post_leapp' );
 
     return;
 }
@@ -8419,10 +9566,6 @@ sub clear_cpanel_caches ($self) {
     unlink $_ foreach @files;
 
     return;
-}
-
-sub tmp_dir ($self) {
-    return $self->{tmp} //= File::Temp->newdir();    # auto cleanup on destroy
 }
 
 my $yum_list_cache;

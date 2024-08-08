@@ -12,12 +12,13 @@ use Test::More;
 use Test::Deep;
 
 our @ISA       = qw(Exporter);
-our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to unmock_os);
+our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen notification_seen clear_notifications_seen no_notifications_seen no_notification_seen set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to unmock_os);
 our @EXPORT_OK = @EXPORT;
 
 use Log::Log4perl;
 
 my @MESSAGES_SEEN;
+my @NOTIFICATIONS_SEEN;
 
 BEGIN {
     if ( $INC{'Test/MockFile.pm'} ) {
@@ -27,8 +28,18 @@ BEGIN {
     require $FindBin::Bin . q[/../elevate-cpanel];
     $INC{'cpev.pm'} = '__TEST__';
     no warnings;
-    *Elevate::Logger::init   = sub { };
-    *Elevate::OS::_set_cache = sub { };
+    *Elevate::Logger::init               = sub { };
+    *Elevate::OS::_set_cache             = sub { };
+    *Elevate::Notify::_send_notification = sub {
+        my %notification;
+        $notification{subject} = shift;
+        $notification{msg}     = shift;
+        $notification{opts}    = {@_};
+
+        push @NOTIFICATIONS_SEEN, \%notification;
+
+        return;
+    };
 }
 
 sub _msg ( $self, $msg, $level = '[void]' ) {
@@ -99,6 +110,7 @@ sub message_seen_lines ( $type, $msg ) {
 
 sub clear_messages_seen() {
     @MESSAGES_SEEN = ();
+    return;
 }
 
 sub message_seen ( $type, $msg ) {
@@ -134,6 +146,49 @@ sub no_messages_seen {
 
 # convenience
 sub no_message_seen { goto &no_messages_seen; }
+
+sub clear_notifications_seen () {
+    @NOTIFICATIONS_SEEN = ();
+    return;
+}
+
+sub notification_seen ( $subject, $msg, %opts ) {
+    my $notification = shift @NOTIFICATIONS_SEEN;
+    if ( ref $notification ne 'HASH' ) {
+        fail("    What was collected did not look like a notification.");
+        return 0;
+    }
+
+    my ( $subject_seen, $msg_seen ) = $notification->@{qw(subject msg)};
+    my $opts_seen = $notification->{opts};
+
+    if ( ref $subject eq 'Regexp' ) {
+        like( $subject_seen, $subject, "  |_  Subject string is expected." );
+    }
+    else {
+        is( $subject_seen, $subject, "  |_  Subject string is expected." );
+    }
+    if ( ref $msg eq 'Regexp' ) {
+        like( $msg_seen, $msg, "  |_  Message string is expected." );
+    }
+    else {
+        is( $msg_seen, $msg, "  |_  Message string is expected." );
+    }
+    is_deeply( $opts_seen, \%opts, "  |_  Options hash is expected." );
+
+    return;
+}
+
+sub no_notifications_seen {
+    is_deeply( \@NOTIFICATIONS_SEEN, [], 'No notifications are remaining.' ) || diag explain \@NOTIFICATIONS_SEEN;
+
+    clear_notifications_seen();
+
+    return;
+}
+
+# convenience
+sub no_notification_seen { goto &no_notifications_seen; }
 
 sub set_os_to_centos_7 {
     note 'Mock Elevate::OS singleton to think this server is CentOS 7';

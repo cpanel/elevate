@@ -27,6 +27,8 @@ use Cpanel::SafeRun::Object     ();
 
 use Log::Log4perl qw(:easy);
 
+use Carp ();
+
 sub ssystem_capture_output ( $, @args ) {
 
     my %opts;
@@ -65,7 +67,7 @@ sub ssystem ( $, @args ) {
 
 sub ssystem_and_die ( $self, @args ) {
     $self->ssystem(@args) or return 0;
-    die "command failed. Fix it and run command.";
+    Carp::croak("command failed. Fix it and run command.");
 }
 
 sub _ssystem ( $command, %opts ) {
@@ -106,9 +108,9 @@ sub _ssystem ( $command, %opts ) {
         keep_env     => $opts{keep_env} // 0,
         read_timeout => 0,
     );
-    INFO();    # Buffer so they can more easily read the output.
+    INFO() unless $opts{should_hide_output};    # Buffer so they can more easily read the output.
 
-    $? = $sr->CHILD_ERROR;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
+    $? = $sr->CHILD_ERROR;                      ## no critic qw(Variables::RequireLocalizedPunctuationVars) -- emulate return behavior of system()
 
     if ( $opts{should_capture_output} ) {
         $capture_output->{status} = $?;

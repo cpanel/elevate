@@ -1,3 +1,84 @@
+##### **2024-08-07** - version 51
+
+* Fixed case RE-543: Restore my.cnf after installing the database server during post_leapp
+* Fixed case RE-611: Move logic to gather and store php usage to a component
+* Fixed case RE-499: Fix restore logic for config files of packages provided by EA4
+* Fixed case RE-614: Add 'check_detected_devices_and_drivers' to list of inhibitors to ignore in the leapp preupgrade check to prepare for upstream leapp version 0.19.0
+* Fixed case RE-34: Unblock remote MySQL blocker by temporarily disabling the remote profile during the upgrade.
+
+##### **2024-08-01** - version 50
+
+* Fixed case RE-514: Check whether leapp can control the boot process before significant and irreversible changes are applied to the system.
+* Fixed case RE-113: Stop using the --noscripts flag when erasing wp-toolkit-cpanel in pre-leapp stage.
+* Fixed case RE-404: Do not log output of Imunify license check
+* Fixed case RE-502: Enable elevate on systems with the R1Soft Backup Agent installed.
+* Fixed case RE-544: Do not cleanup database packages if the database is provided by CloudLinux
+* Fixed case RE-535: Have check that Imunify 360 provides hardened PHP ensure that the 'ea-cpanel-tools' package is provided by the CloudLinux repository
+
+##### **2024-07-23** - version 49
+
+* Fixed Case RE-72: Update PECL check to run before EA in pre_leapp phase; use php_get_installed_versions to determine EA PHP package versions.
+* Fixed Case RE-452: Add blocker for duplicate repo IDs
+
+##### **2024-07-16** - version 48
+
+* Fixed case RE-538: Have ELS component always remove the ELS repo files if they exist
+
+##### **2024-07-11** - version 47
+
+* Fixed case RE-542:  Add jetapps-* to the list of vetted repos
+
+##### **2024-07-10** - version 46
+
+* Re-enable cloudlinux elevations after bugs related to dnf/spacewalk were addressed in upstream leapp.
+* Fixed case RE-361: Make it more clear why yum makecache failures are a problem
+* Fixed case RE-466: Improve error output when the script aborts due to a failed external command.
+* Fixed case RE-534: Don't block on ELS rollout repo slots
+* Fixed case RE-420: Block when packages are installed from a disabled repo
+* Fixed case RE-505: Do not allow check to run in the middle of an elevation
+
+##### **2024-07-03** - version 45
+
+* Case RE-500: Disable cloudlinux elevations until bugs related to dnf/spacewalk are addressed in upstream leapp.
+
+##### **2024-07-01** - version 44
+
+* Fixed case RE-368: Remove 'ELS for CentOS 7' prior to elevation.
+
+##### **2024-06-26** - version 43
+
+* Fixed case RE-403: Use 'CloudLinux_8' target to backup EA4 profile on servers with Imunify 360 installed and providing the hardened PHP feature
+
+##### **2024-06-25** - version 42
+
+* Fixed case RE-450: Set locale environment variables to "C" before elevating.
+* Fixed case RE-475: Teach wait_for_leapp_completion() about the no-leapp option
+* Fixed case RE-336: Removed python36 blocker on CloudLinux/CentOS 7
+* Fixed case RE-337: Convert multiple NICs blocker to component
+
+##### **2024-06-12** - version 41
+
+* Fixed case RE-338: No longer blocks if there are unfinished yum transactions.
+
+##### **2024-06-05** - version 40
+
+* Fixed case RE-343: Runs &quot;yum clean all&quot; and retries &quot;yum makecache&quot; if it had initially failed.
+
+##### **2024-05-29** - version 39
+
+* Fixed case RE-132: Have pre_leapp component remove packages that leapp will remove.
+* Fixed case RE-373: Add blocker for an invalid Imunify license.
+
+##### **2024-05-15** - version 38
+
+* Fixed case RE-134: Have script block if mount -a fails to exit cleanly.
+* Fixed case RE-313: Enhance EA4 blocker so that it only blocks on installed PHP versions that are not provided by Imunify 360 and are actively in use by domains on the server.
+* Revert RE-306: It is no longer necessary to block if /usr is a separate private mount point now it has been fixed in the upstream leapp project.
+
+##### **2024-05-06** - version 37
+
+* Fixed case RE-306: Add blocker if &#39;/usr&#39; is a separate private mount point.
+
 ##### **2024-04-30** - version 36
 
 * Fixed case RE-78: Convert CCS blocker to component.

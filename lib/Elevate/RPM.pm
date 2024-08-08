@@ -24,10 +24,11 @@ sub _build_cpev {
     die q[Missing cpev];
 }
 
-sub get_config_files_for_repo ( $self, $repo ) {
+sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
 
-    my @installed    = cpev::get_installed_rpms_in_repo($repo);
-    my $config_files = $self->_get_config_files( \@installed );
+    my @installed_rpms = $self->get_installed_rpms(q[%{NAME}\n]);
+    my @ea_rpms        = grep { $_ =~ qr/^\Q$prefix\E/ } @installed_rpms;
+    my $config_files   = $self->_get_config_files( \@ea_rpms );
 
     return $config_files;
 }
@@ -92,8 +93,15 @@ sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
     return;
 }
 
-sub get_installed_rpms ($self) {
-    my $out = $self->cpev->ssystem_capture_output( $rpm, '-qa' );
+sub get_installed_rpms ( $self, $format = undef ) {
+    my @args = qw{-qa};
+
+    if ($format) {
+        push @args, '--queryformat';
+        push @args, $format;
+    }
+
+    my $out = $self->cpev->ssystem_capture_output( $rpm, @args );
     return @{ $out->{stdout} };
 }
 

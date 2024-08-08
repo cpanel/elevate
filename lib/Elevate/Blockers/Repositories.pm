@@ -12,6 +12,8 @@ Blocker to check if the Yum repositories are compliant with the elevate process.
 
 use cPstrict;
 
+use File::Copy ();
+
 use Cpanel::OS             ();
 use Cpanel::JSON           ();
 use Cpanel::Update::Config ();
@@ -23,12 +25,29 @@ use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
 
+use constant YUM_COMPLETE_TRANSACTION_BIN => '/usr/sbin/yum-complete-transaction';
+use constant FIX_RPM_SCRIPT               => '/usr/local/cpanel/scripts/find_and_fix_rpm_issues';
+
 sub check ($self) {
     my $ok = 1;
-    $ok = 0 unless $self->_blocker_invalid_yum_repos;
-    $ok = 0 unless $self->_yum_is_stable();
+    $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
+    $ok = 0 if $self->_blocker_invalid_yum_repos;
+    $ok = 0 if $self->_yum_is_stable();
 
     return $ok;
+}
+
+sub _blocker_packages_installed_without_associated_repo ($self) {
+    my @extra_packages = $self->yum->get_extra_packages();
+    return unless scalar @extra_packages;
+
+    my @packages   = map { $_->{package} } @extra_packages;
+    my $pkg_string = join "\n", @packages;
+    return $self->has_blocker( <<~EOS );
+    There are packages installed that do not have associated repositories:
+
+    $pkg_string
+    EOS
 }
 
 sub _blocker_invalid_yum_repos ($self) {
@@ -54,12 +73,32 @@ sub _blocker_invalid_yum_repos ($self) {
 
         if ( !$self->is_check_mode() ) {    # autofix when --check is not used
             $self->_autofix_yum_repos();
+            $self->_autofix_duplicate_repoids();
 
             # perform a second check to make sure we are in good shape
             $status_hr = $self->_check_yum_repos();
         }
 
         return 0 unless _yum_status_hr_contains_blocker($status_hr);
+
+        if ( $status_hr->{DUPLICATE_IDS} ) {
+            my $duplicate_ids = join "\n", keys $self->{_duplicate_repoids}->%*;
+            my $dupe_id_msg   = <<~"EOS";
+            One or more enable YUM repo have repositories defined multiple times:
+
+            $duplicate_ids
+
+            A possible resolution for this issue is to either remove the duplicate
+            repository definitions or change the repoids of the conflicting
+            repositories on the system to prevent the conflict.
+            EOS
+
+            my $blocker_id = ref($self) . '::' . 'DuplicateRepoIds';
+            $self->has_blocker(
+                $dupe_id_msg,
+                blocker_id => $blocker_id,
+            );
+        }
 
         for my $unsupported_repo ( @{ $self->{_yum_repos_unsupported_with_packages} } ) {
             my $blocker_id = ref($self) . '::' . $unsupported_repo->{'name'};
@@ -73,14 +112,14 @@ sub _blocker_invalid_yum_repos ($self) {
         }
     }
 
-    return 0;
+    return 1;
 }
 
 sub _yum_status_hr_contains_blocker ($status_hr) {
     return 0 if ref $status_hr ne 'HASH' || !scalar keys( %{$status_hr} );
 
     # Not using List::Util here already, so not gonna use first()
-    my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO};
+    my @blockers = qw{INVALID_SYNTAX USE_RPMS_FROM_UNVETTED_REPO DUPLICATE_IDS};
     foreach my $blocked (@blockers) {
         return 1 if $status_hr->{$blocked};
     }
@@ -90,40 +129,70 @@ sub _yum_status_hr_contains_blocker ($status_hr) {
 sub _yum_is_stable ($self) {
     my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
     if ( $errors =~ m/\S/ms ) {
-        ERROR('yum appears to be unstable. Please address this before upgrading');
-        ERROR($errors);
-        my $id = ref($self) . '::YumMakeCacheError';
-        $self->has_blocker(
-            "yum appears to be unstable. Please address this before upgrading\n$errors",
-            info => {
-                name  => $id,
-                error => $errors,
-            },
-            blocker_id => $id,
-            quiet      => 1,
-        );
 
-        return 0;
+        my $error_msg = <<~'EOS';
+        '/usr/bin/yum makecache' failed to return cleanly. This could be due to a temporary mirror problem, or it could indicate a larger issue, such as a broken repository. Since this script relies heavily on yum, you will need to address this issue before upgrading.
+
+        If you need assistance, open a ticket with cPanel Support, as outlined here:
+
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+        EOS
+
+        WARN("Initial run of \"yum makecache\" failed: $errors");
+        WARN("Running \"yum clean all\" in an attempt to fix yum");
+
+        my $ret = $self->ssystem_capture_output(qw{/usr/bin/yum clean all});
+        if ( $ret->{status} != 0 ) {
+            WARN( "Errors encountered running \"yum clean all\": " . $ret->{stderr} );
+        }
+
+        $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+        if ( $errors =~ m/\S/ms ) {
+            ERROR($error_msg);
+            ERROR($errors);
+            my $id = ref($self) . '::YumMakeCacheError';
+            return $self->has_blocker(
+                "$error_msg" . "$errors",
+                info => {
+                    name  => $id,
+                    error => $errors,
+                },
+                blocker_id => $id,
+                quiet      => 1,
+            );
+        }
     }
 
     if ( opendir( my $dfh, '/var/lib/yum' ) ) {
         my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
         if (@transactions) {
-            ERROR('There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.');
-            my $id = ref($self) . '::YumUnfinishedTransactions';
+            WARN('There are unfinished yum transactions remaining.');
 
-            $self->has_blocker(
-                'There are unfinished yum transactions remaining. Please address these before upgrading. The tool `yum-complete-transaction` may help you with this task.',
-                info => {
-                    name         => $id,
-                    error        => 'YUM has unfinished transactions',
-                    transactions => join( "\n", sort @transactions ),
-                },
-                blocker_id => $id,
-                quiet      => 1,
-            );
+            my $yum_ct_bin = YUM_COMPLETE_TRANSACTION_BIN();
 
-            return 0;
+            if ( $self->is_check_mode() ) {
+                WARN("Unfinished yum transactions detected. Elevate will execute $yum_ct_bin --cleanup-only during upgrade");
+            }
+            else {
+                if ( -x $yum_ct_bin ) {
+                    INFO('Cleaning up unfinished yum transactions.');
+                    my $ret = $self->ssystem_capture_output( $yum_ct_bin, '--cleanup-only' );
+                    if ( $ret->{status} != 0 ) {
+                        return $self->has_blocker( "Errors encountered running $yum_ct_bin: " . $ret->{stderr} );
+                    }
+
+                    $ret = $self->ssystem_capture_output(FIX_RPM_SCRIPT);
+                    if ( $ret->{status} != 0 ) {
+                        return $self->has_blocker( 'Errors encountered running ' . FIX_RPM_SCRIPT . ': ' . $ret->{stderr} );
+                    }
+                }
+                else {
+                    return $self->has_blocker( <<~EOS );
+                    $yum_ct_bin is missing. You must install the yum-utils package
+                    if you wish to clear the unfinished yum transactions.
+                    EOS
+                }
+            }
         }
     }
     else {
@@ -131,7 +200,7 @@ sub _yum_is_stable ($self) {
         ERROR(qq{Could not read directory '/var/lib/yum': $err});
         my $id = ref($self) . '::YumDirUnreadable';
 
-        $self->has_blocker(
+        return $self->has_blocker(
             qq{Could not read directory '/var/lib/yum': $err},
             info => {
                 name  => $id,
@@ -140,11 +209,9 @@ sub _yum_is_stable ($self) {
             blocker_id => $id,
             quiet      => 1,
         );
-
-        return 0;
     }
 
-    return 1;
+    return 0;
 }
 
 # $status_hr = $self->_check_yum_repos()
@@ -160,12 +227,15 @@ sub _check_yum_repos ($self) {
     $self->{_yum_repos_path_using_invalid_syntax} = [];
     $self->{_yum_repos_to_disable}                = [];
     $self->{_yum_repos_unsupported_with_packages} = [];
+    $self->{_duplicate_repoids}                   = [];
 
     my @vetted_repos = Elevate::OS::vetted_yum_repo();
 
     my $repo_dir = Elevate::Constants::YUM_REPOS_D;
 
     my %status;
+    my %repoids;
+    my %duplicate_repoids;
     opendir( my $dh, $repo_dir ) or do {
         ERROR("Cannot read directory $repo_dir - $!");
         return;
@@ -186,7 +256,6 @@ sub _check_yum_repos ($self) {
 
         my $check_last_known_repo = sub {
             return unless length $current_repo_name;
-            return unless $current_repo_enabled;
 
             my $is_vetted = grep { $current_repo_name =~ m/$_/ } @vetted_repos;
 
@@ -216,6 +285,8 @@ sub _check_yum_repos ($self) {
                     $status{'USE_RPMS_FROM_UNVETTED_REPO'} = 1;
                 }
                 else {
+                    return unless $current_repo_enabled;
+
                     INFO( sprintf( "Unsupported YUM repo enabled '%s' without packages installed from %s, these will be disabled before ELevation", $current_repo_name, $path ) );
 
                     # no packages installed need to disable it
@@ -224,6 +295,8 @@ sub _check_yum_repos ($self) {
                 }
             }
             elsif ( !$current_repo_use_valid_syntax ) {
+                return unless $current_repo_enabled;
+
                 WARN( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
                 unless ( grep { $_ eq $path } $self->{_yum_repos_path_using_invalid_syntax}->@* ) {
                     my $blocker_id = ref($self) . '::YumRepoConfigInvalidSyntax';
@@ -257,6 +330,12 @@ sub _check_yum_repos ($self) {
                 $current_repo_enabled          = 1;    # assume enabled unless explicitely disabled
                 $current_repo_use_valid_syntax = 1;
 
+                # Check for duplicate repo IDs
+                if ( $repoids{$current_repo_name} ) {
+                    $duplicate_repoids{$current_repo_name} = $path;
+                }
+                $repoids{$current_repo_name} = 1;
+
                 next;
             }
             next unless defined $current_repo_name;
@@ -270,7 +349,25 @@ sub _check_yum_repos ($self) {
         # check the last repo found
         $check_last_known_repo->();
     }
+
+    if ( scalar keys %duplicate_repoids ) {
+        $status{DUPLICATE_IDS} = 1;
+        $self->{_duplicate_repoids} = \%duplicate_repoids;
+    }
+
     return \%status;
+}
+
+sub _autofix_duplicate_repoids ($self) {
+    my %duplicate_ids = $self->{_duplicate_repoids}->%*;
+    foreach my $id ( keys %duplicate_ids ) {
+        if ( $id =~ m/^MariaDB[0-9]+/ ) {
+            my $path = $duplicate_ids{$id};
+            File::Copy::move( $path, "$path.disabled_by_elevate" );
+        }
+    }
+
+    return;
 }
 
 sub _autofix_yum_repos ($self) {

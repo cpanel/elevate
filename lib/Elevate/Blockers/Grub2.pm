@@ -22,12 +22,11 @@ use parent qw{Elevate::Blockers::Base};
 use Cwd           ();
 use Log::Log4perl qw(:easy);
 
-use constant {
-    GRUB2_WORKAROUND_NONE      => 0,
-    GRUB2_WORKAROUND_OLD       => 1,
-    GRUB2_WORKAROUND_NEW       => 2,
-    GRUB2_WORKAROUND_UNCERTAIN => -1,
-};
+use constant GRUB2_WORKAROUND_NONE => 0;
+use constant GRUB2_WORKAROUND_OLD  => 1;
+use constant GRUB2_WORKAROUND_NEW  => 2;
+
+use constant GRUB2_WORKAROUND_UNCERTAIN => -1;
 
 sub GRUB2_PREFIX_DEBIAN { return '/boot/grub' }
 sub GRUB2_PREFIX_RHEL   { return '/boot/grub2' }
@@ -112,7 +111,7 @@ sub _blocker_grub_not_installed ($self) {
     The grub2-pc package is not installed. The GRUB2 boot loader is
     required to upgrade via leapp.
 
-    You may want to consider reaching out to cPanel Support for assistance:
+    If you need assistance, open a ticket with cPanel Support, as outlined here
     https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
     EOS
 }
@@ -125,7 +124,7 @@ sub _blocker_grub_config_missing ($self) {
         return $self->has_blocker( <<~EOS );
         The GRUB2 config file is missing.
 
-        You may want to consider reaching out to cPanel Support for assistance:
+        If you need assistance, open a ticket with cPanel Support, as outlined here
         https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
         EOS
     }

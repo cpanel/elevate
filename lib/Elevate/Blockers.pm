@@ -26,11 +26,12 @@ use Elevate::Blockers::Distros          ();
 use Elevate::Blockers::DNS              ();
 use Elevate::Blockers::EA4              ();
 use Elevate::Blockers::Grub2            ();
+use Elevate::Blockers::Imunify          ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();
-use Elevate::Blockers::Python           ();
 use Elevate::Blockers::ElevateScript    ();
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
@@ -52,12 +53,14 @@ our @BLOCKERS = qw{
 
   IsContainer
   ElevateScript
+  MountPoints
   SSH
 
   DiskSpace
   WHM
   Distros
   CloudLinux
+  Imunify
   DNS
 
   Databases
@@ -68,7 +71,6 @@ our @BLOCKERS = qw{
   BootKernel
   Grub2
   OVH
-  Python
   AbsoluteSymlinks
   AutoSSL
 };
@@ -86,6 +88,17 @@ sub check ($self) {    # do_check - main  entry point
     if ( $self->cpev->service->is_active ) {
         WARN("An elevation process is already in progress.");
         return 1;
+    }
+
+    my $stage = Elevate::Stages::get_stage();
+    if ( $stage != 0 && $stage <= cpev::VALID_STAGES() ) {
+        die <<~"EOS";
+        An elevation process is currently in progress: running stage $stage
+        You can check the log by running:
+            /scripts/elevate-cpanel --log
+        or check the elevation status:
+            /scripts/elevate-cpanel --status
+        EOS
     }
 
     Elevate::Blockers::Distros::bail_out_on_inappropriate_distro();

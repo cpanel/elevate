@@ -55,6 +55,11 @@ sub instance {
     $OS = eval { factory(); };
 
     if ( !$OS ) {
+
+        # Ensure that we don't just fail silently if we hit this while tailing
+        # the elevate log
+        DEBUG("Unable to acquire Elevate::OS instance, dying") unless -t STDOUT;
+
         my $supported_distros = join( "\n", SUPPORTED_DISTROS() );
         die "This script is only designed to upgrade the following OSs:\n\n$supported_distros\n";
     }
@@ -83,12 +88,12 @@ BEGIN {
         'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
         'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
         'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
-        'leapp_can_handle_python36',          # This is used to determine if we can skip the python36 blocker or not
         'leapp_data_pkg',                     # This is used to determine which leapp data package to install
         'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
         'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
         'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
         'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
+        'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
         'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
         'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
         'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on

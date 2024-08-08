@@ -12,43 +12,25 @@ Perform am EA4 backup pre-elevate then restore it after the elevation process.
 
 use cPstrict;
 
-use Elevate::Constants ();
-use Elevate::OS        ();
-use Elevate::RPM       ();
+use Elevate::EA4       ();
 use Elevate::StageFile ();
-use Elevate::YUM       ();
-
-use Cwd           ();
-use Log::Log4perl qw(:easy);
 
 use Cpanel::JSON            ();
-use Cpanel::Pkgr            ();
 use Cpanel::SafeRun::Simple ();
+
+use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-use Elevate::Blockers ();
-
-##
-## Call early so we can use a blocker based on existing ea4 profile
-##
-
-# note: the backup process is triggered by Elevate::Blockers::EA4
-sub backup ($self) {    # run by the check (should be a dry run mode)
-
-    $self->_backup_ea4_profile;
-    $self->_backup_ea_addons;
-
+sub pre_imunify ($self) {
+    $self->run_once('_gather_php_usage');
+    $self->run_once('_backup_ea4_profile');
+    $self->run_once('_backup_config_files');
     return;
 }
 
-sub pre_leapp ($self) {    # run to perform the backup
-
-    $self->run_once('_backup_ea4_profile');
-    $self->run_once('_backup_ea_addons');
-    $self->run_once('_backup_config_files');
+sub pre_leapp ($self) {
     $self->run_once('_cleanup_rpm_db');
-
     return;
 }
 
@@ -57,7 +39,7 @@ sub post_leapp ($self) {
     $self->run_once('_restore_ea4_profile');
     $self->run_once('_restore_ea_addons');
 
-    # This needs to happen last (after EA4 has been reinstalled)
+    # This needs to happen after EA4 has been reinstalled
     #
     # On a new install, the RPM behavior for %config is to move the preexisting config file
     # to '.rpmorig' and replace the config file with config file provided by the RPM
@@ -70,6 +52,13 @@ sub post_leapp ($self) {
     # after this anyway
     $self->run_once('_restore_config_files');
 
+    $self->run_once('_ensure_sites_use_correct_php_version');
+
+    return;
+}
+
+sub _backup_ea4_profile ($self) {
+    Elevate::EA4::backup();
     return;
 }
 
@@ -92,94 +81,6 @@ sub _restore_ea_addons ($self) {
     $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
 
     return;
-}
-
-sub _backup_ea_addons ($self) {
-
-    if ( Cpanel::Pkgr::is_installed('ea-nginx') ) {
-        Elevate::StageFile::update_stage_file( { ea4 => { nginx => 1 } } );
-    }
-    else {
-        Elevate::StageFile::update_stage_file( { ea4 => { nginx => 0 } } );
-    }
-
-    return;
-}
-
-sub _backup_ea4_profile ($self) {    ## _backup_ea4_profile
-
-    my $use_ea4 = Cpanel::Config::Httpd::is_ea4() ? 1 : 0;
-
-    Elevate::StageFile::remove_from_stage_file('ea4');
-    Elevate::StageFile::update_stage_file( { ea4 => { enable => $use_ea4 } } );
-
-    unless ($use_ea4) {
-
-        WARN('Skipping EA4 backup. EA4 does not appear to be enabled on this system');
-
-        return;
-    }
-
-    my $json_path = $self->_get_ea4_profile();
-
-    my $data = { profile => $json_path };
-
-    # store dropped packages
-    my $profile = eval { Cpanel::JSON::LoadFile($json_path) } // {};
-    if ( ref $profile->{os_upgrade} && ref $profile->{os_upgrade}->{dropped_pkgs} ) {
-        $data->{dropped_pkgs} = $profile->{os_upgrade}->{dropped_pkgs};
-    }
-
-    Elevate::StageFile::update_stage_file( { ea4 => $data } );    # FIXME
-
-    return 1;
-}
-
-sub _get_ea4_profile ($self) {
-
-    my $ea_alias = Elevate::OS::ea_alias();
-
-    my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
-
-    my $profile_file;
-
-    if ( Elevate::Blockers->is_check_mode() ) {
-
-        # use a temporary file in check mode
-        $profile_file = $self->tmp_dir() . '/ea_profile.json';
-        push @cmd, "--output=$profile_file";
-    }
-
-    my $cmd_str = join( ' ', @cmd );
-
-    INFO("Running: $cmd_str");
-    my $output = Cpanel::SafeRun::Simple::saferunnoerror(@cmd) // '';
-    die qq[Unable to backup EA4 profile. Failure from $cmd_str] if $?;
-
-    if ( !$profile_file ) {
-
-        # parse the output to find the profile file...
-
-        my @lines = split( "\n", $output );
-
-        if ( scalar @lines == 1 ) {
-            $profile_file = $lines[0];
-        }
-        else {
-            foreach my $l ( reverse @lines ) {
-                next unless $l =~ m{^/.*\.json};
-                if ( -f $l ) {
-                    $profile_file = $l;
-                    last;
-                }
-            }
-        }
-    }
-
-    die "Unable to backup EA4 profile running: $cmd_str" unless length $profile_file && -f $profile_file && -s _;
-    INFO("Backed up EA4 profile to $profile_file");
-
-    return $profile_file;
 }
 
 sub _restore_ea4_profile ($self) {
@@ -220,8 +121,7 @@ sub _backup_config_files ($self) {
 
     Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-    my $ea4_regex        = qr/^EA4(:?-c7)?/a;
-    my $ea4_config_files = $self->rpm->get_config_files_for_repo($ea4_regex);
+    my $ea4_config_files = $self->rpm->get_config_files_for_pkg_prefix('ea-');
 
     Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
@@ -253,6 +153,52 @@ sub _restore_config_files ($self) {
         $self->rpm->restore_config_files(@config_files_to_restore);
     }
 
+    return;
+}
+
+sub _ensure_sites_use_correct_php_version ($self) {
+
+    my $vhost_versions = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+    return unless ref $vhost_versions eq 'ARRAY';
+    return unless scalar $vhost_versions->@*;
+
+    foreach my $vhost_entry (@$vhost_versions) {
+        my $version = $vhost_entry->{version};
+        my $vhost   = $vhost_entry->{vhost};
+        my $fpm     = $vhost_entry->{php_fpm};
+
+        my @api_cmd = (
+            '/usr/local/cpanel/bin/whmapi1',
+            '--output=json',
+            'php_set_vhost_versions',
+            "version=$version",
+            "vhost=$vhost",
+            "php_fpm=$fpm",
+        );
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(@api_cmd);
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        my $api_string = join( ' ', @api_cmd );
+        unless ( $result->{metadata}{result} ) {
+
+            WARN( <<~"EOS" );
+            Unable to set $vhost back to its desired PHP version.  This site may
+            be using the incorrect version of PHP.  To set it back to its
+            original PHP version, execute the following command:
+
+            $api_string
+            EOS
+        }
+    }
+
+    return;
+}
+
+sub _gather_php_usage ($self) {
+    my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
+    Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
+    Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $php_get_vhost_versions } );
     return;
 }
 

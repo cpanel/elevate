@@ -194,6 +194,12 @@ BEGIN {
         warn(qq[This script is designed to only run on cPanel servers.\n]);
         exit 1;    ## no critic(Cpanel::NoExitsFromSubroutines)
     };
+
+    $ENV{LANG}        = "C";
+    $ENV{LANGUAGE}    = "C";
+    $ENV{LC_ALL}      = "C";
+    $ENV{LC_MESSAGES} = "C";
+    $ENV{LC_CTYPE}    = "C";
 }
 
 use Log::Log4perl qw(:easy);
@@ -207,7 +213,6 @@ use File::Find            ();
 use File::Path            ();
 use File::Slurper         ();
 use File::Spec            ();
-use File::Temp            ();
 use Hash::Merge           ();
 use IO::Prompt            ();
 use Term::ANSIColor       ();
@@ -243,11 +248,12 @@ use Elevate::Blockers::DNS              ();
 use Elevate::Blockers::EA4              ();
 use Elevate::Blockers::ElevateScript    ();
 use Elevate::Blockers::Grub2            ();
+use Elevate::Blockers::Imunify          ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();    # using a constant
-use Elevate::Blockers::Python           ();
 use Elevate::Blockers::Repositories     ();    # using a constant
 use Elevate::Blockers::SSH              ();
 use Elevate::Blockers::WHM              ();
@@ -269,6 +275,7 @@ use Elevate::Components::LiteSpeed          ();
 use Elevate::Components::KernelCare         ();
 use Elevate::Components::Kernel             ();
 use Elevate::Components::MySQL              ();
+use Elevate::Components::NICs               ();
 use Elevate::Components::NixStats           ();
 use Elevate::Components::PECL               ();
 use Elevate::Components::PerlXS             ();
@@ -280,6 +287,8 @@ use Elevate::Components::WPToolkit          ();
 use Elevate::Components::SSH                ();
 use Elevate::Components::AutoSSL            ();
 use Elevate::Components::DatabaseUpgrade    ();
+use Elevate::Components::ELS                ();
+use Elevate::Components::R1Soft             ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -288,11 +297,13 @@ use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
 use Elevate::Database         ();
+use Elevate::EA4              ();
 use Elevate::Fetch            ();
 use Elevate::Leapp            ();
 use Elevate::Logger           ();
 use Elevate::Marker           ();
 use Elevate::Motd             ();
+use Elevate::NICs             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
 use Elevate::RPM              ();
@@ -318,6 +329,7 @@ use constant NOC_RECOMMENDATIONS_TOUCH_FILE => q[/var/cpanel/elevate-noc-recomme
 
 use constant ACTION_REBOOT_NEEDED   => 4242;    # just one unique id
 use constant ACTION_PAUSE_REQUESTED => 4243;
+use constant ACTION_CONTINUE        => 4244;
 
 use constant PAUSE_ELEVATE_TOUCHFILE => q[/waiting_for_distro_upgrade];
 
@@ -501,6 +513,9 @@ sub monitor_upgrade ($self) {
 }
 
 sub start ($self) {
+
+    return 1 unless _sanity_check();
+
     my $stage = Elevate::Stages::get_stage();
     if ( $stage != 0 ) {
         my $header;
@@ -516,7 +531,7 @@ sub start ($self) {
         You can check the log by running:
             /scripts/elevate-cpanel --log
         or check the elevation status:
-            /scripts/elevate-cpanel --check
+            /scripts/elevate-cpanel --status
         EOS
 
     }
@@ -527,8 +542,6 @@ sub start ($self) {
     $self->give_last_chance();
 
     system touch => Elevate::Constants::LOG_FILE;
-
-    Elevate::Stages::bump_stage();    # init stage number to 1
 
     # store the manual reboots flag
     if ( $self->getopt('manual-reboots') ) {
@@ -551,8 +564,8 @@ sub start ($self) {
         Elevate::StageFile::update_stage_file( { no_leapp => 1 } );
     }
 
-    # prefer over running step1: so status and notifications are enabled
-    return $self->run_service_and_notify();
+    # This starts the service for us:
+    return $self->service->install();
 }
 
 sub _capture_env_variables ($self) {
@@ -639,11 +652,6 @@ sub continue_elevation ($self) {
         Elevate::Logger::ERROR_nolog("Looks like no elevate process was started. Please consider running: /scripts/elevate-cpanel --start");
         return;
     }
-    elsif ( $stage == 1 ) {
-        Elevate::Logger::INFO_nolog("Continuing elevate process from stage 1 (service not setup yet)");
-        $self->run_stage_1();
-        return;
-    }
 
     $self->_capture_env_variables();    # capture env before restart
 
@@ -661,11 +669,13 @@ sub continue_elevation ($self) {
     }
 }
 
-sub do_cleanup ($self) {
+sub do_cleanup ( $self, $handle_service_manually = 0 ) {
 
-    $self->service->remove;
+    if ( !$handle_service_manually ) {
+        $self->service->remove;
+        $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+    }
 
-    $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
     Elevate::StageFile::remove_stage_file();
     unlink Elevate::Constants::PID_FILE;
 
@@ -689,37 +699,40 @@ sub run_service_and_notify ($self) {    # FIXME: move to Elevate::Service - need
     }
 
     my $action_todo;
-    my $ok = eval {
-        $action_todo = $self->_run_service();
-        1;
-    };
+    do {
+        my $ok = eval {
+            $action_todo = $self->_run_service();
+            1;
+        };
 
-    $action_todo //= 0;
+        $action_todo //= 0;
 
-    if ($ok) {
+        if ($ok) {
 
-        # only notify a success when reaching the last stage
-        if ( $stage == VALID_STAGES ) {
-            Elevate::StageFile::update_stage_file( { status => q[success] } );
-            $self->_notify_success();
-            Elevate::StageFile::create_success_file();
+            # only notify a success when reaching the last stage
+            if ( $stage == VALID_STAGES ) {
+                Elevate::StageFile::update_stage_file( { status => q[success] } );
+                $self->_notify_success();
+                Elevate::StageFile::create_success_file();
+            }
+
+            if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
+                Elevate::StageFile::update_stage_file( { status => q[paused] } );
+            }
+            elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
+                $self->reboot();
+            }
+
         }
+        else {
+            my $error = $@ // q[Unknown error];
 
-        if ( $action_todo == ACTION_PAUSE_REQUESTED ) {
-            Elevate::StageFile::update_stage_file( { status => q[paused] } );
+            Elevate::StageFile::update_stage_file( { status => q[failed] } );
+            $self->_notify_error($error);
+
+            LOGDIE($error);
         }
-        elsif ( $action_todo == ACTION_REBOOT_NEEDED ) {
-            $self->reboot();
-        }
-    }
-    else {
-        my $error = $@ // q[Unknown error];
-
-        Elevate::StageFile::update_stage_file( { status => q[failed] } );
-        $self->_notify_error($error);
-
-        LOGDIE($error);
-    }
+    } while ( $action_todo == ACTION_CONTINUE );
 
     return $action_todo;
 }
@@ -822,7 +835,7 @@ sub _run_service ($self) {
 
     my $stage = Elevate::Stages::get_stage();
 
-    print_box( "Starting stage $stage of " . VALID_STAGES ) if $stage > 1;
+    print_box( "Starting stage $stage of " . VALID_STAGES );
 
     $self->_wait_on_pause();    # handle pause when requested
 
@@ -918,20 +931,18 @@ responsible of the multiple reboots.
 
 sub run_stage_1 ($self) {
 
-    # do not leave cruft behing when aborting
-    my $abort = sub {
-        $self->do_cleanup();
-        exit 42;    ## no critic(Cpanel::NoExitsFromSubroutines) catching signals
-    };
+    Elevate::Marker::startup();
 
-    local $SIG{'INT'} = $abort;
-    local $SIG{'HUP'} = $abort;
+    Elevate::Motd->setup();
 
-    return 1 unless _sanity_check();
+    if ( !$self->should_run_leapp() ) {
+        Elevate::Stages::bump_stage();
+        return ACTION_CONTINUE;
+    }
 
-    print_box( "Starting stage 1 of " . VALID_STAGES . ": Installing " . $self->service->name . " service" );
+    $self->run_component_once( 'Grub2' => 'mark_cmdline' );
 
-    return $self->service->install();
+    return ACTION_REBOOT_NEEDED;
 }
 
 =head2 run_stage_2
@@ -942,9 +953,7 @@ Update the current distro packages then reboot.
 
 sub run_stage_2 ($self) {
 
-    Elevate::Marker::startup();
-
-    Elevate::Motd->setup();
+    $self->run_component_once( 'Grub2' => 'verify_cmdline' );
 
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
@@ -962,7 +971,22 @@ sub run_stage_2 ($self) {
     $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
     $self->run_component_once( 'KernelCare' => 'pre_leapp' );
     $self->run_component_once( 'Grub2'      => 'pre_leapp' );
+    $self->run_component_once( 'NICs'       => 'pre_leapp' );
 
+    # Imunify depends on EA4 so the Imunify component needs to
+    # run before EA4 is removed.  However, Imunify 360 can provide
+    # hardened PHP so the EA4 profile backup needs to run before
+    # Imunify is removed, so I split some of the EA4 logic out
+    # to be executed before Imunify and left the removal until
+    # after Imunify
+    $self->run_component_once( 'EA4'     => 'pre_imunify' );
+    $self->run_component_once( 'Imunify' => 'pre_leapp' );
+    $self->run_component_once( 'PECL'    => 'pre_leapp' );
+    $self->run_component_once( 'EA4'     => 'pre_leapp' );
+
+    # This reboot will invalidate the cPanel license causing
+    # further whmapi1 calls to fail until stage 4
+    # if the NICs need to be renamed
     return ACTION_REBOOT_NEEDED;
 }
 
@@ -1089,7 +1113,8 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'EA4' => 'post_leapp' );
+    $self->run_component_once( 'Imunify' => 'post_leapp' );
+    $self->run_component_once( 'EA4'     => 'post_leapp' );
 
     $self->run_once(
         upcp => sub {
@@ -1294,9 +1319,6 @@ sub run_final_components_pre_leapp ($self) {
 
     # order matters
     $self->run_component_once( 'RmMod'            => 'pre_leapp' );
-    $self->run_component_once( 'Imunify'          => 'pre_leapp' );
-    $self->run_component_once( 'EA4'              => 'pre_leapp' );
-    $self->run_component_once( 'PECL'             => 'pre_leapp' );
     $self->run_component_once( 'MySQL'            => 'pre_leapp' );
     $self->run_component_once( 'Repositories'     => 'pre_leapp' );
     $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );
@@ -1307,6 +1329,8 @@ sub run_final_components_pre_leapp ($self) {
     $self->run_component_once( 'NixStats'         => 'pre_leapp' );
     $self->run_component_once( 'LiteSpeed'        => 'pre_leapp' );
     $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
+    $self->run_component_once( 'ELS'              => 'pre_leapp' );
+    $self->run_component_once( 'R1Soft'           => 'pre_leapp' );
     $self->run_component_once( 'RpmDB'            => 'pre_leapp' );    # remove the RPMs last
 
     return;
@@ -1322,18 +1346,19 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_component_once( 'MySQL'         => 'post_leapp' );
-    $self->run_component_once( 'PerlXS'        => 'post_leapp' );
-    $self->run_component_once( 'cPanelPlugins' => 'post_leapp' );
-    $self->run_component_once( 'PECL'          => 'post_leapp' );
-    $self->run_component_once( 'WPToolkit'     => 'post_leapp' );
-    $self->run_component_once( 'InfluxDB'      => 'post_leapp' );
-    $self->run_component_once( 'JetBackup'     => 'post_leapp' );
-    $self->run_component_once( 'Kernel'        => 'post_leapp' );
-    $self->run_component_once( 'KernelCare'    => 'post_leapp' );
-    $self->run_component_once( 'Imunify'       => 'post_leapp' );
-    $self->run_component_once( 'NixStats'      => 'post_leapp' );
-    $self->run_component_once( 'LiteSpeed'     => 'post_leapp' );
+    $self->run_component_once( 'MySQL'           => 'post_leapp' );
+    $self->run_component_once( 'PerlXS'          => 'post_leapp' );
+    $self->run_component_once( 'cPanelPlugins'   => 'post_leapp' );
+    $self->run_component_once( 'DatabaseUpgrade' => 'post_leapp' );
+    $self->run_component_once( 'PECL'            => 'post_leapp' );
+    $self->run_component_once( 'WPToolkit'       => 'post_leapp' );
+    $self->run_component_once( 'InfluxDB'        => 'post_leapp' );
+    $self->run_component_once( 'JetBackup'       => 'post_leapp' );
+    $self->run_component_once( 'Kernel'          => 'post_leapp' );
+    $self->run_component_once( 'KernelCare'      => 'post_leapp' );
+    $self->run_component_once( 'NixStats'        => 'post_leapp' );
+    $self->run_component_once( 'LiteSpeed'       => 'post_leapp' );
+    $self->run_component_once( 'R1Soft'          => 'post_leapp' );
 
     return;
 }
@@ -1358,10 +1383,6 @@ sub clear_cpanel_caches ($self) {
     unlink $_ foreach @files;
 
     return;
-}
-
-sub tmp_dir ($self) {
-    return $self->{tmp} //= File::Temp->newdir();    # auto cleanup on destroy
 }
 
 my $yum_list_cache;
