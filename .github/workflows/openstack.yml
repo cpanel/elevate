@@ -165,13 +165,13 @@ jobs:
           run: |
             ./ssh_retry.sh ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
 
-    watch_for_final_reboot:
+    watch_for_stage_5_reboot:
       runs-on: self-hosted
       needs: wait_for_stage_4_reboot
       outputs:
         VM_IP: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
       steps:
-        - name: Watch Elevate for Final Reboot
+        - name: Monitor Elevate for Stage 4 Reboot
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP }}
@@ -183,6 +183,39 @@ jobs:
             script: |
               set -x
               ./status_marker.sh 5
+              /scripts/elevate-cpanel --log &
+              REGEX="Rebooting into stage 5 of 5"
+              RETVAL=1
+              while [ $RETVAL -ne 0 ]; do grep "${REGEX}" /var/log/elevate-cpanel.log; RETVAL=$?; [ $RETVAL -eq 0 ] && echo "## [INFO] SUCCESS: Reboot text found in /var/log/elevate-cpanel.log  ##" && exit 0; RETRIES=$((RETRIES+1)); [ $RETVAL -ne 0 ] && echo "## [DEBUG]: Retrying Reboot Search: Attempt ${RETRIES} ..."; sleep 1; done
+
+    wait_for_stage_5_reboot:
+      runs-on: self-hosted
+      needs: watch_for_stage_5_reboot
+      outputs:
+        VM_IP: ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
+      steps:
+        - name: Wait For VM to Come Back From Stage 4 Reboot
+          working-directory: "./.github/workflows/openstack/"
+          run: |
+            ./ssh_retry.sh ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
+
+    watch_for_final_reboot:
+      runs-on: self-hosted
+      needs: wait_for_stage_5_reboot
+      outputs:
+        VM_IP: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP }}
+      steps:
+        - name: Watch Elevate for Final Reboot
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            timeout: 30m
+            command_timeout: 20m
+            script: |
+              set -x
               /scripts/elevate-cpanel --log &
               REGEX="Doing final reboot"
               RETVAL=1
