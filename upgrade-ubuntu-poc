@@ -1,0 +1,359 @@
+#!/usr/local/cpanel/3rdparty/bin/perl
+
+use cPstrict;
+
+use Cpanel::FileUtils::TouchFile ();
+use Cpanel::LoadFile             ();
+use Cpanel::OS                   ();
+use Cpanel::SafeRun::Object      ();
+use Cpanel::SafeRun::Simple      ();
+
+use Getopt::Long  ();
+use File::Slurper ();
+
+use constant APT                   => q[/usr/bin/apt];
+use constant APT_LIST_D            => q[/etc/apt/sources.list.d];
+use constant APT_MARK              => q[/usr/bin/apt-mark];
+use constant LOG_FILE              => q[/var/log/elevate-ubuntu-poc.log];
+use constant MOUNT                 => q[/usr/bin/mount];
+use constant RELEASE_UPGRADES_FILE => q[/etc/update-manager/release-upgrades];
+use constant START_UPGRADE         => q[/var/cpanel/upgrade_ubuntu_started];
+use constant SYSTEMCTL             => q[/usr/bin/systemctl];
+use constant UPGRADE_COMPLETE      => q[/var/cpanel/upgrade_ubuntu_finished];
+
+sub run ( $class, @args ) {
+    my $self = bless {}, $class;
+
+    local $| = 1;
+
+    $self->init(@args);
+
+    return $self->run_service() if $self->getopt('service');
+
+    $self->disable_upcp_and_backups();
+    $self->update_release_upgrades();
+    $self->check_for_held_packages();
+    $self->update_system();
+
+    $self->install_service();
+
+    $self->reboot("Rebooting to prepare for upgrade");
+    return 0;
+}
+
+sub reboot ( $self, $msg ) {
+    print $msg . "\n";
+    exec( '/usr/sbin/reboot', 'now' );
+}
+
+sub help ($self) {
+    print <<~"EOS";
+    USAGE:
+      $0
+      $0 --help
+      $0 --service
+    EOS
+    exit 0;
+    return;
+}
+
+sub getopt ( $self, $k ) {
+    return $self->{_getopt}->{$k};
+}
+
+sub _OPTIONS {
+    return qw[
+      service
+      help
+    ];
+}
+
+sub init ( $self, @args ) {
+
+    die "Distro is not eligible for upgrade\n" unless $self->_verify_can_upgrade_distro() || -e START_UPGRADE;
+
+    $self->{_getopt} = {};
+
+    Getopt::Long::GetOptionsFromArray(
+        \@args,
+        $self->{_getopt},
+        _OPTIONS
+    ) or return $self->help();
+
+    return $self->help() if $self->getopt('help');
+    return;
+}
+
+sub _verify_can_upgrade_distro ($self) {
+    return Cpanel::OS::distro eq 'ubuntu' && Cpanel::OS::major == 20;
+}
+
+sub update_system ($self) {
+
+    print "Updating apt ...\n";
+    my $update_result = Cpanel::SafeRun::Simple::saferunnoerror( APT, 'update' );
+    die 'Failed to update apt' if $?;
+
+    unlink('/etc/apt/preferences.d/99-cpanel-exclude-packages');
+
+    my @apt_args = qw[
+      -y
+      -o Dpkg::Options::=--force-confdef
+      -o Dpkg::Options::=--force-confold
+    ];
+
+    print "Upgrading apt ...\n";
+    my $upgrade_result = Cpanel::SafeRun::Simple::saferunnoerror( APT, 'upgrade', @apt_args );
+    die 'Failed to upgrade apt' if $?;
+    return;
+}
+
+sub check_for_held_packages ($self) {
+    my $result = Cpanel::SafeRun::Simple::saferunnoerror( APT_MARK, 'showhold' );
+    die 'Failed to check apt for held packages' if $?;
+
+    return unless $result;
+
+    my $pkgs = join( ' ', split( "\n", $result ) );
+    die <<~"EOS";
+    The following packages are held and prevent the upgrade from proceeding:
+
+    $result
+
+    To unhold the packages, execute
+
+    apt-mark unhold $pkgs
+    EOS
+
+    return;
+}
+
+sub update_release_upgrades ($self) {
+    unlink('/usr/local/cpanel/install/BlockUbuntuUpgrades.pm');
+
+    my $upgrade_file = RELEASE_UPGRADES_FILE;
+
+    if ( -e $upgrade_file ) {
+        my $content = Cpanel::LoadFile::loadfile($upgrade_file);
+        my @lines   = split "\n", $content;
+
+        my $in_default  = 0;
+        my $was_updated = 0;
+        foreach my $line (@lines) {
+            if ( $line =~ qr{^\s*\[(\w+)\]}a ) {
+                if ( $1 eq 'DEFAULT' ) {
+                    $in_default = 1;
+                }
+                next;
+            }
+            next unless $in_default;
+
+            return if $line =~ m{^\s*Prompt\s*=\s*lts}a;
+
+            if ( $line =~ s{^\s*Prompt\s*=\s*(?:normal|never)}{Prompt=lts} ) {
+                $was_updated = 1;
+                last;
+            }
+        }
+
+        return unless $was_updated;
+
+        $content = join "\n", @lines;
+        $content .= "\n";
+        File::Slurper::write_binary( $upgrade_file, $content );
+    }
+    else {
+        my $content = <<~'EOS';
+        [DEFAULT]
+        Prompt=lts
+        EOS
+
+        File::Slurper::write_binary( $upgrade_file, $content );
+    }
+
+    return;
+}
+
+sub disable_upcp_and_backups ($self) {
+    unlink('/usr/local/cpanel/scripts/upcp');
+    unlink('/usr/local/cpanel/bin/backup');
+    return;
+}
+
+sub install_service ($self) {
+
+    my $name = 'upgrade-ubuntu-poc.service';
+
+    print "Installing service $name which will upgrade the server to Ubuntu 22\n";
+    open( my $fh, '>', "/etc/systemd/system/$name" ) or die "Unable to open service file for writing: $!\n";
+
+    print {$fh} <<~"EOF";
+        [Unit]
+        Description=Upgrade process from Ubuntu 20.04 to Ubuntu 22.04.
+        After=network.target network-online.target
+
+        [Service]
+        Type=simple
+        # want to run it once per boot time
+        RemainAfterExit=yes
+        ExecStart=/usr/local/cpanel/scripts/upgrade-ubuntu-poc --service
+        Environment="LANG=C"
+        Environment="LANGUAGE=C"
+        Environment="LC_ALL=C"
+        Environment="LC_MESSAGES=C"
+        Environment="LC_CTYPE=C"
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+    close $fh;
+
+    my $daemon_reload = Cpanel::SafeRun::Simple::saferunnoerror( SYSTEMCTL, 'daemon-reload' );
+    die "Unable to reload systemd\n" if $?;
+
+    my $enable_service = Cpanel::SafeRun::Simple::saferunnoerror( SYSTEMCTL, 'enable', $name );
+    die "Unable to enable service\n" if $?;
+
+    return;
+}
+
+sub remove_service ($self) {
+
+    my $name = 'upgrade-ubuntu-poc.service';
+
+    my $disable_service = Cpanel::SafeRun::Simple::saferunnoerror( SYSTEMCTL, 'disable', $name );
+    die "Unable to disable service\n" if $?;
+
+    unlink("/etc/systemd/system/$name");
+
+    my $daemon_reload = Cpanel::SafeRun::Simple::saferunnoerror( SYSTEMCTL, 'daemon-reload' );
+    die "Unable to reload systemd\n" if $?;
+
+    return;
+}
+
+sub _touch_file ( $self, $file ) {
+    mkdir '/var/cpanel';
+    Cpanel::FileUtils::TouchFile::touchfile($file);
+    return;
+}
+
+sub _remount_tmp_with_exec ($self) {
+    my $remount_tmp = Cpanel::SafeRun::Simple::saferunnoerror( MOUNT, '-o', 'remount,exec', '/tmp' );
+    die "Unable to mount /tmp with exec option\n" if $?;
+    return;
+}
+
+sub run_service ($self) {
+    return $self->upgrade_ubuntu()     if !-e START_UPGRADE && !-e UPGRADE_COMPLETE;
+    return $self->post_upgrade_tasks() if -e START_UPGRADE  && !-e UPGRADE_COMPLETE;
+
+    print "Upgrade has completed...nothing to do\n";
+    return;
+}
+
+sub upgrade_ubuntu ($self) {
+    $self->_touch_file(START_UPGRADE);
+    $self->_remount_tmp_with_exec();
+
+    open( my $log_fh, '>', LOG_FILE ) or die "Could not open file for writing: $!\n";
+    my $run = Cpanel::SafeRun::Object->new(
+        program => '/usr/bin/do-release-upgrade',
+        args    => [
+            '-f',
+            'DistUpgradeViewNonInteractive',
+        ],
+        stdout => $log_fh,
+        stderr => $log_fh,
+    );
+
+    if ( $run->CHILD_ERROR() ) {
+        print $log_fh "An error failed during the upgrade, please review the output above for more details\n";
+        die "An error failed during the upgrade, please review the output above for more details\n";
+    }
+
+    print $log_fh "Rebooting to complete the upgrade to Ubuntu 22.04\n";
+    $self->reboot("Rebooting to complete the upgrade to Ubuntu 22.04");
+    return;
+}
+
+sub post_upgrade_tasks ($self) {
+
+    $self->update_list_files();
+    $self->update_system();
+    $self->purge_packages();
+    $self->upcp();
+    $self->_touch_file(UPGRADE_COMPLETE);
+    $self->remove_service();
+    $self->reboot("Server has been succesfully upgraded to Ubuntu 22.04");
+
+    return;
+}
+
+sub upcp ($self) {
+    print "Executing upcp ...\n";
+    my $upcp_result = Cpanel::SafeRun::Simple::saferunnoerror( '/usr/local/cpanel/scripts/upcp.static', '--sync' );
+    die "Failed to succesfully execute upcp\n" if $?;
+    return;
+}
+
+sub purge_packages ($self) {
+    print "Executing apt -y autoremove --purge ...\n";
+    my $purge_result = Cpanel::SafeRun::Simple::saferunnoerror( APT, '-y', 'autoremove', '--purge' );
+    die 'Failed to purge packages that should be removed after upgrade' if $?;
+    return;
+}
+
+sub update_list_files ($self) {
+
+    my $list_dir = APT_LIST_D;
+
+    opendir( my $dh, $list_dir ) or die "Unable to read directory $list_dir: $!\n";
+    foreach my $list_file ( readdir($dh) ) {
+        next unless $list_file =~ m{\.list$};
+        $self->_update_list_file($list_file);
+    }
+
+    return;
+}
+
+our %known_list_files = (
+    'EA4.list'             => q{deb mirror://httpupdate.cpanel.net/ea4-u22-mirrorlist ./},
+    'cpanel-plugins.list'  => q{deb mirror://httpupdate.cpanel.net/cpanel-plugins-u22-mirrorlist ./},
+    'imunify-rollout.list' => q{deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-1/ jammy main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-2/ jammy main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-3/ jammy main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-4/ jammy main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-5/ jammy main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-6/ jammy main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-7/ jammy main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-8/ jammy main},
+    'imunify360.list' => q{deb [arch=amd64] https://repo.imunify360.cloudlinux.com/imunify360/ubuntu/22.04/ jammy main'},
+    'mysql.list'      => q{# Use command 'dpkg-reconfigure mysql-apt-config' as root for modifications.
+deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-apt-config
+deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0
+deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-tools
+#deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-tools-preview
+deb-src https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0},
+    'wp-toolkit-cpanel.list' => q{# WP Toolkit
+deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/wp-toolkit/ ./
+
+# WP Toolkit Thirdparties
+deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ ./},
+);
+
+sub _update_list_file ( $self, $list_file ) {
+
+    my $list_dir = APT_LIST_D;
+
+    die "Unknown list file: $list_dir/$list_file\n" unless exists $known_list_files{$list_file};
+
+    File::Slurper::write_binary( "$list_dir/$list_file", "$known_list_files{$list_file}\n" );
+
+    return;
+}
+
+exit( __PACKAGE__->run(@ARGV) // 0 ) unless caller;
+
+1;
