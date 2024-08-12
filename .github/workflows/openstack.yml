@@ -81,6 +81,7 @@ jobs:
             script: |
               eval `ssh-agent -s`
               echo "${{ secrets.ELEVATE_CLONE_KEY }}" > ~/.ssh/elevate_clone_key
+              chmod -v 0400 ~/.ssh/elevate_clone_key
               ssh-add ~/.ssh/elevate_clone_key
               cd /opt && git clone git@github.com:cpanel/elevate.git
 
