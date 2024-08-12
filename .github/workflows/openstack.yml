@@ -86,7 +86,7 @@ jobs:
               ssh-add ~/.ssh/elevate_clone_key
               ssh-keyscan -H github.com > ~/.ssh/known_hosts
               echo "Hardcoding the following commit SHA until we move this workflow into elevate repo itself."
-              cd /opt && git clone --depth 1 -b git@github.com:cpanel/elevate.git 9be575a17bf12bef2dc46add9451f4ab89e36d7b
+              cd /opt && git clone --depth 1 git@github.com:cpanel/elevate.git 9be575a17bf12bef2dc46add9451f4ab89e36d7b
 
     start_elevate:
       runs-on: self-hosted
