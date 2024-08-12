@@ -271,6 +271,7 @@ jobs:
             timeout: 5m
             command_timeout: 1m
             script: |
+#              /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/9be575a17bf12bef2dc46add9451f4ab89e36d7b/t/integration/complete.t
               set -x
               cat /etc/redhat-release
               cat /usr/local/cpanel/version
