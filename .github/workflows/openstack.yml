@@ -69,9 +69,9 @@ jobs:
       runs-on: self-hosted
       needs: terraform_openstack_create
       outputs:
-	VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+        VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
       steps:
-	- name: Starting Elevate
+        - name: Starting Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
