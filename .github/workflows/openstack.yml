@@ -65,16 +65,35 @@ jobs:
             path: ${{ github.workspace }}/tf.out.json
             overwrite: true
 
-    start_elevate:
+    clone_elevate_repo:
       runs-on: self-hosted
       needs: terraform_openstack_create
       outputs:
-        VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+	VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+      steps:
+	- name: Starting Elevate
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            script: |
+              eval `ssh-agent -s`
+              echo "${{ secrets.ELEVATE_CLONE_KEY }}" > ~/.ssh/elevate_clone_key
+              ssh-add ~/.ssh/elevate_clone_key
+              cd /opt && git clone git@github.com:cpanel/elevate.git
+
+    start_elevate:
+      runs-on: self-hosted
+      needs: clone_elevate_repo
+      outputs:
+        VM_IP: ${{ needs.clone_elevate_repo.outputs.VM_IP }}
       steps:
         - name: Starting Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+            host: ${{ needs.clone_elevate_repo.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
