@@ -3,6 +3,7 @@
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
 PERL_BIN=/usr/local/cpanel/3rdparty/perl/536/bin
+PERL_LIB=/usr/local/cpanel/3rdparty/perl/536/lib
 VERSION=`cat version`
 
 all:
@@ -12,17 +13,28 @@ all:
 
 sanity:
 	@for file in $$(find lib -type f -name "*.pm" | sort); do \
-		perl -cw -Ilib $$file || exit 1; \
+		$(PERL_BIN)/perl -cw -Ilib $$file || exit 1; \
 	done
 
 test: sanity
 	-$(MAKE) elevate-cpanel
-	/usr/local/cpanel/3rdparty/bin/prove t/00_load.t
-	/usr/local/cpanel/3rdparty/bin/yath test -j8 t/*.t
+	$(PERL_BIN)/prove t/00_load.t
+	$(PERL_BIN)/yath test -j8 t/*.t
+
+build:
+    curl -fsSL https://raw.githubusercontent.com/skaji/cpm/main/cpm > /usr/sbin/cpm
+	chmod -v +x /usr/sbin/cpm
+	/scripts/update_local_rpm_versions --edit target_settings.perl-enhanced installed
+	cpm install --with-all --cpanfile t/cpanfile
+	cp -v $(PERL_LIB)/perl5/Test/PerlTidy.pm $(PERL_LIB)/Test/
+	/scripts/check_cpanel_pkgs --fix --long-list --no-digest
+	rm -f elevate-cpanel
+	/bin/bash t/cpanel-setup
+	$(MAKE) elevate-cpanel
 
 cover:
 	/usr/bin/rm -rf cover_db
-	HARNESS_PERL_SWITCHES="-MDevel::Cover=-loose_perms,on,-coverage,statement,branch,condition,subroutine,-ignore,.,-select,elevate-cpanel" prove -j8 t/*.t ||:
+	HARNESS_PERL_SWITCHES="-MDevel::Cover=-loose_perms,on,-coverage,statement,branch,condition,subroutine,-ignore,.,-select,elevate-cpanel" $(PERL_BIN)/prove -j8 t/*.t ||:
 	$(PERL_BIN)/cover -silent
 	find cover_db -type f -exec chmod 644 {} \;
 	find cover_db -type d -exec chmod 755 {} \;
@@ -40,15 +52,11 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 				       --leave-broken \
 				       script/$@.PL
 	mv script/$@.PL.static $@
-	MARKER="`cat maint/marker`" perl -pi -e 's|^(#!/usr/local/cpanel/3rdparty/bin/perl)|$$1\n\n$$ENV{MARKER}\n|' $@
-	VERSION=${VERSION} perl -pi -e 's/(^use constant VERSION =>) 1;/$$1 $$ENV{VERSION};/' $@
-	perltidy -b -bext="/" $@
+	MARKER="`cat maint/marker`" $(PERL_BIN)/perl -pi -e 's|^(#!/usr/local/cpanel/3rdparty/bin/perl)|$$1\n\n$$ENV{MARKER}\n|' $@
+	VERSION=${VERSION} $(PERL_BIN)/perl -pi -e 's/(^use constant VERSION =>) 1;/$$1 $$ENV{VERSION};/' $@
+	$(PERL_BIN)/perltidy -b -bext="/" $@
 	chmod +x $@
-	perl -cw elevate-cpanel
-
-build:
-	rm -f elevate-cpanel
-	$(MAKE) elevate-cpanel
+	$(PERL_BIN)/perl -cw elevate-cpanel
 
 clean:
 	rm -f tags
@@ -70,3 +78,4 @@ bump_version:
 	$(GIT) commit -m "Bump version to $(version) after release"
 cl:
 	maint/generate_changelog
+
