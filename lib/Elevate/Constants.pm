@@ -16,9 +16,6 @@ if their usage is self contained.
 
 use cPstrict;
 
-use constant MINIMUM_LTS_SUPPORTED => 110;
-use constant MAXIMUM_LTS_SUPPORTED => 110;
-
 use constant SERVICE_DIR  => '/etc/systemd/system/';
 use constant SERVICE_NAME => 'elevate-cpanel.service';
 

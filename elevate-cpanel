@@ -67,6 +67,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/RHEL.pm'}                       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/Ubuntu.pm'}                     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/Ubuntu20.pm'}                   = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Database.pm'}                      = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/EA4.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Fetch.pm'}                         = 'script/elevate-cpanel.PL.static';
@@ -93,9 +95,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     package Elevate::Constants;
 
     use cPstrict;
-
-    use constant MINIMUM_LTS_SUPPORTED => 110;
-    use constant MAXIMUM_LTS_SUPPORTED => 110;
 
     use constant SERVICE_DIR  => '/etc/systemd/system/';
     use constant SERVICE_NAME => 'elevate-cpanel.service';
@@ -942,6 +941,8 @@ EOS
     }
 
     sub _blocker_is_old_centos7 ($self) {
+
+        return if Elevate::OS::skip_minor_version_check();
 
         if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {    ## no critic(Cpanel::CpanelOS)
             my $pretty_distro_name = $self->upgrade_to_pretty_name();
@@ -1920,6 +1921,9 @@ EOS
 
     sub check ($self) {
         my $ok = 1;
+
+        return $ok if Elevate::OS::is_apt_based();
+
         $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
         $ok = 0 if $self->_blocker_invalid_yum_repos;
         $ok = 0 if $self->_yum_is_stable();
@@ -2381,14 +2385,14 @@ EOS
 
     sub _blocker_is_newer_than_lts ($self) {
         my $major = $Cpanel::Version::Tiny::major_version;
-        if ( $major <= Elevate::Constants::MINIMUM_LTS_SUPPORTED - 2 || $major > Elevate::Constants::MAXIMUM_LTS_SUPPORTED ) {
+        if ( $major != Elevate::OS::lts_supported() ) {
             my $pretty_distro_name = $self->upgrade_to_pretty_name();
             return $self->has_blocker(
                 sprintf(
                     "This version %s does not support upgrades to %s. Please ensure the cPanel version is %s.",
                     $Cpanel::Version::Tiny::VERSION_BUILD,
                     $pretty_distro_name,
-                    Elevate::Constants::MAXIMUM_LTS_SUPPORTED,
+                    Elevate::OS::lts_supported(),
                 )
             );
         }
@@ -2431,8 +2435,9 @@ EOS
 
     sub _blocker_cpanel_needs_update ($self) {
         if ( !$self->getopt('skip-cpanel-version-check') ) {
+            my $lts_supported    = Elevate::OS::lts_supported();
             my $tiers_obj        = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
-            my $expected_version = $tiers_obj->get_flattened_hash()->{'11.110'};
+            my $expected_version = $tiers_obj->get_flattened_hash()->{"11.$lts_supported"};
             if ( !Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $expected_version ) ) {
                 return $self->has_blocker( <<~"EOS" );
             This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.
@@ -5944,6 +5949,7 @@ EOS
             $distro              = Cpanel::OS::distro();    ## no critic(Cpanel::CpanelOS)
             $distro              = 'CentOS'     if $distro eq 'centos';
             $distro              = 'CloudLinux' if $distro eq 'cloudlinux';
+            $distro              = 'Ubuntu'     if $distro eq 'ubuntu';
             $major               = Cpanel::OS::major();     ## no critic(Cpanel::CpanelOS)
             $distro_with_version = $distro . $major;
         }
@@ -5986,17 +5992,20 @@ EOS
             'elevate_rpm_url',                    # This is the URL used to install the leapp RPM/repo
             'leapp_repo_prod',                    # This is the repo name for the production repo.
             'leapp_repo_beta',                    # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
+            'is_apt_based',                       # This is used to determine if the OS uses apt as its package manager
             'is_supported',                       # This is used to determine if the OS is supported or not
             'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
             'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
             'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
             'leapp_data_pkg',                     # This is used to determine which leapp data package to install
             'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
+            'lts_supported',                      # This is the major cPanel version supported for this OS
             'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
             'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
             'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
             'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
+            'skip_minor_version_check',           # Used to determine if we need to skip the minor version check for the OS
             'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
         );
@@ -6182,22 +6191,71 @@ EOS
     use constant default_upgrade_to              => undef;
     use constant ea_alias                        => undef;
     use constant elevate_rpm_url                 => undef;
+    use constant is_apt_based                    => 0;
     use constant is_supported                    => 1;
     use constant leapp_can_handle_epel           => 0;
     use constant leapp_can_handle_imunify        => 0;
     use constant leapp_can_handle_kernelcare     => 0;
     use constant leapp_data_package              => undef;
     use constant leapp_flag                      => undef;
+    use constant lts_supported                   => 110;
     use constant name                            => 'RHEL';
     use constant pretty_name                     => 'RHEL';
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
     use constant should_check_cloudlinux_license => 0;
+    use constant skip_minor_version_check        => 0;
     use constant leapp_repo_beta                 => '';       # Unavailable by default.
 
     1;
 
 }    # --- END lib/Elevate/OS/RHEL.pm
+
+{    # --- BEGIN lib/Elevate/OS/Ubuntu.pm
+
+    package Elevate::OS::Ubuntu;
+
+    use cPstrict;
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant default_upgrade_to              => undef;
+    use constant ea_alias                        => undef;
+    use constant is_apt_based                    => 1;
+    use constant is_supported                    => 1;
+    use constant lts_supported                   => 118;
+    use constant name                            => 'Ubuntu';
+    use constant pretty_name                     => 'Ubuntu';
+    use constant provides_mysql_governor         => 0;
+    use constant should_check_cloudlinux_license => 0;
+    use constant skip_minor_version_check        => 1;
+
+    1;
+
+}    # --- END lib/Elevate/OS/Ubuntu.pm
+
+{    # --- BEGIN lib/Elevate/OS/Ubuntu20.pm
+
+    package Elevate::OS::Ubuntu20;
+
+    use cPstrict;
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::OS::Ubuntu();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::OS::Ubuntu); }
+
+    use constant default_upgrade_to => 'Ubuntu';
+    use constant ea_alias           => 'Ubuntu_20.04';
+    use constant name               => 'Ubuntu20';
+    use constant pretty_name        => 'Ubuntu 20.04';
+
+    1;
+
+}    # --- END lib/Elevate/OS/Ubuntu20.pm
 
 {    # --- BEGIN lib/Elevate/Database.pm
 
@@ -8478,6 +8536,8 @@ use Elevate::OS              ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
+use Elevate::OS::Ubuntu      ();
+use Elevate::OS::Ubuntu20    ();
 
 use Elevate::Database         ();
 use Elevate::EA4              ();
