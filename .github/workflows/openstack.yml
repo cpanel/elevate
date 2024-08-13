@@ -78,10 +78,14 @@ jobs:
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
+            envs: GITHUB_REF,GITHUB_HEAD_REF
             script: |
               cd /opt
               echo "[DEBUG]: \$env:GITHUB_REF:$env:GITHUB_REF"
               echo "[DEBUG]: \$GITHUB_REF:$GITHUB_REF"
+              echo "[DEBUG]: \$env:GITHUB_HEAD_REF:$env:GITHUB_HEAD_REF"
+              echo "[DEBUG]: \$GITHUB_HEAD_REF:$GITHUB_HEAD_REF"
+              echo "[DEBUG]: \${{ github.ref }}:${{ github.ref }}"
               git clone --depth 1 --branch $env:GITHUB_REF https://github.com/cpanel/elevate.git
               cd /opt/elevate
               git status
