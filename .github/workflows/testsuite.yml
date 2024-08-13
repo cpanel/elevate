@@ -16,6 +16,7 @@ jobs:
       PERL_USE_UNSAFE_INC: 1
       CPANEL_BIN_PATH: /usr/local/cpanel/3rdparty/bin
       CPANEL_PERL: /usr/local/cpanel/3rdparty/perl/536/bin/perl
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     runs-on: ubuntu-latest
 
