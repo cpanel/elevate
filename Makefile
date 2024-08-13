@@ -22,11 +22,11 @@ test: sanity
 	$(PERL_BIN)/yath test -j8 t/*.t
 
 build:
-    curl -fsSL https://raw.githubusercontent.com/skaji/cpm/main/cpm > /usr/sbin/cpm
+	curl -fsSL https://raw.githubusercontent.com/skaji/cpm/main/cpm > /usr/sbin/cpm
 	chmod -v +x /usr/sbin/cpm
 	/scripts/update_local_rpm_versions --edit target_settings.perl-enhanced installed
-	cpm install --with-all --cpanfile t/cpanfile
-	cp -v $(PERL_LIB)/perl5/Test/PerlTidy.pm $(PERL_LIB)/Test/
+	cpm install --global --with-all --verbose --cpanfile t/cpanfile
+	cp -v /usr/local/share/perl5/Test/PerlTidy.pm $(PERL_LIB)/Test/
 	/scripts/check_cpanel_pkgs --fix --long-list --no-digest
 	rm -f elevate-cpanel
 	/bin/bash t/cpanel-setup
