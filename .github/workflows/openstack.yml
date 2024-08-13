@@ -81,8 +81,8 @@ jobs:
             script: |
               cd /opt
               echo "[DEBUG]: ${{ github.ref }}"
-              echo "[DEBUG]: ${{ github.head.ref }}"
-              git clone --depth 1 --branch ${{ github.head.ref }} https://github.com/${{ github.repository }}.git
+              echo "[DEBUG]: ${{ github.head_ref }}"
+              git clone --depth 1 --branch ${{ github.head_ref }} https://github.com/${{ github.repository }}.git
               cd /opt/elevate
               git status
 
