@@ -72,6 +72,7 @@ jobs:
         VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
       steps:
         - name: Checking out Repo and Commit
+          if: github.event_name != 'pull_request'
           uses: appleboy/ssh-action@v1.0.3
           with:
             host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
@@ -83,6 +84,21 @@ jobs:
               echo "[DEBUG]: ${{ github.ref }}"
               echo "[DEBUG]: ${{ github.ref_name }}"
               git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git
+              cd /opt/elevate
+              git status
+        - name: Checking out Repo and Commit
+          if: github.event_name == 'pull_request'
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            script: |
+              cd /opt
+              echo "[DEBUG]: ${{ github.ref }}"
+              echo "[DEBUG]: ${{ github.head_ref }}"
+              git clone --depth 1 --branch ${{ github.head_ref }} https://github.com/${{ github.repository }}.git
               cd /opt/elevate
               git status
 
