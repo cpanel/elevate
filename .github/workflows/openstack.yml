@@ -79,14 +79,7 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             script: |
-              eval `ssh-agent -s`
-              echo "${{ secrets.ELEVATE_CLONE_KEY }}" > ~/.ssh/elevate_clone_key
-              echo "${{ secrets.ELEVATE_CLONE_KEY_PUB }}" >>  ~/.ssh/authorized_keys
-              chmod -v 0400 ~/.ssh/elevate_clone_key
-              ssh-add ~/.ssh/elevate_clone_key
-              ssh-keyscan -H github.com > ~/.ssh/known_hosts
-              echo "Hardcoding the following commit SHA until we move this workflow into elevate repo itself."
-              cd /opt && git clone --depth 1 git@github.com:cpanel/elevate.git 9be575a17bf12bef2dc46add9451f4ab89e36d7b
+              cd /opt && git clone --depth 1 https://github.com/cpanel/elevate.git $GITHUB_HEAD_REF
 
     start_elevate:
       runs-on: self-hosted
@@ -271,7 +264,7 @@ jobs:
             timeout: 5m
             command_timeout: 1m
             script: |
-              echo "[TODO]: /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/9be575a17bf12bef2dc46add9451f4ab89e36d7b/t/integration/complete.t"
+              /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/$GITHUB_HEAD_REF/t/integration/complete.t"
               set -x
               cat /etc/redhat-release
               cat /usr/local/cpanel/version
