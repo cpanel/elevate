@@ -1,4 +1,4 @@
-.PHONY: all test cover tags clean release build sanity cl
+.PHONY: all test cover tags clean release build fatpack sanity cl
 
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
@@ -22,15 +22,17 @@ test: sanity
 	$(PERL_BIN)/yath test -j8 t/*.t
 
 build:
-    curl -fsSL https://raw.githubusercontent.com/skaji/cpm/main/cpm > /usr/sbin/cpm
-	chmod -v +x /usr/sbin/cpm
-	/scripts/update_local_rpm_versions --edit target_settings.perl-enhanced installed
-	cpm install --with-all --cpanfile t/cpanfile
-	cp -v $(PERL_LIB)/perl5/Test/PerlTidy.pm $(PERL_LIB)/Test/
-	/scripts/check_cpanel_pkgs --fix --long-list --no-digest
 	rm -f elevate-cpanel
-	/bin/bash t/cpanel-setup
 	$(MAKE) elevate-cpanel
+
+fatpack:
+	curl -fsSL https://raw.githubusercontent.com/skaji/cpm/main/cpm > ./cpm
+	chmod -v +x ./cpm
+	/scripts/update_local_rpm_versions --edit target_settings.perl-enhanced installed
+	./cpm install Test::PerlTidy
+	cp -v local/lib/perl5/Test/PerlTidy.pm $(PERL_LIB)/Test/ && rm -Rfv local/
+	/scripts/check_cpanel_pkgs --fix --long-list --no-digest
+	/bin/bash t/cpanel-setup
 
 cover:
 	/usr/bin/rm -rf cover_db
@@ -60,6 +62,7 @@ elevate-cpanel: $(wildcard lib/**/*) script/elevate-cpanel.PL
 
 clean:
 	rm -f tags
+	rm -f ./cpm
 
 release: build
 	$(GIT) tag -f $(RELEASE_TAG)	
