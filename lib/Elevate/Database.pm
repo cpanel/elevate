@@ -23,14 +23,6 @@ use Log::Log4perl qw(:easy);
 
 use constant MYSQL_BIN => '/usr/sbin/mysqld';
 
-use constant SUPPORTED_CPANEL_MYSQL_VERSIONS => qw{
-  8.0
-  10.3
-  10.4
-  10.5
-  10.6
-};
-
 sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
 
     if ($use_cache) {
@@ -108,7 +100,7 @@ sub get_local_database_version () {
 
 sub is_database_version_supported ($version) {
 
-    return scalar grep { $version eq $_ } SUPPORTED_CPANEL_MYSQL_VERSIONS;
+    return scalar grep { $version eq $_ } Elevate::OS::supported_cpanel_mysql_versions();
 }
 
 sub get_default_upgrade_version () {

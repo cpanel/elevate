@@ -66,6 +66,14 @@ use constant vetted_yum_repo => (
   ),
   vetted_mysql_yum_repo_ids;
 
+use constant supported_cpanel_mysql_versions => qw{
+  8.0
+  10.3
+  10.4
+  10.5
+  10.6
+};
+
 use constant default_upgrade_to              => undef;
 use constant ea_alias                        => undef;
 use constant elevate_rpm_url                 => undef;

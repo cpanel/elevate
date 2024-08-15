@@ -6008,6 +6008,7 @@ EOS
             'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
             'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
             'skip_minor_version_check',           # Used to determine if we need to skip the minor version check for the OS
+            'supported_cpanel_mysql_versions',    # Returns array of supported mysql versions for the OS we are upgrading to
             'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
         );
@@ -6190,6 +6191,14 @@ EOS
       ),
       vetted_mysql_yum_repo_ids;
 
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      10.3
+      10.4
+      10.5
+      10.6
+    };
+
     use constant default_upgrade_to              => undef;
     use constant ea_alias                        => undef;
     use constant elevate_rpm_url                 => undef;
@@ -6222,6 +6231,12 @@ EOS
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      10.6
+      10.11
+    };
 
     use constant default_upgrade_to              => undef;
     use constant ea_alias                        => undef;
@@ -6278,14 +6293,6 @@ EOS
     INIT { Log::Log4perl->import(qw{:easy}); }
 
     use constant MYSQL_BIN => '/usr/sbin/mysqld';
-
-    use constant SUPPORTED_CPANEL_MYSQL_VERSIONS => qw{
-      8.0
-      10.3
-      10.4
-      10.5
-      10.6
-    };
 
     sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
 
@@ -6355,7 +6362,7 @@ EOS
 
     sub is_database_version_supported ($version) {
 
-        return scalar grep { $version eq $_ } SUPPORTED_CPANEL_MYSQL_VERSIONS;
+        return scalar grep { $version eq $_ } Elevate::OS::supported_cpanel_mysql_versions();
     }
 
     sub get_default_upgrade_version () {
