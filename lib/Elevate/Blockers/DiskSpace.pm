@@ -14,6 +14,8 @@ use cPstrict;
 
 use Cpanel::SafeRun::Simple ();
 
+use Elevate::OS ();
+
 use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
@@ -84,7 +86,7 @@ sub _disk_space_check ($self) {
 
     my $details = join( "\n", @errors );
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $error = <<"EOS";
 ** Warning **: your system does not have enough disk space available to update to $pretty_distro_name

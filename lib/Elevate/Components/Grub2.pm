@@ -13,6 +13,7 @@ Logic to update and fix grub2 configuration.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 use Elevate::StageFile ();
 
 use Cwd           ();
@@ -113,7 +114,7 @@ sub verify_cmdline ($self) {
             # tells you to use --continue, which won't work here due to the
             # do_cleanup invocation:
             my $stage              = Elevate::Stages::get_stage();
-            my $pretty_distro_name = $self->cpev->upgrade_to_pretty_name();
+            my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
             my $msg                = <<"EOS";
 The elevation process failed during stage $stage.
 

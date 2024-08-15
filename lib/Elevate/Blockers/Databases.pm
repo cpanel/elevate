@@ -51,7 +51,7 @@ sub _blocker_old_cloudlinux_mysql ($self) {
     # for the version in the RPM package name
     return 0 if length $db_version && $db_version >= 55;
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
     $db_type = Elevate::Database::pretty_type_name($db_type);
 
     # Shift decimal one place to the left
@@ -86,7 +86,7 @@ sub _blocker_old_cpanel_mysql ($self) {
         return 0;
     }
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
     $db_type = Elevate::Database::get_database_type_name_from_version($db_version);
     my $upgrade_version     = Elevate::Database::get_default_upgrade_version();
     my $upgrade_dbtype_name = Elevate::Database::get_database_type_name_from_version($upgrade_version);
