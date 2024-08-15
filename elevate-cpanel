@@ -1520,7 +1520,23 @@ EOS
 
     sub check ($self) {
 
-        return $self->_blocker_old_jetbackup;
+        $self->_blocker_jetbackup_is_supported();
+        $self->_blocker_old_jetbackup();
+
+        return;
+    }
+
+    sub _blocker_jetbackup_is_supported ($self) {
+        return unless Cpanel::Pkgr::is_installed('jetbackup');
+        return if Elevate::OS::supports_jetbackup();
+
+        my $name = Elevate::OS::default_upgrade_to();
+        $self->has_blocker( <<~"END" );
+    ELevate does not currently support JetBackup for upgrades of $name.
+    Support for JetBackup on Ubuntu will be added in a future version of ELevate.
+    END
+
+        return;
     }
 
     sub _blocker_old_jetbackup ($self) {
@@ -6030,6 +6046,7 @@ EOS
             'skip_minor_version_check',             # Used to determine if we need to skip the minor version check for the OS
             'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to
             'supported_cpanel_nameserver_types',    # Returns array of supported nameserver types
+            'supports_jetbackup',                   # This is used to determine if jetbackup is currently supported
             'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
             'vetted_mysql_yum_repo_ids',            # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                      # This is a list of known yum repos that we do not block on
@@ -6246,6 +6263,7 @@ EOS
     use constant remove_els                      => 0;
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 0;
+    use constant supports_jetbackup              => 1;
     use constant leapp_repo_beta                 => '';       # Unavailable by default.
 
     1;
@@ -6282,6 +6300,7 @@ EOS
     use constant provides_mysql_governor         => 0;
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 1;
+    use constant supports_jetbackup              => 0;
 
     1;
 

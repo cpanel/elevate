@@ -23,7 +23,23 @@ use Log::Log4perl qw(:easy);
 
 sub check ($self) {
 
-    return $self->_blocker_old_jetbackup;
+    $self->_blocker_jetbackup_is_supported();
+    $self->_blocker_old_jetbackup();
+
+    return;
+}
+
+sub _blocker_jetbackup_is_supported ($self) {
+    return unless Cpanel::Pkgr::is_installed('jetbackup');
+    return if Elevate::OS::supports_jetbackup();
+
+    my $name = Elevate::OS::default_upgrade_to();
+    $self->has_blocker( <<~"END" );
+    ELevate does not currently support JetBackup for upgrades of $name.
+    Support for JetBackup on Ubuntu will be added in a future version of ELevate.
+    END
+
+    return;
 }
 
 sub _blocker_old_jetbackup ($self) {
