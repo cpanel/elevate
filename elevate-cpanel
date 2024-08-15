@@ -1222,6 +1222,7 @@ EOS
 
     sub check ($self) {
 
+        return 1 unless Elevate::OS::needs_leapp();
         return 1 unless $self->should_perform_upgrade();
 
         my $ok = 1;
@@ -6001,6 +6002,7 @@ EOS
             'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
             'lts_supported',                      # This is the major cPanel version supported for this OS
             'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+            'needs_leapp',                        # This is used to determine if the OS requires the leapp utility to upgrade
             'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
             'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
@@ -6200,6 +6202,7 @@ EOS
     use constant leapp_flag                      => undef;
     use constant lts_supported                   => 110;
     use constant name                            => 'RHEL';
+    use constant needs_leapp                     => 1;
     use constant pretty_name                     => 'RHEL';
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
@@ -6226,6 +6229,7 @@ EOS
     use constant is_supported                    => 1;
     use constant lts_supported                   => 118;
     use constant name                            => 'Ubuntu';
+    use constant needs_leapp                     => 0;
     use constant pretty_name                     => 'Ubuntu';
     use constant provides_mysql_governor         => 0;
     use constant should_check_cloudlinux_license => 0;

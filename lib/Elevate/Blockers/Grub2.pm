@@ -33,6 +33,7 @@ sub GRUB2_PREFIX_RHEL   { return '/boot/grub2' }
 
 sub check ($self) {
 
+    return 1 unless Elevate::OS::needs_leapp();
     return 1 unless $self->should_perform_upgrade();
 
     my $ok = 1;

@@ -78,6 +78,7 @@ use constant leapp_data_package              => undef;
 use constant leapp_flag                      => undef;
 use constant lts_supported                   => 110;
 use constant name                            => 'RHEL';
+use constant needs_leapp                     => 1;
 use constant pretty_name                     => 'RHEL';
 use constant provides_mysql_governor         => 0;
 use constant remove_els                      => 0;
