@@ -488,11 +488,6 @@ sub do_update ($self) {
     return 0;
 }
 
-sub upgrade_to_pretty_name ($self) {    # used by output messages
-    return q[CloudLinux 8] if Elevate::OS::default_upgrade_to() eq 'CloudLinux';
-    return q[AlmaLinux 8];
-}
-
 sub monitor_upgrade ($self) {
     my $stage = Elevate::Stages::get_stage();
 
@@ -585,7 +580,7 @@ sub _capture_env_variables ($self) {
 sub give_last_chance ($self) {
 
     my $upgrade_from_name  = Elevate::OS::pretty_name();
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     print_box(qq[/!\ Warning: You are about to convert your cPanel & WHM $upgrade_from_name to $pretty_distro_name server.]);
 
@@ -787,7 +782,7 @@ sub check_status ($self) {
 sub _notify_success ($self) {
 
     my $upgrade_from_name  = Elevate::OS::pretty_name();
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $msg = <<"EOS";
 The cPanel & WHM server has completed the elevation process from $upgrade_from_name to $pretty_distro_name.
@@ -829,7 +824,7 @@ $error
 
 EOS
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
     Elevate::Notify::send_notification( qq[Failed to update to $pretty_distro_name] => $msg );
 
     return;
@@ -1082,7 +1077,7 @@ sub run_stage_4 ($self) {
     }
 
     if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         my $current_distro     = Cpanel::OS::pretty_distro();
 
         if ( Cpanel::OS::major() == 7 ) {    ## no critic(Cpanel::CpanelOS)
@@ -1184,7 +1179,7 @@ sub run_stage_5 ($self) {
     $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
 
     Elevate::Motd->cleanup();
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");
 
     return ACTION_REBOOT_NEEDED;
@@ -1480,7 +1475,7 @@ sub post_upgrade_check ($self) {
     $expect_distro = lc $expect_distro;
 
     unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {    ## no critic(Cpanel::CpanelOS)
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         die "Your distro does not look like $pretty_distro_name.\n";
     }
 

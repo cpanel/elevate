@@ -13,6 +13,7 @@ Blocker to check if the DNS server is supported.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -35,7 +36,7 @@ sub _get_nameserver_type () {
 sub _blocker_non_bind_powerdns ( $self, $nameserver = '' ) {
 
     if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         return $self->has_blocker( <<~"EOS");
         $pretty_distro_name only supports bind or powerdns. We suggest you switch to powerdns.
         Before upgrading, we suggest you run: /scripts/setupnameserver powerdns.
