@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::Notify    ();
+use Elevate::OS        ();
 use Elevate::StageFile ();
 
 use Config;
@@ -77,7 +78,7 @@ sub purge_perl_xs ( $self, $path ) {
         }
     }
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $stash = {};
     if (%rpms_to_restore) {

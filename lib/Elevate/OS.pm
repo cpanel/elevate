@@ -101,6 +101,7 @@ BEGIN {
         'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
         'skip_minor_version_check',           # Used to determine if we need to skip the minor version check for the OS
         'supported_cpanel_mysql_versions',    # Returns array of supported mysql versions for the OS we are upgrading to
+        'upgrade_to_pretty_name',             # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
         'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
         'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
     );

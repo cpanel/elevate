@@ -48,7 +48,7 @@ sub _blocker_is_old_centos7 ($self) {
     return if Elevate::OS::skip_minor_version_check();
 
     if ( Cpanel::OS::minor() < MINIMUM_CENTOS_7_SUPPORTED ) {    ## no critic(Cpanel::CpanelOS)
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         return $self->has_blocker(
             sprintf(
                 'You need to run CentOS 7.%s and later to upgrade %s. You are currently using %s',    #

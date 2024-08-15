@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::Notify    ();
+use Elevate::OS        ();
 
 use Cpanel::Backup::Sync    ();
 use Cpanel::Version::Tiny   ();
@@ -64,7 +65,7 @@ sub _blocker_is_invalid_cpanel_whm ($self) {
 sub _blocker_is_newer_than_lts ($self) {
     my $major = $Cpanel::Version::Tiny::major_version;
     if ( $major != Elevate::OS::lts_supported() ) {
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         return $self->has_blocker(
             sprintf(
                 "This version %s does not support upgrades to %s. Please ensure the cPanel version is %s.",

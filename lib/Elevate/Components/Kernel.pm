@@ -13,6 +13,7 @@ Perform some kernel checks.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -41,7 +42,7 @@ sub _kernel_check ($self) {
     return unless @kernel_rpms;
     chomp @kernel_rpms;
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $msg = "The following kernels should probably be removed as they will not function on $pretty_distro_name:\n\n";
     foreach my $kernel (@kernel_rpms) {

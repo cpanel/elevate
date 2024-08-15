@@ -28,6 +28,7 @@ use constant name                            => 'CloudLinux7';
 use constant pretty_name                     => 'CloudLinux 7';
 use constant provides_mysql_governor         => 1;
 use constant should_check_cloudlinux_license => 1;
+use constant upgrade_to_pretty_name          => 'CloudLinux 8';
 
 sub vetted_yum_repo ($self) {
     my @vetted_cloudlinux_yum_repo = (
