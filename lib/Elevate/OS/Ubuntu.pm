@@ -20,6 +20,10 @@ use constant supported_cpanel_mysql_versions => qw{
   10.11
 };
 
+use constant supported_cpanel_nameserver_types => qw{
+  powerdns
+};
+
 use constant default_upgrade_to              => undef;
 use constant ea_alias                        => undef;
 use constant is_apt_based                    => 1;

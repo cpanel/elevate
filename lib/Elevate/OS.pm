@@ -79,36 +79,37 @@ BEGIN {
     # The value specifies how many args the method is designed to take.
     %methods = map { $_ => 0 } (
         ### General distro specific methods.
-        'default_upgrade_to',                 # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
-        'disable_mysql_yum_repos',            # This is a list of mysql repo files to disable
-        'ea_alias',                           # This is the value for the --target-os flag used when backing up an EA4 profile
-        'elevate_rpm_url',                    # This is the URL used to install the leapp RPM/repo
-        'leapp_repo_prod',                    # This is the repo name for the production repo.
-        'leapp_repo_beta',                    # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
-        'is_apt_based',                       # This is used to determine if the OS uses apt as its package manager
-        'is_supported',                       # This is used to determine if the OS is supported or not
-        'leapp_can_handle_epel',              # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
-        'leapp_can_handle_imunify',           # This is used to determine if we can skip the Imunify component or not
-        'leapp_can_handle_kernelcare',        # This is used to determine if we can skip the kernelcare component or not
-        'leapp_data_pkg',                     # This is used to determine which leapp data package to install
-        'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
-        'lts_supported',                      # This is the major cPanel version supported for this OS
-        'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
-        'needs_leapp',                        # This is used to determine if the OS requires the leapp utility to upgrade
-        'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
-        'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
-        'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
-        'should_check_cloudlinux_license',    # This is used to determine if we should check the cloudlinux license
-        'skip_minor_version_check',           # Used to determine if we need to skip the minor version check for the OS
-        'supported_cpanel_mysql_versions',    # Returns array of supported mysql versions for the OS we are upgrading to
-        'upgrade_to_pretty_name',             # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
-        'vetted_mysql_yum_repo_ids',          # This is a list of known mysql yum repo ids
-        'vetted_yum_repo',                    # This is a list of known yum repos that we do not block on
+        'default_upgrade_to',                   # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
+        'disable_mysql_yum_repos',              # This is a list of mysql repo files to disable
+        'ea_alias',                             # This is the value for the --target-os flag used when backing up an EA4 profile
+        'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
+        'leapp_repo_prod',                      # This is the repo name for the production repo.
+        'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
+        'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
+        'is_supported',                         # This is used to determine if the OS is supported or not
+        'leapp_can_handle_epel',                # This is used to determine if we can skip removing the EPEL repo pre_leapp or not
+        'leapp_can_handle_imunify',             # This is used to determine if we can skip the Imunify component or not
+        'leapp_can_handle_kernelcare',          # This is used to determine if we can skip the kernelcare component or not
+        'leapp_data_pkg',                       # This is used to determine which leapp data package to install
+        'leapp_flag',                           # This is used to determine if we need to pass any flags to the leapp script or not
+        'lts_supported',                        # This is the major cPanel version supported for this OS
+        'name',                                 # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+        'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
+        'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
+        'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
+        'remove_els',                           # This is used to indicate if we are to remove ELS for this OS
+        'should_check_cloudlinux_license',      # This is used to determine if we should check the cloudlinux license
+        'skip_minor_version_check',             # Used to determine if we need to skip the minor version check for the OS
+        'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to
+        'supported_cpanel_nameserver_types',    # Returns array of supported nameserver types
+        'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
+        'vetted_mysql_yum_repo_ids',            # This is a list of known mysql yum repo ids
+        'vetted_yum_repo',                      # This is a list of known yum repos that we do not block on
     );
 }
 
 sub supported_methods {
-    return sort keys %methods;                ##no critic qw( ProhibitReturnSort ) - this will always be a list.
+    return sort keys %methods;                  ##no critic qw( ProhibitReturnSort ) - this will always be a list.
 }
 
 our $AUTOLOAD;
