@@ -2507,6 +2507,7 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::OS        ();
 
     # use Elevate::Blockers::Base();
     our @ISA;
@@ -2521,6 +2522,7 @@ EOS
 
         return if $self->is_check_mode();    # skip for --check
 
+        return unless Elevate::OS::needs_leapp();
         return unless $self->should_perform_upgrade();
 
         return if ( $self->blockers->num_blockers_found() > 0 );    # skip if any blockers have already been found

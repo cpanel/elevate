@@ -13,6 +13,7 @@ Blocker to check if leapp finds any upgrade inhibitors.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -23,6 +24,7 @@ sub check ($self) {
 
     return if $self->is_check_mode();    # skip for --check
 
+    return unless Elevate::OS::needs_leapp();
     return unless $self->should_perform_upgrade();
 
     return if ( $self->blockers->num_blockers_found() > 0 );    # skip if any blockers have already been found
