@@ -20,7 +20,7 @@ sub _OPTIONS {
       service start clean continue manual-reboots status log check:s
       skip-cpanel-version-check skip-elevate-version-check
       update version
-      no-leapp
+      no-leapp upgrade-manually
       non-interactive
       leappbeta
     );
@@ -77,6 +77,8 @@ sub init ( $self, @args ) {
         $self->{_getopt},
         _OPTIONS()
     ) or return $self->help( "Invalid Option", 1 );
+
+    $self->{_getopt}->{'upgrade-manually'} = 1 if $self->getopt('no-leapp');
 
     return unless $self->_validate_option_combos();
 

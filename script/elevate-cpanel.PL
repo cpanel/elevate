@@ -64,7 +64,8 @@ CloudLinux 7 => CloudLinux 8
        --skip-cpanel-version-check               Skip the check for whether cPanel is up to date.
                                                  This option is intended only for testing!
 
-       --no-leapp                                Do not try to run leapp, and pause instead.
+       --no-leapp                                Alias for --upgrade-manually.
+       --upgrade-manually                        Do not execute the OS's upgrade utility, and pause instead.
                                                  Once leapp has been run you should remove the file
                                                  /waiting_for_distro_upgrade
 
@@ -137,14 +138,14 @@ the update process by running:
 By default, the elevate script runs the L<leapp process|https://almalinux.org/elevate/>
 to upgrade you from 7 to 8. `Leapp` may not be compatible with your system.
 
-Using the `--no-leapp` option gives you a way to do the actual distro upgrade in your own way.
+Using the `--upgrade-manually` option gives you a way to do the actual distro upgrade in your own way.
 This, for instance, can be used to allow `Virtuozzo` systems to upgrade cPanel systems, which are not supported by `Leapp`.
 
-A `--no-leapp` upgrade would look like:
+A `--upgrade-manually` upgrade would look like:
 
 =over
 
-=item 1. User runs `/scripts/elevate-cpanel --start --no-leapp` which starts the upgrade process.
+=item 1. User runs `/scripts/elevate-cpanel --start --upgrade-manually` which starts the upgrade process.
 
 =item 2. `elevate-cpanel` does all preparatory steps to upgrade the system prior to the distro upgrade.
 
@@ -158,11 +159,11 @@ A `--no-leapp` upgrade would look like:
 
 =back
 
-=item 4. Elevate will resume upon reboot and complete the upgrade just like it would have without `--no-leapp`
+=item 4. Elevate will resume upon reboot and complete the upgrade just like it would have without `--upgrade-manually`
 
 =back
 
-NOTE: `--no-leapp` is not required for helper commands like `--continue` or `--status`
+NOTE: `--upgrade-manually` is not required for helper commands like `--continue` or `--status`
 
 =head1 WARNINGS
 
@@ -553,7 +554,7 @@ sub start ($self) {
 
     $self->_capture_env_variables();    # capture at startup
 
-    if ( $self->getopt('no-leapp') ) {
+    if ( $self->getopt('upgrade-manually') ) {
         my $touchfile = PAUSE_ELEVATE_TOUCHFILE;
         WARN( <<~"EOS");
         'leapp' checks and run are disabled.
@@ -563,7 +564,7 @@ sub start ($self) {
         Once the system has been successfully upgraded from 7 to 8 you can then remove that file
         to let the elevation process continue and update cPanel for the updated distribution.
         EOS
-        Elevate::StageFile::update_stage_file( { no_leapp => 1 } );
+        Elevate::StageFile::update_stage_file( { upgrade_manually => 1 } );
     }
 
     # This starts the service for us:
@@ -937,7 +938,7 @@ sub run_stage_1 ($self) {
 
     Elevate::Motd->setup();
 
-    if ( !$self->should_run_leapp() ) {
+    if ( !$self->should_perform_upgrade() ) {
         Elevate::Stages::bump_stage();
         return ACTION_CONTINUE;
     }
@@ -1011,7 +1012,7 @@ sub run_stage_3 ($self) {
 
     $self->run_once('run_final_components_pre_leapp');
 
-    if ( !$self->should_run_leapp() ) {
+    if ( !$self->should_perform_upgrade() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
@@ -1482,13 +1483,13 @@ sub post_upgrade_check ($self) {
 
 # TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.
 
-sub should_run_leapp ($self) {
+sub should_perform_upgrade ($self) {
 
-    # we store the no_leapp option, but prefer using a positive check instead
-    # we need to check to see if the no-leapp option is passed via CLI here too in order
-    # to allow users to run this script with the '--check --no-leapp' options
-    my $no_leapp = Elevate::StageFile::read_stage_file( 'no_leapp', 0 ) || $self->getopt('no-leapp');
-    return !$no_leapp;
+    # we store the upgrade_manually option, but prefer using a positive check instead
+    # we need to check to see if the upgrade-manually option is passed via CLI here too in order
+    # to allow users to run this script with the '--check --upgrade-manually' options
+    my $upgrade_manually = Elevate::StageFile::read_stage_file( 'upgrade_manually', 0 ) || $self->getopt('upgrade-manually');
+    return !$upgrade_manually;
 }
 
 sub get_current_status ($self) {

@@ -88,7 +88,7 @@ sub _remove_but_dont_stop_service ($self) {
 }
 
 sub verify_cmdline ($self) {
-    if ( $self->cpev->should_run_leapp() ) {
+    if ( $self->cpev->should_perform_upgrade() ) {
         my $arg = "elevate-" . _persistent_id;
         INFO("Checking for \"$arg\" in booted kernel's command line...");
 

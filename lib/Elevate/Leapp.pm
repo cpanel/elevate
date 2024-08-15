@@ -94,7 +94,7 @@ sub preupgrade ($self) {
 
 sub upgrade ($self) {
 
-    return unless $self->cpev->should_run_leapp();
+    return unless $self->cpev->should_perform_upgrade();
 
     $self->cpev->run_once(
         setup_answer_file => sub {
@@ -244,7 +244,7 @@ sub extract_error_block_from_output ( $self, $text_ar ) {
 sub wait_for_leapp_completion ($self) {
 
     # No use waiting for leapp to complete if we did not run leapp
-    return 1 unless $self->cpev->should_run_leapp();
+    return 1 unless $self->cpev->should_perform_upgrade();
 
     my $upgrade_log = LEAPP_UPGRADE_LOG;
 
