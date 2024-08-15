@@ -108,7 +108,7 @@ sub _reinstall_mysql_packages {
         Unable to install $upgrade_dbtype_name $upgrade_version.  To attempt to
         install the database server manually, execute:
 
-        /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade veresion=$upgrade_version
+        /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
 
         To have this script attempt to install $upgrade_dbtype_name $upgrade_version
         for you, execute this script again with the continue flag
