@@ -105,6 +105,7 @@ BEGIN {
         'supports_jetbackup',                   # This is used to determine if jetbackup is currently supported
         'supports_postgresql',                  # This is used to determine if postgresql is supported for this upgrade
         'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
+        'vetted_apt_lists',                     # This is a list of known apt lists that we do not block on
         'vetted_mysql_yum_repo_ids',            # This is a list of known mysql yum repo ids
         'vetted_yum_repo',                      # This is a list of known yum repos that we do not block on
     );

@@ -252,6 +252,7 @@ use Elevate::Blockers::Grub2            ();
 use Elevate::Blockers::Imunify          ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::Lists            ();
 use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
 use Elevate::Blockers::OVH              ();    # using a constant
@@ -316,6 +317,7 @@ use Elevate::StageFile        ();
 use Elevate::Stages           ();
 use Elevate::SystemctlService ();
 use Elevate::Usage            ();
+use Elevate::APT              ();
 use Elevate::DNF              ();
 use Elevate::YUM              ();
 

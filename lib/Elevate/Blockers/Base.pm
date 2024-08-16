@@ -17,6 +17,7 @@ use Cpanel::JSON ();
 
 use Simple::Accessor qw(
   blockers
+  apt
   yum
 );
 
@@ -37,6 +38,10 @@ sub _build_yum ($self) {
     return Elevate::YUM->new( cpev => $self );
 }
 
+sub _build_apt ($self) {
+    return Elevate::APT->new( cpev => $self );
+}
+
 sub cpev ($self) {
     return $self->blockers->cpev;
 }
@@ -47,6 +52,7 @@ BEGIN {
       getopt
       should_perform_upgrade
       ssystem
+      ssystem_and_die
       ssystem_capture_output
       ssystem_hide_and_capture_output
     };
