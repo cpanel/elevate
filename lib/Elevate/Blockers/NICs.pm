@@ -24,7 +24,11 @@ use constant ETH_FILE_PREFIX => Elevate::Constants::ETH_FILE_PREFIX;
 use constant SBIN_IP         => Elevate::Constants::SBIN_IP;
 
 sub check ($self) {
+
+    # This only matters for upgrades performed with the leapp utility
+    return 1 unless Elevate::OS::needs_leapp();
     return 1 unless $self->should_perform_upgrade();
+
     return $self->_blocker_bad_nics_naming;
 }
 
