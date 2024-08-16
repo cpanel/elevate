@@ -289,6 +289,7 @@ use Elevate::Components::AutoSSL            ();
 use Elevate::Components::DatabaseUpgrade    ();
 use Elevate::Components::ELS                ();
 use Elevate::Components::R1Soft             ();
+use Elevate::Components::Panopta            ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -1331,6 +1332,7 @@ sub run_final_components_pre_leapp ($self) {
     $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
     $self->run_component_once( 'ELS'              => 'pre_leapp' );
     $self->run_component_once( 'R1Soft'           => 'pre_leapp' );
+    $self->run_component_once( 'Panopta'          => 'pre_leapp' );
     $self->run_component_once( 'RpmDB'            => 'pre_leapp' );    # remove the RPMs last
 
     return;
