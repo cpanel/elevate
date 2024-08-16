@@ -291,6 +291,7 @@ use Elevate::Components::AutoSSL            ();
 use Elevate::Components::DatabaseUpgrade    ();
 use Elevate::Components::ELS                ();
 use Elevate::Components::R1Soft             ();
+use Elevate::Components::UpdateSystem       ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -953,11 +954,8 @@ Update the current distro packages then reboot.
 
 sub run_stage_2 ($self) {
 
-    $self->run_component_once( 'Grub2' => 'verify_cmdline' );
-
-    $self->ssystem(qw{/usr/bin/yum clean all});
-    $self->ssystem_and_die(qw{/scripts/update-packages});
-    $self->ssystem_and_die(qw{/usr/bin/yum -y update});
+    $self->run_component_once( 'Grub2'        => 'verify_cmdline' );
+    $self->run_component_once( 'UpdateSystem' => 'pre_leapp' );
 
     # This needs to execute before we disable cPanel services
     # or exporting the CCS data will fail

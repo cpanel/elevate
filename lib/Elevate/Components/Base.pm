@@ -18,6 +18,7 @@ use cPstrict;
 use Carp             ();
 use Simple::Accessor qw(
   cpev
+  apt
   rpm
   yum
   dnf
@@ -45,6 +46,10 @@ BEGIN {
             return $sub->( $cpev, @args );
         }
     }
+}
+
+sub _build_apt ($self) {
+    return Elevate::APT->new( cpev => $self );
 }
 
 sub _build_rpm ($self) {

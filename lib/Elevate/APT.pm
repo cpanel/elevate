@@ -15,12 +15,24 @@ use cPstrict;
 use constant APT      => q[/usr/bin/apt];
 use constant APT_MARK => q[/usr/bin/apt-mark];
 
+use constant APT_NON_INTERACTIVE_ARGS => qw{
+  -o Dpkg::Options::=--force-confdef
+  -o Dpkg::Options::=--force-confold
+};
+
 use Simple::Accessor qw{
   cpev
 };
 
 sub _build_cpev {
     die q[Missing cpev];
+}
+
+sub upgrade_all ($self) {
+    my @apt_args = '-y';
+    push @apt_args, APT_NON_INTERACTIVE_ARGS;
+    $self->cpev->ssystem_and_die( APT, @apt_args, 'upgrade' );
+    return;
 }
 
 sub update ($self) {
