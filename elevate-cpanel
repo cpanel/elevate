@@ -623,6 +623,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     }
 
     sub _warning_if_postgresql_installed ($self) {
+        return 0 unless Elevate::OS::supports_postgresql();
         return 0 unless Cpanel::Pkgr::is_installed('postgresql-server');
 
         my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
@@ -636,7 +637,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     }
 
     sub _blocker_acknowledge_postgresql_datadir ($self) {
-
+        return 0 unless Elevate::OS::supports_postgresql();
         return 0 unless Cpanel::Pkgr::is_installed('postgresql-server');
 
         my $touch_file = POSTGRESQL_ACK_TOUCH_FILE;
@@ -6047,6 +6048,7 @@ EOS
             'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to
             'supported_cpanel_nameserver_types',    # Returns array of supported nameserver types
             'supports_jetbackup',                   # This is used to determine if jetbackup is currently supported
+            'supports_postgresql',                  # This is used to determine if postgresql is supported for this upgrade
             'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
             'vetted_mysql_yum_repo_ids',            # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                      # This is a list of known yum repos that we do not block on
@@ -6264,6 +6266,7 @@ EOS
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 0;
     use constant supports_jetbackup              => 1;
+    use constant supports_postgresql             => 1;
     use constant leapp_repo_beta                 => '';       # Unavailable by default.
 
     1;
@@ -6301,6 +6304,7 @@ EOS
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 1;
     use constant supports_jetbackup              => 0;
+    use constant supports_postgresql             => 0;
 
     1;
 

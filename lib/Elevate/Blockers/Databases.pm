@@ -40,6 +40,7 @@ sub check ($self) {
 }
 
 sub _warning_if_postgresql_installed ($self) {
+    return 0 unless Elevate::OS::supports_postgresql();
     return 0 unless Cpanel::Pkgr::is_installed('postgresql-server');
 
     my $pg_full_ver = Cpanel::Pkgr::get_package_version('postgresql-server');
@@ -53,7 +54,7 @@ sub _warning_if_postgresql_installed ($self) {
 }
 
 sub _blocker_acknowledge_postgresql_datadir ($self) {
-
+    return 0 unless Elevate::OS::supports_postgresql();
     return 0 unless Cpanel::Pkgr::is_installed('postgresql-server');
 
     my $touch_file = POSTGRESQL_ACK_TOUCH_FILE;

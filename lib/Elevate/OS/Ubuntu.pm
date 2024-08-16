@@ -36,5 +36,6 @@ use constant provides_mysql_governor         => 0;
 use constant should_check_cloudlinux_license => 0;
 use constant skip_minor_version_check        => 1;
 use constant supports_jetbackup              => 0;
+use constant supports_postgresql             => 0;
 
 1;
