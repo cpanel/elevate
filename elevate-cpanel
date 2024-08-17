@@ -2839,6 +2839,8 @@ EOS
 
     use cPstrict;
 
+    use Cpanel::OS ();
+
     use Carp             ();
     use Simple::Accessor qw(
       cpev
@@ -2886,6 +2888,10 @@ EOS
 
     sub _build_dnf ($self) {
         return Elevate::DNF->new( cpev => $self );
+    }
+
+    sub get_package_manager ($self) {
+        return Cpanel::OS::package_manager();
     }
 
     sub run_once ( $self, $subname ) {
@@ -4031,7 +4037,9 @@ EOS
 
     sub pre_leapp ($self) {
 
-        return if Elevate::OS::leapp_can_handle_imunify();
+        if ( Elevate::OS::needs_leapp() ) {
+            return if Elevate::OS::leapp_can_handle_imunify();
+        }
 
         return unless $self->is_installed;
 
@@ -4044,7 +4052,9 @@ EOS
 
     sub post_leapp ($self) {
 
-        return if Elevate::OS::leapp_can_handle_imunify();
+        if ( Elevate::OS::needs_leapp() ) {
+            return if Elevate::OS::leapp_can_handle_imunify();
+        }
 
         $self->run_once('_reinstall_imunify_360');
         $self->run_once('_restore_imunify_features');
@@ -4055,7 +4065,8 @@ EOS
 
     sub _capture_imunify_packages ($self) {
 
-        my @packages = grep { m/^imunify-/ } cpev::get_installed_rpms_in_repo(qw{ imunify imunify360 });
+        my $pkg_info = Cpanel::Pkgr::installed_packages('imunify-*');
+        my @packages = keys %$pkg_info;
 
         return unless scalar @packages;
 
@@ -4071,7 +4082,7 @@ EOS
         foreach my $pkg (@$packages) {
             next unless Cpanel::Pkgr::is_installed($pkg);
             INFO("Try to reinstall Imunify package: $pkg");
-            $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+            $self->get_package_manager()->install($pkg);
         }
 
         return;
@@ -4216,7 +4227,7 @@ EOS
             WARN("Imunify360: Failed to fetch script for $product_type. Skipping upgrade.");
             return;
         };
-        if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
+        if ( $self->ssystem( '/usr/bin/bash', $installer_script, '-y', '--uninstall' ) != 0 ) {
             WARN("Imunify360: Failed to uninstall $product_type.");
             return;
         }
@@ -4224,7 +4235,7 @@ EOS
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
 
-        $self->remove_rpms_from_repos('imunify');
+        $self->remove_rpms_from_repos('imunify') unless Elevate::OS::is_apt_based();
 
         return;
     }
@@ -4236,7 +4247,7 @@ EOS
 
         my $installer_script = _fetch_imunify_installer($product_type) or return;
 
-        if ( $self->ssystem( '/usr/bin/bash', $installer_script ) == 0 ) {
+        if ( $self->ssystem( '/usr/bin/bash', $installer_script, '-y' ) == 0 ) {
             INFO("Successfully reinstalled $product_type.");
         }
         else {
@@ -8418,6 +8429,12 @@ EOS
 
     sub _build_cpev {
         die q[Missing cpev];
+    }
+
+    sub install ( $self, @pkgs ) {
+        return unless scalar @pkgs;
+        $self->cpev->ssystem_and_die( APT, '-y', 'install', @pkgs );
+        return;
     }
 
     sub upgrade_all ($self) {

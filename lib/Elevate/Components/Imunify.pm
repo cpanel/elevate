@@ -35,7 +35,9 @@ use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . 
 
 sub pre_leapp ($self) {
 
-    return if Elevate::OS::leapp_can_handle_imunify();
+    if ( Elevate::OS::needs_leapp() ) {
+        return if Elevate::OS::leapp_can_handle_imunify();
+    }
 
     return unless $self->is_installed;
 
@@ -48,7 +50,9 @@ sub pre_leapp ($self) {
 
 sub post_leapp ($self) {
 
-    return if Elevate::OS::leapp_can_handle_imunify();
+    if ( Elevate::OS::needs_leapp() ) {
+        return if Elevate::OS::leapp_can_handle_imunify();
+    }
 
     # order matters
     $self->run_once('_reinstall_imunify_360');
@@ -60,8 +64,8 @@ sub post_leapp ($self) {
 
 sub _capture_imunify_packages ($self) {
 
-    # only capture the imunify packages
-    my @packages = grep { m/^imunify-/ } cpev::get_installed_rpms_in_repo(qw{ imunify imunify360 });
+    my $pkg_info = Cpanel::Pkgr::installed_packages('imunify-*');
+    my @packages = keys %$pkg_info;
 
     return unless scalar @packages;
 
@@ -79,7 +83,7 @@ sub _restore_imunify_packages ($self) {
     foreach my $pkg (@$packages) {
         next unless Cpanel::Pkgr::is_installed($pkg);
         INFO("Try to reinstall Imunify package: $pkg");
-        $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+        $self->get_package_manager()->install($pkg);
     }
 
     return;
@@ -229,7 +233,7 @@ sub _remove_imunify_360 ($self) {
         WARN("Imunify360: Failed to fetch script for $product_type. Skipping upgrade.");
         return;
     };
-    if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
+    if ( $self->ssystem( '/usr/bin/bash', $installer_script, '-y', '--uninstall' ) != 0 ) {
         WARN("Imunify360: Failed to uninstall $product_type.");
         return;
     }
@@ -238,7 +242,10 @@ sub _remove_imunify_360 ($self) {
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
 
     # Cleanup any lingering packages.
-    $self->remove_rpms_from_repos('imunify');
+    # Only do this for yum/dnf based systems since apt does not have this feature
+    # This should be fine to skip for apt anyway since things seem to just work
+    # after the upgrade anyway
+    $self->remove_rpms_from_repos('imunify') unless Elevate::OS::is_apt_based();
 
     return;
 }
@@ -250,7 +257,7 @@ sub _reinstall_imunify_360 ($self) {
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
-    if ( $self->ssystem( '/usr/bin/bash', $installer_script ) == 0 ) {
+    if ( $self->ssystem( '/usr/bin/bash', $installer_script, '-y' ) == 0 ) {
         INFO("Successfully reinstalled $product_type.");
     }
     else {

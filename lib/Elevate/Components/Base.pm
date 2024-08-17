@@ -15,6 +15,8 @@ before / after the elevation process.
 
 use cPstrict;
 
+use Cpanel::OS ();
+
 use Carp             ();
 use Simple::Accessor qw(
   cpev
@@ -62,6 +64,10 @@ sub _build_yum ($self) {
 
 sub _build_dnf ($self) {
     return Elevate::DNF->new( cpev => $self );
+}
+
+sub get_package_manager ($self) {
+    return Cpanel::OS::package_manager();
 }
 
 sub run_once ( $self, $subname ) {

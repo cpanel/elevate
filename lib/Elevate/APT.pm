@@ -28,6 +28,12 @@ sub _build_cpev {
     die q[Missing cpev];
 }
 
+sub install ( $self, @pkgs ) {
+    return unless scalar @pkgs;
+    $self->cpev->ssystem_and_die( APT, '-y', 'install', @pkgs );
+    return;
+}
+
 sub upgrade_all ($self) {
     my @apt_args = '-y';
     push @apt_args, APT_NON_INTERACTIVE_ARGS;
