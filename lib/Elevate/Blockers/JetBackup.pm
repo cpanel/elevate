@@ -36,7 +36,7 @@ sub _blocker_jetbackup_is_supported ($self) {
     my $name = Elevate::OS::default_upgrade_to();
     $self->has_blocker( <<~"END" );
     ELevate does not currently support JetBackup for upgrades of $name.
-    Support for JetBackup on Ubuntu will be added in a future version of ELevate.
+    Support for JetBackup on $name will be added in a future version of ELevate.
     END
 
     return;

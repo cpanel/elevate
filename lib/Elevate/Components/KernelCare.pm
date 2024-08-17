@@ -25,6 +25,7 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
+    return unless Elevate::OS::supports_kernelcare();
     return if Elevate::OS::leapp_can_handle_kernelcare();
 
     $self->run_once("_remove_kernelcare_if_needed");
@@ -34,6 +35,7 @@ sub pre_leapp ($self) {
 
 sub post_leapp ($self) {
 
+    return unless Elevate::OS::supports_kernelcare();
     return if Elevate::OS::leapp_can_handle_kernelcare();
 
     $self->run_once('_restore_kernelcare');

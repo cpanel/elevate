@@ -103,6 +103,7 @@ BEGIN {
         'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to
         'supported_cpanel_nameserver_types',    # Returns array of supported nameserver types
         'supports_jetbackup',                   # This is used to determine if jetbackup is currently supported
+        'supports_kernelcare',                  # This is used to determine if kernelcare is supported for this upgrade
         'supports_postgresql',                  # This is used to determine if postgresql is supported for this upgrade
         'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
         'vetted_apt_lists',                     # This is a list of known apt lists that we do not block on

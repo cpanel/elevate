@@ -27,6 +27,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Blockers/Imunify.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/IsContainer.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/JetBackup.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Blockers/KernelCare.pm'}           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/Lists.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/MountPoints.pm'}          = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Blockers/NICs.pm'}                 = 'script/elevate-cpanel.PL.static';
@@ -275,6 +276,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Blockers::Imunify          ();
     use Elevate::Blockers::IsContainer      ();
     use Elevate::Blockers::JetBackup        ();
+    use Elevate::Blockers::KernelCare       ();
     use Elevate::Blockers::Lists            ();
     use Elevate::Blockers::MountPoints      ();
     use Elevate::Blockers::NICs             ();
@@ -313,6 +315,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       Repositories
       Lists
       JetBackup
+      KernelCare
       NICs
       EA4
       BootKernel
@@ -1545,7 +1548,7 @@ EOS
         my $name = Elevate::OS::default_upgrade_to();
         $self->has_blocker( <<~"END" );
     ELevate does not currently support JetBackup for upgrades of $name.
-    Support for JetBackup on Ubuntu will be added in a future version of ELevate.
+    Support for JetBackup on $name will be added in a future version of ELevate.
     END
 
         return;
@@ -1579,6 +1582,36 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Blockers/JetBackup.pm
+
+{    # --- BEGIN lib/Elevate/Blockers/KernelCare.pm
+
+    package Elevate::Blockers::KernelCare;
+
+    use cPstrict;
+
+    # use Elevate::Blockers::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Blockers::Base); }
+
+    use Elevate::OS ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    sub check ($self) {
+        return unless -x q[/usr/bin/kcarectl];
+        return if Elevate::OS::supports_kernelcare();
+
+        my $name = Elevate::OS::default_upgrade_to();
+        return $self->has_blocker( <<~"EOS" );
+    ELevate does not currently support KernelCare for upgrades of $name.
+    Support for KernelCare on $name will be added in a future version of ELevate.
+    EOS
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Blockers/KernelCare.pm
 
 {    # --- BEGIN lib/Elevate/Blockers/Lists.pm
 
@@ -4440,6 +4473,7 @@ EOS
 
     sub pre_leapp ($self) {
 
+        return unless Elevate::OS::supports_kernelcare();
         return if Elevate::OS::leapp_can_handle_kernelcare();
 
         $self->run_once("_remove_kernelcare_if_needed");
@@ -4449,6 +4483,7 @@ EOS
 
     sub post_leapp ($self) {
 
+        return unless Elevate::OS::supports_kernelcare();
         return if Elevate::OS::leapp_can_handle_kernelcare();
 
         $self->run_once('_restore_kernelcare');
@@ -6240,6 +6275,7 @@ EOS
             'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to
             'supported_cpanel_nameserver_types',    # Returns array of supported nameserver types
             'supports_jetbackup',                   # This is used to determine if jetbackup is currently supported
+            'supports_kernelcare',                  # This is used to determine if kernelcare is supported for this upgrade
             'supports_postgresql',                  # This is used to determine if postgresql is supported for this upgrade
             'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
             'vetted_apt_lists',                     # This is a list of known apt lists that we do not block on
@@ -6459,6 +6495,7 @@ EOS
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 0;
     use constant supports_jetbackup              => 1;
+    use constant supports_kernelcare             => 1;
     use constant supports_postgresql             => 1;
     use constant leapp_repo_beta                 => '';       # Unavailable by default.
 
@@ -6527,6 +6564,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 1;
     use constant supports_jetbackup              => 0;
+    use constant supports_kernelcare             => 0;
     use constant supports_postgresql             => 0;
 
     1;
@@ -8830,6 +8868,7 @@ use Elevate::Blockers::Grub2            ();
 use Elevate::Blockers::Imunify          ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::KernelCare       ();
 use Elevate::Blockers::Lists            ();
 use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();

@@ -252,6 +252,7 @@ use Elevate::Blockers::Grub2            ();
 use Elevate::Blockers::Imunify          ();
 use Elevate::Blockers::IsContainer      ();
 use Elevate::Blockers::JetBackup        ();
+use Elevate::Blockers::KernelCare       ();
 use Elevate::Blockers::Lists            ();
 use Elevate::Blockers::MountPoints      ();
 use Elevate::Blockers::NICs             ();
