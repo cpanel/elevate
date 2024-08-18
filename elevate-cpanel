@@ -4664,7 +4664,7 @@ EOS
 
         File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
 
-        $self->_remove_cpanel_mysql_packages();
+        $self->_remove_cpanel_mysql_packages() unless Elevate::OS::is_apt_based();
 
         return;
     }

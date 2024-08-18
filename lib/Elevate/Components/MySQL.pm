@@ -58,8 +58,10 @@ sub _cleanup_mysql_packages ($self) {
     #
     # we cannot only remove the packages for the current MySQL versions
     # some packages can also installed from other repo
+    #
+    # This is not necessary on apt based systems
 
-    $self->_remove_cpanel_mysql_packages();
+    $self->_remove_cpanel_mysql_packages() unless Elevate::OS::is_apt_based();
 
     return;
 }
