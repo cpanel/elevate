@@ -13,6 +13,7 @@ Remove and reinstall some arch RPMs. (plugins)
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 use Elevate::StageFile ();
 
 use Cwd           ();
@@ -21,6 +22,7 @@ use Log::Log4perl qw(:easy);
 use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
+    return if Elevate::OS::is_apt_based();
 
     # Backup arch rpms which we're going to remove and are provided by yum.
     my @installed_arch_cpanel_plugins;
@@ -39,6 +41,7 @@ sub pre_leapp ($self) {
 }
 
 sub post_leapp ($self) {
+    return if Elevate::OS::is_apt_based();
 
     # Restore YUM arch plugins.
 

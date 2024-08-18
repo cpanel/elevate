@@ -3392,6 +3392,7 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::OS        ();
     use Elevate::StageFile ();
 
     use Cwd ();
@@ -3404,6 +3405,7 @@ EOS
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
     sub pre_leapp ($self) {
+        return if Elevate::OS::is_apt_based();
 
         my @installed_arch_cpanel_plugins;
 
@@ -3421,6 +3423,7 @@ EOS
     }
 
     sub post_leapp ($self) {
+        return if Elevate::OS::is_apt_based();
 
         my $stash            = Elevate::StageFile::read_stage_file();
         my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
@@ -4630,6 +4633,7 @@ EOS
 
     use Elevate::Database  ();
     use Elevate::Notify    ();
+    use Elevate::OS        ();
     use Elevate::StageFile ();
 
     # use Elevate::Components::Base();

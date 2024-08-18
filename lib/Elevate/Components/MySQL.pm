@@ -21,6 +21,7 @@ use Cpanel::JSON ();
 
 use Elevate::Database  ();
 use Elevate::Notify    ();
+use Elevate::OS        ();
 use Elevate::StageFile ();
 
 use parent qw{Elevate::Components::Base};
