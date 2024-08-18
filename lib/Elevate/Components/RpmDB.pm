@@ -73,7 +73,7 @@ sub post_leapp ($self) {
 
 sub _sysup ($self) {
     Cpanel::Yum::Vars::install();
-    $self->package_manager->clean_all();
+    $self->get_package_manager->clean_all();
 
     unless ( Elevate::OS::is_apt_based() ) {
         my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
@@ -93,7 +93,7 @@ sub _sysup ($self) {
         local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
         $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
     }
-    $self->package_manager->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
+    $self->get_package_manager->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
     $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
 
     return;

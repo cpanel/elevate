@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::Fetch     ();
+use Elevate::OS        ();
 use Elevate::StageFile ();
 
 use Cpanel::SafeRun::Errors ();
@@ -46,11 +47,10 @@ sub _remove_wordpress_toolkit ($self) {
     backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
     backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
 
-    my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e wp-toolkit-cpanel});
-    DEBUG($output) if $output;
+    $self->get_package_manager->remove('wp-toolkit-cpanel');
 
-    cpev::yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
-    $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
+    $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/)
+      unless Elevate::OS::is_apt_based();
 
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
 

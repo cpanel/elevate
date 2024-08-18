@@ -5579,7 +5579,7 @@ EOS
 
     sub _sysup ($self) {
         Cpanel::Yum::Vars::install();
-        $self->package_manager->clean_all();
+        $self->get_package_manager->clean_all();
 
         unless ( Elevate::OS::is_apt_based() ) {
             my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
@@ -5597,7 +5597,7 @@ EOS
             local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
             $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
         }
-        $self->package_manager->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
+        $self->get_package_manager->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
         $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
 
         return;
@@ -5651,6 +5651,7 @@ EOS
 
     use Elevate::Constants ();
     use Elevate::Fetch     ();
+    use Elevate::OS        ();
     use Elevate::StageFile ();
 
     use Cpanel::SafeRun::Errors ();
@@ -5687,11 +5688,10 @@ EOS
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
 
-        my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/rpm -e wp-toolkit-cpanel});
-        DEBUG($output) if $output;
+        $self->get_package_manager->remove('wp-toolkit-cpanel');
 
-        cpev::yum_list(1);    # Invalidate the cache since we just ran an rpm -e by hand.
-        $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
+        $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/)
+          unless Elevate::OS::is_apt_based();
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
 
