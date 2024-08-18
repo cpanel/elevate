@@ -6803,7 +6803,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
             my $out = $self->cpev->ssystem_capture_output(
                 DPKG_QUERY,
-                q[--showformat='${Conffiles}\n'],
+                q[--showformat=${Conffiles}\n],
                 '--show',
                 $pkg
             );

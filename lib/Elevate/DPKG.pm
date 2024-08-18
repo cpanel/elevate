@@ -47,7 +47,7 @@ sub _get_config_files ( $self, $pkgs ) {
 
         my $out = $self->cpev->ssystem_capture_output(
             DPKG_QUERY,
-            q[--showformat='${Conffiles}\n'],
+            q[--showformat=${Conffiles}\n],
             '--show',
             $pkg
         );
