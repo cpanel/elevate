@@ -108,4 +108,28 @@ sub restore_config_files ( $self, @files ) {
     return;
 }
 
+sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
+    $self->cpev->ssystem( DPKG, '--remove', '--force-remove-reinstreq', '--force-depends', $pkg );
+    return;
+}
+
+sub get_cpanel_arch_rpms ($self) {
+    my @installed_rpms = $self->get_installed_rpms();
+
+    # Ubuntu does not distiguish x86_64 from noarch the way RHEL does
+    # so just remove anything with the 'cpanel-' prefix
+    my @cpanel_arch_rpms = grep { $_ =~ m/^cpanel-/ } @installed_rpms;
+    return @cpanel_arch_rpms;
+}
+
+sub remove_cpanel_arch_rpms ($self) {
+    my @rpms_to_remove = $self->get_cpanel_arch_rpms();
+
+    foreach my $rpm (@rpms_to_remove) {
+        $self->remove_no_dependencies_and_justdb($rpm);
+    }
+
+    return;
+}
+
 1;

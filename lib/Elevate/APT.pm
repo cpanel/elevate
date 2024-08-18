@@ -79,4 +79,20 @@ sub showhold ($self) {
     return $self->cpev->ssystem_hide_and_capture_output( APT_MARK, 'showhold' );
 }
 
+sub clean_all ($self) {
+    $self->cpev->ssystem( APT_GET, 'clean' );
+    return;
+}
+
+=head2 update_allow_erasing
+
+Just an alias for upgrade_all in APT but needed for feature
+compatibility with DNF
+
+=cut
+
+sub update_allow_erasing ( $self, @args ) {
+    return $self->upgrade_all();
+}
+
 1;

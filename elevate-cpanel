@@ -5551,7 +5551,7 @@ EOS
 
     sub _cleanup_rpms ($self) {
 
-        $self->rpm->remove_cpanel_arch_rpms();
+        $self->get_package_utility->remove_cpanel_arch_rpms();
 
         $self->_remove_obsolete_packages();
 
@@ -5559,8 +5559,10 @@ EOS
     }
 
     sub _remove_obsolete_packages ($self) {
+        return unless Elevate::OS::needs_leapp();
+
         my @pkgs_to_remove = OBSOLETE_PACKAGES();
-        $self->yum->remove(@pkgs_to_remove);
+        $self->get_package_manager->remove(@pkgs_to_remove);
         return;
     }
 
@@ -5573,23 +5575,25 @@ EOS
 
     sub _sysup ($self) {
         Cpanel::Yum::Vars::install();
-        $self->dnf->clean_all();
+        $self->package_manager->clean_all();
 
-        my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
+        unless ( Elevate::OS::is_apt_based() ) {
+            my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
 
-        unless ( Cpanel::Pkgr::is_installed('epel-release') ) {
-            $self->dnf->install_rpm_via_url($epel_url);
+            unless ( Cpanel::Pkgr::is_installed('epel-release') ) {
+                $self->dnf->install_rpm_via_url($epel_url);
+            }
+
+            $self->dnf->config_manager_enable('powertools');
+            $self->dnf->config_manager_enable('epel');
         }
-
-        $self->dnf->config_manager_enable('powertools');
-        $self->dnf->config_manager_enable('epel');
 
         unlink('/usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm');
         {
             local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
             $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
         }
-        $self->dnf->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
+        $self->package_manager->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
         $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
 
         return;
@@ -6846,6 +6850,28 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
             next unless -e $backup_file;
 
             File::Copy::move( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
+        }
+
+        return;
+    }
+
+    sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
+        $self->cpev->ssystem( DPKG, '--remove', '--force-remove-reinstreq', '--force-depends', $pkg );
+        return;
+    }
+
+    sub get_cpanel_arch_rpms ($self) {
+        my @installed_rpms = $self->get_installed_rpms();
+
+        my @cpanel_arch_rpms = grep { $_ =~ m/^cpanel-/ } @installed_rpms;
+        return @cpanel_arch_rpms;
+    }
+
+    sub remove_cpanel_arch_rpms ($self) {
+        my @rpms_to_remove = $self->get_cpanel_arch_rpms();
+
+        foreach my $rpm (@rpms_to_remove) {
+            $self->remove_no_dependencies_and_justdb($rpm);
         }
 
         return;
@@ -8592,6 +8618,15 @@ EOS
 
     sub showhold ($self) {
         return $self->cpev->ssystem_hide_and_capture_output( APT_MARK, 'showhold' );
+    }
+
+    sub clean_all ($self) {
+        $self->cpev->ssystem( APT_GET, 'clean' );
+        return;
+    }
+
+    sub update_allow_erasing ( $self, @args ) {
+        return $self->upgrade_all();
     }
 
     1;
