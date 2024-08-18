@@ -25,6 +25,8 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
+    return if Elevate::OS::is_apt_based();
+
     $self->run_once("_disable_epel");
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
