@@ -65,6 +65,7 @@ use constant name                            => 'Ubuntu';
 use constant needs_leapp                     => 0;
 use constant pretty_name                     => 'Ubuntu';
 use constant provides_mysql_governor         => 0;
+use constant remove_els                      => 0;
 use constant should_check_cloudlinux_license => 0;
 use constant skip_minor_version_check        => 1;
 use constant supports_jetbackup              => 0;
