@@ -16,6 +16,7 @@ use Elevate::EA4       ();
 use Elevate::StageFile ();
 
 use Cpanel::JSON            ();
+use Cpanel::Pkgr            ();
 use Cpanel::SafeRun::Simple ();
 
 use Log::Log4perl qw(:easy);
@@ -65,7 +66,7 @@ sub _backup_ea4_profile ($self) {
 sub _cleanup_rpm_db ($self) {
 
     # remove all ea- packages
-    $self->yum->remove('ea-*');
+    $self->get_package_manager()->remove('ea-*');
 
     return;
 }
@@ -77,8 +78,8 @@ sub _restore_ea_addons ($self) {
     INFO("Restoring ea-nginx");
 
     # ea profile restore it in a broken state - remove & reinstall
-    $self->ssystem(qw{/usr/bin/rpm -e --nodeps ea-nginx});
-    $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
+    Cpanel::Pkgr::remove_packages_nodeps('ea-nginx');
+    $self->get_package_manager()->install('ea-nginx');
 
     return;
 }
@@ -121,7 +122,7 @@ sub _backup_config_files ($self) {
 
     Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-    my $ea4_config_files = $self->rpm->get_config_files_for_pkg_prefix('ea-');
+    my $ea4_config_files = $self->get_package_utility()->get_config_files_for_pkg_prefix('ea-');
 
     Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
@@ -150,7 +151,7 @@ sub _restore_config_files ($self) {
             @config_files_to_restore = grep { !$config_files_to_ignore{$key}{$_} } @config_files_to_restore;
         }
 
-        $self->rpm->restore_config_files(@config_files_to_restore);
+        $self->get_package_utility()->restore_config_files(@config_files_to_restore);
     }
 
     return;

@@ -21,6 +21,7 @@ use Carp             ();
 use Simple::Accessor qw(
   cpev
   apt
+  dpkg
   rpm
   yum
   dnf
@@ -50,6 +51,10 @@ BEGIN {
     }
 }
 
+sub _build_dpkg ($self) {
+    return Elevate::DPKG->new( cpev => $self );
+}
+
 sub _build_apt ($self) {
     return Elevate::APT->new( cpev => $self );
 }
@@ -67,7 +72,13 @@ sub _build_dnf ($self) {
 }
 
 sub get_package_manager ($self) {
-    return Cpanel::OS::package_manager();
+    my $package_manager = Cpanel::OS::package_manager();
+    return $self->$package_manager();
+}
+
+sub get_package_utility ($self) {
+    my $package_utility = Elevate::OS::is_apt_based() ? 'dpkg' : 'rpm';
+    return $self->$package_utility();
 }
 
 sub run_once ( $self, $subname ) {

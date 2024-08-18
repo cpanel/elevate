@@ -13,6 +13,7 @@ Logic wrapping the 'apt' system binary
 use cPstrict;
 
 use constant APT      => q[/usr/bin/apt];
+use constant APT_GET  => q[/usr/bin/apt-get];
 use constant APT_MARK => q[/usr/bin/apt-mark];
 
 use constant APT_NON_INTERACTIVE_ARGS => qw{
@@ -30,13 +31,41 @@ sub _build_cpev {
 
 sub install ( $self, @pkgs ) {
     return unless scalar @pkgs;
-    $self->cpev->ssystem_and_die( APT, '-y', 'install', @pkgs );
+
+    my @apt_args = (
+        '-y',
+        APT_NON_INTERACTIVE_ARGS,
+    );
+
+    $self->cpev->ssystem_and_die( APT_GET, @apt_args, 'install', @pkgs );
+    return;
+}
+
+=head2 remove
+
+Use purge instead of remove for apt to have similar behavior to yum/dnf
+
+=cut
+
+sub remove ( $self, @pkgs ) {
+    return unless scalar @pkgs;
+
+    my @apt_args = (
+        '-y',
+        APT_NON_INTERACTIVE_ARGS,
+    );
+
+    $self->cpev->ssystem_and_die( APT_GET, @apt_args, 'purge', @pkgs );
     return;
 }
 
 sub upgrade_all ($self) {
-    my @apt_args = '-y';
-    push @apt_args, APT_NON_INTERACTIVE_ARGS;
+
+    my @apt_args = (
+        '-y',
+        APT_NON_INTERACTIVE_ARGS,
+    );
+
     $self->cpev->ssystem_and_die( APT, @apt_args, 'upgrade' );
     return;
 }
