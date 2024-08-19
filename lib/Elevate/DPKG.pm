@@ -109,7 +109,11 @@ sub restore_config_files ( $self, @files ) {
 }
 
 sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
-    $self->cpev->ssystem( DPKG, '--remove', '--force-remove-reinstreq', '--force-depends', $pkg );
+
+    # TODO: The RPM version of this just removes the packages from the rpmdb
+    #       and does not touch the filesystem.  Dpkg does not have a similar
+    #       functionality so we are skipping this step for now.
+    # $self->cpev->ssystem( DPKG, '--remove', '--force-remove-reinstreq', '--force-depends', $pkg );
     return;
 }
 
