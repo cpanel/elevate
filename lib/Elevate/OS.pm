@@ -83,6 +83,7 @@ BEGIN {
         'disable_mysql_yum_repos',              # This is a list of mysql repo files to disable
         'ea_alias',                             # This is the value for the --target-os flag used when backing up an EA4 profile
         'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
+        'expected_post_upgrade_major',          # The OS version we expect to upgrade to
         'leapp_repo_prod',                      # This is the repo name for the production repo.
         'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
         'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
@@ -96,6 +97,7 @@ BEGIN {
         'name',                                 # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
         'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
         'needs_do_release_upgrade',             # This is used to determine if the OS requires the do-release-upgrades utility to upgrade
+        'original_os_major',                    # The initial starting OS major version
         'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
         'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
         'remove_els',                           # This is used to indicate if we are to remove ELS for this OS

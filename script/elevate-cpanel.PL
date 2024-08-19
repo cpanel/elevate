@@ -1083,28 +1083,39 @@ sub run_stage_4 ($self) {
         END
     }
 
-    if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
+    my $major = Cpanel::OS::major();
+    if ( $major != Elevate::OS::expected_post_upgrade_major() ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         my $current_distro     = Cpanel::OS::pretty_distro();
 
-        if ( Cpanel::OS::major() == 7 ) {    ## no critic(Cpanel::CpanelOS)
+        if ( $major == Elevate::OS::original_os_major() ) {          ## no critic(Cpanel::CpanelOS)
             WARN("Detected $current_distro from stage 4, reverting back to stage 3.");
             Elevate::Stages::update_stage_number(3);
         }
 
-        die( <<~"END");
-        Server is currently running $current_distro after leapp upgrade.
+        my $msg = <<~"END";
+        Server is currently running $current_distro $major after leapp upgrade.
         Upgrade to $pretty_distro_name did not succeed.
 
-        Please review your upgrade logs and correct the problem.
-        `leapp` logs are located at:
-            /var/log/leapp/leapp-report.txt
-            /var/log/leapp/leapp-report.json
+        END
 
+        if ( Elevate::OS::needs_leapp() ) {
+            $msg .= <<~'END';
+            Please review your upgrade logs and correct the problem.
+            `leapp` logs are located at:
+                /var/log/leapp/leapp-report.txt
+                /var/log/leapp/leapp-report.json
+
+            END
+        }
+
+        $msg .= <<~'END';
         Once you believe you have corrected the problem you can continue the upgrade process
         by running:
             /scripts/elevate-cpanel --continue
         END
+
+        die "$msg\n";
     }
 
     my $stash = Elevate::StageFile::read_stage_file();

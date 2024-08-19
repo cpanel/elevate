@@ -6385,6 +6385,7 @@ EOS
             'disable_mysql_yum_repos',              # This is a list of mysql repo files to disable
             'ea_alias',                             # This is the value for the --target-os flag used when backing up an EA4 profile
             'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
+            'expected_post_upgrade_major',          # The OS version we expect to upgrade to
             'leapp_repo_prod',                      # This is the repo name for the production repo.
             'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
             'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
@@ -6398,6 +6399,7 @@ EOS
             'name',                                 # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
             'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
             'needs_do_release_upgrade',             # This is used to determine if the OS requires the do-release-upgrades utility to upgrade
+            'original_os_major',                    # The initial starting OS major version
             'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
             'remove_els',                           # This is used to indicate if we are to remove ELS for this OS
@@ -6462,15 +6464,17 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::OS::RHEL); }
 
-    use constant default_upgrade_to     => 'AlmaLinux';
-    use constant ea_alias               => 'CentOS_8';
-    use constant elevate_rpm_url        => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
-    use constant leapp_data_pkg         => 'leapp-data-almalinux';
-    use constant leapp_repo_prod        => 'elevate';
-    use constant name                   => 'CentOS7';
-    use constant pretty_name            => 'CentOS 7';
-    use constant remove_els             => 1;
-    use constant upgrade_to_pretty_name => 'AlmaLinux 8';
+    use constant default_upgrade_to          => 'AlmaLinux';
+    use constant ea_alias                    => 'CentOS_8';
+    use constant elevate_rpm_url             => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
+    use constant expected_post_upgrade_major => 8;
+    use constant leapp_data_pkg              => 'leapp-data-almalinux';
+    use constant leapp_repo_prod             => 'elevate';
+    use constant name                        => 'CentOS7';
+    use constant original_os_major           => 7;
+    use constant pretty_name                 => 'CentOS 7';
+    use constant remove_els                  => 1;
+    use constant upgrade_to_pretty_name      => 'AlmaLinux 8';
 
     sub vetted_yum_repo ($self) {
 
@@ -6500,6 +6504,7 @@ EOS
     use constant default_upgrade_to              => 'CloudLinux';
     use constant ea_alias                        => 'CloudLinux_8';
     use constant elevate_rpm_url                 => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
+    use constant expected_post_upgrade_major     => 8;
     use constant leapp_repo_prod                 => 'elevate';
     use constant leapp_repo_beta                 => 'elevate-updates-testing';
     use constant leapp_can_handle_epel           => 1;
@@ -6508,6 +6513,7 @@ EOS
     use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
     use constant leapp_flag                      => '--nowarn';
     use constant name                            => 'CloudLinux7';
+    use constant original_os_major               => 7;
     use constant pretty_name                     => 'CloudLinux 7';
     use constant provides_mysql_governor         => 1;
     use constant should_check_cloudlinux_license => 1;
@@ -6718,11 +6724,13 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::OS::Ubuntu); }
 
-    use constant default_upgrade_to     => 'Ubuntu';
-    use constant ea_alias               => 'Ubuntu_20.04';
-    use constant name                   => 'Ubuntu20';
-    use constant pretty_name            => 'Ubuntu 20.04';
-    use constant upgrade_to_pretty_name => 'Ubuntu 22.04';
+    use constant default_upgrade_to          => 'Ubuntu';
+    use constant ea_alias                    => 'Ubuntu_20.04';
+    use constant expected_post_upgrade_major => 22;
+    use constant name                        => 'Ubuntu20';
+    use constant original_os_major           => 20;
+    use constant pretty_name                 => 'Ubuntu 20.04';
+    use constant upgrade_to_pretty_name      => 'Ubuntu 22.04';
 
     1;
 
@@ -7418,6 +7426,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
     }
 
     sub wait_for_leapp_completion ($self) {
+        return 1 unless Elevate::OS::needs_leapp();
 
         return 1 unless $self->cpev->should_perform_upgrade();
 
@@ -9995,28 +10004,39 @@ sub run_stage_4 ($self) {
         END
     }
 
-    if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
+    my $major = Cpanel::OS::major();
+    if ( $major != Elevate::OS::expected_post_upgrade_major() ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         my $current_distro     = Cpanel::OS::pretty_distro();
 
-        if ( Cpanel::OS::major() == 7 ) {    ## no critic(Cpanel::CpanelOS)
+        if ( $major == Elevate::OS::original_os_major() ) {          ## no critic(Cpanel::CpanelOS)
             WARN("Detected $current_distro from stage 4, reverting back to stage 3.");
             Elevate::Stages::update_stage_number(3);
         }
 
-        die( <<~"END");
-        Server is currently running $current_distro after leapp upgrade.
+        my $msg = <<~"END";
+        Server is currently running $current_distro $major after leapp upgrade.
         Upgrade to $pretty_distro_name did not succeed.
 
-        Please review your upgrade logs and correct the problem.
-        `leapp` logs are located at:
-            /var/log/leapp/leapp-report.txt
-            /var/log/leapp/leapp-report.json
+        END
 
+        if ( Elevate::OS::needs_leapp() ) {
+            $msg .= <<~'END';
+            Please review your upgrade logs and correct the problem.
+            `leapp` logs are located at:
+                /var/log/leapp/leapp-report.txt
+                /var/log/leapp/leapp-report.json
+
+            END
+        }
+
+        $msg .= <<~'END';
         Once you believe you have corrected the problem you can continue the upgrade process
         by running:
             /scripts/elevate-cpanel --continue
         END
+
+        die "$msg\n";
     }
 
     my $stash = Elevate::StageFile::read_stage_file();

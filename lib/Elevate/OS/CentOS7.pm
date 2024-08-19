@@ -14,15 +14,17 @@ use Log::Log4perl qw(:easy);
 
 use parent 'Elevate::OS::RHEL';
 
-use constant default_upgrade_to     => 'AlmaLinux';
-use constant ea_alias               => 'CentOS_8';
-use constant elevate_rpm_url        => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
-use constant leapp_data_pkg         => 'leapp-data-almalinux';
-use constant leapp_repo_prod        => 'elevate';
-use constant name                   => 'CentOS7';
-use constant pretty_name            => 'CentOS 7';
-use constant remove_els             => 1;
-use constant upgrade_to_pretty_name => 'AlmaLinux 8';
+use constant default_upgrade_to          => 'AlmaLinux';
+use constant ea_alias                    => 'CentOS_8';
+use constant elevate_rpm_url             => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
+use constant expected_post_upgrade_major => 8;
+use constant leapp_data_pkg              => 'leapp-data-almalinux';
+use constant leapp_repo_prod             => 'elevate';
+use constant name                        => 'CentOS7';
+use constant original_os_major           => 7;
+use constant pretty_name                 => 'CentOS 7';
+use constant remove_els                  => 1;
+use constant upgrade_to_pretty_name      => 'AlmaLinux 8';
 
 sub vetted_yum_repo ($self) {
 
