@@ -1014,14 +1014,23 @@ sub run_stage_3 ($self) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
-    $self->run_once(
-        install_leapp => sub {
-            $self->leapp->install();
-            $self->leapp->remove_kernel_devel();
-        },
-    );
+    if ( Elevate::OS::needs_leapp() ) {
+        $self->run_once(
+            install_leapp => sub {
+                $self->leapp->install();
+                $self->leapp->remove_kernel_devel();
+            },
+        );
 
-    $self->leapp->upgrade();
+        $self->leapp->upgrade();
+    }
+    elsif ( Elevate::OS::needs_do_release_upgrade() ) {
+        INFO('Remounting /tmp partition with exec option');
+        $self->ssystem_and_die( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
+
+        INFO('Running do-release-upgrade');
+        $self->ssystem_and_die( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );
+    }
 
     WARN(<<~'EOS');
     Rebooting for distro upgrade. This will take over 10 minutes to run.
