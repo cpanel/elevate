@@ -95,4 +95,9 @@ sub update_allow_erasing ( $self, @args ) {
     return $self->upgrade_all();
 }
 
+sub autoremove_post_upgrade ($self) {
+    $self->cpev->ssystem_and_die( APT, '-y', 'autoremove', '--purge' );
+    return;
+}
+
 1;

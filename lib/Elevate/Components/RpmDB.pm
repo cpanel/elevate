@@ -14,15 +14,20 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::DNF       ();
+use Elevate::OS        ();
 
 use Cwd           ();
 use File::Copy    ();
+use File::Slurper ();
+
 use Log::Log4perl qw(:easy);
 
 use Cpanel::Pkgr      ();
 use Cpanel::Yum::Vars ();
 
 use parent qw{Elevate::Components::Base};
+
+use constant APT_LIST_D => q[/etc/apt/sources.list.d];
 
 use constant OBSOLETE_PACKAGES => (
     'compat-db',
@@ -93,8 +98,37 @@ sub _sysup ($self) {
         local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
         $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
     }
+
+    if ( Elevate::OS::is_apt_based() ) {
+        $self->update_list_files();
+        $self->apt->update();
+    }
+
     $self->get_package_manager->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
     $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
+
+    return;
+}
+
+sub update_list_files ($self) {
+    my $list_dir = APT_LIST_D;
+
+    opendir( my $dh, $list_dir ) or die "Unable to read directory $list_dir: $!\n";
+    foreach my $list_file ( readdir($dh) ) {
+        next unless $list_file =~ m{\.list$};
+        $self->_update_list_file($list_file);
+    }
+
+    return;
+}
+
+sub _update_list_file ( $self, $list_file ) {
+    my $list_dir         = APT_LIST_D;
+    my $vetted_apt_lists = Elevate::OS::vetted_apt_lists();
+
+    LOGDIE("Unknown list file: $list_dir/$list_file\n") unless exists $vetted_apt_lists->{$list_file};
+
+    File::Slurper::write_binary( "$list_dir/$list_file", "$vetted_apt_lists->{$list_file}\n" );
 
     return;
 }

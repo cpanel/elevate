@@ -29,10 +29,13 @@ sub pre_leapp ($self) {
 sub post_leapp ($self) {
     $self->run_once('_remove_leapp_packages');
     $self->run_once('_warn_about_other_modules_that_did_not_convert');
+    $self->run_once('_purge_packages');
     return;
 }
 
 sub _remove_leapp_packages ($self) {
+    return unless Elevate::OS::needs_leapp();
+
     my @leapp_packages = qw{
       elevate-release
       leapp
@@ -53,6 +56,8 @@ sub _remove_leapp_packages ($self) {
 }
 
 sub _warn_about_other_modules_that_did_not_convert ($self) {
+    return if Elevate::OS::is_apt_based();
+
     my @installed_packages                    = $self->rpm->get_installed_rpms();
     my @el7_installed_packages                = grep { $_ =~ m/el7/ } @installed_packages;
     my @exclude_kernel_el7_installed_packages = grep { $_ !~ m/^kernel-/ } @el7_installed_packages;
@@ -69,6 +74,15 @@ sub _warn_about_other_modules_that_did_not_convert ($self) {
     $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @exclude_kernel_el7_installed_packages ) . "\n";
 
     Elevate::Notify::add_final_notification($msg);
+
+    return;
+}
+
+sub _purge_packages ($self) {
+    return unless Elevate::OS::is_apt_based();
+
+    INFO('Purging packages that are no longer needed after upgrade');
+    $self->apt->autoremove_post_upgrade();
 
     return;
 }

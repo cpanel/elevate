@@ -1359,11 +1359,13 @@ sub run_final_components_pre_leapp ($self) {
 
 sub post_leapp_update_restore ($self) {
 
-    INFO('Removing leapp from excludes in /etc/yum.conf');
-    my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
-    if ( length $txt ) {
-        $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
-        File::Slurper::write_text( "/etc/yum.conf", $txt );
+    unless ( Elevate::OS::is_apt_based() ) {
+        INFO('Removing leapp from excludes in /etc/yum.conf');
+        my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
+        if ( length $txt ) {
+            $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
+            File::Slurper::write_text( "/etc/yum.conf", $txt );
+        }
     }
 
     # plugins can use MySQL - restore database earlier

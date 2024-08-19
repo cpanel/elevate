@@ -5390,10 +5390,13 @@ EOS
     sub post_leapp ($self) {
         $self->run_once('_remove_leapp_packages');
         $self->run_once('_warn_about_other_modules_that_did_not_convert');
+        $self->run_once('_purge_packages');
         return;
     }
 
     sub _remove_leapp_packages ($self) {
+        return unless Elevate::OS::needs_leapp();
+
         my @leapp_packages = qw{
           elevate-release
           leapp
@@ -5414,6 +5417,8 @@ EOS
     }
 
     sub _warn_about_other_modules_that_did_not_convert ($self) {
+        return if Elevate::OS::is_apt_based();
+
         my @installed_packages                    = $self->rpm->get_installed_rpms();
         my @el7_installed_packages                = grep { $_ =~ m/el7/ } @installed_packages;
         my @exclude_kernel_el7_installed_packages = grep { $_ !~ m/^kernel-/ } @el7_installed_packages;
@@ -5430,6 +5435,15 @@ EOS
         $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @exclude_kernel_el7_installed_packages ) . "\n";
 
         Elevate::Notify::add_final_notification($msg);
+
+        return;
+    }
+
+    sub _purge_packages ($self) {
+        return unless Elevate::OS::is_apt_based();
+
+        INFO('Purging packages that are no longer needed after upgrade');
+        $self->apt->autoremove_post_upgrade();
 
         return;
     }
@@ -5522,9 +5536,11 @@ EOS
 
     use Elevate::Constants ();
     use Elevate::DNF       ();
+    use Elevate::OS        ();
 
-    use Cwd        ();
-    use File::Copy ();
+    use Cwd           ();
+    use File::Copy    ();
+    use File::Slurper ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -5535,6 +5551,8 @@ EOS
     # use Elevate::Components::Base();
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    use constant APT_LIST_D => q[/etc/apt/sources.list.d];
 
     use constant OBSOLETE_PACKAGES => (
         'compat-db',
@@ -5598,8 +5616,37 @@ EOS
             local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
             $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
         }
+
+        if ( Elevate::OS::is_apt_based() ) {
+            $self->update_list_files();
+            $self->apt->update();
+        }
+
         $self->get_package_manager->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
         $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
+
+        return;
+    }
+
+    sub update_list_files ($self) {
+        my $list_dir = APT_LIST_D;
+
+        opendir( my $dh, $list_dir ) or die "Unable to read directory $list_dir: $!\n";
+        foreach my $list_file ( readdir($dh) ) {
+            next unless $list_file =~ m{\.list$};
+            $self->_update_list_file($list_file);
+        }
+
+        return;
+    }
+
+    sub _update_list_file ( $self, $list_file ) {
+        my $list_dir         = APT_LIST_D;
+        my $vetted_apt_lists = Elevate::OS::vetted_apt_lists();
+
+        LOGDIE("Unknown list file: $list_dir/$list_file\n") unless exists $vetted_apt_lists->{$list_file};
+
+        File::Slurper::write_binary( "$list_dir/$list_file", "$vetted_apt_lists->{$list_file}\n" );
 
         return;
     }
@@ -8741,6 +8788,11 @@ EOS
         return $self->upgrade_all();
     }
 
+    sub autoremove_post_upgrade ($self) {
+        $self->cpev->ssystem_and_die( APT, '-y', 'autoremove', '--purge' );
+        return;
+    }
+
     1;
 
 }    # --- END lib/Elevate/APT.pm
@@ -10280,11 +10332,13 @@ sub run_final_components_pre_leapp ($self) {
 
 sub post_leapp_update_restore ($self) {
 
-    INFO('Removing leapp from excludes in /etc/yum.conf');
-    my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
-    if ( length $txt ) {
-        $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
-        File::Slurper::write_text( "/etc/yum.conf", $txt );
+    unless ( Elevate::OS::is_apt_based() ) {
+        INFO('Removing leapp from excludes in /etc/yum.conf');
+        my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
+        if ( length $txt ) {
+            $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
+            File::Slurper::write_text( "/etc/yum.conf", $txt );
+        }
     }
 
     # plugins can use MySQL - restore database earlier
