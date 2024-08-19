@@ -62,6 +62,7 @@ use constant is_apt_based                    => 1;
 use constant is_supported                    => 1;
 use constant lts_supported                   => 118;
 use constant name                            => 'Ubuntu';
+use constant needs_do_release_upgrade        => 1;
 use constant needs_leapp                     => 0;
 use constant pretty_name                     => 'Ubuntu';
 use constant provides_mysql_governor         => 0;

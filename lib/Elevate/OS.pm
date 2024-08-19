@@ -95,6 +95,7 @@ BEGIN {
         'lts_supported',                        # This is the major cPanel version supported for this OS
         'name',                                 # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
         'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
+        'needs_do_release_upgrade',             # This is used to determine if the OS requires the do-release-upgrades utility to upgrade
         'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
         'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
         'remove_els',                           # This is used to indicate if we are to remove ELS for this OS
