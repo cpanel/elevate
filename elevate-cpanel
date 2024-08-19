@@ -6292,6 +6292,9 @@ EOS
 
     sub _update_apt ($self) {
         $self->ssystem_and_die(qw{/scripts/update-packages});
+
+        unlink('/etc/apt/preferences.d/99-cpanel-exclude-packages');
+
         $self->apt->upgrade_all();
         return;
     }

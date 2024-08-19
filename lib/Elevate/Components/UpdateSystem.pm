@@ -25,6 +25,12 @@ sub pre_leapp ($self) {
 
 sub _update_apt ($self) {
     $self->ssystem_and_die(qw{/scripts/update-packages});
+
+    # Remove this file so that nothing gets held back here since we need
+    # to make sure that everything can update before we attempt to upgrade
+    # the server
+    unlink('/etc/apt/preferences.d/99-cpanel-exclude-packages');
+
     $self->apt->upgrade_all();
     return;
 }
