@@ -72,7 +72,6 @@ use constant default_upgrade_to              => undef;
 use constant ea_alias                        => undef;
 use constant elevate_rpm_url                 => undef;
 use constant is_supported                    => 1;
-use constant leapp_can_handle_epel           => 0;
 use constant leapp_can_handle_imunify        => 0;
 use constant leapp_can_handle_kernelcare     => 0;
 use constant leapp_data_package              => undef;

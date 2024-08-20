@@ -19,7 +19,6 @@ use constant ea_alias                        => 'CloudLinux_8';
 use constant elevate_rpm_url                 => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
 use constant leapp_repo_prod                 => 'elevate';
 use constant leapp_repo_beta                 => 'elevate-updates-testing';
-use constant leapp_can_handle_epel           => 1;
 use constant leapp_can_handle_imunify        => 1;
 use constant leapp_can_handle_kernelcare     => 1;
 use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';

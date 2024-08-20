@@ -25,7 +25,6 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_leapp ($self) {
 
-    $self->run_once("_disable_epel");
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
 
@@ -54,15 +53,6 @@ sub _disable_known_yum_repositories {
 
 sub _disable_yum_plugin_fastestmirror ($self) {
     my $pkg = 'yum-plugin-fastestmirror';
-    $self->_erase_package($pkg);
-    return;
-}
-
-sub _disable_epel ($self) {
-
-    return if Elevate::OS::leapp_can_handle_epel();
-
-    my $pkg = 'epel-release';
     $self->_erase_package($pkg);
     return;
 }
