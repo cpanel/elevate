@@ -62,6 +62,8 @@ use constant vetted_yum_repo => (
     'kernelcare',
     'updates',
     'r1soft',
+    qr/^panopta(?:\.repo)?$/,
+    qr/^fortimonitor(?:\.repo)?$/,
     qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
   ),
   vetted_mysql_yum_repo_ids;
