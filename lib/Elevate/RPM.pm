@@ -28,12 +28,12 @@ sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
 
     my @installed_rpms = $self->get_installed_rpms(q[%{NAME}\n]);
     my @ea_rpms        = grep { $_ =~ qr/^\Q$prefix\E/ } @installed_rpms;
-    my $config_files   = $self->_get_config_files( \@ea_rpms );
+    my $config_files   = $self->get_config_files( \@ea_rpms );
 
     return $config_files;
 }
 
-sub _get_config_files ( $self, $pkgs ) {
+sub get_config_files ( $self, $pkgs ) {
 
     my %config_files;
     foreach my $pkg (@$pkgs) {
@@ -49,6 +49,7 @@ sub _get_config_files ( $self, $pkgs ) {
             into place.
             EOS
 
+            $config_files{$pkg} = [];
         }
         else {
 
