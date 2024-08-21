@@ -77,7 +77,7 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 
     is(
         \@ssystem_and_die_params,
-        [qw{ /usr/bin/yum -y remove cpanel-ccs-calendarserver postgresql postgresql-devel postgresql-server cpanel-z-push }],
+        [qw{ /usr/bin/yum -y remove cpanel-ccs-calendarserver cpanel-z-push }],
         'The expected packages were removed'
     );
 
@@ -114,7 +114,9 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
             return;
         },
         _ensure_ccs_service_is_up    => 0,
-        run_once                     => sub { $ccs->import_ccs_data(); },
+        move_pgsql_directory         => 0,
+        move_pgsql_directory_back    => 0,
+        run_once                     => sub { $_[0]->can( $_[1] )->( $_[0] ) },
         _import_data_for_single_user => sub ( $self, $user ) { push @called_for_user, $user; },
     );
 
