@@ -1,4 +1,4 @@
-.PHONY: all test cover tags clean release build fatpack sanity cl
+.PHONY: all test cover tags clean release build prep-integration sanity cl
 
 GIT ?= /usr/local/cpanel/3rdparty/bin/git
 RELEASE_TAG ?= release
@@ -25,14 +25,14 @@ build:
 	rm -f elevate-cpanel
 	$(MAKE) elevate-cpanel
 
-fatpack:
+prep-integration:
 	curl -fsSL https://raw.githubusercontent.com/skaji/cpm/main/cpm > ./cpm
 	chmod -v +x ./cpm
 	/scripts/update_local_rpm_versions --edit target_settings.perl-enhanced installed
 	./cpm install Test::PerlTidy
 	cp -v local/lib/perl5/Test/PerlTidy.pm $(PERL_LIB)/Test/ && rm -Rfv local/
 	/scripts/check_cpanel_pkgs --fix --long-list --no-digest
-	/bin/bash t/cpanel-setup
+	/bin/bash t/integration/setup
 
 cover:
 	/usr/bin/rm -rf cover_db
