@@ -1,3 +1,10 @@
+##### **2024-08-22** - version 52
+
+* Fixed case RE-43: No longer block on Panopta or FortiMonitor
+* Fixed case RE-247: Permit leapp to handle updates to the EPEL repository.
+* Fixed case RE-102: Attempt to upgrade PostgreSQL during ELevate.
+* Fixed case RE-662: Fix text in failure advice when MySQL restore fails
+
 ##### **2024-08-07** - version 51
 
 * Fixed case RE-543: Restore my.cnf after installing the database server during post_leapp
