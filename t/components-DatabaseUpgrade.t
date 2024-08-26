@@ -186,7 +186,7 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
     $mock_saferun->redefine( 'saferunnoerror', sub { push @cmds, \@_; return $stdout } );
 
     ok lives { $db_upgrade->_set_local_mysql_root_password('F00b4r!@#%$%') }, '_set_local_mysql_root_password with successful api call lives';
-    message_seen( 'INFO', qr/Resetting password for local root MySQL user/ );
+    message_seen( 'INFO', qr/Resetting password for local root database user/ );
 
     is \@cmds, [
         [

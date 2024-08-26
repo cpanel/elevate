@@ -47,7 +47,8 @@ sub _cleanup_mysql_packages ($self) {
     my $mysql_version = Elevate::StageFile::read_stage_file( 'mysql-version', '' );
     return unless length $mysql_version;
 
-    INFO("# Cleanup MySQL packages ; using version $mysql_version");
+    my $db_type = Elevate::Database::get_database_type_name_from_version($mysql_version);
+    INFO("# Cleanup $db_type packages ; using version $mysql_version");
 
     Elevate::StageFile::update_stage_file( { 'mysql-version' => $mysql_version } );
 
