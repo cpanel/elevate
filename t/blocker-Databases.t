@@ -39,7 +39,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
         $db->_blocker_mysql_upgrade_in_progress(),
         {
             id  => q[Elevate::Blockers::Databases::_blocker_mysql_upgrade_in_progress],
-            msg => "MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.",
+            msg => "MySQL/MariaDB upgrade in progress. Please wait for the upgrade to finish.",
         },
         q{Block if mysql is upgrading.}
     );
@@ -171,16 +171,16 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
         {
             id  => q[Elevate::Blockers::Databases::_blocker_old_cloudlinux_mysql],
             msg => <<~'EOS',
-You are using MySQL 5.1 server.
+You are using foo 5.1 server.
 This version is not available for CloudLinux 8.
-You first need to update your MySQL server to 5.5 or later.
+You first need to update your database server software to version 5.5 or later.
 
 Please review the following documentation for instructions
-on how to update to a newer MySQL Version with MySQL Governor:
+on how to update to a newer version with MySQL Governor:
 
     https://docs.cloudlinux.com/shared/cloudlinux_os_components/#upgrading-database-server
 
-Once the MySQL upgrade is finished, you can then retry to elevate to CloudLinux 8.
+Once the upgrade is finished, you can then retry to ELevate to CloudLinux 8.
 EOS
         },
         '5.1 is a blocker for CL',

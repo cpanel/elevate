@@ -150,4 +150,12 @@ sub upgrade_database_server () {
     return;
 }
 
+sub pretty_type_name ($type) {
+    $type =~ s/^mysql$/MySQL/i;
+    $type =~ s/^mariadb$/MariaDB/i;
+    $type =~ s/^(?:pgsql|postgres(?:ql)?)$/PostgreSQL/i;
+    $type =~ s/^percona$/Percona/i;                        # yes, Percona is a valid type; see get_db_info_if_provided_by_cloudlinux
+    return $type;
+}
+
 1;
