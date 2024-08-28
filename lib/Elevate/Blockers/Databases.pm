@@ -27,6 +27,8 @@ use parent qw{Elevate::Blockers::Base};
 
 use Log::Log4perl qw(:easy);
 
+my ( $db_type, $db_version );
+
 sub check ($self) {
     my $ok = 1;
     $ok = 0 unless $self->_blocker_old_mysql;
@@ -43,65 +45,65 @@ sub _blocker_old_mysql ($self) {
 }
 
 sub _blocker_old_cloudlinux_mysql ($self) {
-    my ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux();
+    ( $db_type, $db_version ) = Elevate::Database::get_db_info_if_provided_by_cloudlinux();
 
     # 5.5 gets stored as 55 and so on and so forth since there are no .'s
     # for the version in the RPM package name
     return 0 if length $db_version && $db_version >= 55;
 
     my $pretty_distro_name = $self->upgrade_to_pretty_name();
-    my $db_dot_version     = $db_version;
+    $db_type = Elevate::Database::pretty_type_name($db_type);
 
     # Shift decimal one place to the left
     # 80 becomes 8.0
     # 102 becomes 10.2
-    $db_dot_version =~ s/([0-9])$/\.$1/;
+    $db_version =~ s/([0-9])$/\.$1/;
 
     return $self->has_blocker( <<~"EOS");
-    You are using MySQL $db_dot_version server.
+    You are using $db_type $db_version server.
     This version is not available for $pretty_distro_name.
-    You first need to update your MySQL server to 5.5 or later.
+    You first need to update your database server software to version 5.5 or later.
 
     Please review the following documentation for instructions
-    on how to update to a newer MySQL Version with MySQL Governor:
+    on how to update to a newer version with MySQL Governor:
 
         https://docs.cloudlinux.com/shared/cloudlinux_os_components/#upgrading-database-server
 
-    Once the MySQL upgrade is finished, you can then retry to elevate to $pretty_distro_name.
+    Once the upgrade is finished, you can then retry to ELevate to $pretty_distro_name.
     EOS
 }
 
 sub _blocker_old_cpanel_mysql ($self) {
 
-    my $mysql_version = Elevate::Database::get_local_database_version();
+    $db_version = Elevate::Database::get_local_database_version();
 
     # If we are running a local version of MySQL/MariaDB that will be
     # supported by the new OS version, we leave it as it is.
-    if ( Elevate::Database::is_database_version_supported($mysql_version) ) {
+    if ( Elevate::Database::is_database_version_supported($db_version) ) {
 
         # store the MySQL version we started from
-        Elevate::StageFile::update_stage_file( { 'mysql-version' => $mysql_version } );
+        Elevate::StageFile::update_stage_file( { 'mysql-version' => $db_version } );
         return 0;
     }
 
-    my $pretty_distro_name  = $self->upgrade_to_pretty_name();
-    my $database_type_name  = Elevate::Database::get_database_type_name_from_version($mysql_version);
+    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    $db_type = Elevate::Database::get_database_type_name_from_version($db_version);
     my $upgrade_version     = Elevate::Database::get_default_upgrade_version();
     my $upgrade_dbtype_name = Elevate::Database::get_database_type_name_from_version($upgrade_version);
 
     WARN( <<~"EOS" );
-    You have $database_type_name $mysql_version installed.
+    You have $db_type $db_version installed.
     This version is not available for $pretty_distro_name.
 
     EOS
 
     if ( $self->is_check_mode() ) {
         INFO( <<~"EOS" );
-        You can manually upgrade your installation of $database_type_name using the following command:
+        You can manually upgrade your installation of $db_type using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
 
-        Once the MySQL upgrade is finished, you can then retry to elevate to $pretty_distro_name.
+        Once the $db_type upgrade is finished, you can then retry to elevate to $pretty_distro_name.
 
         EOS
         return 0;
@@ -109,7 +111,7 @@ sub _blocker_old_cpanel_mysql ($self) {
 
     WARN( <<~"EOS" );
     Prior to elevating this system to $pretty_distro_name,
-    we will automatically upgrade your installation of $database_type_name
+    we will automatically upgrade your installation of $db_type
     to $upgrade_dbtype_name $upgrade_version.
 
     EOS
@@ -125,7 +127,7 @@ sub _blocker_old_cpanel_mysql ($self) {
             )
         ) {
             return $self->has_blocker( <<~"EOS" );
-            The system cannot be elevated to $pretty_distro_name until $database_type_name has been upgraded. To upgrade manually:
+            The system cannot be elevated to $pretty_distro_name until $db_type has been upgraded. To upgrade manually:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
 
@@ -143,7 +145,7 @@ sub _blocker_old_cpanel_mysql ($self) {
 
 sub _blocker_mysql_upgrade_in_progress ($self) {
     if ( -e q[/var/cpanel/mysql_upgrade_in_progress] ) {
-        return $self->has_blocker(q[MySQL upgrade in progress. Please wait for the MySQL upgrade to finish.]);
+        return $self->has_blocker(q[MySQL/MariaDB upgrade in progress. Please wait for the upgrade to finish.]);
     }
 
     return 0;
@@ -154,7 +156,7 @@ sub _warning_mysql_not_enabled ($self) {
     my $enabled = Cpanel::Services::Enabled::is_enabled('mysql');
 
     Elevate::StageFile::update_stage_file( { 'mysql-enabled' => $enabled } );
-    WARN( "MySQL is disabled. This must be enabled for MySQL upgrade to succeed.\n" . "We temporarily will enable it when it is needed to be enabled,\n" . "but we reccomend starting the process with MySQL enabled." ) if !$enabled;
+    WARN( "$db_type is disabled. This must be enabled for the upgrade to succeed.\n" . "We temporarily will enable it when it is needed to be enabled,\n" . "but we recommend starting the process with $db_type enabled." ) if !$enabled;
     return 0;
 }
 

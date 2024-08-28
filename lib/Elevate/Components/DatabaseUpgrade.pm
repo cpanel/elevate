@@ -141,7 +141,7 @@ sub _create_new_localhost_profile ( $self, $profile_manager ) {
 }
 
 sub _set_local_mysql_root_password ( $self, $password ) {
-    INFO("Resetting password for local root MySQL user...");
+    INFO("Resetting password for local root database user...");
 
     my $encoded_password = Cpanel::Encoder::URI::uri_encode_str($password);
 
@@ -153,7 +153,7 @@ sub _set_local_mysql_root_password ( $self, $password ) {
         my $errors = join qq{\n\n}, @{ $result->{'metadata'}{'errors'} };
 
         die <<~"EOS";
-        Unable to set root password for the localhost MySQL server.
+        Unable to set root password for the localhost database server.
 
         The following errors occurred:
 
@@ -183,7 +183,7 @@ sub _activate_localhost_profile {
 
     if ( $stdout !~ m{MySQL profile activation done} ) {
         die <<~"EOS";
-        Unable to activate a MySQL DB profile for "localhost":
+        Unable to activate a MySQL profile for "localhost":
 
         $stdout
 
