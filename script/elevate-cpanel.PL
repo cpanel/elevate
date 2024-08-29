@@ -291,6 +291,7 @@ use Elevate::Components::DatabaseUpgrade    ();
 use Elevate::Components::ELS                ();
 use Elevate::Components::R1Soft             ();
 use Elevate::Components::Panopta            ();
+use Elevate::Components::PackageRestore     ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -961,6 +962,10 @@ sub run_stage_2 ($self) {
     $self->ssystem_and_die(qw{/scripts/update-packages});
     $self->ssystem_and_die(qw{/usr/bin/yum -y update});
 
+    # This needs to happen before the database upgrade because
+    # it will remove the packages we want to detect
+    $self->run_component_once( 'PackageRestore' => 'pre_leapp' );
+
     # This needs to execute before we disable cPanel services
     # or exporting the CCS data will fail
     $self->run_component_once( 'CCS'             => 'pre_leapp' );
@@ -1364,6 +1369,7 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'NixStats'        => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'       => 'post_leapp' );
     $self->run_component_once( 'R1Soft'          => 'post_leapp' );
+    $self->run_component_once( 'PackageRestore'  => 'post_leapp' );
 
     return;
 }
