@@ -1,11 +1,9 @@
 ---
 title: "cPanel ELevate CentOS 7 to AlmaLinux 8"
-date: 2024-08-29T11:53:47-05:00
+date: 2022-12-07T08:53:47-05:00
 draft: false
 layout: single
 ---
-
-hello
 
 # Welcome to the cPanel ELevate Project!
 
