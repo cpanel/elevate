@@ -65,6 +65,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/ELS.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/R1Soft.pm'}             = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Panopta.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PackageRestore.pm'}     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
@@ -6169,6 +6170,67 @@ EOS
 
 }    # --- END lib/Elevate/Components/Panopta.pm
 
+{    # --- BEGIN lib/Elevate/Components/PackageRestore.pm
+
+    package Elevate::Components::PackageRestore;
+
+    use cPstrict;
+
+    use Elevate::StageFile ();
+
+    use Cpanel::Pkgr ();
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub _get_packages_to_check () {
+        return qw{
+          net-snmp
+        };
+    }
+
+    sub pre_leapp ($self) {
+
+        my @package_list = _get_packages_to_check();
+        my @installed_packages;
+
+        foreach my $package (@package_list) {
+            if ( Cpanel::Pkgr::is_installed($package) ) {
+                push @installed_packages, $package;
+            }
+        }
+
+        my $config_files = $self->rpm->get_config_files( \@installed_packages );
+
+        Elevate::StageFile::update_stage_file(
+            {
+                'packages_to_restore' => $config_files,
+            }
+        );
+
+        return;
+    }
+
+    sub post_leapp ($self) {
+
+        my $package_info = Elevate::StageFile::read_stage_file('packages_to_restore');
+        return unless defined $package_info and ref $package_info eq 'HASH';
+
+        foreach my $package ( keys %$package_info ) {
+
+            $self->dnf->install($package);
+
+            $self->rpm->restore_config_files( @{ $package_info->{$package} } );
+        }
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/PackageRestore.pm
+
 {    # --- BEGIN lib/Elevate/OS.pm
 
     package Elevate::OS;
@@ -7651,12 +7713,12 @@ EOS
 
         my @installed_rpms = $self->get_installed_rpms(q[%{NAME}\n]);
         my @ea_rpms        = grep { $_ =~ qr/^\Q$prefix\E/ } @installed_rpms;
-        my $config_files   = $self->_get_config_files( \@ea_rpms );
+        my $config_files   = $self->get_config_files( \@ea_rpms );
 
         return $config_files;
     }
 
-    sub _get_config_files ( $self, $pkgs ) {
+    sub get_config_files ( $self, $pkgs ) {
 
         my %config_files;
         foreach my $pkg (@$pkgs) {
@@ -7671,6 +7733,7 @@ EOS
             into place.
             EOS
 
+                $config_files{$pkg} = [];
             }
             else {
 
@@ -8758,6 +8821,7 @@ use Elevate::Components::DatabaseUpgrade    ();
 use Elevate::Components::ELS                ();
 use Elevate::Components::R1Soft             ();
 use Elevate::Components::Panopta            ();
+use Elevate::Components::PackageRestore     ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -9428,6 +9492,10 @@ sub run_stage_2 ($self) {
     $self->ssystem_and_die(qw{/scripts/update-packages});
     $self->ssystem_and_die(qw{/usr/bin/yum -y update});
 
+    # This needs to happen before the database upgrade because
+    # it will remove the packages we want to detect
+    $self->run_component_once( 'PackageRestore' => 'pre_leapp' );
+
     # This needs to execute before we disable cPanel services
     # or exporting the CCS data will fail
     $self->run_component_once( 'CCS'             => 'pre_leapp' );
@@ -9831,6 +9899,7 @@ sub post_leapp_update_restore ($self) {
     $self->run_component_once( 'NixStats'        => 'post_leapp' );
     $self->run_component_once( 'LiteSpeed'       => 'post_leapp' );
     $self->run_component_once( 'R1Soft'          => 'post_leapp' );
+    $self->run_component_once( 'PackageRestore'  => 'post_leapp' );
 
     return;
 }
