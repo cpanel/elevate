@@ -1,3 +1,8 @@
+##### **2024-08-29** - version 53
+
+* Fixed case RE-574: Ensure that system with net-snmp installed will have it installed post-elevate.
+* Fixed case RE-492: Where appropriate, mention "MariaDB" instead of "MySQL".
+
 ##### **2024-08-22** - version 52
 
 * Fixed case RE-43: No longer block on Panopta or FortiMonitor
