@@ -39,7 +39,7 @@ jobs:
     - name: push
       uses: github-actions-x/commit@v2.9
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
         push-branch: 'docs'
         commit-message: 'Regenerate Documentation Website'
         force-add: 'true'
