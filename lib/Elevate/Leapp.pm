@@ -308,40 +308,23 @@ Please investigate, resolve then re-run the following command to continue the up
 
 EOS
 
-    my $leapp_json_report = LEAPP_REPORT_JSON;
-    if ( -e $leapp_json_report ) {
-        my $report = eval { Cpanel::JSON::LoadFile($leapp_json_report) } // {};
+    my $entries = $self->search_report_file_for_inhibitors;
+    if ( ref $entries eq 'ARRAY' ) {
+        foreach my $e (@$entries) {
+            $msg .= "\n$e->{summary}" if $e->{summary};
 
-        my $entries = $report->{entries};
-        if ( ref $entries eq 'ARRAY' ) {
-            foreach my $e (@$entries) {
-                next unless ref $e && $e->{title} =~ qr{Missing.*answer}i;
+            if ( $e->{command} ) {
 
-                $msg .= $e->{summary} if $e->{summary};
+                my $cmd = $e->{command};
+                $cmd =~ s[^leapp][/usr/bin/leapp];
 
-                if ( ref $e->{detail} ) {
-                    my $d = $e->{detail};
-
-                    if ( ref $d->{remediations} ) {
-                        foreach my $remed ( $d->{remediations}->@* ) {
-                            next unless $remed->{type} && $remed->{type} eq 'command';
-                            next unless ref $remed->{context};
-                            my @hint = $remed->{context}->@*;
-                            next unless scalar @hint;
-                            $hint[0] = q[/usr/bin/leapp] if $hint[0] && $hint[0] eq 'leapp';
-                            my $cmd = join( ' ', @hint );
-
-                            $msg .= "\n\n";
-                            $msg .= <<"EOS";
+                $msg .= "\n\n";
+                $msg .= <<"EOS";
 Consider running this command:
 
     $cmd
+
 EOS
-                        }
-                    }
-
-                }
-
             }
         }
     }
