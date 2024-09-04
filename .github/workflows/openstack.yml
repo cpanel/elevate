@@ -150,10 +150,12 @@ jobs:
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
+            timeout: 30m
+            command_timeout: 30m
             script: |
               cp -pv /opt/elevate/elevate-cpanel /scripts/elevate-cpanel
-              cp -pv /opt/elevate/.github/workflows/openstack/status_marker.sh /scripts/status_marker.sh
-              cp -pv /opt/elevate/.github/workflows/openstack/reboot_watch.sh /scripts/reboot_watch.sh
+              cp -pv /opt/elevate/.github/workflows/openstack/status_marker /scripts/status_marker
+              cp -pv /opt/elevate/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
               chmod -v +x /scripts/elevate-cpanel
               /usr/local/cpanel/cpkeyclt
               /scripts/elevate-cpanel --non-interactive --start &
@@ -169,7 +171,7 @@ jobs:
         - name: Wait For VM to Come Back From Stage 2 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
-            ./ssh_retry.sh ${{ needs.start_elevate.outputs.VM_IP }}
+            ./ssh_retry ${{ needs.start_elevate.outputs.VM_IP }}
 
     watch_for_stage_3_reboot:
       runs-on: self-hosted
@@ -185,12 +187,12 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             timeout: 60m
-            command_timeout: 20m
+            command_timeout: 30m
             debug: true
             script: |
-              /scripts/status_marker.sh 3
+              /scripts/status_marker 3
               /scripts/elevate-cpanel --log &
-              REGEX="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch.sh
+              REGEX="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
     
     wait_for_stage_3_reboot:
       runs-on: self-hosted
@@ -201,7 +203,7 @@ jobs:
         - name: Wait For VM to Come Back From Stage 3 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
-            ./ssh_retry.sh ${{ needs.watch_for_stage_3_reboot.outputs.VM_IP }}
+            ./ssh_retry ${{ needs.watch_for_stage_3_reboot.outputs.VM_IP }}
 
     watch_for_stage_4_reboot:
       runs-on: self-hosted
@@ -217,11 +219,11 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             timeout: 30m
-            command_timeout: 20m
+            command_timeout: 30m
             script: |
-              /scripts/status_marker.sh 4
+              /scripts/status_marker 4
               /scripts/elevate-cpanel --log &
-              REGEX="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch.sh
+              REGEX="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_4_reboot:
       runs-on: self-hosted
@@ -232,7 +234,7 @@ jobs:
         - name: Wait For VM to Come Back From Stage 4 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
-            ./ssh_retry.sh ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
+            ./ssh_retry ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP }}
 
     watch_for_stage_5_reboot:
       runs-on: self-hosted
@@ -247,12 +249,12 @@ jobs:
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
-            timeout: 30m
-            command_timeout: 20m
+            timeout: 45m
+            command_timeout: 35m
             script: |
-              /scripts/status_marker.sh 5
+              /scripts/status_marker 5
               /scripts/elevate-cpanel --log &
-              REGEX="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch.sh
+              REGEX="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_5_reboot:
       runs-on: self-hosted
@@ -263,7 +265,7 @@ jobs:
         - name: Wait For VM to Come Back From Stage 5 Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
-            ./ssh_retry.sh ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
+            ./ssh_retry ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP }}
 
     watch_for_final_reboot:
       runs-on: self-hosted
@@ -279,10 +281,10 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
             timeout: 30m
-            command_timeout: 20m
+            command_timeout: 30m
             script: |
               /scripts/elevate-cpanel --log &
-              REGEX="Doing final reboot" RETVAL=1 /scripts/reboot_watch.sh
+              REGEX="Doing final reboot" RETVAL=1 /scripts/reboot_watch
   
     wait_for_final_reboot:
       runs-on: self-hosted
@@ -293,7 +295,7 @@ jobs:
         - name: Wait For VM to Come Back From Final Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
-            ./ssh_retry.sh ${{ needs.watch_for_final_reboot.outputs.VM_IP }}
+            ./ssh_retry ${{ needs.watch_for_final_reboot.outputs.VM_IP }}
 
     verify_upgraded_os:
       runs-on: self-hosted
