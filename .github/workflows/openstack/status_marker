@@ -1,0 +1,29 @@
+#!/usr/bin/env perl
+
+my $STAGE          = $ARGV[0];
+my $RELEASE_INFO   = `cat /etc/redhat-release`;
+my $CPANEL_VERSION = `cat /usr/local/cpanel/version`;
+
+use strict;
+
+print "######################################\n";
+
+sub main {
+    my @arr = (
+        [ 'Stage:', $STAGE ], [ 'OS Release:', $RELEASE_INFO ]
+        ,                     [ 'cP Version:', $CPANEL_VERSION ]
+    );
+
+    for my $row (@arr) {
+        format STDOUT =
+@<<<<<<<<<<<<<<<<<  @<<<<<<<<<<<<<<<<<
+         @$row
+.
+        write;
+    }
+
+}
+
+main();
+
+print "######################################\n";

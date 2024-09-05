@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+
+use POSIX;
+
+my $HOST    = $ARGV[0];
+my $PORT    = $ARGV[1] // 22;
+my $RETVAL  = 1;
+my $RETRIES = 0;
+my $RETRY   = $ARGV[2] // 60;
+
+return unless defined $HOST;
+
+while ( $RETVAL != 0 ) {
+    my $cmd    = qq{ /usr/bin/nc -z -w 3 $HOST $PORT };
+    my $output = `$cmd`;
+    my $time   = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+
+    $RETVAL = $?;
+
+    if ( $RETVAL == 0 ) {
+        print "## [$time] [INFO] SUCCESS: Connected to SSH on $HOST ##\n";
+        exit 0;
+    }
+
+    $RETRIES++;
+
+    if ( $RETVAL != 0 ) {
+        print "## [$time] [INFO]: Retrying SSH Connect: Attempt ${RETRIES} ...\n";
+    }
+
+    if ( $RETRIES >= $RETRY ) {
+        print "## [$time] [ERROR]: ssh_retry.pl: MAX_RETRIES has been reached.\n";
+        exit 1;
+    }
+    sleep 15;
+}

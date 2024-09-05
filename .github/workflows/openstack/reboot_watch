@@ -1,0 +1,30 @@
+#!/usr/local/cpanel/3rdparty/bin/perl
+
+use constant ELEVATE_LOG_PATH => '/var/log/elevate-cpanel.log';
+
+use Env;
+
+use File::Tail;
+use POSIX;
+
+my $RETVAL  = 1;
+my $RETRIES = 0;
+
+while ( $RETVAL != 0 ) {
+    _check_elevate_log_for_regex( ELEVATE_LOG_PATH, ${REGEX}, $RETRIES );
+}
+
+sub _check_elevate_log_for_regex {
+    my ( $filepath, $REGEX, $RETRIES ) = @_;
+
+    my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+
+    $file = File::Tail->new( name => $filepath, maxinterval => 1, adjustafter => 7, interval => 1 );
+    while ( defined( $line = $file->read ) ) {
+        if ( grep { /$REGEX/m } $line ) {
+            print "## [$time] [INFO]: SUCCESS: Reboot regex ( $REGEX ) found in /var/log/elevate-cpanel.log  ##\n";
+            exit 0;
+        }
+        $RETRIES++;
+    }
+}
