@@ -8,6 +8,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   TF_VAR_application_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
   TF_VAR_application_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
