@@ -45,11 +45,6 @@ jobs:
             terraform fmt -check
           continue-on-error: true
 
-        - name: DEBUGVAR
-          id: debugvar
-          run: |
-            env | awk 'tolower($0)~/auth|project_name/'
-
         - name: Terraform Init
           id: init
           run: |
