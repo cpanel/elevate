@@ -20,7 +20,7 @@ sub _OPTIONS {
       service start clean continue manual-reboots status log check:s
       skip-cpanel-version-check skip-elevate-version-check
       update version
-      no-leapp
+      upgrade-distro-manually no-leapp
       non-interactive
       leappbeta
     );
