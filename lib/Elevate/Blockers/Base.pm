@@ -46,7 +46,7 @@ BEGIN {
     my @_DELEGATE_TO_CPEV = qw{
       getopt
       upgrade_to_pretty_name
-      should_run_leapp
+      should_run_distro_upgrade
       ssystem
       ssystem_capture_output
       ssystem_hide_and_capture_output

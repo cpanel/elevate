@@ -217,17 +217,17 @@ A final reboot is performed at the end of this stage.
 By default, the elevate script runs the [leapp process](https://almalinux.org/elevate/)
 to upgrade you from 7 to 8. `Leapp` may not be compatible with your system.
 
-Using the `--no-leapp` option gives you a way to do the actual distro upgrade in your own way.
+Using the `--upgrade-distro-manually` option gives you a way to do the actual distro upgrade in your own way.
 This, for instance, can be used to allow `Virtuozzo` systems to upgrade cPanel systems, which are not supported by `Leapp`.
 
-A `--no-leapp` upgrade would look like:
+A `--upgrade-distro-manually` upgrade would look like:
 
-1. User runs `/scripts/elevate-cpanel --start --no-leapp` which starts the upgrade process.
+1. User runs `/scripts/elevate-cpanel --start --upgrade-distro-manually` which starts the upgrade process.
 2. `elevate-cpanel` does all preparatory steps to upgrade the system prior to the distro upgrade.
 3. Elevate will then create the file `/waiting_for_distro_upgrade` to indicate that the operating system is ready for an upgrade.
     * This is when you would use your distro upgrade tool.
     * When you have completed upgrading your system to 8, simply remove `/waiting_for_distro_upgrade` and reboot the system into normal multi-user mode.
-5. Elevate will resume upon reboot and complete the upgrade just like it would have without `--no-leapp`
+5. Elevate will resume upon reboot and complete the upgrade just like it would have without `--upgrade-distro-manually`
 
 ### Using the LEAPP_OVL_SIZE environment variable
 
