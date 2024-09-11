@@ -8,12 +8,12 @@ Elevate::Components::PackageRestore
 
 Handle restoring packages that get removed during elevate
 
-Before leapp:
+Before distro upgrade:
     Detect which packages in our list are installed and
     store our findings.
 
-After leapp:
-    Reinstall any packages detected pre-leapp
+After distro upgrade:
+    Reinstall any packages detected pre distro upgrade
 
 =cut
 
@@ -34,7 +34,7 @@ sub _get_packages_to_check () {
     };
 }
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     my @package_list = _get_packages_to_check();
     my @installed_packages;
@@ -56,7 +56,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     my $package_info = Elevate::StageFile::read_stage_file('packages_to_restore');
     return unless defined $package_info and ref $package_info eq 'HASH';

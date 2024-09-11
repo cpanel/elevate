@@ -20,7 +20,7 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     # Backup arch rpms which we're going to remove and are provided by yum.
     my @installed_arch_cpanel_plugins;
@@ -38,7 +38,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     # Restore YUM arch plugins.
 

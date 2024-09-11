@@ -23,14 +23,14 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     $self->run_once("_backup_pecl_packages");
 
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     $self->run_once('_check_pecl_packages');
 

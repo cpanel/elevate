@@ -23,7 +23,7 @@ use Log::Log4perl           qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");

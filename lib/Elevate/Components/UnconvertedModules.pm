@@ -20,11 +20,11 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
     $self->run_once('_remove_leapp_packages');
     $self->run_once('_warn_about_other_modules_that_did_not_convert');
     return;

@@ -21,7 +21,7 @@ use parent qw{Elevate::Components::Base};
 
 use constant ELS_PACKAGE => 'els-define';
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     return unless Elevate::OS::remove_els();
 
@@ -41,7 +41,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     # Nothing to do
     return;

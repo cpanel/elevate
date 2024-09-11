@@ -2651,7 +2651,7 @@ EOS
         return %links;
     }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
         $self->_absolute_symlinks;
@@ -2678,7 +2678,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return;
     }
@@ -2724,7 +2724,7 @@ EOS
         contacts  => 'vcard',
     );
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
         my $ccs_installed = Cpanel::Pkgr::is_installed(CCS_PACKAGE);
         Elevate::StageFile::update_stage_file( { ccs_installed => $ccs_installed } );
         return unless $ccs_installed;
@@ -2919,7 +2919,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
         return unless Elevate::StageFile::read_stage_file('ccs_installed');
 
         $self->run_once('move_pgsql_directory');
@@ -3118,7 +3118,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         my @installed_arch_cpanel_plugins;
 
@@ -3135,7 +3135,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         my $stash            = Elevate::StageFile::read_stage_file();
         my $yum_arch_plugins = $stash->{'restore'}->{'yum'} // [];
@@ -3175,7 +3175,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         unlink('/usr/local/cpanel/scripts/upcp');
         unlink('/usr/local/cpanel/bin/backup');
@@ -3287,12 +3287,12 @@ EOS
         return;
     }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
         $self->run_once('_cleanup_rpm_db');
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         $self->run_once('_restore_ea4_profile');
         $self->run_once('_restore_ea_addons');
@@ -3591,7 +3591,7 @@ EOS
         return;
     }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->run_once('_update_grub2_workaround_if_needed');    # required part
         $self->run_once('_merge_grub_directories_if_needed');     # best-effort part
@@ -3688,7 +3688,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         my $proc_cmd_line = eval { File::Slurper::read_binary('/proc/cmdline') } // '';
         return unless $proc_cmd_line =~ m{net.ifnames=0};
@@ -3757,7 +3757,7 @@ EOS
     use constant IMUNIFY_LICENSE_FILE   => '/var/imunify360/license.json';
     use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . '/imunify-backup-license.json';
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         return if Elevate::OS::leapp_can_handle_imunify();
 
@@ -3770,7 +3770,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return if Elevate::OS::leapp_can_handle_imunify();
 
@@ -4025,7 +4025,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         Elevate::StageFile::remove_from_stage_file('reinstall.influxdb');
 
@@ -4037,7 +4037,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return unless Elevate::StageFile::read_stage_file('reinstall')->{'influxdb'};
 
@@ -4070,7 +4070,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         Elevate::StageFile::remove_from_stage_file('reinstall.jetbackup');
 
@@ -4098,7 +4098,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         my $data = Elevate::StageFile::read_stage_file('reinstall')->{'jetbackup'};
         return unless ref $data && ref $data->{packages};
@@ -4136,7 +4136,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         Elevate::StageFile::remove_from_stage_file('reinstall.litespeed');
 
@@ -4157,7 +4157,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         my $data = Elevate::StageFile::read_stage_file('reinstall')->{'litespeed'};
         return unless ref $data;
@@ -4199,7 +4199,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         return if Elevate::OS::leapp_can_handle_kernelcare();
 
@@ -4208,7 +4208,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return if Elevate::OS::leapp_can_handle_kernelcare();
 
@@ -4276,12 +4276,12 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         $self->run_once('_kernel_check');
 
@@ -4339,14 +4339,14 @@ EOS
 
     my $cnf_file = '/etc/my.cnf';
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
         return if Elevate::Database::is_database_provided_by_cloudlinux();
 
         $self->run_once("_cleanup_mysql_packages");
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
         return if Elevate::Database::is_database_provided_by_cloudlinux();
 
         $self->run_once('_reinstall_mysql_packages');
@@ -4424,7 +4424,7 @@ EOS
             return;
         }
 
-        File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_leapp_orig" );
+        File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
 
         INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
         File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
@@ -4437,7 +4437,7 @@ EOS
         return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
 
         INFO('The database server failed to start.  Restoring my.cnf to default.');
-        File::Copy::copy( "$cnf_file.elevate_post_leapp_orig", $cnf_file );
+        File::Copy::copy( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
 
         $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
         @restart_lines = split "\n", $restart_out;
@@ -4541,7 +4541,7 @@ EOS
     use constant NIC_PREFIX                => q[cp];
     use constant PERSISTENT_NET_RULES_PATH => q[/etc/udev/rules.d/70-persistent-net.rules];
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->_rename_nics();
 
@@ -4602,7 +4602,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
         return;
     }
 
@@ -4631,14 +4631,14 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->run_once("_remove_nixstats");
 
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         $self->run_once('_restore_nixstats');
 
@@ -4780,14 +4780,14 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->run_once("_backup_pecl_packages");
 
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         $self->run_once('_check_pecl_packages');
 
@@ -4933,7 +4933,7 @@ EOS
 
     use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->purge_perl_xs(DISTRO_PERL_XS_PATH);
         $self->purge_perl_xs( $Config{'installsitearch'} );
@@ -4941,7 +4941,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         $self->restore_perl_xs(DISTRO_PERL_XS_PATH);
         $self->restore_perl_xs( $Config{'installsitearch'} );
@@ -5096,7 +5096,7 @@ EOS
         return Elevate::SystemctlService->new( name => 'postgresql' );
     }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
         if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
             $self->_store_postgresql_encoding_and_locale();
             $self->_disable_postgresql_service();
@@ -5196,7 +5196,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
         if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
             $self->_perform_config_workaround();
             $self->_perform_postgresql_upgrade();
@@ -5359,11 +5359,11 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
         $self->run_once('_remove_leapp_packages');
         $self->run_once('_warn_about_other_modules_that_did_not_convert');
         return;
@@ -5435,7 +5435,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->run_once("_disable_yum_plugin_fastestmirror");
         $self->run_once("_disable_known_yum_repositories");
@@ -5511,7 +5511,7 @@ EOS
         'yum-plugin-universal-hooks',
     );
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->run_once("_cleanup_rpms");
 
@@ -5533,7 +5533,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         $self->run_once("_sysup");
 
@@ -5586,7 +5586,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->run_once("_rmod_ln");
 
@@ -5625,14 +5625,14 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         $self->run_once("_remove_wordpress_toolkit");
 
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         $self->run_once('_reinstall_wordpress_toolkit');
 
@@ -5698,7 +5698,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         my $sshd_config = q[/etc/ssh/sshd_config];
 
@@ -5717,7 +5717,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return;
     }
@@ -5738,7 +5738,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         if ( is_using_sectigo() ) {
             $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/autorepair set_autossl_to_lets_encrypt});
@@ -5747,7 +5747,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return;
     }
@@ -5801,7 +5801,7 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         return if Elevate::Database::is_database_provided_by_cloudlinux();
 
@@ -5814,7 +5814,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
         return unless -e MYSQL_PROFILE_FILE;
 
         my $original_profile = File::Slurper::read_text(MYSQL_PROFILE_FILE) // 'localhost';
@@ -5983,7 +5983,7 @@ EOS
 
     use constant ELS_PACKAGE => 'els-define';
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         return unless Elevate::OS::remove_els();
 
@@ -6003,7 +6003,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return;
     }
@@ -6032,7 +6032,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         my $r1soft_agent_installed = 0;
         my $r1soft_repo_present    = 0;
@@ -6071,7 +6071,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         my $r1soft_info = Elevate::StageFile::read_stage_file('r1soft');
 
@@ -6151,7 +6151,7 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         if ( Cpanel::Pkgr::is_installed('panopta-agent') ) {
 
@@ -6161,7 +6161,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         return;
     }
@@ -6190,7 +6190,7 @@ EOS
         };
     }
 
-    sub pre_leapp ($self) {
+    sub pre_distro_upgrade ($self) {
 
         my @package_list = _get_packages_to_check();
         my @installed_packages;
@@ -6212,7 +6212,7 @@ EOS
         return;
     }
 
-    sub post_leapp ($self) {
+    sub post_distro_upgrade ($self) {
 
         my $package_info = Elevate::StageFile::read_stage_file('packages_to_restore');
         return unless defined $package_info and ref $package_info eq 'HASH';
@@ -8667,7 +8667,7 @@ A `--no-leapp` upgrade would look like:
 
 =item * This is when you would use your distro upgrade tool.
 
-=item * When you have completed upgrading your system to 8, simply remove `/waiting_for_distro_upgrade` and reboot the system into normal multi-user mode.
+=item * When you have completed upgrading your system, simply remove `/waiting_for_distro_upgrade` and reboot the system into normal multi-user mode.
 
 =back
 
@@ -9477,21 +9477,21 @@ sub run_stage_2 ($self) {
 
     # This needs to happen before the database upgrade because
     # it will remove the packages we want to detect
-    $self->run_component_once( 'PackageRestore' => 'pre_leapp' );
+    $self->run_component_once( 'PackageRestore' => 'pre_distro_upgrade' );
 
     # This needs to execute before we disable cPanel services
     # or exporting the CCS data will fail
-    $self->run_component_once( 'CCS'             => 'pre_leapp' );
-    $self->run_component_once( 'DatabaseUpgrade' => 'pre_leapp' );
+    $self->run_component_once( 'CCS'             => 'pre_distro_upgrade' );
+    $self->run_component_once( 'DatabaseUpgrade' => 'pre_distro_upgrade' );
 
     # This disable cPanel services
-    $self->run_component_once( 'cPanelPrep' => 'pre_leapp' );
+    $self->run_component_once( 'cPanelPrep' => 'pre_distro_upgrade' );
 
-    $self->run_component_once( 'SSH'        => 'pre_leapp' );
-    $self->run_component_once( 'AutoSSL'    => 'pre_leapp' );
-    $self->run_component_once( 'KernelCare' => 'pre_leapp' );
-    $self->run_component_once( 'Grub2'      => 'pre_leapp' );
-    $self->run_component_once( 'NICs'       => 'pre_leapp' );
+    $self->run_component_once( 'SSH'        => 'pre_distro_upgrade' );
+    $self->run_component_once( 'AutoSSL'    => 'pre_distro_upgrade' );
+    $self->run_component_once( 'KernelCare' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Grub2'      => 'pre_distro_upgrade' );
+    $self->run_component_once( 'NICs'       => 'pre_distro_upgrade' );
 
     # Imunify depends on EA4 so the Imunify component needs to
     # run before EA4 is removed.  However, Imunify 360 can provide
@@ -9500,9 +9500,9 @@ sub run_stage_2 ($self) {
     # to be executed before Imunify and left the removal until
     # after Imunify
     $self->run_component_once( 'EA4'     => 'pre_imunify' );
-    $self->run_component_once( 'Imunify' => 'pre_leapp' );
-    $self->run_component_once( 'PECL'    => 'pre_leapp' );
-    $self->run_component_once( 'EA4'     => 'pre_leapp' );
+    $self->run_component_once( 'Imunify' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'PECL'    => 'pre_distro_upgrade' );
+    $self->run_component_once( 'EA4'     => 'pre_distro_upgrade' );
 
     # This reboot will invalidate the cPanel license causing
     # further whmapi1 calls to fail until stage 4
@@ -9527,7 +9527,7 @@ some conflicting packages.
 
 sub run_stage_3 ($self) {
 
-    $self->run_once('run_final_components_pre_leapp');
+    $self->run_once('run_final_components_pre_distro_upgrade');
 
     if ( !$self->should_run_leapp() ) {
         return $self->_request_to_upgrade_distro_manually();
@@ -9621,7 +9621,7 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    $self->run_component_once( 'RpmDB', => 'post_leapp' );
+    $self->run_component_once( 'RpmDB', => 'post_distro_upgrade' );
 
     $self->run_once(
         restore_cpanel_services => sub {
@@ -9633,8 +9633,8 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'Imunify' => 'post_leapp' );
-    $self->run_component_once( 'EA4'     => 'post_leapp' );
+    $self->run_component_once( 'Imunify' => 'post_distro_upgrade' );
+    $self->run_component_once( 'EA4'     => 'post_distro_upgrade' );
 
     $self->run_once(
         upcp => sub {
@@ -9653,9 +9653,9 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->post_leapp_update_restore();
+    $self->post_distro_upgrade_update_restore();
 
-    $self->run_component_once( 'UnconvertedModules' => 'post_leapp' );
+    $self->run_component_once( 'UnconvertedModules' => 'post_distro_upgrade' );
 
     # run upcp a second time as we had to run it before with CPANEL_BASE_INSTALL=1
     $self->run_once(
@@ -9664,7 +9664,7 @@ sub run_stage_4 ($self) {
         }
     );
 
-    $self->run_component_once( 'CCS' => 'post_leapp' );
+    $self->run_component_once( 'CCS' => 'post_distro_upgrade' );
 
     return ACTION_REBOOT_NEEDED;
 }
@@ -9686,7 +9686,7 @@ sub run_stage_5 ($self) {
     my $el_backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR;
     File::Path::remove_tree($el_backup_dir) if -d $el_backup_dir;
 
-    $self->run_component_once( 'Grub2' => 'post_leapp' );
+    $self->run_component_once( 'Grub2' => 'post_distro_upgrade' );
 
     Elevate::Marker::success();
 
@@ -9835,30 +9835,30 @@ sub stop_services_before_upcp ($self) {
 }
 
 # remove and store
-sub run_final_components_pre_leapp ($self) {
+sub run_final_components_pre_distro_upgrade ($self) {
 
     # order matters
-    $self->run_component_once( 'RmMod'            => 'pre_leapp' );
-    $self->run_component_once( 'MySQL'            => 'pre_leapp' );
-    $self->run_component_once( 'PostgreSQL'       => 'pre_leapp' );
-    $self->run_component_once( 'Repositories'     => 'pre_leapp' );
-    $self->run_component_once( 'cPanelPlugins'    => 'pre_leapp' );
-    $self->run_component_once( 'PerlXS'           => 'pre_leapp' );
-    $self->run_component_once( 'WPToolkit'        => 'pre_leapp' );
-    $self->run_component_once( 'InfluxDB'         => 'pre_leapp' );
-    $self->run_component_once( 'JetBackup'        => 'pre_leapp' );
-    $self->run_component_once( 'NixStats'         => 'pre_leapp' );
-    $self->run_component_once( 'LiteSpeed'        => 'pre_leapp' );
-    $self->run_component_once( 'AbsoluteSymlinks' => 'pre_leapp' );
-    $self->run_component_once( 'ELS'              => 'pre_leapp' );
-    $self->run_component_once( 'R1Soft'           => 'pre_leapp' );
-    $self->run_component_once( 'Panopta'          => 'pre_leapp' );
-    $self->run_component_once( 'RpmDB'            => 'pre_leapp' );    # remove the RPMs last
+    $self->run_component_once( 'RmMod'            => 'pre_distro_upgrade' );
+    $self->run_component_once( 'MySQL'            => 'pre_distro_upgrade' );
+    $self->run_component_once( 'PostgreSQL'       => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Repositories'     => 'pre_distro_upgrade' );
+    $self->run_component_once( 'cPanelPlugins'    => 'pre_distro_upgrade' );
+    $self->run_component_once( 'PerlXS'           => 'pre_distro_upgrade' );
+    $self->run_component_once( 'WPToolkit'        => 'pre_distro_upgrade' );
+    $self->run_component_once( 'InfluxDB'         => 'pre_distro_upgrade' );
+    $self->run_component_once( 'JetBackup'        => 'pre_distro_upgrade' );
+    $self->run_component_once( 'NixStats'         => 'pre_distro_upgrade' );
+    $self->run_component_once( 'LiteSpeed'        => 'pre_distro_upgrade' );
+    $self->run_component_once( 'AbsoluteSymlinks' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'ELS'              => 'pre_distro_upgrade' );
+    $self->run_component_once( 'R1Soft'           => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Panopta'          => 'pre_distro_upgrade' );
+    $self->run_component_once( 'RpmDB'            => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;
 }
 
-sub post_leapp_update_restore ($self) {
+sub post_distro_upgrade_update_restore ($self) {
 
     INFO('Removing leapp from excludes in /etc/yum.conf');
     my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
@@ -9868,21 +9868,21 @@ sub post_leapp_update_restore ($self) {
     }
 
     # plugins can use MySQL - restore database earlier
-    $self->run_component_once( 'MySQL'           => 'post_leapp' );
-    $self->run_component_once( 'PerlXS'          => 'post_leapp' );
-    $self->run_component_once( 'PostgreSQL'      => 'post_leapp' );
-    $self->run_component_once( 'cPanelPlugins'   => 'post_leapp' );
-    $self->run_component_once( 'DatabaseUpgrade' => 'post_leapp' );
-    $self->run_component_once( 'PECL'            => 'post_leapp' );
-    $self->run_component_once( 'WPToolkit'       => 'post_leapp' );
-    $self->run_component_once( 'InfluxDB'        => 'post_leapp' );
-    $self->run_component_once( 'JetBackup'       => 'post_leapp' );
-    $self->run_component_once( 'Kernel'          => 'post_leapp' );
-    $self->run_component_once( 'KernelCare'      => 'post_leapp' );
-    $self->run_component_once( 'NixStats'        => 'post_leapp' );
-    $self->run_component_once( 'LiteSpeed'       => 'post_leapp' );
-    $self->run_component_once( 'R1Soft'          => 'post_leapp' );
-    $self->run_component_once( 'PackageRestore'  => 'post_leapp' );
+    $self->run_component_once( 'MySQL'           => 'post_distro_upgrade' );
+    $self->run_component_once( 'PerlXS'          => 'post_distro_upgrade' );
+    $self->run_component_once( 'PostgreSQL'      => 'post_distro_upgrade' );
+    $self->run_component_once( 'cPanelPlugins'   => 'post_distro_upgrade' );
+    $self->run_component_once( 'DatabaseUpgrade' => 'post_distro_upgrade' );
+    $self->run_component_once( 'PECL'            => 'post_distro_upgrade' );
+    $self->run_component_once( 'WPToolkit'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'InfluxDB'        => 'post_distro_upgrade' );
+    $self->run_component_once( 'JetBackup'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'Kernel'          => 'post_distro_upgrade' );
+    $self->run_component_once( 'KernelCare'      => 'post_distro_upgrade' );
+    $self->run_component_once( 'NixStats'        => 'post_distro_upgrade' );
+    $self->run_component_once( 'LiteSpeed'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'R1Soft'          => 'post_distro_upgrade' );
+    $self->run_component_once( 'PackageRestore'  => 'post_distro_upgrade' );
 
     return;
 }

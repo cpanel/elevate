@@ -23,7 +23,7 @@ use Elevate::Fetch ();
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     return if Elevate::OS::leapp_can_handle_kernelcare();
 
@@ -32,7 +32,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     return if Elevate::OS::leapp_can_handle_kernelcare();
 
