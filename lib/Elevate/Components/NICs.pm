@@ -25,7 +25,7 @@ use constant ETH_FILE_PREFIX           => Elevate::Constants::ETH_FILE_PREFIX;
 use constant NIC_PREFIX                => q[cp];
 use constant PERSISTENT_NET_RULES_PATH => q[/etc/udev/rules.d/70-persistent-net.rules];
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     $self->_rename_nics();
 
@@ -92,7 +92,7 @@ sub _rename_nics ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
     return;
 }
 

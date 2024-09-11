@@ -31,7 +31,7 @@ use constant MYSQL_PROFILE_FILE => '/var/cpanel/elevate-mysql-profile';
 
 use Log::Log4perl qw(:easy);
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     # We don't auto-upgrade the database if provided by cloudlinux
     return if Elevate::Database::is_database_provided_by_cloudlinux();
@@ -46,7 +46,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
     return unless -e MYSQL_PROFILE_FILE;
 
     my $original_profile = File::Slurper::read_text(MYSQL_PROFILE_FILE) // 'localhost';

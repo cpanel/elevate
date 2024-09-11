@@ -28,7 +28,7 @@ sub get_abs_symlinks {
     return %links;
 }
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     $self->ssystem(qw{/usr/bin/ln -snf usr/local/cpanel/scripts /scripts});
     $self->_absolute_symlinks;
@@ -59,7 +59,7 @@ sub _absolute_symlinks ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     return;
 }

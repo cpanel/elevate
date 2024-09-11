@@ -6,7 +6,7 @@ package Elevate::Components::cPanelPrep;
 
 Elevate::Components::cPanelPrep
 
-Perform tasks to ensure cPanel is in a safe state to leapp.
+Perform tasks to ensure cPanel is in a safe state to upgrade the distro.
 
 =cut
 
@@ -26,7 +26,7 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     # Remove scripts/upcp and bin/backup to make sure they don't
     # end up running while ELevate is running.

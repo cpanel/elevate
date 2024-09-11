@@ -6,10 +6,10 @@ package Elevate::Components::CCS;
 
 Elevate::Components::CCS
 
-pre_leapp: Export CCS data to a root owned backup directory and remove CCS
+pre_distro_upgrade: Export CCS data to a root owned backup directory and remove CCS
            package
 
-post_leapp: Install CCS package and import the backups taken during pre_leapp
+post_distro_upgrade: Install CCS package and import the backups taken during pre_distro_upgrade
 
 =cut
 
@@ -43,7 +43,7 @@ use constant DUMP_TYPES => (
     contacts  => 'vcard',
 );
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
     my $ccs_installed = Cpanel::Pkgr::is_installed(CCS_PACKAGE);
     Elevate::StageFile::update_stage_file( { ccs_installed => $ccs_installed } );
     return unless $ccs_installed;
@@ -269,10 +269,10 @@ sub _ensure_export_directory ($self) {
 }
 
 ####################################
-##### post_leapp code below this ###
+##### post_distro_upgrade code below this ###
 ####################################
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
     return unless Elevate::StageFile::read_stage_file('ccs_installed');
 
     $self->run_once('move_pgsql_directory');

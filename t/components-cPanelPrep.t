@@ -25,7 +25,7 @@ use Elevate::Constants              ();
 my $cpanel_prep = bless {}, 'Elevate::Components::cPanelPrep';
 
 {
-    note "Checking pre_leapp";
+    note "Checking pre_distro_upgrade";
 
     my $mock_scripts_upcp = Test::MockFile->file('/usr/local/cpanel/scripts/upcp');
     my $mock_bin_backup   = Test::MockFile->file('/usr/local/cpanel/bin/backup');
@@ -40,7 +40,7 @@ my $cpanel_prep = bless {}, 'Elevate::Components::cPanelPrep';
         '_flush_task_queue'            => sub { $called{'_flush_task_queue'}            = 1 },
     );
 
-    $cpanel_prep->pre_leapp();
+    $cpanel_prep->pre_distro_upgrade();
 
     ok( $called{'_disable_all_cpanel_services'}, '_disable_all_cpanel_services() was called' );
     ok( $called{'_setup_outdated_services'},     '_setup_outdated_services() was called' );

@@ -33,7 +33,7 @@ use constant IMUNIFY_AGENT          => Elevate::Constants::IMUNIFY_AGENT;       
 use constant IMUNIFY_LICENSE_FILE   => '/var/imunify360/license.json';
 use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . '/imunify-backup-license.json';
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     return if Elevate::OS::leapp_can_handle_imunify();
 
@@ -46,7 +46,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     return if Elevate::OS::leapp_can_handle_imunify();
 

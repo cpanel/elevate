@@ -26,7 +26,7 @@ use constant PROFILE_FILE => Elevate::Components::DatabaseUpgrade::MYSQL_PROFILE
 my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
 
 {
-    note('Checking pre_leapp');
+    note('Checking pre_distro_upgrade');
 
     my $mock_elevate_database = Test::MockModule->new('Elevate::Database');
     $mock_elevate_database->redefine(
@@ -47,14 +47,14 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
         }
     );
 
-    $db_upgrade->pre_leapp();
+    $db_upgrade->pre_distro_upgrade();
     is \@_ensure_localhost_mysql_profile_is_active_params, [1], '_ensure_localhost_mysql_profile_is_active was called with correct params';
 
     clear_messages_seen();
 }
 
 {
-    note('Checking post_leapp');
+    note('Checking post_distro_upgrade');
 
     my @cmds;
     my @stdout;
@@ -68,12 +68,12 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
     );
 
     my $mock_profile_file = Test::MockFile->file(PROFILE_FILE);
-    $db_upgrade->post_leapp();
+    $db_upgrade->post_distro_upgrade();
     no_messages_seen();
 
     $mock_profile_file->contents('original-db-profile-name');
     like(
-        dies { $db_upgrade->post_leapp() },
+        dies { $db_upgrade->post_distro_upgrade() },
         qr/Unable to reactivate/,
         'Died as expected when profile activation done is not seen'
     );
@@ -93,7 +93,7 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
     ok -e PROFILE_FILE, 'profile file still exists after failed reactivation';
 
     @stdout = ('MySQL profile activation done');
-    $db_upgrade->post_leapp();
+    $db_upgrade->post_distro_upgrade();
     message_seen( 'INFO', 'Reactivating "original-db-profile-name" MySQL profile' );
     is \@cmds, [
         [
