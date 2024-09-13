@@ -6,7 +6,17 @@ package Elevate::Components::cPanelPlugins;
 
 Elevate::Components::cPanelPlugins
 
-Remove and reinstall some arch RPMs. (plugins)
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Gather list of installed cPanel plugins to reinstall in post
+
+=head2 post_distro_upgrade
+
+Reinstall the list of installed cPanel plugins from pre
 
 =cut
 

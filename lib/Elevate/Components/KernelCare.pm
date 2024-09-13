@@ -6,7 +6,17 @@ package Elevate::Components::KernelCare;
 
 Elevate::Components::KernelCare
 
-Capture and reinstall KernelCare.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Remove KernelCare
+
+=head2 post_distro_upgrade
+
+Reinstall KernelCare
 
 =cut
 

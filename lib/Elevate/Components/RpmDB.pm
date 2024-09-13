@@ -6,7 +6,22 @@ package Elevate::Components::RpmDB;
 
 Elevate::Components::RpmDB
 
-Perform some maintenance on the RPM database.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+1. Remove packages provided via rpm.versions
+2. Remove obsolete packages that are not provided after upgrade
+
+=head2 post_distro_upgrade
+
+1. Install EPEL repo
+2. Ensure epel and powertools repos are enabled
+3. Force Perl reinstall
+4. Update all packages
+5. Execute sysup
 
 =cut
 

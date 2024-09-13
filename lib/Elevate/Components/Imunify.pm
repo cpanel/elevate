@@ -6,7 +6,17 @@ package Elevate::Components::Imunify;
 
 Elevate::Components::Imunify
 
-Capture and reinstall Imunify packages.
+=head2 check
+
+Verify imunify license is valid
+
+=head2 pre_distro_upgrade
+
+Capture imunify features and packages, then remove it
+
+=head2 post_distro_upgrade
+
+Reinstall imunify, then restore its features and packages
 
 =cut
 
@@ -286,6 +296,31 @@ sub _fetch_imunify_installer ($product) {
 
     my $installer_url = _script_url_for_product($product) or return;
     return Elevate::Fetch::script( $installer_url, 'imunify_installer' );
+}
+
+sub check ($self) {
+    return $self->_check_imunify_license();
+}
+
+sub _check_imunify_license ($self) {
+    return unless -x Elevate::Constants::IMUNIFY_AGENT;
+
+    my $agent_bin    = Elevate::Constants::IMUNIFY_AGENT;
+    my $out          = $self->ssystem_hide_and_capture_output( $agent_bin, 'version', '--json' );
+    my $raw_data     = join "\n", @{ $out->{stdout} };
+    my $license_data = eval { Cpanel::JSON::Load($raw_data) } // {};
+
+    if ( !ref $license_data->{license} || !$license_data->{license}->{status} ) {
+
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
+        return $self->has_blocker( <<~"EOS");
+        The Imunify license is reporting that it is not currently valid.  Since
+        Imunify is installed on this system, a valid Imunify license is required
+        to ELevate to $pretty_distro_name.
+        EOS
+    }
+
+    return;
 }
 
 1;

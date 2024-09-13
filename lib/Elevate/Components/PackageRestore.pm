@@ -6,14 +6,17 @@ package Elevate::Components::PackageRestore;
 
 Elevate::Components::PackageRestore
 
-Handle restoring packages that get removed during elevate
+=head2 check
 
-Before distro upgrade:
-    Detect which packages in our list are installed and
-    store our findings.
+noop
 
-After distro upgrade:
-    Reinstall any packages detected pre distro upgrade
+=head2 pre_distro_upgrade
+
+Detect which packages in our list are installed and store our findings
+
+=head2 post_distro_upgrade
+
+Reinstall any packages detected pre distro upgrade
 
 =cut
 

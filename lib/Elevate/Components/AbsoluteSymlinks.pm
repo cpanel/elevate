@@ -6,7 +6,17 @@ package Elevate::Components::AbsoluteSymlinks;
 
 Elevate::Components::AbsoluteSymlinks
 
-Alter absolute symlinks in / to be relative links
+=head2 check
+
+Verify that there are not any absolute symlinks present in /
+
+=head2 pre_distro_upgrade
+
+Update absolute symlinks in / to be relative links
+
+=head2 post_distro_upgrade
+
+noop
 
 =cut
 
@@ -16,9 +26,11 @@ use Cpanel::Chdir ();
 use Cpanel::UUID  ();
 use File::Copy    ();
 
+use Log::Log4perl qw(:easy);
+
 use parent qw{Elevate::Components::Base};
 
-sub get_abs_symlinks {
+sub get_abs_symlinks ($self) {
     my %links;
     foreach my $entry ( glob "/*" ) {
         my $path = readlink($entry);    # don't bother with stat, this is fast
@@ -38,7 +50,7 @@ sub pre_distro_upgrade ($self) {
 
 sub _absolute_symlinks ($self) {
 
-    my %links = get_abs_symlinks();
+    my %links = $self->get_abs_symlinks();
     return unless %links;
     my $chdir = Cpanel::Chdir->new("/");
     foreach my $link ( keys(%links) ) {
@@ -59,8 +71,9 @@ sub _absolute_symlinks ($self) {
     return;
 }
 
-sub post_distro_upgrade ($self) {
-
+sub check ($self) {
+    my %links = $self->get_abs_symlinks();
+    WARN( "Symlinks with absolute paths have been found in /:\n\t" . join( ", ", sort keys(%links) ) . "\n" . "This can cause problems during the leapp run, so\n" . 'these will be corrected to be relative symlinks before elevation.' ) if %links;
     return;
 }
 
