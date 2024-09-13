@@ -21,7 +21,7 @@ use Test::Elevate;
 
 use cPstrict;
 
-my $r1soft = cpev->new->component('R1Soft');
+my $r1soft = cpev->new->get_component('R1Soft');
 
 {
     note "Checking pre_distro_upgrade";

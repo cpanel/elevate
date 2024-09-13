@@ -5,7 +5,7 @@
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
 
-package test::cpev::blockers;
+package test::cpev::components;
 
 use FindBin;
 
@@ -96,7 +96,7 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
 
     $self->{mock_httpd}->redefine( is_ea4 => 0 );
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
     $mock_elevate_ea4->redefine(
@@ -126,7 +126,7 @@ sub test_missing_ea4_profile : Test(6) ($self) {
             },
         );
 
-        my $ea4 = cpev->new->component('EA4');
+        my $ea4 = cpev->new->get_component('EA4');
         like(
             dies { $ea4->_backup_ea4_profile() },
             qr/Unable to backup EA4 profile/,
@@ -155,7 +155,7 @@ sub test_get_ea4_profile : Test(10) ($self) {
         },
     );
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     is( Elevate::EA4::_get_ea4_profile(0), PROFILE_FILE, "_get_ea4_profile" );
     _message_run_ea_current_to_profile( 'cent', 1 );
@@ -209,10 +209,10 @@ sub test_get_ea4_profile_check_mode : Test(19) ($self) {
         my $cpev = cpev->new( _is_check_mode => 1 );
         ok -d Elevate::EA4::tmp_dir(), "tmp_dir works";
 
-        my $mock_b = Test::MockModule->new('Elevate::Blockers')    #
+        my $mock_b = Test::MockModule->new('Elevate::Components')    #
           ->redefine( is_check_mode => 1 );
 
-        ok( Elevate::Blockers->is_check_mode(), 'Elevate::Blockers->is_check_mode()' );
+        ok( Elevate::Components->is_check_mode(), 'Elevate::Components->is_check_mode()' );
 
         my $expected_profile = Elevate::EA4::tmp_dir() . '/ea_profile.json';
         {
@@ -227,7 +227,7 @@ sub test_get_ea4_profile_check_mode : Test(19) ($self) {
             },
         );
 
-        my $ea4 = $cpev->component('EA4');
+        my $ea4 = $cpev->get_component('EA4');
         is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
 
         my $expected_target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
@@ -268,7 +268,7 @@ sub test_tmp_dir : Test(3) ($self) {
 
 sub backup_non_existing_profile : Test(16) ($self) {
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
@@ -302,7 +302,7 @@ sub backup_non_existing_profile : Test(16) ($self) {
 
 sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     my $profile = { my_profile => ['...'] };
 
@@ -331,7 +331,7 @@ sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
 
 sub test_backup_and_restore_ea4_profile_dropped_packages : Test(28) ($self) {
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
@@ -388,7 +388,7 @@ EOS
 
 sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($self) {
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
@@ -473,7 +473,7 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
         },
     );
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     is( $ea4->_backup_config_files(), undef, '_backup_config_files() successfully completes' );
 
@@ -540,7 +540,7 @@ sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
         },
     );
 
-    my $ea4 = cpev->new->component('EA4');
+    my $ea4 = cpev->new->get_component('EA4');
 
     is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
     is( \@saferun_calls,                             [],    'No API calls are made when no data is present in the stage file' );
@@ -594,36 +594,39 @@ sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
     return;
 }
 
-=pod
 sub test_blocker_ea4_profile : Test(18) ($self) {
 
-    my $ea4 = cpev->new->component('EA4');
+    set_os_to('cent');
 
-    $self->{mock_cpev}->redefine( backup_ea4_profile => 0 );
+    my $cpev = cpev->new();
+    my $ea4  = $cpev->get_component('EA4');
 
-    my $ea_info_check = sub {
-        message_seen( 'INFO' => "Checking EasyApache profile compatibility with AlmaLinux 8." );
-    };
+    my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+    $mock_elevate_ea4->redefine(
+        backup => sub { return undef; },
+    );
 
-    ok !$cpev->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
-    $ea_info_check->();
+    ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
+    $self->_ea_info_check('AlmaLinux 8');
 
-    $self->{mock_cpev}->redefine( backup_ea4_profile => PROFILE_FILE );
+    $mock_elevate_ea4->redefine(
+        _get_ea4_profile => PROFILE_FILE,
+    );
 
     my $stage_ea4 = {
         profile => '/some/file.not.used.there',
     };
-    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
-    ok !$cpev->_blocker_ea4_profile(),                 "no ea4 blockers: profile without any dropped_pkgs";
-    $ea_info_check->();
+    ok Elevate::StageFile::_save_stage_file( { ea4 => $stage_ea4 } ), '_save_stage_file';
+    ok !$ea4->_blocker_ea4_profile(),                                 "no ea4 blockers: profile without any dropped_pkgs";
+    $self->_ea_info_check('AlmaLinux 8');
 
     $stage_ea4->{'dropped_pkgs'} = {
         "ea-bar" => "exp",
         "ea-baz" => "exp",
     };
-    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
-    ok !$cpev->_blocker_ea4_profile(),                 "no ea4 blockers: profile with dropped_pkgs: exp only";
-    $ea_info_check->();
+    ok Elevate::StageFile::_save_stage_file( { ea4 => $stage_ea4 } ), '_save_stage_file';
+    ok !$ea4->_blocker_ea4_profile(),                                 "no ea4 blockers: profile with dropped_pkgs: exp only";
+    $self->_ea_info_check('AlmaLinux 8');
 
     $stage_ea4->{'dropped_pkgs'} = {
         "pkg1"   => "reg",
@@ -631,17 +634,17 @@ sub test_blocker_ea4_profile : Test(18) ($self) {
         "pkg3"   => "reg",
         "pkg4"   => "whatever",
     };
-    ok cpev::save_stage_file( { ea4 => $stage_ea4 } ), 'save_stage_file';
+    ok Elevate::StageFile::_save_stage_file( { ea4 => $stage_ea4 } ), '_save_stage_file';
 
-    ok my $blocker = $cpev->_blocker_ea4_profile(), "_blocker_ea4_profile ";
-    $ea_info_check->();
+    ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
+    $self->_ea_info_check('AlmaLinux 8');
 
     message_seen( 'WARN' => qr[Elevation Blocker detected] );
 
     like $blocker, object {
         prop blessed => 'cpev::Blocker';
 
-        field id => 104;
+        field id => 'Elevate::Components::EA4::_blocker_ea4_profile';
         field msg => 'One or more EasyApache 4 package(s) are not compatible with AlmaLinux 8.
 Please remove these packages before continuing the update.
 - pkg1
@@ -652,11 +655,290 @@ Please remove these packages before continuing the update.
         end();
     }, "blocker with expected error" or diag explain $blocker;
 
-    # make sure to restore context
-    $self->{mock_cpev}->unmock('backup_ea4_profile');
+    return;
+}
+
+sub test_blocker_incompatible_package : Test(11) ($self) {
+
+    my $cpev = cpev->new();
+    my $ea4  = $cpev->get_component('EA4');
+
+    my $mock_isea4 = Test::MockFile->file( '/etc/cpanel/ea4/is_ea4' => 1 );
+    my $type       = '';
+
+    my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+    $mock_elevate_ea4->redefine( backup => sub { return; } );
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        _read_stage_file => sub {
+            return {
+                ea4 => {
+                    dropped_pkgs => {
+                        'ea4-bad-pkg' => $type,
+                    },
+                },
+            };
+        }
+    );
+
+    # only testing the blocking case
+
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+
+        my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        like(
+            $ea4->_blocker_ea4_profile(),
+            {
+                id  => q[Elevate::Components::EA4::_blocker_ea4_profile],
+                msg => <<~"EOS",
+        One or more EasyApache 4 package(s) are not compatible with $expected_target_os.
+        Please remove these packages before continuing the update.
+        - ea4-bad-pkg
+        EOS
+
+            },
+            'blocks when EA4 has an incompatible package'
+        );
+
+        my $target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        $self->_ea_info_check($target_os);
+        message_seen( WARN => <<"EOS");
+*** Elevation Blocker detected: ***
+One or more EasyApache 4 package(s) are not compatible with $target_os.
+Please remove these packages before continuing the update.
+- ea4-bad-pkg
+
+EOS
+
+    }
+
+    no_messages_seen();
+    return;
+}
+
+sub test_blocker_behavior : Test(49) ($self) {
+
+    my $cpev = cpev->new();
+    my $ea4  = $cpev->get_component('EA4');
+
+    my $mock_ea4 = Test::MockModule->new('Elevate::Components::EA4');
+
+    my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+    $mock_elevate_ea4->redefine( backup => sub { return; } );
+
+    for my $os ( 'cent', 'cloud' ) {
+        set_os_to($os);
+
+        my $target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+
+        ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
+        $self->_ea_info_check($target_os);
+
+        my $stage_ea4 = {
+            profile => '/some/file.not.used.there',
+        };
+
+        my $update_stage_file_data = {};
+
+        my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+        $mock_stagefile->redefine(
+            _read_stage_file => sub {
+                return { ea4 => $stage_ea4 };
+            },
+            update_stage_file => sub ($data) {
+                $update_stage_file_data = $data;
+            },
+            remove_from_stage_file => 1,
+        );
+
+        ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs" );
+
+        $self->_ea_info_check($target_os);
+
+        $stage_ea4->{'dropped_pkgs'} = {
+            "ea-bar" => "exp",
+            "ea-baz" => "exp",
+        };
+        ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only" );
+        $self->_ea_info_check($target_os);
+
+        $stage_ea4->{'dropped_pkgs'} = {
+            "pkg1"   => "reg",
+            "ea-baz" => "exp",
+            "pkg3"   => "reg",
+            "pkg4"   => "whatever",
+        };
+
+        ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
+        $self->_ea_info_check($target_os);
+
+        message_seen( 'WARN' => qr[Elevation Blocker detected] );
+
+        like $blocker, object {
+            prop blessed => 'cpev::Blocker';
+
+            field id => q[Elevate::Components::EA4::_blocker_ea4_profile];
+            field msg => qq[One or more EasyApache 4 package(s) are not compatible with $target_os.
+Please remove these packages before continuing the update.
+- pkg1
+- pkg3
+- pkg4
+];
+
+            end();
+        }, "blocker with expected error" or diag explain $blocker;
+
+        $mock_ea4->redefine(
+            _php_version_is_in_use => 1,
+        );
+
+        $stage_ea4->{'dropped_pkgs'} = {
+            pkg1       => 'exp',
+            pkg2       => 'reg',
+            'ea-php42' => 'reg',
+        };
+
+        ok $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
+        $self->_ea_info_check($target_os);
+
+        message_seen( 'WARN' => qr[Elevation Blocker detected] );
+
+        like $blocker, object {
+            prop blessed => 'cpev::Blocker';
+
+            field id => q[Elevate::Components::EA4::_blocker_ea4_profile];
+            field msg => qq[One or more EasyApache 4 package(s) are not compatible with $target_os.
+Please remove these packages before continuing the update.
+- ea-php42
+- pkg2
+];
+
+            end();
+        }, "blocker with expected error when dropped ea-php package is in use"
+          or diag explain $blocker;
+
+        $mock_ea4->redefine(
+            _php_version_is_in_use => 0,
+        );
+
+        $stage_ea4->{'dropped_pkgs'} = {
+            'ea-php42' => 'reg',
+        };
+
+        ok !$ea4->_blocker_ea4_profile(), 'No blocker when dropped package is an ea-php version that is not in use';
+        $self->_ea_info_check($target_os);
+
+        $stage_ea4 = {};
+    }
+
+    no_messages_seen();
+    return;
+}
+
+sub test__php_version_is_in_use : Test(3) ($self) {
+
+    my $cpev = cpev->new();
+    my $ea4  = $cpev->get_component('EA4');
+
+    my $mock_ea4 = Test::MockModule->new('Elevate::Components::EA4');
+
+    $mock_ea4->redefine(
+        _get_php_usage => sub ($self) {
+            return {
+                api_fail => 1,
+            };
+        },
+    );
+
+    is( $ea4->_php_version_is_in_use('ea-php42'), 1, 'The version is always considered to be in use when the underlying API call fails' );
+
+    my $is_installed = 1;
+    $mock_ea4->redefine(
+        _get_php_usage => sub ($self) {
+            return {
+                'ea-php42' => $is_installed,
+            };
+        },
+    );
+
+    is( $ea4->_php_version_is_in_use('ea-php42'), 1, 'Returns 1 when the version of PHP is in use' );
+
+    $is_installed = 0;
+
+    is( $ea4->_php_version_is_in_use('ea-php42'), 0, 'Returns 0 when the version of PHP is NOT in use' );
 
     return;
 }
+
+sub test__get_php_versions_in_use : Test(7) ($self) {
+
+    my $cpev = cpev->new();
+    my $ea4  = $cpev->get_component('EA4');
+
+    my $mock_result = 'nope';
+    my @saferun_calls;
+    my $mock_saferunnoerror = Test::MockModule->new('Cpanel::SafeRun::Simple');
+    $mock_saferunnoerror->redefine(
+        saferunnoerror => sub {
+            @saferun_calls = @_;
+            return $mock_result;
+        },
+    );
+
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        update_stage_file      => 1,
+        remove_from_stage_file => 1,
+    );
+
+    is( $ea4->_get_php_usage(), { api_fail => 1, }, 'api_fail is set when the API call does not return valid JSON' );
+
+    is( \@saferun_calls, [qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions}], 'The expected API call is made' );
+
+    message_seen( WARN => qr/The php_get_vhost_versions API call failed/ );
+
+    $ea4->_get_php_usage();
+    is( \@saferun_calls, [qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions}], 'The API call is only made one time' );
+
+    local $Elevate::Components::EA4::php_usage = undef;
+    $mock_result = {
+        metadata => {
+            result => 1,
+        },
+        data => {
+            versions => [
+                {
+                    version => 'ea-php1',
+                },
+                {
+                    version => 'ea-php2',
+                },
+                {
+                    version => 'ea-php3',
+                },
+            ],
+        },
+    };
+
+    $mock_result = Cpanel::JSON::Dump($mock_result);
+
+    is(
+        $ea4->_get_php_usage(),
+        {
+            'ea-php1' => 1,
+            'ea-php2' => 1,
+            'ea-php3' => 1,
+        },
+        'The expected result is returned when the API call succeeds',
+    );
+
+    no_messages_seen();
+    return;
+}
+
+=pod
+
 =cut
 
 ## helpers
@@ -679,6 +961,11 @@ sub _update_profile_file ( $self, $profile ) {
     my $content = Cpanel::JSON::pretty_canonical_dump($profile);
     $self->{mock_profile}->contents($content);
 
+    return;
+}
+
+sub _ea_info_check ( $self, $os ) {
+    message_seen( 'INFO' => "Checking EasyApache profile compatibility with $os." );
     return;
 }
 

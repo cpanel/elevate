@@ -6,7 +6,17 @@ package Elevate::Components::AutoSSL;
 
 Elevate::Components::AutoSSL
 
-Change AutoSSL provider from Sectigo to Lets Encrypt
+=head2 check
+
+Warn if Sectigo is the provider for AutoSSL
+
+=head2 pre_distro_upgrade
+
+Update the AutoSSL provider to LE
+
+=head2 post_distro_upgrade
+
+noop
 
 =cut
 
@@ -16,18 +26,33 @@ use Cpanel::SSL::Auto ();
 
 use parent qw{Elevate::Components::Base};
 
+use Log::Log4perl qw(:easy);
+
+sub check ($self) {
+
+    return $self->_check_autossl_provider();
+}
+
+sub _check_autossl_provider ($self) {
+
+    if ( $self->is_using_sectigo() ) {
+        WARN( <<~"EOS" );
+        Elevating with Sectigo as the provider for AutoSSL is not supported.
+        If you proceed with this upgrade, we will switch your system
+        to use the Let's Encrypt™ provider.
+
+        EOS
+    }
+
+    return 0;
+}
+
 sub pre_distro_upgrade ($self) {
 
-    if ( is_using_sectigo() ) {
+    if ( $self->is_using_sectigo() ) {
         $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/autorepair set_autossl_to_lets_encrypt});
     }
 
-    return;
-}
-
-sub post_distro_upgrade ($self) {
-
-    # Nothing to do
     return;
 }
 
@@ -45,7 +70,7 @@ true/false if AutoSSL is/isn't using Sectigo
 
 =cut
 
-sub is_using_sectigo {
+sub is_using_sectigo ($self) {
 
     my @providers = Cpanel::SSL::Auto::get_all_provider_info();
 

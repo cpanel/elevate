@@ -6,11 +6,20 @@ package Elevate::Components::UnconvertedModules;
 
 Elevate::Components::UnconvertedModules
 
-Remove the leapp packages since they do not convert during the leapp upgrade and
-are no longer necessary
+=head2 check
 
-Warn about other 'el7' modules that are still installed on the system as they
-likely will not work properly after the upgrade
+noop
+
+=head2 pre_distro_upgrade
+
+noop
+
+=head2 post_distro_upgrade
+
+1. Remove the leapp packages since they do not convert during the leapp upgrade
+   and are no longer necessary
+2. Warn about other 'el7' modules that are still installed on the system as they
+   likely will not work properly after the upgrade
 
 =cut
 
@@ -21,10 +30,6 @@ use Elevate::OS ();
 use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
-
-sub pre_distro_upgrade ($self) {
-    return;
-}
 
 sub post_distro_upgrade ($self) {
     $self->run_once('_remove_leapp_packages');

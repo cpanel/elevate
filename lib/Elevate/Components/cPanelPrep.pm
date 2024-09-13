@@ -6,7 +6,20 @@ package Elevate::Components::cPanelPrep;
 
 Elevate::Components::cPanelPrep
 
-Perform tasks to ensure cPanel is in a safe state to upgrade the distro.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+1. Flush task queue
+2. Disable services provided by cPanel
+3. Setup outdated services file
+4. Suspend chkservd service
+
+=head2 post_distro_upgrade
+
+noop
 
 =cut
 
@@ -111,4 +124,3 @@ sub _disable_all_cpanel_services ($self) {
 }
 
 1;
-

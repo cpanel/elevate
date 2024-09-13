@@ -6,11 +6,18 @@ package Elevate::Components::Panopta;
 
 Elevate::Components::Panopta
 
-Handle situation where the Panopta agent is installed
+=head2 check
 
-Before distro upgrade:
-    Uninstall the Panopta agent since it is deprecated and
-    not compatible with Elevate
+noop
+
+=head2 pre_distro_upgrade
+
+Uninstall the Panopta agent since it is deprecated and not compatible with
+Elevate
+
+=head2 post_distro_upgrade
+
+noop
 
 =cut
 
@@ -26,11 +33,6 @@ sub pre_distro_upgrade ($self) {
 
         $self->yum->remove('panopta-agent');
     }
-
-    return;
-}
-
-sub post_distro_upgrade ($self) {
 
     return;
 }

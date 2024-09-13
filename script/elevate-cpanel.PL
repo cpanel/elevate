@@ -235,64 +235,50 @@ use Cpanel::Version::Tiny       ();
 use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
-# FatPack these packages
-# - fatpack blockers
-use Elevate::Blockers::Base             ();
-use Elevate::Blockers                   ();
-use Elevate::Blockers::AbsoluteSymlinks ();
-use Elevate::Blockers::BootKernel       ();
-use Elevate::Blockers::CloudLinux       ();
-use Elevate::Blockers::Databases        ();
-use Elevate::Blockers::DiskSpace        ();
-use Elevate::Blockers::Distros          ();
-use Elevate::Blockers::DNS              ();
-use Elevate::Blockers::EA4              ();
-use Elevate::Blockers::ElevateScript    ();
-use Elevate::Blockers::Grub2            ();
-use Elevate::Blockers::Imunify          ();
-use Elevate::Blockers::IsContainer      ();
-use Elevate::Blockers::JetBackup        ();
-use Elevate::Blockers::MountPoints      ();
-use Elevate::Blockers::NICs             ();
-use Elevate::Blockers::OVH              ();    # using a constant
-use Elevate::Blockers::Repositories     ();    # using a constant
-use Elevate::Blockers::SSH              ();
-use Elevate::Blockers::WHM              ();
-use Elevate::Blockers::Leapp            ();
-use Elevate::Blockers::AutoSSL          ();
-
 # - fatpack Components
 use Elevate::Components::Base               ();
+use Elevate::Components                     ();
 use Elevate::Components::AbsoluteSymlinks   ();
+use Elevate::Components::AutoSSL            ();
+use Elevate::Components::BootKernel         ();
 use Elevate::Components::CCS                ();
+use Elevate::Components::CloudLinux         ();
 use Elevate::Components::cPanelPlugins      ();
 use Elevate::Components::cPanelPrep         ();
+use Elevate::Components::DatabaseUpgrade    ();
+use Elevate::Components::DiskSpace          ();
+use Elevate::Components::Distros            ();
+use Elevate::Components::DNS                ();
 use Elevate::Components::EA4                ();
+use Elevate::Components::ElevateScript      ();
+use Elevate::Components::ELS                ();
 use Elevate::Components::Grub2              ();
 use Elevate::Components::Imunify            ();
 use Elevate::Components::InfluxDB           ();
+use Elevate::Components::IsContainer        ();
 use Elevate::Components::JetBackup          ();
-use Elevate::Components::LiteSpeed          ();
 use Elevate::Components::KernelCare         ();
 use Elevate::Components::Kernel             ();
+use Elevate::Components::Leapp              ();
+use Elevate::Components::LiteSpeed          ();
+use Elevate::Components::MountPoints        ();
 use Elevate::Components::MySQL              ();
 use Elevate::Components::NICs               ();
 use Elevate::Components::NixStats           ();
+use Elevate::Components::OVH                ();
+use Elevate::Components::PackageRestore     ();
+use Elevate::Components::Panopta            ();
 use Elevate::Components::PECL               ();
 use Elevate::Components::PerlXS             ();
 use Elevate::Components::PostgreSQL         ();
-use Elevate::Components::UnconvertedModules ();
-use Elevate::Components::Repositories       ();
-use Elevate::Components::RpmDB              ();
-use Elevate::Components::RmMod              ();
-use Elevate::Components::WPToolkit          ();
-use Elevate::Components::SSH                ();
-use Elevate::Components::AutoSSL            ();
-use Elevate::Components::DatabaseUpgrade    ();
-use Elevate::Components::ELS                ();
 use Elevate::Components::R1Soft             ();
-use Elevate::Components::Panopta            ();
-use Elevate::Components::PackageRestore     ();
+use Elevate::Components::Repositories       ();
+use Elevate::Components::RmMod              ();
+use Elevate::Components::RpmDB              ();
+use Elevate::Components::SSH                ();
+use Elevate::Components::UnconvertedModules ();
+use Elevate::Components::WHM                ();
+use Elevate::Components::WPToolkit          ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -340,7 +326,7 @@ use constant PAUSE_ELEVATE_TOUCHFILE => q[/waiting_for_distro_upgrade];
 use Simple::Accessor qw{
   service
   script
-  blockers
+  components
   leapp
 };
 
@@ -358,10 +344,10 @@ sub _build_service ($self) {
     return Elevate::Service->new( cpev => $self );
 }
 
-sub _build_blockers ($self) {
+sub _build_components ($self) {
 
     # FIXME weaken
-    return Elevate::Blockers->new( cpev => $self );
+    return Elevate::Components->new( cpev => $self );
 }
 
 sub _build_leapp ($self) {
@@ -409,8 +395,8 @@ sub run ( $pkg, @args ) {
         return $self->check_status();
     }
 
-    return $self->do_cleanup()      if $self->getopt('clean');
-    return $self->blockers->check() if defined $self->getopt('check');
+    return $self->do_cleanup()        if $self->getopt('clean');
+    return $self->components->check() if defined $self->getopt('check');
 
     my $stage = Elevate::Stages::get_stage();
 
@@ -445,17 +431,17 @@ sub run ( $pkg, @args ) {
     return 0;
 }
 
-sub component ( $self, $name ) {    # FIXME -> get_component
+sub get_component ( $self, $name ) {
     my $pkg = qq[Elevate::Components::$name];
 
     # my $sub = $pkg->can( 'new' ) or die qq[Missing new from $pkg];
     # my $x = $sub->( $pkg, cpev => $self );
     # return $x;
-    return $pkg->new( cpev => $self );
+    return $pkg->new( components => $self->components );
 }
 
 sub get_blocker ( $self, $name ) {    # helper for tests
-    return $self->blockers->_get_blocker_for($name);
+    return $self->components->_get_blocker_for($name);
 }
 
 sub do_update ($self) {
@@ -536,7 +522,7 @@ sub start ($self) {
     }
 
     # Check for blockers before starting the migration
-    return 1 if ( $self->blockers->check() );
+    return 1 if ( $self->components->check() );
 
     $self->give_last_chance();
 
@@ -678,7 +664,7 @@ sub do_cleanup ( $self, $handle_service_manually = 0 ) {
     Elevate::StageFile::remove_stage_file();
     unlink Elevate::Constants::PID_FILE;
 
-    unlink Elevate::Blockers::OVH::OVH_MONITORING_TOUCH_FILE;
+    unlink Elevate::Constants::OVH_MONITORING_TOUCH_FILE;
 
     Elevate::Motd->cleanup();
 
@@ -1187,7 +1173,7 @@ sub run_stage_5 ($self) {
 
 sub run_component_once ( $self, $name, $function ) {
 
-    my $component = $self->component($name);
+    my $component = $self->get_component($name);
     my $label     = "component:$name:$function";
     my $sub       = $component->can($function)     #
       or die qq[Missing functon $function from component '$name'];

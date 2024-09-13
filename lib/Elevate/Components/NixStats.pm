@@ -6,7 +6,17 @@ package Elevate::Components::NixStats;
 
 Elevate::Components::NixStats
 
-Capture and reinstall NixStats packages.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Backup config files, stop service, and remove nixstats
+
+=head2 post_distro_upgrade
+
+Intsall nixstats, restore config files, and start service
 
 =cut
 

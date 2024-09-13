@@ -21,7 +21,9 @@ use Test::Elevate;
 
 use cPstrict;
 
-my $auto_ssl = bless {}, 'Elevate::Components::AutoSSL';
+my $ssl_auto_mock = Test::MockModule->new('Cpanel::SSL::Auto');
+
+my $auto_ssl = cpev->new->get_component('AutoSSL');
 
 {
     note "Checking pre_distro_upgrade";
@@ -83,7 +85,7 @@ my $auto_ssl = bless {}, 'Elevate::Components::AutoSSL';
     );
 
     is(
-        Elevate::Components::AutoSSL::is_using_sectigo(),
+        $auto_ssl->is_using_sectigo(),
         1,
         'is_using_sectigo returns true when Sectigo is enabled'
     );
@@ -92,10 +94,50 @@ my $auto_ssl = bless {}, 'Elevate::Components::AutoSSL';
     $test_data[-2]->{enabled} = 1;
 
     is(
-        Elevate::Components::AutoSSL::is_using_sectigo(),
+        $auto_ssl->is_using_sectigo(),
         0,
         'is_using_sectigo returns false when Sectigo is NOT enabled'
     );
+}
+
+{
+    note 'Test check method';
+
+    my @test_data = (
+        "asdfasfd",
+        {},
+        {
+            enabled => undef,
+        },
+        {
+            enabled => 1,
+        },
+        {
+            enabled      => 0,
+            display_name => 'Let Us Encrypt',
+        },
+        {
+            enabled      => 0,
+            display_name => 'QAPortal BogoSSL',
+        },
+        {
+            enabled      => 1,
+            display_name => 'Sectigo',
+        },
+    );
+
+    $ssl_auto_mock->redefine(
+        'get_all_provider_info' => sub { return @test_data; },
+    );
+
+    $auto_ssl->_check_autossl_provider();
+    message_seen( 'WARN' => qr/is not supported/ );
+
+    $test_data[-1]->{enabled} = 0;
+    $test_data[-2]->{enabled} = 1;
+
+    $auto_ssl->_check_autossl_provider();
+    no_messages_seen();
 }
 
 done_testing();

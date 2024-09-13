@@ -1,11 +1,22 @@
 package Elevate::Components::DatabaseUpgrade;
 
 =encoding utf-8
+
 =head1 NAME
 
 Elevate::Components::DatabaseUpgrade
 
-Handle auto-upgrades for outdated versions of MySQL/MariaDB
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Switch to local profile and upgrade database server
+
+=head2 post_distro_upgrade
+
+Switch back to remote profile
 
 =cut
 

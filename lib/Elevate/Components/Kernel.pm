@@ -6,7 +6,17 @@ package Elevate::Components::Kernel;
 
 Elevate::Components::Kernel
 
-Perform some kernel checks.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+noop
+
+=head2 post_distro_upgrade
+
+Check and notify of installed el7 kernel packages
 
 =cut
 
@@ -19,13 +29,6 @@ use Cwd           ();
 use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
-
-sub pre_distro_upgrade ($self) {
-
-    # nothing to do
-
-    return;
-}
 
 sub post_distro_upgrade ($self) {
 
