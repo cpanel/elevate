@@ -154,6 +154,11 @@ my @TEST_DATA = (
         fail_msg => q/Option "continue" is not compatible with any other option/,
     },
     {
+        options  => [qw/--continue --upgrade-distro-manually/],
+        passed   => 0,
+        fail_msg => q/Option "continue" is not compatible with any other option/,
+    },
+    {
         options  => [qw/--log --status/],
         passed   => 0,
         fail_msg => q/Option "log" is not compatible with any other option/,
@@ -165,6 +170,11 @@ my @TEST_DATA = (
     },
     {
         options  => [qw/--status --no-leapp/],
+        passed   => 0,
+        fail_msg => q/Option "status" is not compatible with any other option/,
+    },
+    {
+        options  => [qw/--status --upgrade-distro-manually/],
         passed   => 0,
         fail_msg => q/Option "status" is not compatible with any other option/,
     },
@@ -197,6 +207,12 @@ my @TEST_DATA = (
         warning_regex => qr/Unknown option/,
     },
     {
+        options       => [qw/--check --upgrade-to almalinux --skip-cpanel-version-check --skip-elevate-version-check --upgrade-distro-manually/],
+        passed        => 0,
+        fail_msg      => 'Invalid Option',
+        warning_regex => qr/Unknown option/,
+    },
+    {
         options  => [qw/--check --non-interactive/],
         passed   => 0,
         fail_msg => q/Option "non-interactive" is only compatible with "start"/,
@@ -224,6 +240,12 @@ my @TEST_DATA = (
     },
     {
         options       => [qw/--start --upgrade-to rocky  --skip-cpanel-version-check --skip-elevate-version-check --no-leapp --manual-reboots --non-interactive/],
+        passed        => 0,
+        fail_msg      => 'Invalid Option',
+        warning_regex => qr/Unknown option/,
+    },
+    {
+        options       => [qw/--start --upgrade-to rocky  --skip-cpanel-version-check --skip-elevate-version-check --upgrade-distro-manually --manual-reboots --non-interactive/],
         passed        => 0,
         fail_msg      => 'Invalid Option',
         warning_regex => qr/Unknown option/,

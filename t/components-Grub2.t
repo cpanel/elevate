@@ -55,8 +55,8 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
     my $cmdline;
     $mock_slurp->redefine( read_binary => sub { return $cmdline } );
 
-    $mock_cpev->redefine( should_run_leapp => 1 );
-    $mock_cpev->redefine( do_cleanup       => sub { $stage_data = undef; return; } );
+    $mock_cpev->redefine( should_run_distro_upgrade => 1 );
+    $mock_cpev->redefine( do_cleanup                => sub { $stage_data = undef; return; } );
 
     my $mock_comp = Test::MockModule->new('Elevate::Components::Grub2');
     $mock_comp->redefine( _default_kernel               => "kernel-image" );
