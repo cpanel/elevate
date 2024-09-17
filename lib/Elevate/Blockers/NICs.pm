@@ -23,7 +23,7 @@ use constant ETH_FILE_PREFIX => Elevate::Constants::ETH_FILE_PREFIX;
 use constant SBIN_IP         => Elevate::Constants::SBIN_IP;
 
 sub check ($self) {
-    return 1 unless $self->should_run_leapp;    # skip when --no-leapp is provided
+    return 1 unless $self->should_run_distro_upgrade;    # skip when --upgrade-distro-manually is provided
     return $self->_blocker_bad_nics_naming;
 }
 
