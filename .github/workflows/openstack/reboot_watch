@@ -2,29 +2,48 @@
 
 use constant ELEVATE_LOG_PATH => '/var/log/elevate-cpanel.log';
 
-use Env;
-
 use File::Tail;
 use POSIX;
 
-my $RETVAL  = 1;
-my $RETRIES = 0;
+my $RETVAL = 1;
 
-while ( $RETVAL != 0 ) {
-    _check_elevate_log_for_regex( ELEVATE_LOG_PATH, ${REGEX}, $RETRIES );
+# Verify REBOOT_STRING isn't already in the log before we go into tail mode.  The logodump here is sgnificantly faster than File::Tail.
+# Jump if it's found.
+
+exit 1 if !length( $ENV{REBOOT_STRING} );
+
+open( my $elevate_log_fh, '<', ELEVATE_LOG_PATH ) or die "## [ERROR][reboot_watch]: Unable to open ELEVATE_LOG_PATH: $!\n";
+
+while ( my $line = readline $elevate_log_fh ) {
+    if ( index( $line, $ENV{REBOOT_STRING} ) >= 0 ) {
+        _success_message();
+        close $elevate_log;
+        exit 0;
+    }
 }
 
-sub _check_elevate_log_for_regex {
-    my ( $filepath, $REGEX, $RETRIES ) = @_;
+close $elevate_log_fh;
 
-    my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+while ( $RETVAL != 0 ) {
+    _check_elevate_log_for_REBOOT_STRING( ELEVATE_LOG_PATH, $ENV{REBOOT_STRING} );
+    exit 0;
+}
+
+sub _check_elevate_log_for_REBOOT_STRING {
+    my ( $filepath, $REBOOT_STRING, $RETRIES ) = @_;
 
     $file = File::Tail->new( name => $filepath, maxinterval => 1, adjustafter => 7, interval => 1 );
     while ( defined( $line = $file->read ) ) {
-        if ( grep { /$REGEX/m } $line ) {
-            print "## [$time] [INFO]: SUCCESS: Reboot regex ( $REGEX ) found in /var/log/elevate-cpanel.log  ##\n";
-            exit 0;
+        if ( index( $line, $ENV{REBOOT_STRING} ) >= 0 ) {
+            _success_message();
         }
-        $RETRIES++;
     }
 }
+
+sub _success_message {
+    my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+    print "## [$time] [INFO]: SUCCESS: Reboot REBOOT_STRING ( $ENV{REBOOT_STRING} ) found in /var/log/elevate-cpanel.log  ##\n";
+    exit 0;
+}
+
+exit 0;
