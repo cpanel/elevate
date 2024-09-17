@@ -28,6 +28,24 @@ use Log::Log4perl qw(:easy);
 use constant YUM_COMPLETE_TRANSACTION_BIN => '/usr/sbin/yum-complete-transaction';
 use constant FIX_RPM_SCRIPT               => '/usr/local/cpanel/scripts/find_and_fix_rpm_issues';
 
+use constant EXPECTED_EXTRA_PACKAGES => (
+    qr/^cpanel-/,
+    qr/^easy-/,
+    qr/^kernel/,
+    qr/^mysql/i,
+    qr/^plesk-/,
+    'awscli',
+    'basesystem',
+    'filesystem',
+    'grub',
+    'grubby',
+    'python35',
+    'python38-opt',
+    'virt-what',
+    'vzdummy-systemd-el7',
+  ),
+  Elevate::Constants::R1SOFT_AGENT_PACKAGES;
+
 sub check ($self) {
     my $ok = 1;
     $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
@@ -38,11 +56,17 @@ sub check ($self) {
 }
 
 sub _blocker_packages_installed_without_associated_repo ($self) {
-    my @extra_packages = $self->yum->get_extra_packages();
-    return unless scalar @extra_packages;
+    my @extra_packages = map { $_->{package} } $self->yum->get_extra_packages();
 
-    my @packages   = map { $_->{package} } @extra_packages;
-    my $pkg_string = join "\n", @packages;
+    my @unexpected_extra_packages;
+    foreach my $pkg (@extra_packages) {
+        next if grep { $pkg =~ m/$_/ } EXPECTED_EXTRA_PACKAGES();
+        push @unexpected_extra_packages, $pkg;
+    }
+
+    return unless scalar @unexpected_extra_packages;
+
+    my $pkg_string = join "\n", @unexpected_extra_packages;
     return $self->has_blocker( <<~EOS );
     There are packages installed that do not have associated repositories:
 

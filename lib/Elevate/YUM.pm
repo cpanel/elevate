@@ -131,13 +131,6 @@ sub get_extra_packages ($self) {
         $package =~ s/\.(noarch|x86_64)$//;
         my $arch = $1 // '?';
 
-        next if $package =~ m/^cpanel-/;
-        next if $package =~ m/^kernel/;
-        next if $package eq 'filesystem';
-        next if $package eq 'basesystem';
-        next if $package eq 'virt-what';
-        next if ( scalar grep { $_ eq $package } Elevate::Constants::R1SOFT_AGENT_PACKAGES );
-
         push @extra_packages, { package => $package, version => $version, arch => $arch };
     }
 
