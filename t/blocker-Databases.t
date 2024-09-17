@@ -58,7 +58,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
     my $upgrade_version = '42';
     my $stash           = undef;
     my $is_check_mode   = 1;
-    my $os_pretty_name  = 'ShinyOS';
+    my $os_pretty_name  = 'AlmaLinux 8';
     my $user_consent    = 0;
 
     my $mock_db = Test::MockModule->new('Elevate::Database');
@@ -76,8 +76,7 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
     my $mock_db_blocker = Test::MockModule->new('Elevate::Blockers::Databases');
     $mock_db_blocker->redefine(
-        is_check_mode          => sub { return $is_check_mode; },
-        upgrade_to_pretty_name => sub { return $os_pretty_name; },
+        is_check_mode => sub { return $is_check_mode; },
     );
 
     my $mock_io_prompt = Test::MockModule->new('IO::Prompt');

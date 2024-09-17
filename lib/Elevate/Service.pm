@@ -16,6 +16,7 @@ use Cpanel::SafeRun::Simple     ();
 use Cpanel::RestartSrv::Systemd ();
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use Log::Log4perl qw(:easy);
 
@@ -55,16 +56,17 @@ sub _build_cpev {
 
 sub install ($self) {
 
-    my $pretty_distro_name = $self->cpev->upgrade_to_pretty_name();
+    my $upgrade_from = Elevate::OS::pretty_name();
+    my $upgrade_to   = Elevate::OS::upgrade_to_pretty_name();
 
     my $name = $self->name;
 
-    INFO( "Installing service $name which will upgrade the server to " . $pretty_distro_name );
+    INFO( "Installing service $name which will upgrade the server to " . $upgrade_to );
     open( my $fh, '>', $self->file ) or die;
 
     print {$fh} <<~"EOF";
         [Unit]
-        Description=Upgrade process from CentOS 7 to $pretty_distro_name.
+        Description=Upgrade process from $upgrade_from to $upgrade_to.
         After=network.target network-online.target
 
         [Service]

@@ -16,6 +16,8 @@ likely will not work properly after the upgrade
 
 use cPstrict;
 
+use Elevate::OS ();
+
 use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
@@ -57,7 +59,7 @@ sub _warn_about_other_modules_that_did_not_convert ($self) {
 
     return unless @exclude_kernel_el7_installed_packages;
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $msg = "The following packages should probably be removed as they will not function on $pretty_distro_name\n\n";
     foreach my $pkg (@exclude_kernel_el7_installed_packages) {

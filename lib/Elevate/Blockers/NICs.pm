@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::NICs      ();
+use Elevate::OS        ();
 
 use parent qw{Elevate::Blockers::Base};
 
@@ -46,7 +47,7 @@ sub _blocker_bad_nics_naming ($self) {
 
         return if $self->_nics_have_missing_ifcfg_files(@eths);
 
-        my $pretty_distro_name = $self->upgrade_to_pretty_name();
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         WARN( <<~"EOS" );
         Prior to elevating this system to $pretty_distro_name, we will
         automatically rename these interfaces.
