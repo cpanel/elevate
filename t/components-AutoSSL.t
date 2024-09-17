@@ -24,7 +24,7 @@ use cPstrict;
 my $auto_ssl = bless {}, 'Elevate::Components::AutoSSL';
 
 {
-    note "Checking pre_leapp";
+    note "Checking pre_distro_upgrade";
 
     my $is_using_sectigo       = 0;
     my @ssystem_and_die_params = ();
@@ -39,11 +39,11 @@ my $auto_ssl = bless {}, 'Elevate::Components::AutoSSL';
         is_using_sectigo => sub { return $is_using_sectigo; },
     );
 
-    $auto_ssl->pre_leapp();
+    $auto_ssl->pre_distro_upgrade();
     is( \@ssystem_and_die_params, [], 'Autorepair is NOT invoked when NOT using Sectigo' );
 
     $is_using_sectigo = 1;
-    $auto_ssl->pre_leapp();
+    $auto_ssl->pre_distro_upgrade();
     is(
         \@ssystem_and_die_params,
         [qw{/usr/local/cpanel/scripts/autorepair set_autossl_to_lets_encrypt}],

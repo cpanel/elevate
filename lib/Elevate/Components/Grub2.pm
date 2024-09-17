@@ -146,7 +146,7 @@ EOS
     return;
 }
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     $self->run_once('_update_grub2_workaround_if_needed');    # required part
     $self->run_once('_merge_grub_directories_if_needed');     # best-effort part
@@ -246,7 +246,7 @@ sub _merge_grub_directories_if_needed ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     # for an autofixer
     # return unless -e q[/var/cpanel/version/elevate];

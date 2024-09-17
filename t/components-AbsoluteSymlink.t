@@ -26,7 +26,7 @@ my %cabinet;
 $cabinet{'/smang'} = Test::MockFile->symlink( "/home", "/smang" );
 
 my $obj = bless {}, 'Elevate::Components::AbsoluteSymlinks';
-ok( !$obj->post_leapp(), "Nothing to do post leapp" );
+ok( !$obj->post_distro_upgrade(), "Nothing to do post distro upgrade" );
 is( { $obj->get_abs_symlinks() }, { '/smang' => '/home' }, "Got expected from get_abs_symlinks" );
 SKIP: {
     skip "Test::MockFile doesn't yet properly handle symlinks", 1;
@@ -49,7 +49,7 @@ SKIP: {
     # in perl react properly to the existence of Test::MockModule->symlink objects
     # As it stands, this makes the symlink then bombs out with
     # 'readlink is only supported for symlinks'.
-    $obj->pre_leapp();
-    is( readlink("/smang"), 'home', "Symlink corrected by pre_leapp" );
+    $obj->pre_distro_upgrade();
+    is( readlink("/smang"), 'home', "Symlink corrected by pre_distro_upgrade" );
 }
 done_testing();

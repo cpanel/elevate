@@ -27,14 +27,14 @@ use parent qw{Elevate::Components::Base};
 
 my $cnf_file = '/etc/my.cnf';
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
     return if Elevate::Database::is_database_provided_by_cloudlinux();
 
     $self->run_once("_cleanup_mysql_packages");
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
     return if Elevate::Database::is_database_provided_by_cloudlinux();
 
     $self->run_once('_reinstall_mysql_packages');
@@ -131,7 +131,7 @@ sub _reinstall_mysql_packages {
     }
 
     # In case the pre elevate file causes issues for whatever reason
-    File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_leapp_orig" );
+    File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
 
     # Try to restore any .rpmsave'd configs after we reinstall
     # It *should be here* given we put it there, so no need to do a -f/-s check
@@ -146,11 +146,11 @@ sub _reinstall_mysql_packages {
     DEBUG($restart_out);
     return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
 
-    # The database server is not able to start with the pre_leapp version of
+    # The database server is not able to start with the pre_distro_upgrade version of
     # my.cnf in place.  Revert to the standard one that was created
-    # in the post_leapp restore
+    # in the post_distro_upgrade restore
     INFO('The database server failed to start.  Restoring my.cnf to default.');
-    File::Copy::copy( "$cnf_file.elevate_post_leapp_orig", $cnf_file );
+    File::Copy::copy( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
 
     $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
     @restart_lines = split "\n", $restart_out;

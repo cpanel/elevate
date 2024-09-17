@@ -53,7 +53,7 @@ $mock_pkgr->redefine(
 );
 
 {
-    note "Checking pre_leapp";
+    note "Checking pre_distro_upgrade";
 
     $installed = 0;
     $mock_pgsql->redefine(
@@ -61,14 +61,14 @@ $mock_pkgr->redefine(
             $_ => sub { die "shouldn't run" }
         } PRE_LEAPP_METHODS->@*
     );
-    ok( lives { $comp_pgsql->pre_leapp() }, "Nothing is run if postgresql-server is not installed" );
+    ok( lives { $comp_pgsql->pre_distro_upgrade() }, "Nothing is run if postgresql-server is not installed" );
     $mock_pgsql->unmock( PRE_LEAPP_METHODS->@* );
 
     $installed = 1;
 }
 
 {
-    note "Checking post_leapp";
+    note "Checking post_distro_upgrade";
 
     $installed = 0;
     $mock_pgsql->redefine(
@@ -76,7 +76,7 @@ $mock_pkgr->redefine(
             $_ => sub { die "shouldn't run" }
         } POST_LEAPP_METHODS->@*
     );
-    ok( lives { $comp_pgsql->post_leapp() }, "Nothing is run if postgresql-server is not installed" );
+    ok( lives { $comp_pgsql->post_distro_upgrade() }, "Nothing is run if postgresql-server is not installed" );
     $mock_pgsql->unmock( POST_LEAPP_METHODS->@* );
 
     $installed = 1;
