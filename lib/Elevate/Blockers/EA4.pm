@@ -14,6 +14,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::EA4       ();
+use Elevate::OS        ();
 use Elevate::StageFile ();
 
 use Cpanel::JSON            ();
@@ -40,7 +41,7 @@ sub _blocker_ea4_profile ($self) {
 
     # perform an early backup so we can check the list of dropped packages
 
-    my $pretty_distro_name = $self->upgrade_to_pretty_name();
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     INFO("Checking EasyApache profile compatibility with $pretty_distro_name.");
 
