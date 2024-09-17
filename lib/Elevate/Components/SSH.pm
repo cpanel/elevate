@@ -21,7 +21,7 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     my $sshd_config = q[/etc/ssh/sshd_config];
 
@@ -42,7 +42,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     # Nothing to do
     return;

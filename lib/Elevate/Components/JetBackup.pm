@@ -21,7 +21,7 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     Elevate::StageFile::remove_from_stage_file('reinstall.jetbackup');
 
@@ -50,7 +50,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     my $data = Elevate::StageFile::read_stage_file('reinstall')->{'jetbackup'};
     return unless ref $data && ref $data->{packages};

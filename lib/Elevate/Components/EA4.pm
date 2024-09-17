@@ -29,12 +29,12 @@ sub pre_imunify ($self) {
     return;
 }
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
     $self->run_once('_cleanup_rpm_db');
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     $self->run_once('_restore_ea4_profile');
     $self->run_once('_restore_ea_addons');

@@ -25,42 +25,42 @@ use cPstrict;
 my $ssh = bless {}, 'Elevate::Components::SSH';
 
 {
-    note "checking pre_leapp";
+    note "checking pre_distro_upgrade";
 
     my $mock_sshd_cfg = Test::MockFile->file(q[/etc/ssh/sshd_config]);
 
     $mock_sshd_cfg->contents('');
-    $ssh->pre_leapp();
+    $ssh->pre_distro_upgrade();
     is $mock_sshd_cfg->contents(), "PermitRootLogin yes\n", 'Added PermitRootLogin to empty config';
 
     my $pre_contents = "PasswordAuthentication no\nUseDNS no\nDenyGroups cpaneldemo\n";
     $mock_sshd_cfg->contents($pre_contents);
-    $ssh->pre_leapp();
+    $ssh->pre_distro_upgrade();
     is $mock_sshd_cfg->contents(), $pre_contents . "PermitRootLogin yes\n", 'Added PermitRootLogin when ommited, trailing newline';
 
     $pre_contents = "PasswordAuthentication no\nUseDNS no\nDenyGroups cpaneldemo";
     $mock_sshd_cfg->contents($pre_contents);
-    $ssh->pre_leapp();
+    $ssh->pre_distro_upgrade();
     is $mock_sshd_cfg->contents(), $pre_contents . "\nPermitRootLogin yes\n", 'Added PermitRootLogin when ommited, no trailing newline';
 
     $pre_contents = "PasswordAuthentication no\nPermitRootLogin yes\nUseDNS no\nDenyGroups cpaneldemo";
     $mock_sshd_cfg->contents($pre_contents);
-    $ssh->pre_leapp();
+    $ssh->pre_distro_upgrade();
     is $mock_sshd_cfg->contents(), $pre_contents, 'Contents unchanged when PermitRootLogin present and active';
 
     $pre_contents = "PermitRootLogin no\nPasswordAuthentication no\nUseDNS no\nDenyGroups cpaneldemo\n";
     $mock_sshd_cfg->contents($pre_contents);
-    $ssh->pre_leapp();
+    $ssh->pre_distro_upgrade();
     is $mock_sshd_cfg->contents(), $pre_contents, 'Contents unchanged when PermitRootLogin present and active';
 
     $pre_contents = "PasswordAuthentication no\n#PermitRootLogin yes\nUseDNS no\nDenyGroups cpaneldemo";
     $mock_sshd_cfg->contents($pre_contents);
-    $ssh->pre_leapp();
+    $ssh->pre_distro_upgrade();
     is $mock_sshd_cfg->contents(), $pre_contents . "\nPermitRootLogin yes\n", 'Contents updated when PermitRootLogin present but commented out';
 
     $pre_contents = "# PermitRootLogin no\nPasswordAuthentication no\nUseDNS no\nDenyGroups cpaneldemo\n";
     $mock_sshd_cfg->contents($pre_contents);
-    $ssh->pre_leapp();
+    $ssh->pre_distro_upgrade();
     is $mock_sshd_cfg->contents(), $pre_contents . "PermitRootLogin yes\n", 'Contents updated when PermitRootLogin present but commented out';
 }
 

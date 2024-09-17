@@ -27,7 +27,7 @@ my $mock_ccs       = Test::MockModule->new('Elevate::Components::CCS');
 my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 
 {
-    note "Checking pre_leapp";
+    note "Checking pre_distro_upgrade";
 
     my $installed = 0;
 
@@ -57,8 +57,8 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
         },
     );
 
-    is( $ccs->pre_leapp(),         undef, 'pre_leapp is basically a noop if CCS is not installed' );
-    is( $called__load_ccs_modules, 0,     'pre_leapp returned before loading CCS modules when CCS was not installed' );
+    is( $ccs->pre_distro_upgrade(), undef, 'pre_distro_upgrade is basically a noop if CCS is not installed' );
+    is( $called__load_ccs_modules,  0,     'pre_distro_upgrade returned before loading CCS modules when CCS was not installed' );
 
     my @cpusers                  = qw{ foo bar baz };
     my $mock_cpanel_config_users = Test::MockModule->new('Cpanel::Config::Users');
@@ -68,7 +68,7 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 
     $installed = 1;
 
-    $ccs->pre_leapp();
+    $ccs->pre_distro_upgrade();
     is( $called__load_ccs_modules, 1, '_load_ccs_modules is called when CCS is installed' );
 
     message_seen( 'INFO', qr/^Exporting CCS data to/ );
@@ -93,7 +93,7 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 }
 
 {
-    note "Checking post_leapp";
+    note "Checking post_distro_upgrade";
 
     my $installed = 0;
     $mock_stagefile->redefine(
@@ -120,8 +120,8 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
         _import_data_for_single_user => sub ( $self, $user ) { push @called_for_user, $user; },
     );
 
-    is( $ccs->post_leapp(),      undef, 'post_leapp is a noop if CCS was not installed' );
-    is( $ssystem_and_die_params, [],    'No system commands were called when CCS was not installed' );
+    is( $ccs->post_distro_upgrade(), undef, 'post_distro_upgrade is a noop if CCS was not installed' );
+    is( $ssystem_and_die_params,     [],    'No system commands were called when CCS was not installed' );
 
     my @cpusers;
     my $mock_cpanel_config_users = Test::MockModule->new('Cpanel::Config::Users');
@@ -131,7 +131,7 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 
     $installed = 1;
 
-    $ccs->post_leapp();
+    $ccs->post_distro_upgrade();
 
     message_seen( 'INFO', 'Importing CCS data' );
 
@@ -141,7 +141,7 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
             qw{/usr/bin/dnf -y install cpanel-ccs-calendarserver cpanel-z-push},
             qw{/usr/local/cpanel/bin/servers_queue run},
         ],
-        'The expected commands are called during post_leapp when CCS was installed',
+        'The expected commands are called during post_distro_upgrade when CCS was installed',
     );
 
     is( \@called_for_user, \@cpusers, 'CCS data was imported for the expected users' );

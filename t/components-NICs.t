@@ -25,7 +25,7 @@ use cPstrict;
 my $nics = bless {}, 'Elevate::Components::NICs';
 
 {
-    note "checking pre_leapp";
+    note "checking pre_distro_upgrade";
 
     my $mock_nics = Test::MockModule->new('Elevate::NICs');
     $mock_nics->redefine(

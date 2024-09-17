@@ -24,7 +24,7 @@ use cPstrict;
 my $r1soft = cpev->new->component('R1Soft');
 
 {
-    note "Checking pre_leapp";
+    note "Checking pre_distro_upgrade";
 
     my $stage_file_data;
     my $is_installed;
@@ -89,7 +89,7 @@ my $r1soft = cpev->new->component('R1Soft');
     $is_installed      = 0;
     $yum_remove_called = 0;
 
-    $r1soft->pre_leapp();
+    $r1soft->pre_distro_upgrade();
     is( $yum_remove_called, 0, 'Yum remove was not invoked when agent not installed' );
     is(
         $stage_file_data,
@@ -107,7 +107,7 @@ my $r1soft = cpev->new->component('R1Soft');
     $is_installed      = 1;
     $yum_remove_called = 0;
 
-    $r1soft->pre_leapp();
+    $r1soft->pre_distro_upgrade();
     is( $yum_remove_called, 1, 'Yum remove called when agent is installed' );
     is(
         $stage_file_data,
@@ -125,7 +125,7 @@ my $r1soft = cpev->new->component('R1Soft');
     $yum_remove_called = 0;
     @enabled_repos     = grep { !/^r1soft/ } @enabled_repos;
 
-    $r1soft->pre_leapp();
+    $r1soft->pre_distro_upgrade();
     is( $yum_remove_called, 1, 'Yum remove called when agent is installed' );
     is(
         $stage_file_data,
@@ -143,7 +143,7 @@ my $r1soft = cpev->new->component('R1Soft');
     $yum_remove_called = 0;
     @all_repos         = grep { !/^r1soft/ } @all_repos;
 
-    $r1soft->pre_leapp();
+    $r1soft->pre_distro_upgrade();
     is( $yum_remove_called, 1, 'Yum remove called when agent is installed' );
     is(
         $stage_file_data,
@@ -159,7 +159,7 @@ my $r1soft = cpev->new->component('R1Soft');
 }
 
 {
-    note "Checking post_leapp";
+    note "Checking post_distro_upgrade";
 
     my $stage_file_data;
     my $yum_install_called;
@@ -192,7 +192,7 @@ my $r1soft = cpev->new->component('R1Soft');
     };
     ( $yum_install_called, $create_repo_called, $enable_repo_called, $disable_repo_called ) = ( 0, 0, 0, 0 );
 
-    $r1soft->post_leapp();
+    $r1soft->post_distro_upgrade();
     is( $yum_install_called,  0, 'Yum install not called when agent was not installed' );
     is( $create_repo_called,  0, 'Create repo not called when agent was not installed' );
     is( $enable_repo_called,  0, 'Enable repo not called when agent was not installed' );
@@ -206,7 +206,7 @@ my $r1soft = cpev->new->component('R1Soft');
     };
     ( $yum_install_called, $create_repo_called, $enable_repo_called, $disable_repo_called ) = ( 0, 0, 0, 0 );
 
-    $r1soft->post_leapp();
+    $r1soft->post_distro_upgrade();
     is( $yum_install_called,  1, 'Yum install called when agent was installed' );
     is( $create_repo_called,  0, 'Create repo not called when repo present' );
     is( $enable_repo_called,  0, 'Enable repo not called when repo already enabled' );
@@ -220,7 +220,7 @@ my $r1soft = cpev->new->component('R1Soft');
     };
     ( $yum_install_called, $create_repo_called, $enable_repo_called, $disable_repo_called ) = ( 0, 0, 0, 0 );
 
-    $r1soft->post_leapp();
+    $r1soft->post_distro_upgrade();
     is( $yum_install_called,  1, 'Yum install called when agent was installed' );
     is( $create_repo_called,  0, 'Create repo not called when repo present' );
     is( $enable_repo_called,  1, 'Enable repo called when repo not already enabled' );
@@ -234,7 +234,7 @@ my $r1soft = cpev->new->component('R1Soft');
     };
     ( $yum_install_called, $create_repo_called, $enable_repo_called, $disable_repo_called ) = ( 0, 0, 0, 0 );
 
-    $r1soft->post_leapp();
+    $r1soft->post_distro_upgrade();
     is( $yum_install_called,  1, 'Yum install called when agent was installed' );
     is( $create_repo_called,  1, 'Create repo called when repo not present' );
     is( $enable_repo_called,  0, 'Enable repo not called when repo not present' );

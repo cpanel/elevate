@@ -35,7 +35,7 @@ subtest "check_and_fix_grub kernel using net.ifnames=0" => sub {
     BOOT_IMAGE=(hd0,msdos1)/boot/vmlinuz-4.18.0-425.10.1.el8_7.x86_64 root=UUID=6cd50e51-cfc6-40b9-9ec5-f32fa2e4ff02 ro console=tty0 console=ttyS0,115200 earlyprintk=ttyS0,115200 consoleblank=0 crashkernel=no nosplash nomodeset rootflags=uquota net.ifnames=0
     EOS
 
-    ok !$g2->post_leapp(), "grub file is missing";
+    ok !$g2->post_distro_upgrade(), "grub file is missing";
 
     $grub_cfg->contents( <<~'EOS' );
     GRUB_TIMEOUT=5
@@ -64,7 +64,7 @@ subtest "check_and_fix_grub kernel using net.ifnames=0" => sub {
         }
     );
 
-    ok $g2->post_leapp(), "check_and_fix_grub need to fixup grub config";
+    ok $g2->post_distro_upgrade(), "check_and_fix_grub need to fixup grub config";
 
     is $grub_cfg->contents(), <<~'EOS', "file is fixed";
     GRUB_TIMEOUT=5
@@ -79,7 +79,7 @@ subtest "check_and_fix_grub kernel using net.ifnames=0" => sub {
 
     like $grubenv, qr/^kernelopts=root=UUID=6cd50e51-cfc6-40b9-9ec5-f32fa2e4ff02 ro console=tty0 console=ttyS0,115200 earlyprintk=ttyS0,115200 consoleblank=0 crashkernel=no nosplash nomodeset rootflags=uquota net\.ifnames=0\s*$/ma, "GRUB environment variable set correctly";
 
-    ok !$g2->post_leapp(), "do not fix it twice";
+    ok !$g2->post_distro_upgrade(), "do not fix it twice";
 
     return;
 };
@@ -102,11 +102,11 @@ subtest "check_and_fix_grub kernel without net.ifnames=0" => sub {
     GRUB_ENABLE_BLSCFG=true
     EOS
 
-    ok !$g2->post_leapp(), "no need to fix when current kernel does not use net.ifnames=0";
+    ok !$g2->post_distro_upgrade(), "no need to fix when current kernel does not use net.ifnames=0";
 
     $cmdline->contents("whatever");
 
-    ok !$g2->post_leapp(), "no need to fix when current kernel does not use net.ifnames=0";
+    ok !$g2->post_distro_upgrade(), "no need to fix when current kernel does not use net.ifnames=0";
 
     return;
 };

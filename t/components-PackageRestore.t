@@ -24,7 +24,7 @@ use cPstrict;
 my $pkg_restore = cpev->new->component('PackageRestore');
 
 {
-    note "Checking pre_leapp";
+    note "Checking pre_distro_upgrade";
 
     my $stage_file_data;
     my @pkgs_to_check  = qw{ foo bar baz };
@@ -62,7 +62,7 @@ my $pkg_restore = cpev->new->component('PackageRestore');
         update_stage_file => sub { $stage_file_data = shift; },
     );
 
-    $pkg_restore->pre_leapp();
+    $pkg_restore->pre_distro_upgrade();
 
     is(
         [ sort @$pkgs_checked_for_config_files ],
@@ -78,7 +78,7 @@ my $pkg_restore = cpev->new->component('PackageRestore');
 }
 
 {
-    note "Checking post_leapp";
+    note "Checking post_distro_upgrade";
 
     my $stage_file_data = {
         foo => [qw{ myfile1 myfile2 }],
@@ -106,7 +106,7 @@ my $pkg_restore = cpev->new->component('PackageRestore');
         },
     );
 
-    $pkg_restore->post_leapp();
+    $pkg_restore->post_distro_upgrade();
 
     is(
         [ sort @dnf_installed ],

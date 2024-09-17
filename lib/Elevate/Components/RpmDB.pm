@@ -35,7 +35,7 @@ use constant OBSOLETE_PACKAGES => (
     'yum-plugin-universal-hooks',
 );
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     $self->run_once("_cleanup_rpms");
 
@@ -62,7 +62,7 @@ sub _remove_obsolete_packages ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     $self->run_once("_sysup");
 

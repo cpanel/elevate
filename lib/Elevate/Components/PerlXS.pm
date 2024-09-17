@@ -25,7 +25,7 @@ use parent qw{Elevate::Components::Base};
 
 use constant DISTRO_PERL_XS_PATH => '/usr/local/lib64/perl5';
 
-sub pre_leapp ($self) {
+sub pre_distro_upgrade ($self) {
 
     $self->purge_perl_xs(DISTRO_PERL_XS_PATH);
     $self->purge_perl_xs( $Config{'installsitearch'} );
@@ -33,7 +33,7 @@ sub pre_leapp ($self) {
     return;
 }
 
-sub post_leapp ($self) {
+sub post_distro_upgrade ($self) {
 
     $self->restore_perl_xs(DISTRO_PERL_XS_PATH);
     $self->restore_perl_xs( $Config{'installsitearch'} );
