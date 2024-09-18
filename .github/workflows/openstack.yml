@@ -161,10 +161,11 @@ jobs:
             cat ${{ github.run_id }}-vm_ip > VM_IP
             ls -la
 
-        - name: Export    to env
+        - name: Export VM_IP to env
           env:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
+
         - name: Setup for Integration Checks Prior to Running Elevate
           uses: appleboy/ssh-action@v1.0.3
           with:
@@ -559,4 +560,3 @@ jobs:
           path: ${{ github.workspace }}/tf.out.json
       - name: Destroy OpenStack VM
         run: terraform destroy -no-color -auto-approve 
-        
