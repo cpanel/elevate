@@ -34,7 +34,6 @@ use constant EXPECTED_EXTRA_PACKAGES => (
     qr/^kernel/,
     qr/^mysql/i,
     qr/^plesk-/,
-    'awscli',
     'basesystem',
     'filesystem',
     'grub',

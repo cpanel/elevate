@@ -1867,7 +1867,6 @@ EOS
         qr/^kernel/,
         qr/^mysql/i,
         qr/^plesk-/,
-        'awscli',
         'basesystem',
         'filesystem',
         'grub',
