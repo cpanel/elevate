@@ -1,3 +1,10 @@
+##### **2024-09-23** - version 54
+
+* Fixed case RE-697: Make 'upgrade_to_pretty_name' an Elevate::OS key
+* Fixed case RE-603: Add a whitelist for some legacy pacakges without a repo
+* Fixed case RE-695: Turn `--no-leapp` into a more generic `--upgrade-distro-manually` option, but continue to recognize `--no-leapp` as an alias for it.
+* Fixed case RE-217: Re-work Leapp failure handling to report all inhibitors.
+
 ##### **2024-08-29** - version 53
 
 * Fixed case RE-574: Ensure that system with net-snmp installed will have it installed post-elevate.
