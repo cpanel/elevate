@@ -28,10 +28,28 @@ my $mock_log_file = Test::MockFile->file('/var/log/elevate-cpanel.log');
 
 my $cpev = cpev->new->_init;
 
-is( cpev->ssystem('nope'), 42, q[ssystem( 'nope' ) is disallowed] );
-is( cpev->ssystem('grep'), 42, 'Commands that are not absolute paths are not allowed' );
+like(
+    dies { cpev->ssystem('nope') },
+    qr/Program is not an executable absolute path/,
+    'Program is not an executable path.'
+);
 
-is( cpev->ssystem('/etc/apache2/conf/httpd.conf'), 42, 'Commands that are not executable are not allowed' );
+like(
+    dies { cpev->ssystem('grep') },
+    qr/Program is not an executable absolute path/,
+    'Program is not an executable absolute path.'
+);
+
+like(
+    dies { cpev->ssystem('/etc/apache2/conf/httpd.conf') },
+    qr/Program is not an executable absolute path/,
+    'Paths that are not executable are not allowed.'
+);
+
+ok(
+    lives { cpev->ssystem('/bin/true') },
+    'Program is not an executable absolute path.'
+);
 
 is( cpev->ssystem("/bin/true"), 0, q[ssystem( "/bin/true" ) == 0] );
 isnt( my $status_false = cpev->ssystem("/bin/false"), 0, q[ssystem( "/bin/false" ) != 0] );
