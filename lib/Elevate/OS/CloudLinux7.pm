@@ -37,7 +37,8 @@ sub vetted_yum_repo ($self) {
         qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
         'cl-ea4',
         qr/^cl-mysql(?:-meta)?/,
-        'mysqclient', 'mysql-debuginfo'
+        'mysqclient', 'mysql-debuginfo',
+        'cl7h',
     );
 
     my @repos = $self->SUPER::vetted_yum_repo();
