@@ -9,6 +9,11 @@ on:
       - "*"
   pull_request:
   workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-testsuite
+  cancel-in-progress: true
 
 jobs:
   testsuite:
