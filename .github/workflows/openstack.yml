@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-openstack
   cancel-in-progress: true
 
 env:
@@ -32,7 +32,10 @@ env:
   tf_working_directory: "./.github/workflows/openstack/terraform"
 
 jobs: 
+    testsuite:
+      uses: ./.github/workflows/testsuite.yml
     terraform_openstack_create:
+        needs: [testsuite]
         runs-on: self-hosted
         defaults:
           run:
