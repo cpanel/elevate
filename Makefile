@@ -19,7 +19,7 @@ sanity:
 test: sanity
 	-$(MAKE) elevate-cpanel
 	$(PERL_BIN)/prove t/00_load.t
-	$(PERL_BIN)/yath test -j8 t/*.t
+	$(PERL_BIN)/yath test -j8 t/*.t --exclude-pattern t/03_fatpack-script.t
 
 build:
 	rm -f elevate-cpanel
@@ -36,7 +36,7 @@ prep-integration:
 
 cover:
 	/usr/bin/rm -rf cover_db
-	HARNESS_PERL_SWITCHES="-MDevel::Cover=-loose_perms,on,-coverage,statement,branch,condition,subroutine,-ignore,.,-select,elevate-cpanel" $(PERL_BIN)/prove -j8 t/*.t ||:
+	HARNESS_PERL_SWITCHES="-MDevel::Cover=-loose_perms,on,-coverage,statement,branch,condition,subroutine,-ignore,.,-select,elevate-cpanel" $(PERL_BIN)/prove t/*.t ||:
 	$(PERL_BIN)/cover -silent
 	find cover_db -type f -exec chmod 644 {} \;
 	find cover_db -type d -exec chmod 755 {} \;
