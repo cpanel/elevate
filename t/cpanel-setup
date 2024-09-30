@@ -81,6 +81,7 @@ ln -sf usr/local/cpanel/scripts /scripts
 ln -sf /bin/true /usr/local/cpanel/bin/build_locale_databases
 ln -sf /bin/true /usr/local/cpanel/scripts/restartsrv_tailwatchd
 ln -sf /usr/local/cpanel/3rdparty/perl/536/bin/perl /usr/local/cpanel/3rdparty/bin/perl
+ln -sf /opt/cpanel/perl5/536/bin/perltidy /usr/local/cpanel/3rdparty/perl/536/bin/perltidy
 
 echo "CPANEL=${VERSION}" > /etc/cpupdate.conf
 
