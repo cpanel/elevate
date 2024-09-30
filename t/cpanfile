@@ -140,4 +140,8 @@ on 'test' => sub {
     recommends "Test::Perl::Critic";
     recommends "Test::PerlTidy";
     recommends "Test::Pod";
+
+    # fatpack
+    recommends "Module::Want";
+    recommends "Perl::Tidy";
 };
