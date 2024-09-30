@@ -1,3 +1,6 @@
+##### **2024-09-30** - version 55
+* Add support for "cl7h" (Cloud Linux 7 Hybrid) repository.
+
 ##### **2024-09-23** - version 54
 
 * Fixed case RE-697: Make 'upgrade_to_pretty_name' an Elevate::OS key
