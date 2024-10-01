@@ -6,7 +6,17 @@ package Elevate::Components::ELS;
 
 Elevate::Components::ELS
 
-Remove ELS for CentOS 7
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Remove ELS repo files and ELS specific package
+
+=head2 post_distro_upgrade
+
+noop
 
 =cut
 
@@ -38,12 +48,6 @@ sub pre_distro_upgrade ($self) {
 
     $self->yum->remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
 
-    return;
-}
-
-sub post_distro_upgrade ($self) {
-
-    # Nothing to do
     return;
 }
 

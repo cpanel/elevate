@@ -54,4 +54,6 @@ use constant R1SOFT_AGENT_PACKAGES => qw{
 
 use constant POSTGRESQL_SYSTEM_DATADIR => '/var/lib/pgsql/data';
 
+use constant OVH_MONITORING_TOUCH_FILE => '/var/cpanel/acknowledge_ovh_monitoring_for_elevate';
+
 1;

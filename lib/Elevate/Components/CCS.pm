@@ -6,10 +6,17 @@ package Elevate::Components::CCS;
 
 Elevate::Components::CCS
 
-pre_distro_upgrade: Export CCS data to a root owned backup directory and remove CCS
-           package
+=head2 check
 
-post_distro_upgrade: Install CCS package and import the backups taken during pre_distro_upgrade
+noop
+
+=head2 pre_distro_upgrade
+
+Export CCS data to a root owned backup directory and remove CCS package
+
+=head2 post_distro_upgrade
+
+Install CCS package and import the backups taken during pre_distro_upgrade
 
 =cut
 
@@ -101,7 +108,7 @@ sub _load_ccs_modules ($self) {
     return;
 }
 
-=head1
+=head1 export_ccs_data
 
 This export code is largely based on the code in
 '/var/cpanel/perl/Cpanel/Pkgacct/Components/CCSPkgAcct.pm' which is provided

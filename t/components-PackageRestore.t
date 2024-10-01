@@ -21,7 +21,7 @@ use Test::Elevate;
 
 use cPstrict;
 
-my $pkg_restore = cpev->new->component('PackageRestore');
+my $pkg_restore = cpev->new->get_component('PackageRestore');
 
 {
     note "Checking pre_distro_upgrade";

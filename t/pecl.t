@@ -48,7 +48,7 @@ $mock_saferun->redefine(
 my $pecl_bin = Test::MockFile->file( '/my/pecl/bin', '', { mode => 0700 } );
 
 my $cpev = cpev->new;
-my $pecl = $cpev->component('PECL');
+my $pecl = $cpev->get_component('PECL');
 
 is Elevate::Components::PECL::_get_pecl_installed_for('/my/pecl/bin'), undef, '_get_pecl_installed_for - empty list';
 

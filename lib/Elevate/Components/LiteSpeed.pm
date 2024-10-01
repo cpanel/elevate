@@ -6,7 +6,17 @@ package Elevate::Components::LiteSpeed;
 
 Elevate::Components::LiteSpeed
 
-Capture and reinstall LiteSpeed packages.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Record if litespeed is installed and has a valid license
+
+=head2 post_distro_upgrade
+
+Report if litespeed license is no longer valid and restart service
 
 =cut
 

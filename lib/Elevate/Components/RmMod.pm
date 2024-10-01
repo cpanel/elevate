@@ -6,7 +6,17 @@ package Elevate::Components::RmMod;
 
 Elevate::Components::RmMod
 
-Run rmmod
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Remove unsupported/unwanted kernel modules
+
+=head2 post_distro_upgrade
+
+noop
 
 =cut
 

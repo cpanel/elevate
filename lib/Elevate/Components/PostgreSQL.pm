@@ -14,6 +14,23 @@ This is considered to be a best-effort task: if something fails in an expected
 way, it will emit errors and notify the user but will B<not> terminate the
 ELevate process or otherwise cause it to be considered an overall failure.
 
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+1. Store PG encoding and locale
+2. Disable PG service
+3. Backup PG datadir
+
+=head2 post_distro_upgrade
+
+1. Update PG config file to workaround bad directive
+2. Perform PG upgrade
+3. Reenable PG service
+4. Update PG config for cPanel
+
 =cut
 
 use cPstrict;

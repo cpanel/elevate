@@ -6,22 +6,26 @@ package Elevate::Components::R1Soft;
 
 Elevate::Components::R1Soft
 
-Handle situation where the R1Soft backup agent is installed
+=head2 check
 
-Before distro upgrade:
-    Find out:
-        Is the R1Soft agent installed?
-        And, if so, is the R1Soft repo present and enabled?
-    And, if the agent is installed, go ahead and remove it.
-    (We'll need to reinstall it after the OS upgrade.)
+noop
 
-After distro upgrade:
-    If the agent had been installed:
-        Re-install kernel-devel (needed by the agent install).
-        Add the repo if it wasn't present.
-        Enable the repo if it wasn't enabled.
-        Re-install the agent.
-        Disabled repo if it wasn't both present and enabled.
+=head2 pre_distro_upgrade
+
+Find out:
+    Is the R1Soft agent installed?
+    And, if so, is the R1Soft repo present and enabled?
+And, if the agent is installed, go ahead and remove it.
+(We'll need to reinstall it after the OS upgrade.)
+
+=head2 post_distro_upgrade
+
+If the agent had been installed:
+    Re-install kernel-devel (needed by the agent install).
+    Add the repo if it wasn't present.
+    Enable the repo if it wasn't enabled.
+    Re-install the agent.
+    Disabled repo if it wasn't both present and enabled.
 
 =cut
 
