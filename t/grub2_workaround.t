@@ -22,52 +22,47 @@ use Test::Elevate;
 use File::Temp ();
 
 subtest 'Testing _grub2_workaround_state' => sub {
-    my $cpev_mock = Test::MockModule->new('Elevate::Blockers::Grub2');
-
-    my $mocked_boot;
-    $cpev_mock->redefine(
-        GRUB2_PREFIX_DEBIAN => sub { return "$mocked_boot/grub" },
-        GRUB2_PREFIX_RHEL   => sub { return "$mocked_boot/grub2" },
-    );
-
-    # my $blockers    = cpev->new->blockers;
-    # my $g2 = $blockers->_get_blocker_for('Grub2');
-
     {
-        $mocked_boot = File::Temp->newdir();
+        my $mocked_boot = File::Temp->newdir();
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_DEBIAN = "$mocked_boot/grub";
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_RHEL   = "$mocked_boot/grub2";
         mkdir "$mocked_boot/grub2";
         system touch => "$mocked_boot/grub2/grub.cfg";
 
         is(
-            Elevate::Blockers::Grub2::_grub2_workaround_state(),       #
-            Elevate::Blockers::Grub2::GRUB2_WORKAROUND_NONE,           #
+            Elevate::Components::Grub2::_grub2_workaround_state(),     #
+            Elevate::Components::Grub2::GRUB2_WORKAROUND_NONE(),       #
             "no workaround detected when /boot/grub does not exist"    #
         );
     }
 
     {
-        $mocked_boot = File::Temp->newdir();
+        my $mocked_boot = File::Temp->newdir();
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_DEBIAN = "$mocked_boot/grub";
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_RHEL   = "$mocked_boot/grub2";
         mkdir "$mocked_boot/grub2";
         mkdir "$mocked_boot/grub";
         system touch => "$mocked_boot/grub2/grub.cfg";
         symlink "../grub2/grub.cfg", "$mocked_boot/grub/grub.cfg";
 
         is(
-            Elevate::Blockers::Grub2::_grub2_workaround_state(),                                                               #
-            Elevate::Blockers::Grub2::GRUB2_WORKAROUND_OLD,                                                                    #
+            Elevate::Components::Grub2::_grub2_workaround_state(),                                                             #
+            Elevate::Components::Grub2::GRUB2_WORKAROUND_OLD(),                                                                #
             "old workaround detected when /boot/grub is a directory and /boot/grub/grub.cfg points to /boot/grub2/grub.cfg"    #
         );
     }
 
     {
-        $mocked_boot = File::Temp->newdir();
+        my $mocked_boot = File::Temp->newdir();
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_DEBIAN = "$mocked_boot/grub";
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_RHEL   = "$mocked_boot/grub2";
         mkdir "$mocked_boot/grub2";
         system touch => "$mocked_boot/grub2/grub.cfg";
         symlink "grub2", "$mocked_boot/grub";
 
         is(
-            Elevate::Blockers::Grub2::_grub2_workaround_state(),
-            Elevate::Blockers::Grub2::GRUB2_WORKAROUND_NEW,
+            Elevate::Components::Grub2::_grub2_workaround_state(),
+            Elevate::Components::Grub2::GRUB2_WORKAROUND_NEW(),
             "new workaround detected when /boot/grub is a symlink to /boot/grub2"
         );
     }
@@ -77,19 +72,13 @@ subtest 'Testing _grub2_workaround_state' => sub {
 
 subtest 'Testing _update_grub2_workaround_if_needed' => sub {
     {
-        my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
         my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
         my $cpev = cpev->new;
-        my $g2   = $cpev->component('Grub2');
+        my $g2   = $cpev->get_component('Grub2');
 
         $stagefile_mock->redefine(
             _read_stage_file => { grub2_workaround => { needs_workaround_update => 0 } },
-        );
-
-        $g2_mock->redefine(
-            GRUB2_PREFIX_DEBIAN => sub { die "GRUB2_PREFIX_DEBIAN referenced unexpectedly!" },
-            GRUB2_PREFIX_RHEL   => sub { die "GRUB2_PREFIX_RHEL referenced unexpectedly!" },
         );
 
         try_ok { $g2->_update_grub2_workaround_if_needed() } "calling the function short-circuits when workaround update is not requested";
@@ -97,13 +86,14 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
 
     subtest "needs workaround, clean run" => sub {
 
-        my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
         my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
         my $cpev = cpev->new;
-        my $g2   = $cpev->component('Grub2');
+        my $g2   = $cpev->get_component('Grub2');
 
         my $mocked_boot = File::Temp->newdir();
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_DEBIAN = "$mocked_boot/grub";
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_RHEL   = "$mocked_boot/grub2";
         mkdir "$mocked_boot/grub";
         mkdir "$mocked_boot/grub2";
         system touch => "$mocked_boot/grub2/grub.cfg";
@@ -113,10 +103,6 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
         $stagefile_mock->redefine(
             _read_stage_file  => { grub2_workaround => { needs_workaround_update => 1 } },
             update_stage_file => sub { $stage_update = $_[0]; return 1; },
-        );
-        $g2_mock->redefine(
-            GRUB2_PREFIX_DEBIAN => "$mocked_boot/grub",
-            GRUB2_PREFIX_RHEL   => "$mocked_boot/grub2",
         );
 
         my $now = CORE::time();
@@ -139,13 +125,14 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
     };
 
     subtest "needs workaround, recovery run" => sub {
-        my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
         my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
         my $cpev = cpev->new;
-        my $g2   = $cpev->component('Grub2');
+        my $g2   = $cpev->get_component('Grub2');
 
         my $mocked_boot = File::Temp->newdir();
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_DEBIAN = "$mocked_boot/grub";
+        local $Elevate::Components::Grub2::GRUB2_PREFIX_RHEL   = "$mocked_boot/grub2";
         mkdir "$mocked_boot/grub";
         mkdir "$mocked_boot/grub2";
         system touch => "$mocked_boot/grub2/grub.cfg";
@@ -156,10 +143,6 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
         $stagefile_mock->redefine(
             _read_stage_file  => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
             update_stage_file => sub { die 'this should not reached' },
-        );
-        $g2_mock->redefine(
-            GRUB2_PREFIX_DEBIAN => "$mocked_boot/grub",
-            GRUB2_PREFIX_RHEL   => "$mocked_boot/grub2",
         );
 
         # The filesystem setup looks the same, because failure to perform symlink() rolls back the rename():
@@ -177,19 +160,14 @@ subtest 'Testing _update_grub2_workaround_if_needed' => sub {
 
 subtest 'Testing _merge_grub_directories_if_needed' => sub {
 
-    my $g2_mock        = Test::MockModule->new('Elevate::Components::Grub2');
     my $stagefile_mock = Test::MockModule->new('Elevate::StageFile');
 
     my $cpev = cpev->new;
-    my $g2   = $cpev->component('Grub2');
+    my $g2   = $cpev->get_component('Grub2');
 
     {
         $stagefile_mock->redefine(
             _read_stage_file => { grub2_workaround => { needs_workaround_update => 0 } },
-        );
-        $g2_mock->redefine(
-            GRUB2_PREFIX_DEBIAN => sub { die "GRUB2_PREFIX_DEBIAN referenced unexpectedly!" },
-            GRUB2_PREFIX_RHEL   => sub { die "GRUB2_PREFIX_RHEL referenced unexpectedly!" },
         );
 
         try_ok { $g2->_merge_grub_directories_if_needed() } "calling the function short-circuits when workaround update is not requested";
@@ -198,6 +176,8 @@ subtest 'Testing _merge_grub_directories_if_needed' => sub {
     my $now = CORE::time();
 
     my $mocked_boot = File::Temp->newdir();
+    local $Elevate::Components::Grub2::GRUB2_PREFIX_DEBIAN = "$mocked_boot/grub";
+    local $Elevate::Components::Grub2::GRUB2_PREFIX_RHEL   = "$mocked_boot/grub2";
     mkdir "$mocked_boot/grub2";
     mkdir "$mocked_boot/grub-$now";
     system touch => "$mocked_boot/grub2/grub.cfg";
@@ -207,10 +187,6 @@ subtest 'Testing _merge_grub_directories_if_needed' => sub {
 
     $stagefile_mock->redefine(
         _read_stage_file => { grub2_workaround => { needs_workaround_update => 1, backup_dir => "$mocked_boot/grub-$now" } },
-    );
-    $g2_mock->redefine(
-        GRUB2_PREFIX_DEBIAN => "$mocked_boot/grub",
-        GRUB2_PREFIX_RHEL   => "$mocked_boot/grub2",
     );
 
     ok( -f "$mocked_boot/grub2/grub.cfg",       "precondition: /boot/grub2/grub.cfg is a regular file" );
@@ -237,7 +213,7 @@ subtest 'Testing _merge_grub_directories_if_needed' => sub {
     );
 
     my $cpev = cpev->new;
-    my $g2   = $cpev->component('Grub2');
+    my $g2   = $cpev->get_component('Grub2');
 
     $g2->pre_distro_upgrade;
 

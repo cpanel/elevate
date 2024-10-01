@@ -6,7 +6,17 @@ package Elevate::Components::WPToolkit;
 
 Elevate::Components::WPToolkit
 
-Capture and reinstall WP toolkit packages.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Remove wp-toolkit
+
+=head2 post_distro_upgrade
+
+Reinstall wp-toolkit
 
 =cut
 

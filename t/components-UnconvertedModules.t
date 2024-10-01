@@ -22,7 +22,7 @@ use Test::Elevate;
 
 use cPstrict;
 
-my $unconvertedmodules = cpev->new->component('UnconvertedModules');
+my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
 
 {
     note "checking _remove_leapp_packages";

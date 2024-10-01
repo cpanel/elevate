@@ -6,8 +6,19 @@ package Elevate::Components::SSH;
 
 Elevate::Components::SSH
 
-Ensure that the sshd config file has 'PermitRootLogin' set to 'yes'
-if it is not set.
+=head2 check
+
+Check that PermitRootLogin setting is explicitely set in sshd_config since the
+default for this config option changes on upgraded systems
+
+=head2 pre_distro_upgrade
+
+Explicitely set PermitRootLogin to yes if it was not explicitely set in the
+check
+
+=head2 post_distro_upgrade
+
+noop
 
 =cut
 
@@ -42,10 +53,31 @@ sub pre_distro_upgrade ($self) {
     return;
 }
 
-sub post_distro_upgrade ($self) {
+sub check ($self) {
 
-    # Nothing to do
-    return;
+    return $self->_check_ssh_config();
+}
+
+sub _check_ssh_config ($self) {
+    my $sshd_config = q[/etc/ssh/sshd_config];
+
+    my $setup = eval { File::Slurper::read_binary($sshd_config) } // '';
+    if ( my $exception = $@ ) {
+        ERROR("The system could not read the sshd config file ($sshd_config): $exception");
+        return $self->has_blocker(qq[Unable to read the sshd config file: $sshd_config]);
+    }
+
+    if ( $setup !~ m{^\s*PermitRootLogin\b}m ) {
+        WARN( <<~"EOS" );
+        OpenSSH configuration file does not explicitly state the option PermitRootLogin in sshd_config file, which will default in RHEL8 to "prohibit-password".
+        We will set the 'PermitRootLogin' value in $sshd_config to 'yes' before upgrading.
+
+        EOS
+
+        return 0;
+    }
+
+    return 1;
 }
 
 1;

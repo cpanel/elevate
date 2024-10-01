@@ -6,7 +6,19 @@ package Elevate::Components::PECL;
 
 Elevate::Components::PECL
 
-Capture and reinstall PECL packages.
+=head2 check
+
+noop
+
+=head2 pre_distro_upgrade
+
+Determine installed PECL packages for each installed version of PHP on the
+server
+
+=head2 post_distro_upgrade
+
+Inform user of any PECL packages that were installed prior to the upgrade and
+were no longer installed after the upgrade
 
 =cut
 

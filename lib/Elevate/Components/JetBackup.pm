@@ -6,15 +6,28 @@ package Elevate::Components::JetBackup;
 
 Elevate::Components::JetBackup
 
-Capture and reinstall JetBackup.
+=head2 check
+
+If JetBackup is installed, ensure that it is a supported version
+
+=head2 pre_distro_upgrade
+
+Capture list of JetBackup packages to reinstall and remove a package that is not
+supported on 8
+
+=head2 post_distro_upgrade
+
+Reinstall JetBackup packages
 
 =cut
 
 use cPstrict;
 
-use Cpanel::Pkgr       ();
 use Elevate::Constants ();
+use Elevate::OS        ();
 use Elevate::StageFile ();
+
+use Cpanel::Pkgr ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -62,6 +75,36 @@ sub post_distro_upgrade ($self) {
 
     $self->ssystem( qw{/usr/bin/yum -y install --enablerepo=jetapps}, "--enablerepo=$tier", 'jetphp81-zip' );
     $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps},  "--enablerepo=$tier", @packages );
+
+    return;
+}
+
+sub check ($self) {
+
+    return $self->_blocker_old_jetbackup;
+}
+
+sub _blocker_old_jetbackup ($self) {
+
+    return 0 unless $self->_use_jetbackup4_or_earlier();
+
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
+
+    return $self->has_blocker( <<~"END" );
+    $pretty_distro_name does not support JetBackup prior to version 5.
+    Please upgrade JetBackup before elevate.
+    END
+
+}
+
+sub _use_jetbackup4_or_earlier ($self) {
+    return unless Cpanel::Pkgr::is_installed('jetbackup');
+    my $v = Cpanel::Pkgr::get_package_version("jetbackup");
+
+    if ( defined $v && $v =~ qr{^[1-4]\b} ) {
+        WARN("JetBackup version $v currently installed.");
+        return 1;
+    }
 
     return;
 }
