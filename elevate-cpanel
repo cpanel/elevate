@@ -2797,15 +2797,25 @@ EOS
             return;
         };
 
-        INFO("Imunify360: Removing $product_type prior to upgrade.");
-        INFO("Imunify360: Product $product_type detected. Uninstalling before upgrade for later restore.");
-
         my $installer_script = _fetch_imunify_installer($product_type) or do {
             WARN("Imunify360: Failed to fetch script for $product_type. Skipping upgrade.");
             return;
         };
+
+        my $imunify_pid = Cpanel::LoadFile::load_if_exists('/var/lock/i360deploy.lck') || Cpanel::LoadFile::load_if_exists('/var/lock/imav-deploy.lck');
+        if ($imunify_pid) {
+            INFO("Waiting for Imunify update to complete before uninstalling it");
+            while ( kill 0, $imunify_pid ) {
+                sleep 1;
+            }
+            INFO("Imunify update has completed");
+        }
+
+        INFO("Imunify360: Removing $product_type prior to upgrade.");
+        INFO("Imunify360: Product $product_type detected. Uninstalling before upgrade for later restore.");
+
         if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
-            WARN("Imunify360: Failed to uninstall $product_type.");
+            LOGDIE("Imunify360: Failed to uninstall $product_type.");
             return;
         }
         unlink $installer_script;
