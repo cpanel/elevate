@@ -6,6 +6,7 @@ name: website
 
 on:
   push:
+    if: github.repository == 'cpanel/elevate'
     branches:
     - main
   workflow_dispatch:
