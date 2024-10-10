@@ -85,7 +85,7 @@ my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
         },
     );
 
-    @mock_packages = qw{ foo bar finn-el7 };
+    @mock_packages = qw{ foo bar finn-el7 acronis-backup-cpanel kernel-3.10.el7.x86_64 kernel-tools-3.10.el7.x86_64 };
     $unconvertedmodules->_warn_about_other_modules_that_did_not_convert();
     is(
         $message,

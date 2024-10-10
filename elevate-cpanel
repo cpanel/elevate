@@ -55,6 +55,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/UnconvertedModules.pm'} = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/WHM.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/WPToolkit.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Acronis.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
@@ -120,6 +121,15 @@ BEGIN {    # Suppress load of all of these at earliest point.
       serverbackup-async-agent-2-6
       serverbackup-enterprise-agent
       serverbackup-setup
+    };
+
+    use constant ACRONIS_BACKUP_PACKAGE => 'acronis-backup-cpanel';
+    use constant ACRONIS_OTHER_PACKAGES => qw{
+      BackupAndRecoveryAgent
+      BackupAndRecoveryBootableComponents
+      dkms
+      file_protector
+      snapapi26_modules
     };
 
     use constant POSTGRESQL_SYSTEM_DATADIR => '/var/lib/pgsql/data';
@@ -334,6 +344,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Components::UnconvertedModules ();
     use Elevate::Components::WHM                ();
     use Elevate::Components::WPToolkit          ();
+    use Elevate::Components::Acronis            ();
 
     use Simple::Accessor qw(
       cpev
@@ -393,6 +404,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       WPToolkit
       cPanelPlugins
       cPanelPrep
+      Acronis
     };
 
     push @CHECKS, @NOOP_CHECKS;
@@ -5119,7 +5131,8 @@ EOS
         'virt-what',
         'vzdummy-systemd-el7',
       ),
-      Elevate::Constants::R1SOFT_AGENT_PACKAGES;
+      Elevate::Constants::R1SOFT_AGENT_PACKAGES,
+      Elevate::Constants::ACRONIS_OTHER_PACKAGES;
 
     sub pre_distro_upgrade ($self) {
 
@@ -5727,6 +5740,11 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
+    use constant EXEMPTED_PACKAGES => (
+        qr/^kernel-/,
+        qr/^acronis/,
+    );
+
     sub post_distro_upgrade ($self) {
         $self->run_once('_remove_leapp_packages');
         $self->run_once('_warn_about_other_modules_that_did_not_convert');
@@ -5754,20 +5772,25 @@ EOS
     }
 
     sub _warn_about_other_modules_that_did_not_convert ($self) {
-        my @installed_packages                    = $self->rpm->get_installed_rpms();
-        my @el7_installed_packages                = grep { $_ =~ m/el7/ } @installed_packages;
-        my @exclude_kernel_el7_installed_packages = grep { $_ !~ m/^kernel-/ } @el7_installed_packages;
+        my @installed_packages     = $self->rpm->get_installed_rpms();
+        my @el7_installed_packages = grep { $_ =~ m/el7/ } @installed_packages;
 
-        return unless @exclude_kernel_el7_installed_packages;
+        my @el7_packages_minus_exemptions;
+        foreach my $pkg (@el7_installed_packages) {
+            next if grep { $pkg =~ m/$_/ } EXEMPTED_PACKAGES();
+            push @el7_packages_minus_exemptions, $pkg;
+        }
+
+        return unless @el7_packages_minus_exemptions;
 
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
         my $msg = "The following packages should probably be removed as they will not function on $pretty_distro_name\n\n";
-        foreach my $pkg (@exclude_kernel_el7_installed_packages) {
+        foreach my $pkg (@el7_packages_minus_exemptions) {
             $msg .= "    $pkg\n";
         }
 
-        $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @exclude_kernel_el7_installed_packages ) . "\n";
+        $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @el7_packages_minus_exemptions ) . "\n";
 
         Elevate::Notify::add_final_notification($msg);
 
@@ -6027,6 +6050,48 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Components/WPToolkit.pm
+
+{    # --- BEGIN lib/Elevate/Components/Acronis.pm
+
+    package Elevate::Components::Acronis;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+    use Elevate::StageFile ();
+
+    use Cpanel::Pkgr ();
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_distro_upgrade ($self) {
+
+        return unless Cpanel::Pkgr::is_installed(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
+
+        $self->yum->remove(
+            Elevate::Constants::ACRONIS_BACKUP_PACKAGE,
+            Elevate::Constants::ACRONIS_OTHER_PACKAGES
+        );
+
+        Elevate::StageFile::update_stage_file( { 'reinstall' => { 'acronis' => 1 } } );
+
+        return;
+    }
+
+    sub post_distro_upgrade ($self) {
+
+        return unless Elevate::StageFile::read_stage_file('reinstall')->{'acronis'};
+
+        $self->dnf->install(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/Acronis.pm
 
 {    # --- BEGIN lib/Elevate/OS.pm
 
@@ -8590,6 +8655,7 @@ use Elevate::Components::SSH                ();
 use Elevate::Components::UnconvertedModules ();
 use Elevate::Components::WHM                ();
 use Elevate::Components::WPToolkit          ();
+use Elevate::Components::Acronis            ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -9633,6 +9699,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'ELS'              => 'pre_distro_upgrade' );
     $self->run_component_once( 'R1Soft'           => 'pre_distro_upgrade' );
     $self->run_component_once( 'Panopta'          => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Acronis'          => 'pre_distro_upgrade' );
     $self->run_component_once( 'RpmDB'            => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;
@@ -9663,6 +9730,7 @@ sub post_distro_upgrade_update_restore ($self) {
     $self->run_component_once( 'LiteSpeed'       => 'post_distro_upgrade' );
     $self->run_component_once( 'R1Soft'          => 'post_distro_upgrade' );
     $self->run_component_once( 'PackageRestore'  => 'post_distro_upgrade' );
+    $self->run_component_once( 'Acronis'         => 'post_distro_upgrade' );
 
     return;
 }
