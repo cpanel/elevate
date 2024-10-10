@@ -54,7 +54,8 @@ use constant EXPECTED_EXTRA_PACKAGES => (
     'virt-what',
     'vzdummy-systemd-el7',
   ),
-  Elevate::Constants::R1SOFT_AGENT_PACKAGES;
+  Elevate::Constants::R1SOFT_AGENT_PACKAGES,
+  Elevate::Constants::ACRONIS_OTHER_PACKAGES;
 
 sub pre_distro_upgrade ($self) {
 
