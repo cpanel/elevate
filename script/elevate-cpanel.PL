@@ -267,6 +267,7 @@ use Elevate::Components::NICs               ();
 use Elevate::Components::NixStats           ();
 use Elevate::Components::OVH                ();
 use Elevate::Components::PackageRestore     ();
+use Elevate::Components::PackageDupes       ();
 use Elevate::Components::Panopta            ();
 use Elevate::Components::PECL               ();
 use Elevate::Components::PerlXS             ();
@@ -939,6 +940,9 @@ Update the current distro packages then reboot.
 sub run_stage_2 ($self) {
 
     $self->run_component_once( 'Grub2' => 'verify_cmdline' );
+
+    # Best to do this before clearing the yum cache:
+    $self->run_component_once( 'PackageDupes' => 'pre_distro_upgrade' );
 
     $self->ssystem(qw{/usr/bin/yum clean all});
     $self->ssystem_and_die(qw{/scripts/update-packages});
