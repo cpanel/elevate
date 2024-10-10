@@ -94,6 +94,11 @@ sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
     return;
 }
 
+sub remove_no_dependencies_or_scripts_and_justdb ( $self, $pkg ) {
+    $self->cpev->ssystem( $rpm, '-e', '--nodeps', '--noscripts', '--justdb', $pkg );
+    return;
+}
+
 sub get_installed_rpms ( $self, $format = undef ) {
     my @args = qw{-qa};
 

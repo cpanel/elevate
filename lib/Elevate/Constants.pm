@@ -31,6 +31,9 @@ use constant YUM_REPOS_D => q[/etc/yum.repos.d];
 
 use constant ELEVATE_BACKUP_DIR => "/root/.elevate.backup";
 
+use constant RPMDB_DIR        => q[/var/lib/rpm];
+use constant RPMDB_BACKUP_DIR => q[/var/lib/rpm-elevate-backup];
+
 use constant IMUNIFY_AGENT => '/usr/bin/imunify360-agent';
 
 use constant CHKSRVD_SUSPEND_FILE => q[/var/run/chkservd.suspend];
