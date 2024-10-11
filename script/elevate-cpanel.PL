@@ -456,7 +456,7 @@ sub do_update ($self) {
         return 1 unless $temp_file;    # Elevate::Fetch::script handled the error msg
 
         my $running_from = Cwd::abs_path($0) // '';
-        if ( File::Copy::move( $temp_file, $running_from ) ) {
+        if ( File::Copy::mv( $temp_file, $running_from ) ) {
             chmod 0700, $running_from;
             my $confirmed_version = Cpanel::SafeRun::Simple::saferunnoerror( $running_from, '--version' );
             chomp $confirmed_version;

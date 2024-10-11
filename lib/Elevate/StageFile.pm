@@ -23,7 +23,7 @@ use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 
 sub create_success_file () {
-    File::Copy::copy( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
+    File::Copy::cp( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
     return;
 }
 
