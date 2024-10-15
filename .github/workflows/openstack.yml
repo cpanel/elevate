@@ -108,7 +108,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Checkout Repo and Commit
           if: github.event_name != 'pull_request'
@@ -162,7 +161,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -198,7 +196,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -240,13 +237,12 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Wait For VM to Come Back From Stage 2 Reboot
+        - name: Wait For VM to Come Back From Initial Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
@@ -268,7 +264,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -287,7 +282,8 @@ jobs:
             script: |
               /scripts/status_marker 1
               /scripts/elevate-cpanel --log &
-              REBOOT_STRING="/usr/bin/systemctl start elevate-cpanel.service" RETVAL=1 /scripts/reboot_watch
+              sleep 1.5
+              REBOOT_STRING="Rebooting into stage 2 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_2_reboot:
       runs-on: self-hosted
@@ -306,7 +302,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -334,7 +329,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -351,8 +345,9 @@ jobs:
             command_timeout: 30m
             debug: true
             script: |
-              /scripts/status_marker 3
+              /scripts/status_marker 2
               /scripts/elevate-cpanel --log &
+              sleep 1.5
               REBOOT_STRING="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
     
     wait_for_stage_3_reboot:
@@ -372,7 +367,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -400,7 +394,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -416,8 +409,9 @@ jobs:
             timeout: 30m
             command_timeout: 30m
             script: |
-              /scripts/status_marker 4
+              /scripts/status_marker 3
               /scripts/elevate-cpanel --log &
+              sleep 1.5
               REBOOT_STRING="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_4_reboot:
@@ -437,7 +431,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -465,7 +458,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -481,8 +473,9 @@ jobs:
             timeout: 45m
             command_timeout: 35m
             script: |
-              /scripts/status_marker 5
+              /scripts/status_marker 4
               /scripts/elevate-cpanel --log &
+              sleep 1.5
               REBOOT_STRING="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_5_reboot:
@@ -502,7 +495,6 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
 
         - name: Export VM_IP to env
           env:
@@ -513,7 +505,7 @@ jobs:
           run: |
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
-    verify_upgraded_os:
+    watch_for_final_reboot:
       runs-on: self-hosted
       needs: wait_for_stage_5_reboot
       outputs:
@@ -530,7 +522,70 @@ jobs:
           run: |
             echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
             cat ${{ github.run_id }}-vm_ip > VM_IP
-            ls -la
+
+        - name: Export VM_IP to env
+          env:
+            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
+          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
+        - name: Monitor Elevate for Final Reboot
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ steps.VM_IP.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            timeout: 45m
+            command_timeout: 35m
+            script: |
+              /scripts/status_marker 5
+              /scripts/elevate-cpanel --log &
+              sleep 1.5
+              SKIP_PID_CHECK=1 REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
+
+    wait_for_final_reboot:
+      runs-on: self-hosted
+      needs: watch_for_final_reboot
+      outputs:
+        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
+      steps:
+        - name: Download VM IP
+          uses: actions/download-artifact@v4
+          with:
+            name: ${{ github.run_id }}-vm_ip
+            path: ${{ github.workspace }}/
+
+        - name: Get VM IP from Artifact
+          id: VM_IP
+          run: |
+            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
+            cat ${{ github.run_id }}-vm_ip > VM_IP
+
+        - name: Export VM_IP to env
+          env:
+            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
+          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
+        - name: Wait For VM to Come Back From Final Reboot
+          working-directory: "./.github/workflows/openstack/"
+          run: |
+            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
+
+    verify_upgraded_os:
+      runs-on: self-hosted
+      needs: wait_for_final_reboot
+      outputs:
+        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
+      steps:
+        - name: Download VM IP
+          uses: actions/download-artifact@v4
+          with:
+            name: ${{ github.run_id }}-vm_ip
+            path: ${{ github.workspace }}/
+
+        - name: Get VM IP from Artifact
+          id: VM_IP
+          run: |
+            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
+            cat ${{ github.run_id }}-vm_ip > VM_IP
 
         - name: Export VM_IP to env
           env:
