@@ -1,6 +1,7 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
 use constant ELEVATE_LOG_PATH => '/var/log/elevate-cpanel.log';
+use constant ELEVATE_PID      => '/var/run/elevate-cpanel.pid';
 
 use File::Tail;
 use POSIX;
@@ -10,15 +11,17 @@ my $RETVAL = 1;
 # Verify REBOOT_STRING isn't already in the log before we go into tail mode.  The logodump here is sgnificantly faster than File::Tail.
 # Jump if it's found.
 
-exit 1 if !length( $ENV{REBOOT_STRING} );
+_pid_check() unless $ENV{SKIP_PID_CHECK};
+
+_exit_with_haste(1) if !length( $ENV{REBOOT_STRING} );
 
 open( my $elevate_log_fh, '<', ELEVATE_LOG_PATH ) or die "## [ERROR][reboot_watch]: Unable to open ELEVATE_LOG_PATH: $!\n";
 
 while ( my $line = readline $elevate_log_fh ) {
     if ( index( $line, $ENV{REBOOT_STRING} ) >= 0 ) {
-        _success_message();
         close $elevate_log;
-        exit 0;
+        _pre_success_message();
+        _exit_with_haste_(0);
     }
 }
 
@@ -26,24 +29,49 @@ close $elevate_log_fh;
 
 while ( $RETVAL != 0 ) {
     _check_elevate_log_for_REBOOT_STRING( ELEVATE_LOG_PATH, $ENV{REBOOT_STRING} );
-    exit 0;
+    _exit_with_haste(0);
 }
 
 sub _check_elevate_log_for_REBOOT_STRING {
     my ( $filepath, $REBOOT_STRING, $RETRIES ) = @_;
 
-    $file = File::Tail->new( name => $filepath, maxinterval => 1, adjustafter => 7, interval => 1 );
+    $file = File::Tail->new( name => $filepath, maxinterval => 1, adjustafter => 5, interval => 1 );
     while ( defined( $line = $file->read ) ) {
+        _pid_check() unless $ENV{SKIP_PID_CHECK};
         if ( index( $line, $ENV{REBOOT_STRING} ) >= 0 ) {
             _success_message();
+            _exit_with_haste(0);
         }
     }
+}
+
+sub _pre_success_message {
+    my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+    print "## [$time] [INFO][PRE-TAIL]: SUCCESS: Reboot REBOOT_STRING ( $ENV{REBOOT_STRING} ) already exists in /var/log/elevate-cpanel.log prior to tail.  Timings may be off  ##\n";
+    _exit_with_haste(0);
 }
 
 sub _success_message {
     my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
     print "## [$time] [INFO]: SUCCESS: Reboot REBOOT_STRING ( $ENV{REBOOT_STRING} ) found in /var/log/elevate-cpanel.log  ##\n";
-    exit 0;
+    _exit_with_haste(0);
 }
 
-exit 0;
+sub _exit_with_haste {
+    my $code = shift;
+    print "## [INFO]: Attempting to kill tail and exit_code($code) stage left. ##\n";
+    eval { system(qq{pkill --signal 9 --full "tail -n40 -F /var/log/elevate-cpanel.log"}) };
+    print $@ if $@;
+    exit $code;
+}
+
+sub _pid_check {
+    ## Make sure the PID is in place before we continue parsing through.  This can prevent the timeout from being hit when we miss elevate has already died.
+    if ( !-s ELEVATE_PID ) {
+        print "## [ERROR]: NO PID for elevate-cpanel detected.  Exiting. ##\n";
+        _exit_with_haste(1);
+    }
+    return 0;
+}
+
+_exit_with_haste(1);
