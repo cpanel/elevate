@@ -71,7 +71,7 @@ sub _cleanup_mysql_packages ($self) {
     Elevate::StageFile::update_stage_file( { 'mysql-version' => $mysql_version } );
 
     # Stash current config so we can restore it later.
-    File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
+    File::Copy::cp( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
 
     # make sure all packages from unsupported repo are removed
     #
@@ -139,12 +139,12 @@ sub _reinstall_mysql_packages {
     }
 
     # In case the pre elevate file causes issues for whatever reason
-    File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
+    File::Copy::cp( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
 
     # Try to restore any .rpmsave'd configs after we reinstall
     # It *should be here* given we put it there, so no need to do a -f/-s check
     INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
-    File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
+    File::Copy::cp( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
 
     # Return if MySQL restarts successfully
     my $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
@@ -158,7 +158,7 @@ sub _reinstall_mysql_packages {
     # my.cnf in place.  Revert to the standard one that was created
     # in the post_distro_upgrade restore
     INFO('The database server failed to start.  Restoring my.cnf to default.');
-    File::Copy::copy( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
+    File::Copy::cp( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
 
     $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
     @restart_lines = split "\n", $restart_out;

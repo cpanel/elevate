@@ -77,7 +77,7 @@ sub _restore_kernelcare ($self) {
         INFO("Restoring Configuration file: $conf_file");
 
         # restore configuration file before installing it
-        File::Copy::copy( $conf_file . q[.rpmsave], $conf_file );
+        File::Copy::cp( $conf_file . q[.rpmsave], $conf_file );
     }
 
     INFO("Running kernelcare installer");

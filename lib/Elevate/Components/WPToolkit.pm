@@ -81,7 +81,7 @@ sub _reinstall_wordpress_toolkit ($self) {
 
 sub backup_3rdparty_file ($file) {
     my $target = "$file.elevate_backup";
-    return File::Copy::copy( $file, $target );
+    return File::Copy::cp( $file, $target );
 }
 
 1;

@@ -106,7 +106,7 @@ sub _capture_imunify_features {
     } grep { m/\S/ } split( "\n", $output );
 
     if ( -f IMUNIFY_LICENSE_FILE ) {
-        File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
+        File::Copy::mv( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
     }
 
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
@@ -118,7 +118,7 @@ sub _restore_imunify_features {
 
     return unless my $features = Elevate::StageFile::read_stage_file('reinstall')->{'imunify_features'};
 
-    File::Copy::move( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
+    File::Copy::mv( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
 
     return unless ref $features eq 'ARRAY';
     return unless @$features;

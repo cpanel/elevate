@@ -12,6 +12,8 @@ Logic wrapping the 'rpm' system binary
 
 use cPstrict;
 
+use File::Copy ();
+
 use Log::Log4perl qw(:easy);
 
 use Simple::Accessor qw{
@@ -78,7 +80,7 @@ sub restore_config_files ( $self, @files ) {
 
         next unless -e $backup_file;
 
-        File::Copy::move( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
+        File::Copy::mv( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
     }
 
     return;

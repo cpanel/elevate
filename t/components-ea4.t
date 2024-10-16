@@ -492,7 +492,7 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
     my %config_files_restored;
     my $mock_file_copy = Test::MockModule->new('File::Copy');
     $mock_file_copy->redefine(
-        move => sub {
+        mv => sub {
             my ( $from, $to ) = @_;
             $config_files_restored{$to} = 1;
             return 1;

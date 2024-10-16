@@ -22,6 +22,8 @@ Intsall nixstats, restore config files, and start service
 
 use cPstrict;
 
+use File::Copy ();
+
 use Elevate::Constants        ();
 use Elevate::SystemctlService ();
 use Elevate::Fetch            ();
@@ -71,7 +73,7 @@ sub _remove_nixstats ($self) {
         next unless -f $f;
         my $name   = File::Basename::basename($f);
         my $backup = "$backup_dir/$name";
-        File::Copy::move( $f, $backup );
+        File::Copy::mv( $f, $backup );
 
         $to_restore->{$backup} = $f;
     }
@@ -143,7 +145,7 @@ sub _restore_nixstats ($self) {
     foreach my $src ( sort keys %$to_restore ) {
         my $destination = $to_restore->{$src};
 
-        File::Copy::copy( $src, $destination );
+        File::Copy::cp( $src, $destination );
     }
 
     # restoring the state of the service before elevation
