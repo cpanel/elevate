@@ -52,6 +52,15 @@ use constant R1SOFT_AGENT_PACKAGES => qw{
   serverbackup-setup
 };
 
+use constant ACRONIS_BACKUP_PACKAGE => 'acronis-backup-cpanel';
+use constant ACRONIS_OTHER_PACKAGES => qw{
+  BackupAndRecoveryAgent
+  BackupAndRecoveryBootableComponents
+  dkms
+  file_protector
+  snapapi26_modules
+};
+
 use constant POSTGRESQL_SYSTEM_DATADIR => '/var/lib/pgsql/data';
 
 use constant OVH_MONITORING_TOUCH_FILE => '/var/cpanel/acknowledge_ovh_monitoring_for_elevate';
