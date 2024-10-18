@@ -60,6 +60,7 @@ sub pre_distro_upgrade ($self) {
 
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
+    $self->run_once("_fixup_epel_repo");
 
     return;
 }
@@ -87,6 +88,20 @@ sub _disable_known_yum_repositories {
 sub _disable_yum_plugin_fastestmirror ($self) {
     my $pkg = 'yum-plugin-fastestmirror';
     $self->_erase_package($pkg);
+    return;
+}
+
+sub _fixup_epel_repo ($self) {
+
+    my $repo_file = Elevate::Constants::YUM_REPOS_D . '/epel.repo';
+
+    if ( -e $repo_file ) {
+        unlink($repo_file) or ERROR("Could not delete $repo_file: $!");
+    }
+
+    my $err = $self->ssystem(qw{/usr/bin/rpm -Uv --force https://archives.fedoraproject.org/pub/archive/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm});
+    ERROR("Error installing epel-release: $err") if $err;
+
     return;
 }
 
