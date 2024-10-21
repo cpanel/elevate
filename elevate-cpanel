@@ -572,8 +572,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
             while ( -e "$link-$rand_uid" && $tries++ < 10000 ) {
                 $rand_uid = Cpanel::UUID::random_uuid();
             }
-            symlink( $updated, "$link-$rand_uid" )       or die "Can't create symlink $link-$rand_uid to $updated: $!";
-            File::Copy::move( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
+            symlink( $updated, "$link-$rand_uid" )     or die "Can't create symlink $link-$rand_uid to $updated: $!";
+            File::Copy::mv( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
         }
         return;
     }
@@ -2676,7 +2676,7 @@ EOS
         } grep { m/\S/ } split( "\n", $output );
 
         if ( -f IMUNIFY_LICENSE_FILE ) {
-            File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
+            File::Copy::mv( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
         }
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
@@ -2688,7 +2688,7 @@ EOS
 
         return unless my $features = Elevate::StageFile::read_stage_file('reinstall')->{'imunify_features'};
 
-        File::Copy::move( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
+        File::Copy::mv( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
 
         return unless ref $features eq 'ARRAY';
         return unless @$features;
@@ -3153,7 +3153,7 @@ EOS
         if ( -e $conf_file . q[.rpmsave] ) {
             INFO("Restoring Configuration file: $conf_file");
 
-            File::Copy::copy( $conf_file . q[.rpmsave], $conf_file );
+            File::Copy::cp( $conf_file . q[.rpmsave], $conf_file );
         }
 
         INFO("Running kernelcare installer");
@@ -3482,7 +3482,7 @@ EOS
 
         Elevate::StageFile::update_stage_file( { 'mysql-version' => $mysql_version } );
 
-        File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
+        File::Copy::cp( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
 
         $self->_remove_cpanel_mysql_packages();
 
@@ -3542,10 +3542,10 @@ EOS
             return;
         }
 
-        File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
+        File::Copy::cp( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
 
         INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
-        File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
+        File::Copy::cp( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
 
         my $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
         my @restart_lines = split "\n", $restart_out;
@@ -3555,7 +3555,7 @@ EOS
         return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
 
         INFO('The database server failed to start.  Restoring my.cnf to default.');
-        File::Copy::copy( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
+        File::Copy::cp( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
 
         $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
         @restart_lines = split "\n", $restart_out;
@@ -3953,6 +3953,8 @@ EOS
 
     use cPstrict;
 
+    use File::Copy ();
+
     use Elevate::Constants        ();
     use Elevate::SystemctlService ();
     use Elevate::Fetch            ();
@@ -4005,7 +4007,7 @@ EOS
             next unless -f $f;
             my $name   = File::Basename::basename($f);
             my $backup = "$backup_dir/$name";
-            File::Copy::move( $f, $backup );
+            File::Copy::mv( $f, $backup );
 
             $to_restore->{$backup} = $f;
         }
@@ -4071,7 +4073,7 @@ EOS
         foreach my $src ( sort keys %$to_restore ) {
             my $destination = $to_restore->{$src};
 
-            File::Copy::copy( $src, $destination );
+            File::Copy::cp( $src, $destination );
         }
 
         if ( $data->{service_enabled} ) {
@@ -5138,7 +5140,7 @@ EOS
                 next;
             }
 
-            File::Copy::move( $f, "$f.off" ) or die qq[Failed to disable repo $f];
+            File::Copy::mv( $f, "$f.off" ) or die qq[Failed to disable repo $f];
         }
 
         Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
@@ -5485,7 +5487,7 @@ EOS
         foreach my $id ( keys %duplicate_ids ) {
             if ( $id =~ m/^MariaDB[0-9]+/ ) {
                 my $path = $duplicate_ids{$id};
-                File::Copy::move( $path, "$path.disabled_by_elevate" );
+                File::Copy::mv( $path, "$path.disabled_by_elevate" );
             }
         }
 
@@ -5526,8 +5528,7 @@ EOS
 
     use Elevate::Constants ();
 
-    use Cwd        ();
-    use File::Copy ();
+    use Cwd ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -5563,8 +5564,7 @@ EOS
     use Elevate::Constants ();
     use Elevate::DNF       ();
 
-    use Cwd        ();
-    use File::Copy ();
+    use Cwd ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -6021,7 +6021,7 @@ EOS
 
     sub backup_3rdparty_file ($file) {
         my $target = "$file.elevate_backup";
-        return File::Copy::copy( $file, $target );
+        return File::Copy::cp( $file, $target );
     }
 
     1;
@@ -7480,6 +7480,8 @@ EOS
 
     use cPstrict;
 
+    use File::Copy ();
+
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
@@ -7541,7 +7543,7 @@ EOS
 
             next unless -e $backup_file;
 
-            File::Copy::move( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
+            File::Copy::mv( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
         }
 
         return;
@@ -7785,7 +7787,7 @@ EOS
     use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 
     sub create_success_file () {
-        File::Copy::copy( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
+        File::Copy::cp( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
         return;
     }
 
@@ -8765,7 +8767,7 @@ sub do_update ($self) {
         return 1 unless $temp_file;    # Elevate::Fetch::script handled the error msg
 
         my $running_from = Cwd::abs_path($0) // '';
-        if ( File::Copy::move( $temp_file, $running_from ) ) {
+        if ( File::Copy::mv( $temp_file, $running_from ) ) {
             chmod 0700, $running_from;
             my $confirmed_version = Cpanel::SafeRun::Simple::saferunnoerror( $running_from, '--version' );
             chomp $confirmed_version;
