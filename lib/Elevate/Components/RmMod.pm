@@ -25,7 +25,6 @@ use cPstrict;
 use Elevate::Constants ();
 
 use Cwd           ();
-use File::Copy    ();
 use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};

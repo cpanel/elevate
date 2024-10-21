@@ -76,7 +76,7 @@ sub _disable_known_yum_repositories {
             next;
         }
 
-        File::Copy::move( $f, "$f.off" ) or die qq[Failed to disable repo $f];
+        File::Copy::mv( $f, "$f.off" ) or die qq[Failed to disable repo $f];
     }
 
     Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
@@ -437,7 +437,7 @@ sub _autofix_duplicate_repoids ($self) {
     foreach my $id ( keys %duplicate_ids ) {
         if ( $id =~ m/^MariaDB[0-9]+/ ) {
             my $path = $duplicate_ids{$id};
-            File::Copy::move( $path, "$path.disabled_by_elevate" );
+            File::Copy::mv( $path, "$path.disabled_by_elevate" );
         }
     }
 

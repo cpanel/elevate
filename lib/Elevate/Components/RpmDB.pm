@@ -31,7 +31,6 @@ use Elevate::Constants ();
 use Elevate::DNF       ();
 
 use Cwd           ();
-use File::Copy    ();
 use Log::Log4perl qw(:easy);
 
 use Cpanel::Pkgr      ();
