@@ -31,6 +31,11 @@ use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
+use constant EXEMPTED_PACKAGES => (
+    qr/^kernel-/,
+    qr/^acronis/,
+);
+
 sub post_distro_upgrade ($self) {
     $self->run_once('_remove_leapp_packages');
     $self->run_once('_warn_about_other_modules_that_did_not_convert');
@@ -58,20 +63,25 @@ sub _remove_leapp_packages ($self) {
 }
 
 sub _warn_about_other_modules_that_did_not_convert ($self) {
-    my @installed_packages                    = $self->rpm->get_installed_rpms();
-    my @el7_installed_packages                = grep { $_ =~ m/el7/ } @installed_packages;
-    my @exclude_kernel_el7_installed_packages = grep { $_ !~ m/^kernel-/ } @el7_installed_packages;
+    my @installed_packages     = $self->rpm->get_installed_rpms();
+    my @el7_installed_packages = grep { $_ =~ m/el7/ } @installed_packages;
 
-    return unless @exclude_kernel_el7_installed_packages;
+    my @el7_packages_minus_exemptions;
+    foreach my $pkg (@el7_installed_packages) {
+        next if grep { $pkg =~ m/$_/ } EXEMPTED_PACKAGES();
+        push @el7_packages_minus_exemptions, $pkg;
+    }
+
+    return unless @el7_packages_minus_exemptions;
 
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $msg = "The following packages should probably be removed as they will not function on $pretty_distro_name\n\n";
-    foreach my $pkg (@exclude_kernel_el7_installed_packages) {
+    foreach my $pkg (@el7_packages_minus_exemptions) {
         $msg .= "    $pkg\n";
     }
 
-    $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @exclude_kernel_el7_installed_packages ) . "\n";
+    $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @el7_packages_minus_exemptions ) . "\n";
 
     Elevate::Notify::add_final_notification($msg);
 
