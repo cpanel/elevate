@@ -47,6 +47,7 @@ use Elevate::Components::NICs               ();
 use Elevate::Components::NixStats           ();
 use Elevate::Components::OVH                ();
 use Elevate::Components::PackageRestore     ();
+use Elevate::Components::PackageDupes       ();
 use Elevate::Components::Panopta            ();
 use Elevate::Components::PECL               ();
 use Elevate::Components::PerlXS             ();
@@ -112,6 +113,7 @@ our @NOOP_CHECKS = qw{
   NixStats
   PECL
   PackageRestore
+  PackageDupes
   Panopta
   PerlXS
   PostgreSQL
