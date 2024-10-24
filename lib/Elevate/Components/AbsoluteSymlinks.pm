@@ -65,8 +65,8 @@ sub _absolute_symlinks ($self) {
         while ( -e "$link-$rand_uid" && $tries++ < 10000 ) {
             $rand_uid = Cpanel::UUID::random_uuid();
         }
-        symlink( $updated, "$link-$rand_uid" )       or die "Can't create symlink $link-$rand_uid to $updated: $!";
-        File::Copy::move( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
+        symlink( $updated, "$link-$rand_uid" )     or die "Can't create symlink $link-$rand_uid to $updated: $!";
+        File::Copy::mv( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
     }
     return;
 }

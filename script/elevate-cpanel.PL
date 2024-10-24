@@ -280,6 +280,7 @@ use Elevate::Components::SSH                ();
 use Elevate::Components::UnconvertedModules ();
 use Elevate::Components::WHM                ();
 use Elevate::Components::WPToolkit          ();
+use Elevate::Components::Acronis            ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -457,7 +458,7 @@ sub do_update ($self) {
         return 1 unless $temp_file;    # Elevate::Fetch::script handled the error msg
 
         my $running_from = Cwd::abs_path($0) // '';
-        if ( File::Copy::move( $temp_file, $running_from ) ) {
+        if ( File::Copy::mv( $temp_file, $running_from ) ) {
             chmod 0700, $running_from;
             my $confirmed_version = Cpanel::SafeRun::Simple::saferunnoerror( $running_from, '--version' );
             chomp $confirmed_version;
@@ -1326,6 +1327,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'ELS'              => 'pre_distro_upgrade' );
     $self->run_component_once( 'R1Soft'           => 'pre_distro_upgrade' );
     $self->run_component_once( 'Panopta'          => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Acronis'          => 'pre_distro_upgrade' );
     $self->run_component_once( 'RpmDB'            => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;
@@ -1356,6 +1358,7 @@ sub post_distro_upgrade_update_restore ($self) {
     $self->run_component_once( 'LiteSpeed'       => 'post_distro_upgrade' );
     $self->run_component_once( 'R1Soft'          => 'post_distro_upgrade' );
     $self->run_component_once( 'PackageRestore'  => 'post_distro_upgrade' );
+    $self->run_component_once( 'Acronis'         => 'post_distro_upgrade' );
 
     return;
 }

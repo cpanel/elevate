@@ -56,6 +56,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/UnconvertedModules.pm'} = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/WHM.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/WPToolkit.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Acronis.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
@@ -124,6 +125,15 @@ BEGIN {    # Suppress load of all of these at earliest point.
       serverbackup-async-agent-2-6
       serverbackup-enterprise-agent
       serverbackup-setup
+    };
+
+    use constant ACRONIS_BACKUP_PACKAGE => 'acronis-backup-cpanel';
+    use constant ACRONIS_OTHER_PACKAGES => qw{
+      BackupAndRecoveryAgent
+      BackupAndRecoveryBootableComponents
+      dkms
+      file_protector
+      snapapi26_modules
     };
 
     use constant POSTGRESQL_SYSTEM_DATADIR => '/var/lib/pgsql/data';
@@ -339,6 +349,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Components::UnconvertedModules ();
     use Elevate::Components::WHM                ();
     use Elevate::Components::WPToolkit          ();
+    use Elevate::Components::Acronis            ();
 
     use Simple::Accessor qw(
       cpev
@@ -399,6 +410,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       WPToolkit
       cPanelPlugins
       cPanelPrep
+      Acronis
     };
 
     push @CHECKS, @NOOP_CHECKS;
@@ -578,8 +590,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
             while ( -e "$link-$rand_uid" && $tries++ < 10000 ) {
                 $rand_uid = Cpanel::UUID::random_uuid();
             }
-            symlink( $updated, "$link-$rand_uid" )       or die "Can't create symlink $link-$rand_uid to $updated: $!";
-            File::Copy::move( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
+            symlink( $updated, "$link-$rand_uid" )     or die "Can't create symlink $link-$rand_uid to $updated: $!";
+            File::Copy::mv( "$link-$rand_uid", $link ) or die "Can't overwite $link: $!";
         }
         return;
     }
@@ -2682,7 +2694,7 @@ EOS
         } grep { m/\S/ } split( "\n", $output );
 
         if ( -f IMUNIFY_LICENSE_FILE ) {
-            File::Copy::move( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
+            File::Copy::mv( IMUNIFY_LICENSE_FILE, IMUNIFY_LICENSE_BACKUP );
         }
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify_features' => \@features } } );
@@ -2694,7 +2706,7 @@ EOS
 
         return unless my $features = Elevate::StageFile::read_stage_file('reinstall')->{'imunify_features'};
 
-        File::Copy::move( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
+        File::Copy::mv( IMUNIFY_LICENSE_BACKUP, IMUNIFY_LICENSE_FILE ) if -f IMUNIFY_LICENSE_BACKUP;
 
         return unless ref $features eq 'ARRAY';
         return unless @$features;
@@ -3159,7 +3171,7 @@ EOS
         if ( -e $conf_file . q[.rpmsave] ) {
             INFO("Restoring Configuration file: $conf_file");
 
-            File::Copy::copy( $conf_file . q[.rpmsave], $conf_file );
+            File::Copy::cp( $conf_file . q[.rpmsave], $conf_file );
         }
 
         INFO("Running kernelcare installer");
@@ -3488,7 +3500,7 @@ EOS
 
         Elevate::StageFile::update_stage_file( { 'mysql-version' => $mysql_version } );
 
-        File::Copy::copy( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
+        File::Copy::cp( $cnf_file, "$cnf_file.rpmsave_pre_elevate" ) or WARN("Couldn't backup $cnf_file to $cnf_file.rpmsave_pre_elevate: $!");
 
         $self->_remove_cpanel_mysql_packages();
 
@@ -3548,10 +3560,10 @@ EOS
             return;
         }
 
-        File::Copy::copy( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
+        File::Copy::cp( $cnf_file, "$cnf_file.elevate_post_distro_upgrade_orig" );
 
         INFO("Restoring $cnf_file.rpmsave_pre_elevate to $cnf_file...");
-        File::Copy::copy( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
+        File::Copy::cp( "$cnf_file.rpmsave_pre_elevate", $cnf_file );
 
         my $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
         my @restart_lines = split "\n", $restart_out;
@@ -3561,7 +3573,7 @@ EOS
         return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
 
         INFO('The database server failed to start.  Restoring my.cnf to default.');
-        File::Copy::copy( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
+        File::Copy::cp( "$cnf_file.elevate_post_distro_upgrade_orig", $cnf_file );
 
         $restart_out   = Cpanel::SafeRun::Simple::saferunnoerror(qw{/scripts/restartsrv_mysql});
         @restart_lines = split "\n", $restart_out;
@@ -3959,6 +3971,8 @@ EOS
 
     use cPstrict;
 
+    use File::Copy ();
+
     use Elevate::Constants        ();
     use Elevate::SystemctlService ();
     use Elevate::Fetch            ();
@@ -4011,7 +4025,7 @@ EOS
             next unless -f $f;
             my $name   = File::Basename::basename($f);
             my $backup = "$backup_dir/$name";
-            File::Copy::move( $f, $backup );
+            File::Copy::mv( $f, $backup );
 
             $to_restore->{$backup} = $f;
         }
@@ -4077,7 +4091,7 @@ EOS
         foreach my $src ( sort keys %$to_restore ) {
             my $destination = $to_restore->{$src};
 
-            File::Copy::copy( $src, $destination );
+            File::Copy::cp( $src, $destination );
         }
 
         if ( $data->{service_enabled} ) {
@@ -5268,12 +5282,14 @@ EOS
         'virt-what',
         'vzdummy-systemd-el7',
       ),
-      Elevate::Constants::R1SOFT_AGENT_PACKAGES;
+      Elevate::Constants::R1SOFT_AGENT_PACKAGES,
+      Elevate::Constants::ACRONIS_OTHER_PACKAGES;
 
     sub pre_distro_upgrade ($self) {
 
         $self->run_once("_disable_yum_plugin_fastestmirror");
         $self->run_once("_disable_known_yum_repositories");
+        $self->run_once("_fixup_epel_repo");
 
         return;
     }
@@ -5289,7 +5305,7 @@ EOS
                 next;
             }
 
-            File::Copy::move( $f, "$f.off" ) or die qq[Failed to disable repo $f];
+            File::Copy::mv( $f, "$f.off" ) or die qq[Failed to disable repo $f];
         }
 
         Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
@@ -5300,6 +5316,20 @@ EOS
     sub _disable_yum_plugin_fastestmirror ($self) {
         my $pkg = 'yum-plugin-fastestmirror';
         $self->_erase_package($pkg);
+        return;
+    }
+
+    sub _fixup_epel_repo ($self) {
+
+        my $repo_file = Elevate::Constants::YUM_REPOS_D . '/epel.repo';
+
+        if ( -e $repo_file ) {
+            unlink($repo_file) or ERROR("Could not delete $repo_file: $!");
+        }
+
+        my $err = $self->ssystem(qw{/usr/bin/rpm -Uv --force https://archives.fedoraproject.org/pub/archive/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm});
+        ERROR("Error installing epel-release: $err") if $err;
+
         return;
     }
 
@@ -5636,7 +5666,7 @@ EOS
         foreach my $id ( keys %duplicate_ids ) {
             if ( $id =~ m/^MariaDB[0-9]+/ ) {
                 my $path = $duplicate_ids{$id};
-                File::Copy::move( $path, "$path.disabled_by_elevate" );
+                File::Copy::mv( $path, "$path.disabled_by_elevate" );
             }
         }
 
@@ -5677,8 +5707,7 @@ EOS
 
     use Elevate::Constants ();
 
-    use Cwd        ();
-    use File::Copy ();
+    use Cwd ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -5714,8 +5743,7 @@ EOS
     use Elevate::Constants ();
     use Elevate::DNF       ();
 
-    use Cwd        ();
-    use File::Copy ();
+    use Cwd ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -5878,6 +5906,11 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
+    use constant EXEMPTED_PACKAGES => (
+        qr/^kernel-/,
+        qr/^acronis/,
+    );
+
     sub post_distro_upgrade ($self) {
         $self->run_once('_remove_leapp_packages');
         $self->run_once('_warn_about_other_modules_that_did_not_convert');
@@ -5905,20 +5938,25 @@ EOS
     }
 
     sub _warn_about_other_modules_that_did_not_convert ($self) {
-        my @installed_packages                    = $self->rpm->get_installed_rpms();
-        my @el7_installed_packages                = grep { $_ =~ m/el7/ } @installed_packages;
-        my @exclude_kernel_el7_installed_packages = grep { $_ !~ m/^kernel-/ } @el7_installed_packages;
+        my @installed_packages     = $self->rpm->get_installed_rpms();
+        my @el7_installed_packages = grep { $_ =~ m/el7/ } @installed_packages;
 
-        return unless @exclude_kernel_el7_installed_packages;
+        my @el7_packages_minus_exemptions;
+        foreach my $pkg (@el7_installed_packages) {
+            next if grep { $pkg =~ m/$_/ } EXEMPTED_PACKAGES();
+            push @el7_packages_minus_exemptions, $pkg;
+        }
+
+        return unless @el7_packages_minus_exemptions;
 
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
         my $msg = "The following packages should probably be removed as they will not function on $pretty_distro_name\n\n";
-        foreach my $pkg (@exclude_kernel_el7_installed_packages) {
+        foreach my $pkg (@el7_packages_minus_exemptions) {
             $msg .= "    $pkg\n";
         }
 
-        $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @exclude_kernel_el7_installed_packages ) . "\n";
+        $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @el7_packages_minus_exemptions ) . "\n";
 
         Elevate::Notify::add_final_notification($msg);
 
@@ -6172,12 +6210,54 @@ EOS
 
     sub backup_3rdparty_file ($file) {
         my $target = "$file.elevate_backup";
-        return File::Copy::copy( $file, $target );
+        return File::Copy::cp( $file, $target );
     }
 
     1;
 
 }    # --- END lib/Elevate/Components/WPToolkit.pm
+
+{    # --- BEGIN lib/Elevate/Components/Acronis.pm
+
+    package Elevate::Components::Acronis;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+    use Elevate::StageFile ();
+
+    use Cpanel::Pkgr ();
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_distro_upgrade ($self) {
+
+        return unless Cpanel::Pkgr::is_installed(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
+
+        $self->yum->remove(
+            Elevate::Constants::ACRONIS_BACKUP_PACKAGE,
+            Elevate::Constants::ACRONIS_OTHER_PACKAGES
+        );
+
+        Elevate::StageFile::update_stage_file( { 'reinstall' => { 'acronis' => 1 } } );
+
+        return;
+    }
+
+    sub post_distro_upgrade ($self) {
+
+        return unless Elevate::StageFile::read_stage_file('reinstall')->{'acronis'};
+
+        $self->dnf->install(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/Acronis.pm
 
 {    # --- BEGIN lib/Elevate/OS.pm
 
@@ -7631,6 +7711,8 @@ EOS
 
     use cPstrict;
 
+    use File::Copy ();
+
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
@@ -7692,7 +7774,7 @@ EOS
 
             next unless -e $backup_file;
 
-            File::Copy::move( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
+            File::Copy::mv( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
         }
 
         return;
@@ -7941,7 +8023,7 @@ EOS
     use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 
     sub create_success_file () {
-        File::Copy::copy( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
+        File::Copy::cp( ELEVATE_STAGE_FILE, ELEVATE_SUCCESS_FILE );
         return;
     }
 
@@ -8745,6 +8827,7 @@ use Elevate::Components::SSH                ();
 use Elevate::Components::UnconvertedModules ();
 use Elevate::Components::WHM                ();
 use Elevate::Components::WPToolkit          ();
+use Elevate::Components::Acronis            ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -8922,7 +9005,7 @@ sub do_update ($self) {
         return 1 unless $temp_file;    # Elevate::Fetch::script handled the error msg
 
         my $running_from = Cwd::abs_path($0) // '';
-        if ( File::Copy::move( $temp_file, $running_from ) ) {
+        if ( File::Copy::mv( $temp_file, $running_from ) ) {
             chmod 0700, $running_from;
             my $confirmed_version = Cpanel::SafeRun::Simple::saferunnoerror( $running_from, '--version' );
             chomp $confirmed_version;
@@ -9791,6 +9874,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'ELS'              => 'pre_distro_upgrade' );
     $self->run_component_once( 'R1Soft'           => 'pre_distro_upgrade' );
     $self->run_component_once( 'Panopta'          => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Acronis'          => 'pre_distro_upgrade' );
     $self->run_component_once( 'RpmDB'            => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;
@@ -9821,6 +9905,7 @@ sub post_distro_upgrade_update_restore ($self) {
     $self->run_component_once( 'LiteSpeed'       => 'post_distro_upgrade' );
     $self->run_component_once( 'R1Soft'          => 'post_distro_upgrade' );
     $self->run_component_once( 'PackageRestore'  => 'post_distro_upgrade' );
+    $self->run_component_once( 'Acronis'         => 'post_distro_upgrade' );
 
     return;
 }

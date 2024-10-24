@@ -54,12 +54,14 @@ use constant EXPECTED_EXTRA_PACKAGES => (
     'virt-what',
     'vzdummy-systemd-el7',
   ),
-  Elevate::Constants::R1SOFT_AGENT_PACKAGES;
+  Elevate::Constants::R1SOFT_AGENT_PACKAGES,
+  Elevate::Constants::ACRONIS_OTHER_PACKAGES;
 
 sub pre_distro_upgrade ($self) {
 
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
+    $self->run_once("_fixup_epel_repo");
 
     return;
 }
@@ -76,7 +78,7 @@ sub _disable_known_yum_repositories {
             next;
         }
 
-        File::Copy::move( $f, "$f.off" ) or die qq[Failed to disable repo $f];
+        File::Copy::mv( $f, "$f.off" ) or die qq[Failed to disable repo $f];
     }
 
     Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
@@ -87,6 +89,20 @@ sub _disable_known_yum_repositories {
 sub _disable_yum_plugin_fastestmirror ($self) {
     my $pkg = 'yum-plugin-fastestmirror';
     $self->_erase_package($pkg);
+    return;
+}
+
+sub _fixup_epel_repo ($self) {
+
+    my $repo_file = Elevate::Constants::YUM_REPOS_D . '/epel.repo';
+
+    if ( -e $repo_file ) {
+        unlink($repo_file) or ERROR("Could not delete $repo_file: $!");
+    }
+
+    my $err = $self->ssystem(qw{/usr/bin/rpm -Uv --force https://archives.fedoraproject.org/pub/archive/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm});
+    ERROR("Error installing epel-release: $err") if $err;
+
     return;
 }
 
@@ -437,7 +453,7 @@ sub _autofix_duplicate_repoids ($self) {
     foreach my $id ( keys %duplicate_ids ) {
         if ( $id =~ m/^MariaDB[0-9]+/ ) {
             my $path = $duplicate_ids{$id};
-            File::Copy::move( $path, "$path.disabled_by_elevate" );
+            File::Copy::mv( $path, "$path.disabled_by_elevate" );
         }
     }
 
