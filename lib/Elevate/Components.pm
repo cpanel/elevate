@@ -60,6 +60,7 @@ use Elevate::Components::SSH                ();
 use Elevate::Components::UnconvertedModules ();
 use Elevate::Components::WHM                ();
 use Elevate::Components::WPToolkit          ();
+use Elevate::Components::Acronis            ();
 
 use Simple::Accessor qw(
   cpev
@@ -123,6 +124,7 @@ our @NOOP_CHECKS = qw{
   WPToolkit
   cPanelPlugins
   cPanelPrep
+  Acronis
 };
 
 push @CHECKS, @NOOP_CHECKS;
