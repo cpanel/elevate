@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3
+export OS_IDENTITY_API_VERSION=3
+export OS_REGION_NAME="RegionOne"
+export OS_INTERFACE=public
+export OS_APPLICATION_CREDENTIAL_ID=${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+export OS_APPLICATION_CREDENTIAL_SECRET=${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+
+# two hours ago
+HAMMER_TIME=$(date -d '-2 hour' --utc +"%Y-%m-%dT%H:%M:%SZ")
+
+get_elevatebcl_instances () {
+    LIST=$(openstack server list -f json --no-name-lookup | jq -r .[].ID)
+    rm id_created_name.txt > /dev/null 2>&1
+    while IFS= read -r VM; do
+        openstack server show -f json "$VM" | jq -r '.id + "," + .created + "," + .name' | grep packer >> id_created_name.txt
+    done <<< "$LIST"
+}
+
+remove_stale_instances () {
+    echo "HAMMERTIME: $HAMMER_TIME"
+    while IFS="," read -r ID CREATED_DATE NAME
+    do
+        if [[ $CREATED_DATE < $HAMMER_TIME ]];
+        then
+            echo "deleting: $ID,$CREATED_DATE,$NAME"
+            openstack server delete "$ID"
+        fi
+    done < <(cat id_created_name.txt)
+}
+
+get_keys () {
+    LIST=$(openstack keypair list -f json  | jq -r .[].Name)
+    rm keyid_created_name.txt > /dev/null 2>&1
+    while IFS= read -r KEYPAIR; do
+        openstack keypair show -f json "$KEYPAIR" | jq -r '.id + "," + .created_at + "," + .name' | grep deletethis >> keyid_created_name.txt
+    done <<< "$LIST"
+}
+
+remove_stale_keys () {
+    echo "HAMMERTIME: $HAMMER_TIME"
+    while IFS="," read -r ID CREATED_DATE NAME
+    do
+        if [[ $CREATED_DATE < $HAMMER_TIME ]];
+        then
+            echo "deleting: $ID,$CREATED_DATE,$NAME"
+            openstack keypair delete "$ID"
+        fi
+    done < <(cat keyid_created_name.txt)
+}
+
+get_volumes () {
+    rm volume_ids.txt > /dev/null 2>&1
+    openstack volume list | grep packer  | grep available | awk '{print $2}' >> volume_ids.txt
+}
+
+remove_volumes () {
+    while IFS= read -r ID; do
+        openstack volume delete "$ID" || true
+    done < <(cat volume_ids.txt)
+}
+
+# prune VMs
+get_packer_instances
+remove_stale_instances
+# prune keys
+get_keys
+remove_stale_keys
+# prune volumes
+get_volumes
+remove_volumes
