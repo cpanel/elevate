@@ -21,7 +21,6 @@ use Cpanel::JSON ();
 
 use Simple::Accessor qw(
   components
-  rpm
   yum
   dnf
 );
@@ -59,10 +58,6 @@ sub _build_components {
 
     # outside unit tests we should always be initialized with an 'Elevate::Components' object
     Carp::confess(q[Missing components]);
-}
-
-sub _build_rpm ($self) {
-    return Elevate::RPM->new( cpev => $self );
 }
 
 sub _build_yum ($self) {

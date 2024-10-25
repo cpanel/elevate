@@ -38,7 +38,7 @@ sub get_config_files ( $self, $pkgs ) {
     my %config_files;
     foreach my $pkg (@$pkgs) {
 
-        my $out = $self->cpev->ssystem_capture_output( $rpm, '-qc', $pkg ) || {};
+        my $out = $self->ssystem_capture_output( $rpm, '-qc', $pkg ) || {};
 
         if ( $out->{status} != 0 ) {
 
@@ -85,18 +85,23 @@ sub restore_config_files ( $self, @files ) {
 }
 
 sub remove_no_dependencies ( $self, $pkg ) {
-    $self->cpev->ssystem( $rpm, '-e', '--nodeps', $pkg );
+    $self->ssystem( $rpm, '-e', '--nodeps', $pkg );
     return;
 }
 
 sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
-    $self->cpev->ssystem( $rpm, '-e', '--nodeps', '--justdb', $pkg );
+    $self->ssystem( $rpm, '-e', '--nodeps', '--justdb', $pkg );
     return;
 }
 
 sub remove_no_dependencies_or_scripts_and_justdb ( $self, $pkg ) {
-    $self->cpev->ssystem( $rpm, '-e', '--nodeps', '--noscripts', '--justdb', $pkg );
+    $self->ssystem( $rpm, '-e', '--nodeps', '--noscripts', '--justdb', $pkg );
     return;
+}
+
+sub force_upgrade_rpm ( $self, $pkg ) {
+    my $err = $self->ssystem( $rpm, '-Uv', '--force', $pkg );
+    return $err;
 }
 
 sub get_installed_rpms ( $self, $format = undef ) {
@@ -107,7 +112,7 @@ sub get_installed_rpms ( $self, $format = undef ) {
         push @args, $format;
     }
 
-    my $out = $self->cpev->ssystem_capture_output( $rpm, @args );
+    my $out = $self->ssystem_capture_output( $rpm, @args );
     return @{ $out->{stdout} };
 }
 
