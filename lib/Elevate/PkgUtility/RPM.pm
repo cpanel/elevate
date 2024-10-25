@@ -1,10 +1,10 @@
-package Elevate::RPM;
+package Elevate::PkgUtility::RPM;
 
 =encoding utf-8
 
 =head1 NAME
 
-Elevate::RPM
+Elevate::PkgUtility::RPM
 
 Logic wrapping the 'rpm' system binary
 
@@ -16,14 +16,12 @@ use File::Copy ();
 
 use Log::Log4perl qw(:easy);
 
-use Simple::Accessor qw{
-  cpev
-};
+use parent 'Elevate::PkgUtility::Base';
 
 our $rpm = '/usr/bin/rpm';
 
-sub _build_cpev {
-    die q[Missing cpev];
+sub name ($self) {
+    return 'RPM';
 }
 
 sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
