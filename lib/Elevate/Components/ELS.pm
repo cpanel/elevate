@@ -22,7 +22,8 @@ noop
 
 use cPstrict;
 
-use Elevate::OS ();
+use Elevate::OS     ();
+use Elevate::PkgMgr ();
 
 use Cpanel::Pkgr  ();
 use Log::Log4perl qw(:easy);
@@ -46,7 +47,7 @@ sub pre_distro_upgrade ($self) {
         }
     }
 
-    $self->yum->remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
+    Elevate::PkgMgr::remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
 
     return;
 }

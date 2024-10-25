@@ -21,13 +21,19 @@ Elevate::Components::Repositories
 
 noop
 
+=head2 NOTE
+
+This logic is highly specific for RHEL based upgrades.  This modules should
+be considered a noop for Debian based upgrades and a separate module that is
+specific for Debian based upgrades will need to be called instead.
+
 =cut
 
 use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::OS        ();
-use Elevate::RPM       ();
+use Elevate::PkgMgr    ();
 
 use Cpanel::SafeRun::Simple ();
 use Cwd                     ();
@@ -35,6 +41,8 @@ use File::Copy              ();
 use Log::Log4perl           qw(:easy);
 
 use parent qw{Elevate::Components::Base};
+
+use constant EPEL_RPM_URL => 'https://archives.fedoraproject.org/pub/archive/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm';
 
 use constant YUM_COMPLETE_TRANSACTION_BIN => '/usr/sbin/yum-complete-transaction';
 use constant FIX_RPM_SCRIPT               => '/usr/local/cpanel/scripts/find_and_fix_rpm_issues';
@@ -81,7 +89,7 @@ sub _disable_known_yum_repositories {
         File::Copy::mv( $f, "$f.off" ) or die qq[Failed to disable repo $f];
     }
 
-    Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
+    Elevate::PkgMgr::clean_all();
 
     return;
 }
@@ -100,7 +108,8 @@ sub _fixup_epel_repo ($self) {
         unlink($repo_file) or ERROR("Could not delete $repo_file: $!");
     }
 
-    my $err = $self->ssystem(qw{/usr/bin/rpm -Uv --force https://archives.fedoraproject.org/pub/archive/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm});
+    my $epel_url = EPEL_RPM_URL();
+    my $err      = Elevate::PkgMgr::force_upgrade_pkg($epel_url);
     ERROR("Error installing epel-release: $err") if $err;
 
     return;
@@ -108,7 +117,7 @@ sub _fixup_epel_repo ($self) {
 
 sub _erase_package ( $self, $pkg ) {
     return unless Cpanel::Pkgr::is_installed($pkg);
-    $self->rpm->remove_no_dependencies($pkg);
+    Elevate::PkgMgr::remove_no_dependencies($pkg);
     return;
 }
 
@@ -122,7 +131,7 @@ sub check ($self) {
 }
 
 sub _blocker_packages_installed_without_associated_repo ($self) {
-    my @extra_packages = map { $_->{package} } $self->yum->get_extra_packages();
+    my @extra_packages = map { $_->{package} } Elevate::PkgMgr::get_extra_packages();
 
     my @unexpected_extra_packages;
     foreach my $pkg (@extra_packages) {
@@ -217,7 +226,7 @@ sub _yum_status_hr_contains_blocker ($status_hr) {
 }
 
 sub _yum_is_stable ($self) {
-    my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+    my $errors = Elevate::PkgMgr::makecache();
     if ( $errors =~ m/\S/ms ) {
 
         my $error_msg = <<~'EOS';
@@ -231,12 +240,12 @@ sub _yum_is_stable ($self) {
         WARN("Initial run of \"yum makecache\" failed: $errors");
         WARN("Running \"yum clean all\" in an attempt to fix yum");
 
-        my $ret = $self->ssystem_capture_output(qw{/usr/bin/yum clean all});
+        my $ret = Elevate::PkgMgr::clean_all();
         if ( $ret->{status} != 0 ) {
             WARN( "Errors encountered running \"yum clean all\": " . $ret->{stderr} );
         }
 
-        $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+        $errors = my $errors = Elevate::PkgMgr::makecache();
         if ( $errors =~ m/\S/ms ) {
             ERROR($error_msg);
             ERROR($errors);
@@ -351,7 +360,7 @@ sub _check_yum_repos ($self) {
 
             if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
-                my @installed_packages = cpev::get_installed_rpms_in_repo($current_repo_name);
+                my @installed_packages = Elevate::PkgMgr::get_installed_pkgs_in_repo($current_repo_name);
                 if ( my $total_pkg = scalar @installed_packages ) {    # FIXME
                     ERROR(
                         sprintf(

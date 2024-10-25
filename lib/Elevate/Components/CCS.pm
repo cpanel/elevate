@@ -33,6 +33,7 @@ use Cpanel::JSON          ();
 use Cpanel::Pkgr          ();
 
 use Elevate::Notify    ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Log::Log4perl qw(:easy);
@@ -93,7 +94,7 @@ sub remove_ccs_and_dependencies ($self) {
     my @ccs_dependencies;
     push @ccs_dependencies, ZPUSH_PACKAGE();
 
-    $self->yum->remove( CCS_PACKAGE(), @ccs_dependencies );
+    Elevate::PkgMgr::remove( CCS_PACKAGE(), @ccs_dependencies );
 
     return;
 }
@@ -304,7 +305,7 @@ sub _install_ccs_and_dependencies ($self) {
 
     push @packages_to_install, ZPUSH_PACKAGE() if Elevate::StageFile::read_stage_file('zpush_installed');
 
-    $self->dnf->install(@packages_to_install);
+    Elevate::PkgMgr::install(@packages_to_install);
 
     return;
 }

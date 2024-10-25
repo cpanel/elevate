@@ -24,6 +24,7 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::OS        ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Cwd            ();
@@ -57,7 +58,7 @@ sub _remove_kernelcare_if_needed ($self) {
 
     # This environment variable signals to the KernelCare RPM scriptlets not to deregister on package removal.
     local $ENV{KCARE_KEEP_REGISTRATION} = '1';
-    $self->remove_rpms_from_repos('kernelcare');
+    Elevate::PkgMgr::remove_pkgs_from_repos('kernelcare');
 
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
 

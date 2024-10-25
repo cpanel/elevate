@@ -288,6 +288,11 @@ use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
+# - fatpack package logic
+use Elevate::PkgMgr       ();
+use Elevate::PkgMgr::Base ();
+use Elevate::PkgMgr::YUM  ();
+
 use Elevate::Database         ();
 use Elevate::EA4              ();
 use Elevate::Fetch            ();
@@ -298,15 +303,12 @@ use Elevate::Motd             ();
 use Elevate::NICs             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
-use Elevate::RPM              ();
 use Elevate::Script           ();
 use Elevate::Service          ();
 use Elevate::StageFile        ();
 use Elevate::Stages           ();
 use Elevate::SystemctlService ();
 use Elevate::Usage            ();
-use Elevate::DNF              ();
-use Elevate::YUM              ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 1;
@@ -945,9 +947,9 @@ sub run_stage_2 ($self) {
     # Best to do this before clearing the yum cache:
     $self->run_component_once( 'PackageDupes' => 'pre_distro_upgrade' );
 
-    $self->ssystem(qw{/usr/bin/yum clean all});
+    Elevate::PkgMgr::clean_all();
     $self->ssystem_and_die(qw{/scripts/update-packages});
-    $self->ssystem_and_die(qw{/usr/bin/yum -y update});
+    Elevate::PkgMgr::update();
 
     # This needs to happen before the database upgrade because
     # it will remove the packages we want to detect
@@ -1167,7 +1169,7 @@ sub run_stage_5 ($self) {
     $self->restore_outdated_services();
 
     INFO("Updating all packages before final reboot");
-    $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+    Elevate::PkgMgr::update_allow_erasing();
 
     Elevate::Motd->cleanup();
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
@@ -1381,83 +1383,6 @@ sub clear_cpanel_caches ($self) {
     }
 
     unlink $_ foreach @files;
-
-    return;
-}
-
-my $yum_list_cache;
-
-sub yum_list ( $invalidate_cache = 0 ) {    # FIXME isolate to its own namespace
-    return $yum_list_cache if !$invalidate_cache && $yum_list_cache;
-
-    my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror(qw{/usr/bin/yum list installed});
-    while ( my $line = shift @lines ) {
-        last if $line && $line =~ m/^Installed Packages/;
-    }
-
-    my %repos;
-    while ( my $line = shift @lines ) {
-        chomp $line;
-        my ( $package, $version, $repo ) = split( qr{\s+}, $line );
-
-        if ( !length $version ) {
-            my $extra_line = shift @lines;
-            chomp $extra_line;
-            $extra_line =~ s/^\s+//;
-            ( $version, $repo ) = split( ' ', $extra_line );
-        }
-        if ( !length $repo ) {
-            $repo = shift @lines;
-            chomp $repo;
-            $repo =~ s/\s+//g;
-        }
-        length $repo or next;    # We screwed up the parse. move on.
-
-        $repo =~ s/^\@// or next;
-        $repos{$repo} ||= [];
-        next if $repo eq 'installed';    # Not installed from a repo.
-
-        $package =~ s/\.(noarch|x86_64)$//;
-        my $arch = $1 // '?';
-        push $repos{$repo}->@*, { 'package' => $package, 'version' => $version, arch => $arch };
-    }
-
-    return $yum_list_cache = \%repos;
-}
-
-sub get_installed_rpms_in_repo (@repo_list) {
-
-    my @to_remove;
-    my $installed = yum_list();
-
-    # Regex for repos.
-    if ( ref $repo_list[0] eq 'Regexp' ) {
-        scalar @repo_list == 1 or Carp::confess("too many args");
-        my $regex = shift @repo_list;
-
-        @repo_list = grep { $_ =~ $regex } keys %$installed;
-    }
-
-    foreach my $repo (@repo_list) {
-        next unless ref $installed->{$repo};
-        next unless scalar $installed->{$repo}->@*;
-        push @to_remove, map { $_->{'package'} } $installed->{$repo}->@*;
-    }
-
-    return @to_remove;
-}
-
-sub remove_rpms_from_repos ( $self, @repo_list ) {
-
-    die qq[remove_rpms_from_repos: Not a method call - $self, @repo_list] unless ref $self;
-
-    my @to_remove = get_installed_rpms_in_repo(@repo_list);
-
-    return unless @to_remove;
-
-    INFO( "Removing packages for " . join( ", ", @repo_list ) );
-
-    $self->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
 
     return;
 }
