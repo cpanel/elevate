@@ -288,6 +288,13 @@ use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
+# - fatpack package logic
+use Elevate::PkgUtility       ();
+use Elevate::PkgUtility::Base ();
+use Elevate::PkgUtility::RPM  ();
+use Elevate::DNF              ();
+use Elevate::YUM              ();
+
 use Elevate::Database         ();
 use Elevate::EA4              ();
 use Elevate::Fetch            ();
@@ -298,15 +305,12 @@ use Elevate::Motd             ();
 use Elevate::NICs             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
-use Elevate::RPM              ();
 use Elevate::Script           ();
 use Elevate::Service          ();
 use Elevate::StageFile        ();
 use Elevate::Stages           ();
 use Elevate::SystemctlService ();
 use Elevate::Usage            ();
-use Elevate::DNF              ();
-use Elevate::YUM              ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
 use constant VERSION => 1;

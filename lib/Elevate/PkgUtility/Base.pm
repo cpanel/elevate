@@ -12,6 +12,8 @@ This is a base class used by Elevate::PkgUtility::*
 
 use cPstrict;
 
+use parent 'Elevate::Roles::Run';
+
 sub new ( $class, $opts = undef ) {
     $opts //= {};
 

@@ -23,9 +23,10 @@ Reinstall JetBackup packages
 
 use cPstrict;
 
-use Elevate::Constants ();
-use Elevate::OS        ();
-use Elevate::StageFile ();
+use Elevate::Constants  ();
+use Elevate::OS         ();
+use Elevate::PkgUtility ();
+use Elevate::StageFile  ();
 
 use Cpanel::Pkgr ();
 
@@ -58,7 +59,7 @@ sub pre_distro_upgrade ($self) {
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
 
     # Remove this package because leapp will remove it as it depends on libzip.so.2 which isn't available in 8.
-    $self->ssystem(qw{/usr/bin/rpm -e --nodeps jetphp81-zip});
+    Elevate::PkgUtility::remove_no_dependencies('jetphp81-zip');
 
     return;
 }

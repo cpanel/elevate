@@ -25,9 +25,9 @@ noop
 
 use cPstrict;
 
-use Elevate::Constants ();
-use Elevate::OS        ();
-use Elevate::RPM       ();
+use Elevate::Constants  ();
+use Elevate::OS         ();
+use Elevate::PkgUtility ();
 
 use Cpanel::SafeRun::Simple ();
 use Cwd                     ();
@@ -35,6 +35,8 @@ use File::Copy              ();
 use Log::Log4perl           qw(:easy);
 
 use parent qw{Elevate::Components::Base};
+
+use constant EPEL_RPM_URL => 'https://archives.fedoraproject.org/pub/archive/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm';
 
 use constant YUM_COMPLETE_TRANSACTION_BIN => '/usr/sbin/yum-complete-transaction';
 use constant FIX_RPM_SCRIPT               => '/usr/local/cpanel/scripts/find_and_fix_rpm_issues';
@@ -100,7 +102,8 @@ sub _fixup_epel_repo ($self) {
         unlink($repo_file) or ERROR("Could not delete $repo_file: $!");
     }
 
-    my $err = $self->ssystem(qw{/usr/bin/rpm -Uv --force https://archives.fedoraproject.org/pub/archive/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm});
+    my $epel_url = EPEL_RPM_URL();
+    my $err      = Elevate::PkgUtility::force_upgrade_rpm($epel_url);
     ERROR("Error installing epel-release: $err") if $err;
 
     return;
@@ -108,7 +111,7 @@ sub _fixup_epel_repo ($self) {
 
 sub _erase_package ( $self, $pkg ) {
     return unless Cpanel::Pkgr::is_installed($pkg);
-    $self->rpm->remove_no_dependencies($pkg);
+    Elevate::PkgUtility::remove_no_dependencies($pkg);
     return;
 }
 
