@@ -13,19 +13,16 @@ use Test2::Plugin::NoWarnings;
 
 use Test::MockModule qw/strict/;
 
+use lib $FindBin::Bin . "/lib";
+use Test::Elevate;
+
 use cPstrict;
-
-BEGIN {
-    require $FindBin::Bin . '/../elevate-cpanel';
-}
-
-#my $cpev_mock = Test::MockModule->new('cpev');
 
 my $sr_mock     = Test::MockModule->new('Cpanel::SafeRun::Errors');
 my $mock_output = do { local $/; <DATA> };
 $sr_mock->redefine( 'saferunnoerror' => sub { return $mock_output } );
 
-my $installed = cpev::yum_list();
+my $installed = Elevate::PkgMgr::pkg_list();
 is(
     [ sort keys %$installed ],
     [

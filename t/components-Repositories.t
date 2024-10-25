@@ -64,12 +64,18 @@ my $mock_unknown_repo = Test::MockFile->file( "$path_yum_repos_d/Unknown.repo" =
 enabled=1
 EOS
 
-$cpev_mock->redefine( get_installed_rpms_in_repo => sub { return () } );
+my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+$mock_pkgmgr->redefine(
+    _pkgmgr                    => '/usr/bin/yum',
+    get_installed_pkgs_in_repo => sub { return (); },
+);
 
 my $mock_json = Test::MockModule->new('Cpanel::JSON');
 $mock_json->redefine( 'Dump' => 'foo' );
 is $yum->_check_yum_repos() => { $unused_repo_enabled => 1, $unvetted => 1 }, "Using an unknown enabled repo detected";
-$cpev_mock->redefine( get_installed_rpms_in_repo => sub { return ('foo'); }, );
+$mock_pkgmgr->redefine(
+    get_installed_pkgs_in_repo => sub { return ('foo'); },
+);
 is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1 }, "Using an unknown enabled repo with installed packages detected";
 is $yum->{_yum_repos_unsupported_with_packages}[0],
   {
@@ -83,7 +89,9 @@ is $yum->{_yum_repos_unsupported_with_packages}[0],
   },
   "Names and JSON data of repos are recorded in object";
 
-$cpev_mock->redefine( get_installed_rpms_in_repo => sub { return () } );
+$mock_pkgmgr->redefine(
+    get_installed_pkgs_in_repo => sub { return (); },
+);
 
 $mock_unknown_repo->contents('# whatever');
 is $yum->_check_yum_repos(), {}, "no repo set";
@@ -171,7 +179,9 @@ $mock_unknown_repo->contents($invalid_synax);
 is $yum->_check_yum_repos(), { $unvetted => 1, $unused_repo_enabled => 1 }, "syntax errors in unknown repo are ignored";
 
 my $valid_syn_acks = "[cr]\r\nname=MicroSoft Bob\r\nbaseurl=http://win.doze/gates/\\\$v1/\\\$v2\r\nenabled=1\r\n";
-$cpev_mock->redefine( 'get_installed_rpms_in_repo' => sub { return ( 'solitaire.exe', 1 ) } );
+$mock_pkgmgr->redefine(
+    get_installed_pkgs_in_repo => sub { return ( 'solitaire.exe', 1 ); },
+);
 $mock_vetted_repo->contents($valid_syn_acks);
 $mock_unknown_repo->contents($invalid_synax);
 is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $invalid_syntax => 1 }, "syntax errors and unvetted repos w/installed RPMs are both reported";
@@ -217,18 +227,15 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
 # Now we've tested the caller, let's test the code.
 {
     note "Testing _yum_is_stable";
-    my $errors         = 'something is not right';
+    my $errors         = 'The yum operation has failed';
     my %ssystem_status = (
         '/usr/bin/yum'                                                    => 1,
         Elevate::Components::Repositories::YUM_COMPLETE_TRANSACTION_BIN() => 1,
         Elevate::Components::Repositories::FIX_RPM_SCRIPT()               => 1,
     );
-    my $ssystem_stderr = 'The yum operation has failed';
+    my $ssystem_stderr = ['The yum operation has failed'];
 
     clear_messages_seen();
-
-    my $errors_mock = Test::MockModule->new('Cpanel::SafeRun::Errors');
-    $errors_mock->redefine( 'saferunonlyerrors' => sub { return $errors } );
 
     my $run_mock = Test::MockModule->new('Elevate::Roles::Run');
     $run_mock->redefine(
@@ -263,9 +270,9 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
     message_seen( 'WARN',  "Running \"yum clean all\" in an attempt to fix yum" );
     message_seen( 'WARN',  "Errors encountered running \"yum clean all\": $ssystem_stderr" );
     message_seen( 'ERROR', $error_msg );
-    message_seen( 'ERROR', 'something is not right' );
+    message_seen( 'ERROR', $errors );
     no_messages_seen();
-    $errors = '';
+    $ssystem_stderr = [];
 
     $mock_yum->redefine( is_check_mode => 1 );
 

@@ -23,6 +23,7 @@ Reinstall influxdb if it was installed
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Cpanel::Pkgr  ();
@@ -48,7 +49,7 @@ sub post_distro_upgrade ($self) {
     return unless Elevate::StageFile::read_stage_file('reinstall')->{'influxdb'};
 
     INFO("Re-installing telegraf for influxdb");
-    $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
+    Elevate::PkgMgr::reinstall('telegraf');
 
     return;
 }

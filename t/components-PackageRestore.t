@@ -49,8 +49,8 @@ my $pkg_restore = cpev->new->get_component('PackageRestore');
         is_installed => sub { return $installed_pkgs{ $_[0] }; },
     );
 
-    my $mock_rpm = Test::MockModule->new('Elevate::RPM');
-    $mock_rpm->redefine(
+    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $mock_pkgmgr->redefine(
         get_config_files => sub {
             $pkgs_checked_for_config_files = $_[1];
             return \%config_files;
@@ -93,13 +93,9 @@ my $pkg_restore = cpev->new->get_component('PackageRestore');
         read_stage_file => sub { return $stage_file_data; },
     );
 
-    my $mock_dnf = Test::MockModule->new('Elevate::DNF');
-    $mock_dnf->redefine(
-        install => sub { push @dnf_installed, $_[1]; },
-    );
-
-    my $mock_rpm = Test::MockModule->new('Elevate::RPM');
-    $mock_rpm->redefine(
+    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $mock_pkgmgr->redefine(
+        install              => sub { push @dnf_installed, $_[1]; },
         restore_config_files => sub {
             my ( $self, @files ) = @_;
             push @config_files_restored, @files;

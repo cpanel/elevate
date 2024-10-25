@@ -78,8 +78,8 @@ my $r1soft = cpev->new->get_component('R1Soft');
         update_stage_file => sub { $stage_file_data = shift; },
     );
 
-    my $mock_yum = Test::MockModule->new('Elevate::YUM');
-    $mock_yum->redefine(
+    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $mock_pkgmgr->redefine(
         remove           => sub { $yum_remove_called = 1; },
         repolist_enabled => sub { return @enabled_repos; },
         repolist_all     => sub { return @all_repos; },
@@ -172,8 +172,8 @@ my $r1soft = cpev->new->get_component('R1Soft');
         read_stage_file => sub { return $stage_file_data; },
     );
 
-    my $mock_yum = Test::MockModule->new('Elevate::YUM');
-    $mock_yum->redefine(
+    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $mock_pkgmgr->redefine(
         install => sub { $yum_install_called = 1; },
     );
 

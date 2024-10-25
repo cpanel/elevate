@@ -452,9 +452,8 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
 }
 
 sub test_backup_and_restore_config_files : Test(10) ($self) {
-    my $cpev_mock = Test::MockModule->new('cpev');
-
-    $cpev_mock->redefine(
+    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $mock_pkgmgr->redefine(
         ssystem_capture_output => sub ( $, @args ) {
             my $pkg         = pop @args;
             my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
@@ -464,12 +463,8 @@ sub test_backup_and_restore_config_files : Test(10) ($self) {
             };
             return $ret;
         },
-    );
-
-    my $mock_rpm = Test::MockModule->new('Elevate::RPM');
-    $mock_rpm->redefine(
-        get_installed_rpms => sub {
-            return ( 'ea-foo', 'ea-bar', 'ea-nginx', 'not-an-ea-package' );
+        get_installed_pkgs => sub {
+            return ( 'ea-foo', 'ea-bar', 'ea-nginx' );
         },
     );
 
