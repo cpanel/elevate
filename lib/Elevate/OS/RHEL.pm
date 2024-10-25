@@ -60,6 +60,7 @@ use constant vetted_yum_repo => (
     'jetapps',
     qr/^jetapps-(?:stable|beta|edge)$/,
     'kernelcare',
+    qr/^ul($|_)/,
     'updates',
     'r1soft',
     qr/^panopta(?:\.repo)?$/,
