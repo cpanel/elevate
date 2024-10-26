@@ -51,7 +51,7 @@ sub post_distro_upgrade ($self) {
 
     return unless Elevate::StageFile::read_stage_file('reinstall')->{'acronis'};
 
-    $self->dnf->install(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
+    Elevate::PkgMgr::install(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
 
     return;
 }

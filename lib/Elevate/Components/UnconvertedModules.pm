@@ -58,7 +58,7 @@ sub _remove_leapp_packages ($self) {
 
     INFO('Removing packages provided by leapp');
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @leapp_packages;
-    $self->dnf->remove(@to_remove);
+    Elevate::PkgMgr::remove(@to_remove);
 
     return;
 }
