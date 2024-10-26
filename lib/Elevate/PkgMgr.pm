@@ -1,10 +1,10 @@
-package Elevate::PkgUtility;
+package Elevate::PkgMgr;
 
 =encoding utf-8
 
 =head1 NAME
 
-Elevate::PkgUtility
+Elevate::PkgMgr
 
 Generic parent class for the logic wrapping the systems package utilities such
 as rpm and dpkg
@@ -13,13 +13,13 @@ as rpm and dpkg
 
 use cPstrict;
 
-use Elevate::PkgUtility::RPM ();
+use Elevate::PkgMgr::YUM ();
 
 our $PKGUTILITY;
 
 sub factory {
 
-    my $pkg = 'Elevate::PkgUtility::' . Elevate::OS::package_utility();
+    my $pkg = 'Elevate::PkgMgr::' . Elevate::OS::package_manager();
     return $pkg->new;
 }
 

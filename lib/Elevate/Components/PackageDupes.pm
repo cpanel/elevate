@@ -12,8 +12,8 @@ use cPstrict;
 
 use Digest::SHA ();
 
-use Elevate::Constants  ();
-use Elevate::PkgUtility ();
+use Elevate::Constants ();
+use Elevate::PkgMgr    ();
 
 use Cpanel::SafeRun::Simple           ();
 use Cpanel::Version::Compare::Package ();
@@ -172,7 +172,7 @@ sub _select_packages_for_removal ( $self, %dupes ) {
 
 sub _remove_packages ( $self, @packages ) {
     foreach my $pkg (@packages) {
-        Elevate::PkgUtility::remove_no_dependencies_or_scripts_and_justdb($pkg);
+        Elevate::PkgMgr::remove_no_dependencies_or_scripts_and_justdb($pkg);
     }
     return;
 }

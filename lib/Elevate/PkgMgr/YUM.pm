@@ -1,12 +1,12 @@
-package Elevate::PkgUtility::RPM;
+package Elevate::PkgMgr::YUM;
 
 =encoding utf-8
 
 =head1 NAME
 
-Elevate::PkgUtility::RPM
+Elevate::PkgMgr::YUM
 
-Logic wrapping the 'rpm' system binary
+Logic wrapping the RHEL based package managers
 
 =cut
 
@@ -16,7 +16,7 @@ use File::Copy ();
 
 use Log::Log4perl qw(:easy);
 
-use parent 'Elevate::PkgUtility::Base';
+use parent 'Elevate::PkgMgr::Base';
 
 our $rpm = '/usr/bin/rpm';
 

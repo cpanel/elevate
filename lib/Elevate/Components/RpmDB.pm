@@ -27,9 +27,9 @@ noop
 
 use cPstrict;
 
-use Elevate::Constants  ();
-use Elevate::DNF        ();
-use Elevate::PkgUtility ();
+use Elevate::Constants ();
+use Elevate::DNF       ();
+use Elevate::PkgMgr    ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -60,7 +60,7 @@ sub pre_distro_upgrade ($self) {
 sub _cleanup_rpms ($self) {
 
     # potential to remove other things, but the goal here to remove cpanel packages provided by rpm.versions
-    Elevate::PkgUtility::remove_cpanel_arch_rpms();
+    Elevate::PkgMgr::remove_cpanel_arch_rpms();
 
     # These packages are not available on 8 variants and will be removed by
     # leapp if we do not remove them manually.  Not necessarily a bug per se,

@@ -22,9 +22,9 @@ Check and notify of installed el7 kernel packages
 
 use cPstrict;
 
-use Elevate::Constants  ();
-use Elevate::OS         ();
-use Elevate::PkgUtility ();
+use Elevate::Constants ();
+use Elevate::OS        ();
+use Elevate::PkgMgr    ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -40,7 +40,7 @@ sub post_distro_upgrade ($self) {
 
 sub _kernel_check ($self) {
 
-    my @kernel_rpms = Elevate::PkgUtility::get_installed_rpms();
+    my @kernel_rpms = Elevate::PkgMgr::get_installed_rpms();
     @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
 
     return unless @kernel_rpms;
