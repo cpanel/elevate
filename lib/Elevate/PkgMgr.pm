@@ -84,8 +84,16 @@ sub install_rpm_via_url ($rpm_url) {
     return instance()->install_rpm_via_url($rpm_url);
 }
 
+sub install_with_options ( $options, $pkgs ) {
+    return instance()->install_with_options( $options, $pkgs );
+}
+
 sub install (@pkgs) {
     return instance()->install(@pkgs);
+}
+
+sub reinstall (@pkgs) {
+    return instance()->reinstall(@pkgs);
 }
 
 sub repolist_all () {
@@ -108,8 +116,20 @@ sub config_manager_enable ($repo) {
     return instance()->config_manager_enable($repo);
 }
 
+sub update () {
+    return instance()->update();
+}
+
+sub update_with_options ( $options, $pkgs ) {
+    return instance()->update_with_options( $options, $pkgs );
+}
+
 sub update_allow_erasing (@args) {
     return instance()->update_allow_erasing(@args);
+}
+
+sub makecache () {
+    return instance()->makecache();
 }
 
 1;

@@ -21,6 +21,12 @@ Elevate::Components::Repositories
 
 noop
 
+=head2 NOTE
+
+This logic is highly specific for RHEL based upgrades.  This modules should
+be considered a noop for Debian based upgrades and a separate module that is
+specific for Debian based upgrades will need to be called instead.
+
 =cut
 
 use cPstrict;
@@ -83,7 +89,7 @@ sub _disable_known_yum_repositories {
         File::Copy::mv( $f, "$f.off" ) or die qq[Failed to disable repo $f];
     }
 
-    Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
+    Elevate::PkgMgr::clean_all();
 
     return;
 }
@@ -125,7 +131,7 @@ sub check ($self) {
 }
 
 sub _blocker_packages_installed_without_associated_repo ($self) {
-    my @extra_packages = map { $_->{package} } $self->yum->get_extra_packages();
+    my @extra_packages = map { $_->{package} } Elevate::PkgMgr::get_extra_packages();
 
     my @unexpected_extra_packages;
     foreach my $pkg (@extra_packages) {
@@ -220,7 +226,7 @@ sub _yum_status_hr_contains_blocker ($status_hr) {
 }
 
 sub _yum_is_stable ($self) {
-    my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+    my $errors = Elevate::PkgMgr::makecache();
     if ( $errors =~ m/\S/ms ) {
 
         my $error_msg = <<~'EOS';
@@ -234,12 +240,12 @@ sub _yum_is_stable ($self) {
         WARN("Initial run of \"yum makecache\" failed: $errors");
         WARN("Running \"yum clean all\" in an attempt to fix yum");
 
-        my $ret = $self->ssystem_capture_output(qw{/usr/bin/yum clean all});
+        my $ret = Elevate::PkgMgr::clean_all();
         if ( $ret->{status} != 0 ) {
             WARN( "Errors encountered running \"yum clean all\": " . $ret->{stderr} );
         }
 
-        $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+        $errors = my $errors = Elevate::PkgMgr::makecache();
         if ( $errors =~ m/\S/ms ) {
             ERROR($error_msg);
             ERROR($errors);

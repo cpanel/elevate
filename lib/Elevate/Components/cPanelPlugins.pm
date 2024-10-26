@@ -23,6 +23,7 @@ Reinstall the list of installed cPanel plugins from pre
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Cwd           ();
@@ -57,7 +58,7 @@ sub post_distro_upgrade ($self) {
     return unless scalar @$yum_arch_plugins;
 
     INFO('Restoring cPanel yum-based-plugins');
-    $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
+    Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
 
     return;
 }

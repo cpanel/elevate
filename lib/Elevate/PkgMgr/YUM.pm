@@ -153,9 +153,9 @@ sub remove ( $self, @pkgs ) {
 sub clean_all ($self) {
     my $pkgmgr = $self->pkgmgr;
 
-    $self->ssystem( $pkgmgr, 'clean', 'all' );
+    my $out = $self->ssystem_capture_output( $pkgmgr, 'clean', 'all' );
 
-    return;
+    return $out;
 }
 
 sub install_rpm_via_url ( $self, $rpm_url ) {
@@ -166,12 +166,34 @@ sub install_rpm_via_url ( $self, $rpm_url ) {
     return;
 }
 
+sub install_with_options ( $self, $options, $pkgs ) {
+    return unless scalar @$options;
+    return unless scalar @$pkgs;
+
+    my $pkgmgr = $self->pkgmgr;
+
+    # i.e. /usr/bin/yum -y install --enablerepo=jetapps --enablerepo=jetapps-stable jetphp81-zip
+    $self->ssystem_and_die( $pkgmgr, '-y', 'install', @$options, @$pkgs );
+
+    return;
+}
+
 sub install ( $self, @pkgs ) {
     return unless scalar @pkgs;
 
     my $pkgmgr = $self->pkgmgr;
 
     $self->ssystem_and_die( $pkgmgr, '-y', 'install', @pkgs );
+
+    return;
+}
+
+sub reinstall ( $self, @pkgs ) {
+    return unless scalar @pkgs;
+
+    my $pkgmgr = $self->pkgmgr;
+
+    $self->ssystem_and_die( $pkgmgr, '-y', 'reinstall', @pkgs );
 
     return;
 }
@@ -256,6 +278,26 @@ sub config_manager_enable ( $self, $repo ) {
     return;
 }
 
+sub update ($self) {
+    my $pkgmgr = $self->pkgmgr;
+
+    $self->ssystem_and_die( $pkgmgr, '-y', 'update' );
+
+    return;
+}
+
+sub update_with_options ( $self, $options, $pkgs ) {
+    return unless scalar @$options;
+    return unless scalar @$pkgs;
+
+    my $pkgmgr = $self->pkgmgr;
+
+    # i.e. /usr/bin/yum -y update --enablerepo=jetapps --enablerepo=jetapps-stable @packages
+    $self->ssystem_and_die( $pkgmgr, '-y', 'update', @$options, @$pkgs );
+
+    return;
+}
+
 sub update_allow_erasing ( $self, @args ) {
     my $pkgmgr = $self->pkgmgr;
 
@@ -264,6 +306,14 @@ sub update_allow_erasing ( $self, @args ) {
     $self->ssystem( $pkgmgr, '-y', '--allowerasing', @additional_args, 'update' );
 
     return;
+}
+
+sub makecache ($self) {
+    my $pkgmgr = $self->pkgmgr;
+
+    my $out    = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
+    my $stderr = join "\n", @{ $out->{stderr} };
+    return $stderr;
 }
 
 1;

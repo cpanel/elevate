@@ -28,7 +28,6 @@ noop
 use cPstrict;
 
 use Elevate::Constants ();
-use Elevate::DNF       ();
 use Elevate::PkgMgr    ();
 
 use Cwd           ();
@@ -73,7 +72,7 @@ sub _cleanup_rpms ($self) {
 
 sub _remove_obsolete_packages ($self) {
     my @pkgs_to_remove = OBSOLETE_PACKAGES();
-    $self->yum->remove(@pkgs_to_remove);
+    Elevate::PkgMgr::remove(@pkgs_to_remove);
     return;
 }
 

@@ -74,8 +74,10 @@ sub post_distro_upgrade ($self) {
     my $tier     = $data->{tier};
     my @packages = $data->{packages}->@*;
 
-    $self->ssystem( qw{/usr/bin/yum -y install --enablerepo=jetapps}, "--enablerepo=$tier", 'jetphp81-zip' );
-    $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps},  "--enablerepo=$tier", @packages );
+    my $pkgmgr_options = [ '--enablerepo=jetapps', "--enablerepo=$tier" ];
+
+    Elevate::PkgMgr::install_with_options( $pkgmgr_options, ['jetphp81-zip'] );
+    Elevate::PkgMgr::update_with_options( $pkgmgr_options, \@packages );
 
     return;
 }
