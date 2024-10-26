@@ -292,8 +292,6 @@ use Elevate::OS::RHEL        ();
 use Elevate::PkgMgr       ();
 use Elevate::PkgMgr::Base ();
 use Elevate::PkgMgr::YUM  ();
-use Elevate::DNF          ();
-use Elevate::YUM          ();
 
 use Elevate::Database         ();
 use Elevate::EA4              ();

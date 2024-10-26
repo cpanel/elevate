@@ -64,8 +64,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/PkgMgr.pm'}                        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/PkgMgr/Base.pm'}                   = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/PkgMgr/YUM.pm'}                    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/DNF.pm'}                           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/YUM.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Database.pm'}                      = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/EA4.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Fetch.pm'}                         = 'script/elevate-cpanel.PL.static';
@@ -158,8 +156,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Simple::Accessor qw(
       components
-      yum
-      dnf
     );
 
     # use Log::Log4perl qw(:easy);
@@ -193,14 +189,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
         }
 
         Carp::confess(q[Missing components]);
-    }
-
-    sub _build_yum ($self) {
-        return Elevate::YUM->new( cpev => $self );
-    }
-
-    sub _build_dnf ($self) {
-        return Elevate::DNF->new( cpev => $self );
     }
 
     sub cpev ($self) {
@@ -761,6 +749,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Cpanel::Pkgr          ();
 
     use Elevate::Notify    ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     # use Log::Log4perl qw(:easy);
@@ -814,7 +803,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         my @ccs_dependencies;
         push @ccs_dependencies, ZPUSH_PACKAGE();
 
-        $self->yum->remove( CCS_PACKAGE(), @ccs_dependencies );
+        Elevate::PkgMgr::remove( CCS_PACKAGE(), @ccs_dependencies );
 
         return;
     }
@@ -998,7 +987,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         push @packages_to_install, ZPUSH_PACKAGE() if Elevate::StageFile::read_stage_file('zpush_installed');
 
-        $self->dnf->install(@packages_to_install);
+        Elevate::PkgMgr::install(@packages_to_install);
 
         return;
     }
@@ -1209,6 +1198,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     use Cwd ();
@@ -1244,7 +1234,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         return unless scalar @$yum_arch_plugins;
 
         INFO('Restoring cPanel yum-based-plugins');
-        $self->ssystem( qw{ /usr/bin/dnf -y reinstall }, @$yum_arch_plugins );
+        Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
 
         return;
     }
@@ -1827,7 +1817,7 @@ EOS
 
     sub _cleanup_rpm_db ($self) {
 
-        $self->yum->remove('ea-*');
+        Elevate::PkgMgr::remove('ea-*');
 
         return;
     }
@@ -1839,7 +1829,7 @@ EOS
         INFO("Restoring ea-nginx");
 
         Elevate::PkgMgr::remove_no_dependencies('ea-nginx');
-        $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
+        Elevate::PkgMgr::install('ea-nginx');
 
         return;
     }
@@ -2113,7 +2103,8 @@ EOS
 
     use cPstrict;
 
-    use Elevate::OS ();
+    use Elevate::OS     ();
+    use Elevate::PkgMgr ();
 
     use Cpanel::Pkgr ();
 
@@ -2141,7 +2132,7 @@ EOS
             }
         }
 
-        $self->yum->remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
+        Elevate::PkgMgr::remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
 
         return;
     }
@@ -2612,6 +2603,7 @@ EOS
     use Elevate::Fetch     ();
     use Elevate::Notify    ();
     use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     use Cwd ();
@@ -2675,7 +2667,7 @@ EOS
         foreach my $pkg (@$packages) {
             next unless Cpanel::Pkgr::is_installed($pkg);
             INFO("Try to reinstall Imunify package: $pkg");
-            $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+            Elevate::PkgMgr::install($pkg);
         }
 
         return;
@@ -2924,6 +2916,7 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     use Cpanel::Pkgr ();
@@ -2953,7 +2946,7 @@ EOS
         return unless Elevate::StageFile::read_stage_file('reinstall')->{'influxdb'};
 
         INFO("Re-installing telegraf for influxdb");
-        $self->ssystem_and_die(qw{/usr/bin/yum -y reinstall telegraf});
+        Elevate::PkgMgr::reinstall('telegraf');
 
         return;
     }
@@ -3067,8 +3060,10 @@ EOS
         my $tier     = $data->{tier};
         my @packages = $data->{packages}->@*;
 
-        $self->ssystem( qw{/usr/bin/yum -y install --enablerepo=jetapps}, "--enablerepo=$tier", 'jetphp81-zip' );
-        $self->ssystem( qw{/usr/bin/yum -y update --enablerepo=jetapps},  "--enablerepo=$tier", @packages );
+        my $pkgmgr_options = [ '--enablerepo=jetapps', "--enablerepo=$tier" ];
+
+        Elevate::PkgMgr::install_with_options( $pkgmgr_options, ['jetphp81-zip'] );
+        Elevate::PkgMgr::update_with_options( $pkgmgr_options, \@packages );
 
         return;
     }
@@ -4346,7 +4341,7 @@ EOS
 
         foreach my $package ( keys %$package_info ) {
 
-            $self->dnf->install($package);
+            Elevate::PkgMgr::install($package);
 
             Elevate::PkgMgr::restore_config_files( @{ $package_info->{$package} } );
         }
@@ -4512,6 +4507,8 @@ EOS
 
     use Cpanel::Pkgr ();
 
+    use Elevate::PkgMgr ();
+
     # use Elevate::Components::Base();
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
@@ -4520,7 +4517,7 @@ EOS
 
         if ( Cpanel::Pkgr::is_installed('panopta-agent') ) {
 
-            $self->yum->remove('panopta-agent');
+            Elevate::PkgMgr::remove('panopta-agent');
         }
 
         return;
@@ -4690,6 +4687,7 @@ EOS
     use Elevate::Constants ();
     use Elevate::Notify    ();
     use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     use Config;
@@ -4796,8 +4794,9 @@ EOS
             my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
             if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
-                my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-                $self->ssystem(@cmd);
+                my $pkgmgr_options = [ '--enablerepo=epel', '--enablerepo=powertools', ];
+                my @pkgs           = sort keys %$rpms;
+                Elevate::PkgMgr::install_with_options( $pkgmgr_options, \@pkgs );
             }
         }
 
@@ -4850,6 +4849,7 @@ EOS
 
     use Elevate::Constants        ();
     use Elevate::Notify           ();
+    use Elevate::PkgMgr           ();
     use Elevate::StageFile        ();
     use Elevate::SystemctlService ();
 
@@ -5023,7 +5023,7 @@ EOS
         return if $self->_gave_up_on_postgresql;
 
         INFO("Installing PostgreSQL update package:");
-        $self->dnf->install('postgresql-upgrade');
+        Elevate::PkgMgr::install('postgresql-upgrade');
 
         my $opts = Elevate::StageFile::read_stage_file('postgresql_locale');
         my @args;
@@ -5125,6 +5125,7 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     use Cpanel::Pkgr ();
@@ -5147,21 +5148,21 @@ EOS
         if ( Cpanel::Pkgr::is_installed(Elevate::Constants::R1SOFT_MAIN_AGENT_PACKAGE) ) {
             $r1soft_agent_installed = 1;
 
-            my @repo_list = $self->yum->repolist_enabled();
+            my @repo_list = Elevate::PkgMgr::repolist_enabled();
 
             if ( scalar grep { index( $_, Elevate::Constants::R1SOFT_REPO ) == 0 } @repo_list ) {
                 $r1soft_repo_present = 1;
                 $r1soft_repo_enabled = 1;
             }
             else {
-                @repo_list = $self->yum->repolist_all();
+                @repo_list = Elevate::PkgMgr::repolist_all();
 
                 if ( scalar grep { index( $_, Elevate::Constants::R1SOFT_REPO ) == 0 } @repo_list ) {
                     $r1soft_repo_present = 1;
                 }
             }
 
-            $self->yum->remove(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
+            Elevate::PkgMgr::remove(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
         }
 
         Elevate::StageFile::update_stage_file(
@@ -5183,7 +5184,7 @@ EOS
 
         return unless $r1soft_info->{agent_installed};
 
-        $self->yum->install('kernel-devel');
+        Elevate::PkgMgr::install('kernel-devel');
 
         if ( !$r1soft_info->{repo_present} ) {
 
@@ -5193,7 +5194,7 @@ EOS
             $self->_enable_r1soft_repo() unless $r1soft_info->{repo_enabled};
         }
 
-        $self->yum->install(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
+        Elevate::PkgMgr::install(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
 
         if ( !$r1soft_info->{repo_present} || !$r1soft_info->{repo_enabled} ) {
             $self->_disable_r1soft_repo();
@@ -5312,7 +5313,7 @@ EOS
             File::Copy::mv( $f, "$f.off" ) or die qq[Failed to disable repo $f];
         }
 
-        Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/bin/yum clean all});
+        Elevate::PkgMgr::clean_all();
 
         return;
     }
@@ -5354,7 +5355,7 @@ EOS
     }
 
     sub _blocker_packages_installed_without_associated_repo ($self) {
-        my @extra_packages = map { $_->{package} } $self->yum->get_extra_packages();
+        my @extra_packages = map { $_->{package} } Elevate::PkgMgr::get_extra_packages();
 
         my @unexpected_extra_packages;
         foreach my $pkg (@extra_packages) {
@@ -5447,7 +5448,7 @@ EOS
     }
 
     sub _yum_is_stable ($self) {
-        my $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+        my $errors = Elevate::PkgMgr::makecache();
         if ( $errors =~ m/\S/ms ) {
 
             my $error_msg = <<~'EOS';
@@ -5461,12 +5462,12 @@ EOS
             WARN("Initial run of \"yum makecache\" failed: $errors");
             WARN("Running \"yum clean all\" in an attempt to fix yum");
 
-            my $ret = $self->ssystem_capture_output(qw{/usr/bin/yum clean all});
+            my $ret = Elevate::PkgMgr::clean_all();
             if ( $ret->{status} != 0 ) {
                 WARN( "Errors encountered running \"yum clean all\": " . $ret->{stderr} );
             }
 
-            $errors = Cpanel::SafeRun::Errors::saferunonlyerrors(qw{/usr/bin/yum makecache});
+            $errors = my $errors = Elevate::PkgMgr::makecache();
             if ( $errors =~ m/\S/ms ) {
                 ERROR($error_msg);
                 ERROR($errors);
@@ -5746,7 +5747,6 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
-    use Elevate::DNF       ();
     use Elevate::PkgMgr    ();
 
     use Cwd ();
@@ -5790,7 +5790,7 @@ EOS
 
     sub _remove_obsolete_packages ($self) {
         my @pkgs_to_remove = OBSOLETE_PACKAGES();
-        $self->yum->remove(@pkgs_to_remove);
+        Elevate::PkgMgr::remove(@pkgs_to_remove);
         return;
     }
 
@@ -5803,23 +5803,23 @@ EOS
 
     sub _sysup ($self) {
         Cpanel::Yum::Vars::install();
-        $self->dnf->clean_all();
+        Elevate::PkgMgr::clean_all();
 
         my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
 
         unless ( Cpanel::Pkgr::is_installed('epel-release') ) {
-            $self->dnf->install_rpm_via_url($epel_url);
+            Elevate::PkgMgr::install_rpm_via_url($epel_url);
         }
 
-        $self->dnf->config_manager_enable('powertools');
-        $self->dnf->config_manager_enable('epel');
+        Elevate::PkgMgr::config_manager_enable('powertools');
+        Elevate::PkgMgr::config_manager_enable('epel');
 
         unlink('/usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm');
         {
             local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
             $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
         }
-        $self->dnf->update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
+        Elevate::PkgMgr::update_allow_erasing( '--disablerepo', 'cpanel-plugins' );
         $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/sysup});
 
         return;
@@ -5939,7 +5939,7 @@ EOS
 
         INFO('Removing packages provided by leapp');
         my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @leapp_packages;
-        $self->dnf->remove(@to_remove);
+        Elevate::PkgMgr::remove(@to_remove);
 
         return;
     }
@@ -6156,11 +6156,11 @@ EOS
 
     use Elevate::Constants ();
     use Elevate::Fetch     ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
-    use Cpanel::SafeRun::Errors ();
-    use Cwd                     ();
-    use File::Copy              ();
+    use Cwd        ();
+    use File::Copy ();
 
     # use Log::Log4perl           qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -6192,8 +6192,7 @@ EOS
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
         backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
 
-        my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/yum -y remove wp-toolkit-cpanel});
-        DEBUG($output) if $output;
+        Elevate::PkgMgr::remove('wp-toolkit-cpanel');
 
         $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
@@ -6230,6 +6229,7 @@ EOS
     use cPstrict;
 
     use Elevate::Constants ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     use Cpanel::Pkgr ();
@@ -6242,7 +6242,7 @@ EOS
 
         return unless Cpanel::Pkgr::is_installed(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
 
-        $self->yum->remove(
+        Elevate::PkgMgr::remove(
             Elevate::Constants::ACRONIS_BACKUP_PACKAGE,
             Elevate::Constants::ACRONIS_OTHER_PACKAGES
         );
@@ -6256,7 +6256,7 @@ EOS
 
         return unless Elevate::StageFile::read_stage_file('reinstall')->{'acronis'};
 
-        $self->dnf->install(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
+        Elevate::PkgMgr::install(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
 
         return;
     }
@@ -6619,6 +6619,66 @@ EOS
         return instance()->remove_cpanel_arch_rpms();
     }
 
+    sub remove (@pkgs) {
+        return instance()->remove(@pkgs);
+    }
+
+    sub clean_all () {
+        return instance()->clean_all();
+    }
+
+    sub install_rpm_via_url ($rpm_url) {
+        return instance()->install_rpm_via_url($rpm_url);
+    }
+
+    sub install_with_options ( $options, $pkgs ) {
+        return instance()->install_with_options( $options, $pkgs );
+    }
+
+    sub install (@pkgs) {
+        return instance()->install(@pkgs);
+    }
+
+    sub reinstall (@pkgs) {
+        return instance()->reinstall(@pkgs);
+    }
+
+    sub repolist_all () {
+        return instance()->repolist_all();
+    }
+
+    sub repolist_enabled () {
+        return instance()->repolist_enabled();
+    }
+
+    sub repolist (@options) {
+        return instance()->repolist(@options);
+    }
+
+    sub get_extra_packages () {
+        return instance()->get_extra_packages();
+    }
+
+    sub config_manager_enable ($repo) {
+        return instance()->config_manager_enable($repo);
+    }
+
+    sub update () {
+        return instance()->update();
+    }
+
+    sub update_with_options ( $options, $pkgs ) {
+        return instance()->update_with_options( $options, $pkgs );
+    }
+
+    sub update_allow_erasing (@args) {
+        return instance()->update_allow_erasing(@args);
+    }
+
+    sub makecache () {
+        return instance()->makecache();
+    }
+
     1;
 
 }    # --- END lib/Elevate/PkgMgr.pm
@@ -6656,6 +6716,10 @@ EOS
 
     use File::Copy ();
 
+    use Cpanel::OS ();
+
+    use Elevate::OS ();
+
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
@@ -6666,7 +6730,11 @@ EOS
     our $rpm = '/usr/bin/rpm';
 
     sub name ($self) {
-        return 'RPM';
+        return Elevate::OS::package_manager();
+    }
+
+    sub pkgmgr ($self) {
+        return '/usr/bin/' . Cpanel::OS::package_manager();
     }
 
     sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
@@ -6771,79 +6839,12 @@ EOS
         return;
     }
 
-    1;
-
-}    # --- END lib/Elevate/PkgMgr/YUM.pm
-
-{    # --- BEGIN lib/Elevate/DNF.pm
-
-    package Elevate::DNF;
-
-    use cPstrict;
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    # use Elevate::YUM();
-    our @ISA;
-    BEGIN { push @ISA, qw(Elevate::YUM); }
-
-    sub _build_pkgmgr {
-        return '/usr/bin/dnf';
-    }
-
-    sub config_manager_enable ( $self, $repo ) {
-        my $pkgmgr = $self->pkgmgr;
-
-        $self->cpev->ssystem( $pkgmgr, 'config-manager', '--enable', $repo );
-
-        return;
-    }
-
-    sub update_allow_erasing ( $self, @args ) {
-        my $pkgmgr = $self->pkgmgr;
-
-        my @additional_args = scalar @args ? @args : '';
-
-        $self->cpev->ssystem( $pkgmgr, '-y', '--allowerasing', @additional_args, 'update' );
-
-        return;
-    }
-
-    1;
-
-}    # --- END lib/Elevate/DNF.pm
-
-{    # --- BEGIN lib/Elevate/YUM.pm
-
-    package Elevate::YUM;
-
-    use cPstrict;
-
-    use Elevate::Constants ();
-
-    # use Log::Log4perl qw(:easy);
-    INIT { Log::Log4perl->import(qw{:easy}); }
-
-    use Simple::Accessor qw{
-      cpev
-      pkgmgr
-    };
-
-    sub _build_cpev {
-        die q[Missing cpev];
-    }
-
-    sub _build_pkgmgr {
-        return '/usr/bin/yum';
-    }
-
     sub remove ( $self, @pkgs ) {
         return unless scalar @pkgs;
 
         my $pkgmgr = $self->pkgmgr;
 
-        $self->cpev->ssystem_and_die( $pkgmgr, '-y', 'remove', @pkgs );
+        $self->ssystem_and_die( $pkgmgr, '-y', 'remove', @pkgs );
 
         return;
     }
@@ -6851,15 +6852,26 @@ EOS
     sub clean_all ($self) {
         my $pkgmgr = $self->pkgmgr;
 
-        $self->cpev->ssystem( $pkgmgr, 'clean', 'all' );
+        my $out = $self->ssystem_capture_output( $pkgmgr, 'clean', 'all' );
 
-        return;
+        return $out;
     }
 
     sub install_rpm_via_url ( $self, $rpm_url ) {
         my $pkgmgr = $self->pkgmgr;
 
-        $self->cpev->ssystem_and_die( $pkgmgr, '-y', 'install', $rpm_url );
+        $self->ssystem_and_die( $pkgmgr, '-y', 'install', $rpm_url );
+
+        return;
+    }
+
+    sub install_with_options ( $self, $options, $pkgs ) {
+        return unless scalar @$options;
+        return unless scalar @$pkgs;
+
+        my $pkgmgr = $self->pkgmgr;
+
+        $self->ssystem_and_die( $pkgmgr, '-y', 'install', @$options, @$pkgs );
 
         return;
     }
@@ -6869,7 +6881,17 @@ EOS
 
         my $pkgmgr = $self->pkgmgr;
 
-        $self->cpev->ssystem_and_die( $pkgmgr, '-y', 'install', @pkgs );
+        $self->ssystem_and_die( $pkgmgr, '-y', 'install', @pkgs );
+
+        return;
+    }
+
+    sub reinstall ( $self, @pkgs ) {
+        return unless scalar @pkgs;
+
+        my $pkgmgr = $self->pkgmgr;
+
+        $self->ssystem_and_die( $pkgmgr, '-y', 'reinstall', @pkgs );
 
         return;
     }
@@ -6885,7 +6907,7 @@ EOS
     sub repolist ( $self, @options ) {
         my $pkgmgr = $self->pkgmgr;
 
-        my $out   = $self->cpev->ssystem_hide_and_capture_output( $pkgmgr, '-q', 'repolist', @options );
+        my $out   = $self->ssystem_hide_and_capture_output( $pkgmgr, '-q', 'repolist', @options );
         my @lines = @{ $out->{stdout} };
 
         shift @lines;
@@ -6903,7 +6925,7 @@ EOS
     sub get_extra_packages ($self) {
         my $pkgmgr = $self->pkgmgr;
 
-        my $out   = $self->cpev->ssystem_hide_and_capture_output( $pkgmgr, 'list', 'extras' );
+        my $out   = $self->ssystem_hide_and_capture_output( $pkgmgr, 'list', 'extras' );
         my @lines = @{ $out->{stdout} };
         while ( my $line = shift @lines ) {
             last if $line && $line =~ m/^Extra Packages/;
@@ -6938,9 +6960,54 @@ EOS
         return @extra_packages;
     }
 
+    sub config_manager_enable ( $self, $repo ) {
+        my $pkgmgr = $self->pkgmgr;
+
+        $self->ssystem( $pkgmgr, 'config-manager', '--enable', $repo );
+
+        return;
+    }
+
+    sub update ($self) {
+        my $pkgmgr = $self->pkgmgr;
+
+        $self->ssystem_and_die( $pkgmgr, '-y', 'update' );
+
+        return;
+    }
+
+    sub update_with_options ( $self, $options, $pkgs ) {
+        return unless scalar @$options;
+        return unless scalar @$pkgs;
+
+        my $pkgmgr = $self->pkgmgr;
+
+        $self->ssystem_and_die( $pkgmgr, '-y', 'update', @$options, @$pkgs );
+
+        return;
+    }
+
+    sub update_allow_erasing ( $self, @args ) {
+        my $pkgmgr = $self->pkgmgr;
+
+        my @additional_args = scalar @args ? @args : '';
+
+        $self->ssystem( $pkgmgr, '-y', '--allowerasing', @additional_args, 'update' );
+
+        return;
+    }
+
+    sub makecache ($self) {
+        my $pkgmgr = $self->pkgmgr;
+
+        my $out    = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
+        my $stderr = join "\n", @{ $out->{stderr} };
+        return $stderr;
+    }
+
     1;
 
-}    # --- END lib/Elevate/YUM.pm
+}    # --- END lib/Elevate/PkgMgr/YUM.pm
 
 {    # --- BEGIN lib/Elevate/Database.pm
 
@@ -7320,8 +7387,8 @@ EOS
     use Cpanel::Pkgr     ();
 
     use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
-    use Elevate::YUM       ();
 
     use Config::Tiny ();
 
@@ -7338,29 +7405,24 @@ EOS
 
     use Simple::Accessor qw{
       cpev
-      yum
     };
 
     sub _build_cpev {
         die q[Missing cpev];
     }
 
-    sub _build_yum ($self) {
-        return Elevate::YUM->new( cpev => $self->cpev() );
-    }
-
     sub install ($self) {
 
         unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
             my $elevate_rpm_url = Elevate::OS::elevate_rpm_url();
-            $self->yum->install_rpm_via_url($elevate_rpm_url);
+            Elevate::PkgMgr::install_rpm_via_url($elevate_rpm_url);
             $self->beta_if_enabled;    # If --leappbeta was passed, then enable it.
         }
 
         my $leapp_data_pkg = Elevate::OS::leapp_data_pkg();
 
         unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leapp_data_pkg) ) {
-            $self->yum->install( 'leapp-upgrade', $leapp_data_pkg );
+            Elevate::PkgMgr::install( 'leapp-upgrade', $leapp_data_pkg );
         }
 
         return;
@@ -7378,7 +7440,7 @@ EOS
     sub remove_kernel_devel ($self) {
 
         if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-            $self->yum->remove('kernel-devel');
+            Elevate::PkgMgr::remove('kernel-devel');
         }
 
         return;
@@ -8946,8 +9008,6 @@ use Elevate::OS::RHEL        ();
 use Elevate::PkgMgr       ();
 use Elevate::PkgMgr::Base ();
 use Elevate::PkgMgr::YUM  ();
-use Elevate::DNF          ();
-use Elevate::YUM          ();
 
 use Elevate::Database         ();
 use Elevate::EA4              ();
@@ -9603,9 +9663,9 @@ sub run_stage_2 ($self) {
     # Best to do this before clearing the yum cache:
     $self->run_component_once( 'PackageDupes' => 'pre_distro_upgrade' );
 
-    $self->ssystem(qw{/usr/bin/yum clean all});
+    Elevate::PkgMgr::clean_all();
     $self->ssystem_and_die(qw{/scripts/update-packages});
-    $self->ssystem_and_die(qw{/usr/bin/yum -y update});
+    Elevate::PkgMgr::update();
 
     # This needs to happen before the database upgrade because
     # it will remove the packages we want to detect
@@ -9825,7 +9885,7 @@ sub run_stage_5 ($self) {
     $self->restore_outdated_services();
 
     INFO("Updating all packages before final reboot");
-    $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+    Elevate::PkgMgr::update_allow_erasing();
 
     Elevate::Motd->cleanup();
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
@@ -10115,7 +10175,7 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
 
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
-    $self->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
+    Elevate::PkgMgr::remove(@to_remove);
 
     return;
 }
