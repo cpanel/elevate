@@ -26,6 +26,7 @@ use Elevate::Constants ();
 use Elevate::Fetch     ();
 use Elevate::Notify    ();
 use Elevate::OS        ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Cwd           ();
@@ -89,7 +90,7 @@ sub _restore_imunify_packages ($self) {
     foreach my $pkg (@$packages) {
         next unless Cpanel::Pkgr::is_installed($pkg);
         INFO("Try to reinstall Imunify package: $pkg");
-        $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+        Elevate::PkgMgr::install($pkg);
     }
 
     return;

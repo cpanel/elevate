@@ -305,7 +305,7 @@ sub _install_ccs_and_dependencies ($self) {
 
     push @packages_to_install, ZPUSH_PACKAGE() if Elevate::StageFile::read_stage_file('zpush_installed');
 
-    $self->dnf->install(@packages_to_install);
+    Elevate::PkgMgr::install(@packages_to_install);
 
     return;
 }

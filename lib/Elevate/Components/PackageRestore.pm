@@ -67,7 +67,7 @@ sub post_distro_upgrade ($self) {
 
     foreach my $package ( keys %$package_info ) {
 
-        $self->dnf->install($package);
+        Elevate::PkgMgr::install($package);
 
         Elevate::PkgMgr::restore_config_files( @{ $package_info->{$package} } );
     }

@@ -1171,7 +1171,7 @@ sub run_stage_5 ($self) {
     $self->restore_outdated_services();
 
     INFO("Updating all packages before final reboot");
-    $self->ssystem(qw{/usr/bin/dnf -y --allowerasing update});
+    Elevate::PkgMgr::update_allow_erasing();
 
     Elevate::Motd->cleanup();
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
