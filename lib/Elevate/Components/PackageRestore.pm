@@ -22,8 +22,8 @@ Reinstall any packages detected pre distro upgrade
 
 use cPstrict;
 
-use Elevate::PkgUtility ();
-use Elevate::StageFile  ();
+use Elevate::PkgMgr    ();
+use Elevate::StageFile ();
 
 use Cpanel::Pkgr ();
 
@@ -49,7 +49,7 @@ sub pre_distro_upgrade ($self) {
         }
     }
 
-    my $config_files = Elevate::PkgUtility::get_config_files( \@installed_packages );
+    my $config_files = Elevate::PkgMgr::get_config_files( \@installed_packages );
 
     Elevate::StageFile::update_stage_file(
         {
@@ -69,7 +69,7 @@ sub post_distro_upgrade ($self) {
 
         $self->dnf->install($package);
 
-        Elevate::PkgUtility::restore_config_files( @{ $package_info->{$package} } );
+        Elevate::PkgMgr::restore_config_files( @{ $package_info->{$package} } );
     }
 
     return;

@@ -1,12 +1,12 @@
-package Elevate::PkgUtility::Base;
+package Elevate::PkgMgr::Base;
 
 =encoding utf-8
 
 =head1 NAME
 
-Elevate::PkgUtility::Base
+Elevate::PkgMgr::Base
 
-This is a base class used by Elevate::PkgUtility::*
+This is a base class used by Elevate::PkgMgr::*
 
 =cut
 

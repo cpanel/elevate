@@ -32,11 +32,11 @@ TODO: Split pre_imunify out to its own component
 
 use cPstrict;
 
-use Elevate::Constants  ();
-use Elevate::EA4        ();
-use Elevate::OS         ();
-use Elevate::PkgUtility ();
-use Elevate::StageFile  ();
+use Elevate::Constants ();
+use Elevate::EA4       ();
+use Elevate::OS        ();
+use Elevate::PkgMgr    ();
+use Elevate::StageFile ();
 
 use Cpanel::JSON            ();
 use Cpanel::Pkgr            ();
@@ -102,7 +102,7 @@ sub _restore_ea_addons ($self) {
     INFO("Restoring ea-nginx");
 
     # ea profile restore it in a broken state - remove & reinstall
-    Elevate::PkgUtility::remove_no_dependencies('ea-nginx');
+    Elevate::PkgMgr::remove_no_dependencies('ea-nginx');
     $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
 
     return;
@@ -146,7 +146,7 @@ sub _backup_config_files ($self) {
 
     Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-    my $ea4_config_files = Elevate::PkgUtility::get_config_files_for_pkg_prefix('ea-');
+    my $ea4_config_files = Elevate::PkgMgr::get_config_files_for_pkg_prefix('ea-');
 
     Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
@@ -175,7 +175,7 @@ sub _restore_config_files ($self) {
             @config_files_to_restore = grep { !$config_files_to_ignore{$key}{$_} } @config_files_to_restore;
         }
 
-        Elevate::PkgUtility::restore_config_files(@config_files_to_restore);
+        Elevate::PkgMgr::restore_config_files(@config_files_to_restore);
     }
 
     return;

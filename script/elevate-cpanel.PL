@@ -289,11 +289,11 @@ use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
 # - fatpack package logic
-use Elevate::PkgUtility       ();
-use Elevate::PkgUtility::Base ();
-use Elevate::PkgUtility::RPM  ();
-use Elevate::DNF              ();
-use Elevate::YUM              ();
+use Elevate::PkgMgr       ();
+use Elevate::PkgMgr::Base ();
+use Elevate::PkgMgr::YUM  ();
+use Elevate::DNF          ();
+use Elevate::YUM          ();
 
 use Elevate::Database         ();
 use Elevate::EA4              ();

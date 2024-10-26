@@ -25,9 +25,9 @@ noop
 
 use cPstrict;
 
-use Elevate::Constants  ();
-use Elevate::OS         ();
-use Elevate::PkgUtility ();
+use Elevate::Constants ();
+use Elevate::OS        ();
+use Elevate::PkgMgr    ();
 
 use Cpanel::SafeRun::Simple ();
 use Cwd                     ();
@@ -103,7 +103,7 @@ sub _fixup_epel_repo ($self) {
     }
 
     my $epel_url = EPEL_RPM_URL();
-    my $err      = Elevate::PkgUtility::force_upgrade_rpm($epel_url);
+    my $err      = Elevate::PkgMgr::force_upgrade_rpm($epel_url);
     ERROR("Error installing epel-release: $err") if $err;
 
     return;
@@ -111,7 +111,7 @@ sub _fixup_epel_repo ($self) {
 
 sub _erase_package ( $self, $pkg ) {
     return unless Cpanel::Pkgr::is_installed($pkg);
-    Elevate::PkgUtility::remove_no_dependencies($pkg);
+    Elevate::PkgMgr::remove_no_dependencies($pkg);
     return;
 }
 

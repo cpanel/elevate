@@ -90,7 +90,7 @@ BEGIN {
         'leapp_data_pkg',                     # This is used to determine which leapp data package to install
         'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
         'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
-        'package_utility',                    # This is the package utility that the OS uses.  i.e. RPM
+        'package_manager',                    # This is the package manager that the OS uses.  i.e. RPM
         'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
         'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
         'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
