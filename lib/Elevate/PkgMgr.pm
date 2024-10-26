@@ -72,4 +72,44 @@ sub remove_cpanel_arch_rpms () {
     return instance()->remove_cpanel_arch_rpms();
 }
 
+sub remove (@pkgs) {
+    return instance()->remove(@pkgs);
+}
+
+sub clean_all () {
+    return instance()->clean_all();
+}
+
+sub install_rpm_via_url ($rpm_url) {
+    return instance()->install_rpm_via_url($rpm_url);
+}
+
+sub install (@pkgs) {
+    return instance()->install(@pkgs);
+}
+
+sub repolist_all () {
+    return instance()->repolist_all();
+}
+
+sub repolist_enabled () {
+    return instance()->repolist_enabled();
+}
+
+sub repolist (@options) {
+    return instance()->repolist(@options);
+}
+
+sub get_extra_packages () {
+    return instance()->get_extra_packages();
+}
+
+sub config_manager_enable ($repo) {
+    return instance()->config_manager_enable($repo);
+}
+
+sub update_allow_erasing (@args) {
+    return instance()->update_allow_erasing(@args);
+}
+
 1;
