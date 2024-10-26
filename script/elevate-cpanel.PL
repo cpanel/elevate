@@ -949,9 +949,9 @@ sub run_stage_2 ($self) {
     # Best to do this before clearing the yum cache:
     $self->run_component_once( 'PackageDupes' => 'pre_distro_upgrade' );
 
-    $self->ssystem(qw{/usr/bin/yum clean all});
+    Elevate::PkgMgr::clean_all();
     $self->ssystem_and_die(qw{/scripts/update-packages});
-    $self->ssystem_and_die(qw{/usr/bin/yum -y update});
+    Elevate::PkgMgr::update();
 
     # This needs to happen before the database upgrade because
     # it will remove the packages we want to detect
@@ -1461,7 +1461,7 @@ sub remove_rpms_from_repos ( $self, @repo_list ) {
 
     INFO( "Removing packages for " . join( ", ", @repo_list ) );
 
-    $self->ssystem( qw{/usr/bin/yum -y erase}, @to_remove );
+    Elevate::PkgMgr::remove(@to_remove);
 
     return;
 }

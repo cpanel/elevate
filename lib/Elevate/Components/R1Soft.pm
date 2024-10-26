@@ -32,6 +32,7 @@ If the agent had been installed:
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Cpanel::Pkgr ();
@@ -52,14 +53,14 @@ sub pre_distro_upgrade ($self) {
     if ( Cpanel::Pkgr::is_installed(Elevate::Constants::R1SOFT_MAIN_AGENT_PACKAGE) ) {
         $r1soft_agent_installed = 1;
 
-        my @repo_list = $self->yum->repolist_enabled();
+        my @repo_list = Elevate::PkgMgr::repolist_enabled();
 
         if ( scalar grep { index( $_, Elevate::Constants::R1SOFT_REPO ) == 0 } @repo_list ) {
             $r1soft_repo_present = 1;
             $r1soft_repo_enabled = 1;
         }
         else {
-            @repo_list = $self->yum->repolist_all();
+            @repo_list = Elevate::PkgMgr::repolist_all();
 
             if ( scalar grep { index( $_, Elevate::Constants::R1SOFT_REPO ) == 0 } @repo_list ) {
                 $r1soft_repo_present = 1;
@@ -67,7 +68,7 @@ sub pre_distro_upgrade ($self) {
         }
 
         # Remove the agent packages; we'll need to reinstall them after the OS upgrade
-        $self->yum->remove(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
+        Elevate::PkgMgr::remove(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
     }
 
     Elevate::StageFile::update_stage_file(
@@ -91,7 +92,7 @@ sub post_distro_upgrade ($self) {
     return unless $r1soft_info->{agent_installed};
 
     # We need kernel-devel for the agent install to work
-    $self->yum->install('kernel-devel');
+    Elevate::PkgMgr::install('kernel-devel');
 
     # Ensure that the r1soft repo is present and enabled
     # if it was not that way to begin with
@@ -104,7 +105,7 @@ sub post_distro_upgrade ($self) {
     }
 
     # Now reinstall all the agent files
-    $self->yum->install(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
+    Elevate::PkgMgr::install(Elevate::Constants::R1SOFT_AGENT_PACKAGES);
 
     if ( !$r1soft_info->{repo_present} || !$r1soft_info->{repo_enabled} ) {
         $self->_disable_r1soft_repo();
@@ -113,14 +114,20 @@ sub post_distro_upgrade ($self) {
     return;
 }
 
+# TODO: We will need to make this logic more generic if/when we add support for
+#       r1soft on Ubuntu upgrades
 sub _enable_r1soft_repo ($self) {
     return $self->_run_yum_config_manager( '--enable', Elevate::Constants::R1SOFT_REPO );
 }
 
+# TODO: We will need to make this logic more generic if/when we add support for
+#       r1soft on Ubuntu upgrades
 sub _disable_r1soft_repo ($self) {
     return $self->_run_yum_config_manager( '--disable', Elevate::Constants::R1SOFT_REPO );
 }
 
+# TODO: We will need to make this logic more generic if/when we add support for
+#       r1soft on Ubuntu upgrades
 sub _run_yum_config_manager ( $self, @args ) {
     my $yum_config = Cpanel::Binaries::path('yum-config-manager');
 
@@ -130,6 +137,8 @@ sub _run_yum_config_manager ( $self, @args ) {
     return $err;
 }
 
+# TODO: We will need to make this logic more generic if/when we add support for
+#       r1soft on Ubuntu upgrades
 sub _create_r1soft_repo ($self) {
 
     my $yum_repo_contents = <<~"EOS";

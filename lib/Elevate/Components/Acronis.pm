@@ -26,6 +26,7 @@ Re-install the agent.
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Cpanel::Pkgr ();
@@ -36,7 +37,7 @@ sub pre_distro_upgrade ($self) {
 
     return unless Cpanel::Pkgr::is_installed(Elevate::Constants::ACRONIS_BACKUP_PACKAGE);
 
-    $self->yum->remove(
+    Elevate::PkgMgr::remove(
         Elevate::Constants::ACRONIS_BACKUP_PACKAGE,
         Elevate::Constants::ACRONIS_OTHER_PACKAGES
     );

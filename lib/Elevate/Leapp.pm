@@ -18,8 +18,8 @@ use Cpanel::LoadFile ();
 use Cpanel::Pkgr     ();
 
 use Elevate::OS        ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
-use Elevate::YUM       ();
 
 use Config::Tiny ();
 
@@ -35,29 +35,24 @@ our $time_to_wait_for_leapp_completion = 10 * 60;
 
 use Simple::Accessor qw{
   cpev
-  yum
 };
 
 sub _build_cpev {
     die q[Missing cpev];
 }
 
-sub _build_yum ($self) {
-    return Elevate::YUM->new( cpev => $self->cpev() );
-}
-
 sub install ($self) {
 
     unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
         my $elevate_rpm_url = Elevate::OS::elevate_rpm_url();
-        $self->yum->install_rpm_via_url($elevate_rpm_url);
+        Elevate::PkgMgr::install_rpm_via_url($elevate_rpm_url);
         $self->beta_if_enabled;    # If --leappbeta was passed, then enable it.
     }
 
     my $leapp_data_pkg = Elevate::OS::leapp_data_pkg();
 
     unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leapp_data_pkg) ) {
-        $self->yum->install( 'leapp-upgrade', $leapp_data_pkg );
+        Elevate::PkgMgr::install( 'leapp-upgrade', $leapp_data_pkg );
     }
 
     return;
@@ -75,7 +70,7 @@ sub beta_if_enabled ($self) {
 sub remove_kernel_devel ($self) {
 
     if ( Cpanel::Pkgr::is_installed('kernel-devel') ) {
-        $self->yum->remove('kernel-devel');
+        Elevate::PkgMgr::remove('kernel-devel');
     }
 
     return;

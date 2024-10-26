@@ -25,13 +25,15 @@ use cPstrict;
 
 use Cpanel::Pkgr ();
 
+use Elevate::PkgMgr ();
+
 use parent qw{Elevate::Components::Base};
 
 sub pre_distro_upgrade ($self) {
 
     if ( Cpanel::Pkgr::is_installed('panopta-agent') ) {
 
-        $self->yum->remove('panopta-agent');
+        Elevate::PkgMgr::remove('panopta-agent');
     }
 
     return;

@@ -24,9 +24,9 @@ use cPstrict;
 
 use Elevate::Constants ();
 use Elevate::Fetch     ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
-use Cpanel::SafeRun::Errors ();
 use Cwd                     ();
 use File::Copy              ();
 use Log::Log4perl           qw(:easy);
@@ -56,8 +56,7 @@ sub _remove_wordpress_toolkit ($self) {
     backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/wp-toolkit.sqlite3');
     backup_3rdparty_file('/usr/local/cpanel/3rdparty/wp-toolkit/var/etc/.shadow');
 
-    my ($output) = Cpanel::SafeRun::Errors::saferunallerrors(qw{/usr/bin/yum -y remove wp-toolkit-cpanel});
-    DEBUG($output) if $output;
+    Elevate::PkgMgr::remove('wp-toolkit-cpanel');
 
     $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 

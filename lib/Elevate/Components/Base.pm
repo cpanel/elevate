@@ -21,8 +21,6 @@ use Cpanel::JSON ();
 
 use Simple::Accessor qw(
   components
-  yum
-  dnf
 );
 
 use Log::Log4perl qw(:easy);
@@ -58,14 +56,6 @@ sub _build_components {
 
     # outside unit tests we should always be initialized with an 'Elevate::Components' object
     Carp::confess(q[Missing components]);
-}
-
-sub _build_yum ($self) {
-    return Elevate::YUM->new( cpev => $self );
-}
-
-sub _build_dnf ($self) {
-    return Elevate::DNF->new( cpev => $self );
 }
 
 sub cpev ($self) {

@@ -90,7 +90,7 @@ sub _backup_ea4_profile ($self) {
 sub _cleanup_rpm_db ($self) {
 
     # remove all ea- packages
-    $self->yum->remove('ea-*');
+    Elevate::PkgMgr::remove('ea-*');
 
     return;
 }
@@ -103,7 +103,7 @@ sub _restore_ea_addons ($self) {
 
     # ea profile restore it in a broken state - remove & reinstall
     Elevate::PkgMgr::remove_no_dependencies('ea-nginx');
-    $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
+    Elevate::PkgMgr::install('ea-nginx');
 
     return;
 }
