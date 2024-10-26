@@ -61,9 +61,9 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/OS/CentOS7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/RHEL.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/PkgUtility.pm'}                    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/PkgUtility/Base.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/PkgUtility/RPM.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/PkgMgr.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/PkgMgr/Base.pm'}                   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/PkgMgr/YUM.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/DNF.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/YUM.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Database.pm'}                      = 'script/elevate-cpanel.PL.static';
@@ -1777,11 +1777,11 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants  ();
-    use Elevate::EA4        ();
-    use Elevate::OS         ();
-    use Elevate::PkgUtility ();
-    use Elevate::StageFile  ();
+    use Elevate::Constants ();
+    use Elevate::EA4       ();
+    use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
+    use Elevate::StageFile ();
 
     use Cpanel::JSON            ();
     use Cpanel::Pkgr            ();
@@ -1838,7 +1838,7 @@ EOS
 
         INFO("Restoring ea-nginx");
 
-        Elevate::PkgUtility::remove_no_dependencies('ea-nginx');
+        Elevate::PkgMgr::remove_no_dependencies('ea-nginx');
         $self->ssystem_and_die(qw{/usr/bin/yum install -y ea-nginx});
 
         return;
@@ -1882,7 +1882,7 @@ EOS
 
         Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-        my $ea4_config_files = Elevate::PkgUtility::get_config_files_for_pkg_prefix('ea-');
+        my $ea4_config_files = Elevate::PkgMgr::get_config_files_for_pkg_prefix('ea-');
 
         Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
@@ -1911,7 +1911,7 @@ EOS
                 @config_files_to_restore = grep { !$config_files_to_ignore{$key}{$_} } @config_files_to_restore;
             }
 
-            Elevate::PkgUtility::restore_config_files(@config_files_to_restore);
+            Elevate::PkgMgr::restore_config_files(@config_files_to_restore);
         }
 
         return;
@@ -3013,10 +3013,10 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants  ();
-    use Elevate::OS         ();
-    use Elevate::PkgUtility ();
-    use Elevate::StageFile  ();
+    use Elevate::Constants ();
+    use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
+    use Elevate::StageFile ();
 
     use Cpanel::Pkgr ();
 
@@ -3052,7 +3052,7 @@ EOS
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
 
-        Elevate::PkgUtility::remove_no_dependencies('jetphp81-zip');
+        Elevate::PkgMgr::remove_no_dependencies('jetphp81-zip');
 
         return;
     }
@@ -3194,9 +3194,9 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants  ();
-    use Elevate::OS         ();
-    use Elevate::PkgUtility ();
+    use Elevate::Constants ();
+    use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
 
     use Cwd ();
 
@@ -3216,7 +3216,7 @@ EOS
 
     sub _kernel_check ($self) {
 
-        my @kernel_rpms = Elevate::PkgUtility::get_installed_rpms();
+        my @kernel_rpms = Elevate::PkgMgr::get_installed_rpms();
         @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
 
         return unless @kernel_rpms;
@@ -4302,8 +4302,8 @@ EOS
 
     use cPstrict;
 
-    use Elevate::PkgUtility ();
-    use Elevate::StageFile  ();
+    use Elevate::PkgMgr    ();
+    use Elevate::StageFile ();
 
     use Cpanel::Pkgr ();
 
@@ -4328,7 +4328,7 @@ EOS
             }
         }
 
-        my $config_files = Elevate::PkgUtility::get_config_files( \@installed_packages );
+        my $config_files = Elevate::PkgMgr::get_config_files( \@installed_packages );
 
         Elevate::StageFile::update_stage_file(
             {
@@ -4348,7 +4348,7 @@ EOS
 
             $self->dnf->install($package);
 
-            Elevate::PkgUtility::restore_config_files( @{ $package_info->{$package} } );
+            Elevate::PkgMgr::restore_config_files( @{ $package_info->{$package} } );
         }
 
         return;
@@ -4366,8 +4366,8 @@ EOS
 
     use Digest::SHA ();
 
-    use Elevate::Constants  ();
-    use Elevate::PkgUtility ();
+    use Elevate::Constants ();
+    use Elevate::PkgMgr    ();
 
     use Cpanel::SafeRun::Simple           ();
     use Cpanel::Version::Compare::Package ();
@@ -4495,7 +4495,7 @@ EOS
 
     sub _remove_packages ( $self, @packages ) {
         foreach my $pkg (@packages) {
-            Elevate::PkgUtility::remove_no_dependencies_or_scripts_and_justdb($pkg);
+            Elevate::PkgMgr::remove_no_dependencies_or_scripts_and_justdb($pkg);
         }
         return;
     }
@@ -5251,9 +5251,9 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants  ();
-    use Elevate::OS         ();
-    use Elevate::PkgUtility ();
+    use Elevate::Constants ();
+    use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
 
     use Cpanel::SafeRun::Simple ();
     use Cwd                     ();
@@ -5332,7 +5332,7 @@ EOS
         }
 
         my $epel_url = EPEL_RPM_URL();
-        my $err      = Elevate::PkgUtility::force_upgrade_rpm($epel_url);
+        my $err      = Elevate::PkgMgr::force_upgrade_rpm($epel_url);
         ERROR("Error installing epel-release: $err") if $err;
 
         return;
@@ -5340,7 +5340,7 @@ EOS
 
     sub _erase_package ( $self, $pkg ) {
         return unless Cpanel::Pkgr::is_installed($pkg);
-        Elevate::PkgUtility::remove_no_dependencies($pkg);
+        Elevate::PkgMgr::remove_no_dependencies($pkg);
         return;
     }
 
@@ -5745,9 +5745,9 @@ EOS
 
     use cPstrict;
 
-    use Elevate::Constants  ();
-    use Elevate::DNF        ();
-    use Elevate::PkgUtility ();
+    use Elevate::Constants ();
+    use Elevate::DNF       ();
+    use Elevate::PkgMgr    ();
 
     use Cwd ();
 
@@ -5781,7 +5781,7 @@ EOS
 
     sub _cleanup_rpms ($self) {
 
-        Elevate::PkgUtility::remove_cpanel_arch_rpms();
+        Elevate::PkgMgr::remove_cpanel_arch_rpms();
 
         $self->_remove_obsolete_packages();
 
@@ -5903,8 +5903,8 @@ EOS
 
     use cPstrict;
 
-    use Elevate::OS         ();
-    use Elevate::PkgUtility ();
+    use Elevate::OS     ();
+    use Elevate::PkgMgr ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -5945,7 +5945,7 @@ EOS
     }
 
     sub _warn_about_other_modules_that_did_not_convert ($self) {
-        my @installed_packages     = Elevate::PkgUtility::get_installed_rpms();
+        my @installed_packages     = Elevate::PkgMgr::get_installed_rpms();
         my @el7_installed_packages = grep { $_ =~ m/el7/ } @installed_packages;
 
         my @el7_packages_minus_exemptions;
@@ -6342,7 +6342,7 @@ EOS
             'leapp_data_pkg',                     # This is used to determine which leapp data package to install
             'leapp_flag',                         # This is used to determine if we need to pass any flags to the leapp script or not
             'name',                               # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
-            'package_utility',                    # This is the package utility that the OS uses.  i.e. RPM
+            'package_manager',                    # This is the package manager that the OS uses.  i.e. RPM
             'pretty_name',                        # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',            # This is used to determine if the OS provides the governor-mysql package
             'remove_els',                         # This is used to indicate if we are to remove ELS for this OS
@@ -6543,7 +6543,7 @@ EOS
     use constant leapp_data_package              => undef;
     use constant leapp_flag                      => undef;
     use constant name                            => 'RHEL';
-    use constant package_utility                 => 'RPM';
+    use constant package_manager                 => 'YUM';
     use constant pretty_name                     => 'RHEL';
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
@@ -6554,19 +6554,19 @@ EOS
 
 }    # --- END lib/Elevate/OS/RHEL.pm
 
-{    # --- BEGIN lib/Elevate/PkgUtility.pm
+{    # --- BEGIN lib/Elevate/PkgMgr.pm
 
-    package Elevate::PkgUtility;
+    package Elevate::PkgMgr;
 
     use cPstrict;
 
-    use Elevate::PkgUtility::RPM ();
+    use Elevate::PkgMgr::YUM ();
 
     our $PKGUTILITY;
 
     sub factory {
 
-        my $pkg = 'Elevate::PkgUtility::' . Elevate::OS::package_utility();
+        my $pkg = 'Elevate::PkgMgr::' . Elevate::OS::package_manager();
         return $pkg->new;
     }
 
@@ -6621,11 +6621,11 @@ EOS
 
     1;
 
-}    # --- END lib/Elevate/PkgUtility.pm
+}    # --- END lib/Elevate/PkgMgr.pm
 
-{    # --- BEGIN lib/Elevate/PkgUtility/Base.pm
+{    # --- BEGIN lib/Elevate/PkgMgr/Base.pm
 
-    package Elevate::PkgUtility::Base;
+    package Elevate::PkgMgr::Base;
 
     use cPstrict;
 
@@ -6646,11 +6646,11 @@ EOS
 
     1;
 
-}    # --- END lib/Elevate/PkgUtility/Base.pm
+}    # --- END lib/Elevate/PkgMgr/Base.pm
 
-{    # --- BEGIN lib/Elevate/PkgUtility/RPM.pm
+{    # --- BEGIN lib/Elevate/PkgMgr/YUM.pm
 
-    package Elevate::PkgUtility::RPM;
+    package Elevate::PkgMgr::YUM;
 
     use cPstrict;
 
@@ -6659,9 +6659,9 @@ EOS
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    # use Elevate::PkgUtility::Base();
+    # use Elevate::PkgMgr::Base();
     our @ISA;
-    BEGIN { push @ISA, qw(Elevate::PkgUtility::Base); }
+    BEGIN { push @ISA, qw(Elevate::PkgMgr::Base); }
 
     our $rpm = '/usr/bin/rpm';
 
@@ -6773,7 +6773,7 @@ EOS
 
     1;
 
-}    # --- END lib/Elevate/PkgUtility/RPM.pm
+}    # --- END lib/Elevate/PkgMgr/YUM.pm
 
 {    # --- BEGIN lib/Elevate/DNF.pm
 
@@ -8943,11 +8943,11 @@ use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
 
 # - fatpack package logic
-use Elevate::PkgUtility       ();
-use Elevate::PkgUtility::Base ();
-use Elevate::PkgUtility::RPM  ();
-use Elevate::DNF              ();
-use Elevate::YUM              ();
+use Elevate::PkgMgr       ();
+use Elevate::PkgMgr::Base ();
+use Elevate::PkgMgr::YUM  ();
+use Elevate::DNF          ();
+use Elevate::YUM          ();
 
 use Elevate::Database         ();
 use Elevate::EA4              ();
