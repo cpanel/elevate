@@ -132,4 +132,16 @@ sub makecache () {
     return instance()->makecache();
 }
 
+sub pkg_list ( $invalidate_cache = 0 ) {
+    return instance()->pkg_list($invalidate_cache);
+}
+
+sub get_installed_pkgs_in_repo (@pkg_list) {
+    return instance()->get_installed_pkgs_in_repo(@pkg_list);
+}
+
+sub remove_pkgs_from_repos (@pkg_list) {
+    return instance()->remove_pkgs_from_repos(@pkg_list);
+}
+
 1;

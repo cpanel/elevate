@@ -316,4 +316,80 @@ sub makecache ($self) {
     return $stderr;
 }
 
+my $pkg_list_cache;
+
+sub pkg_list ( $self, $invalidate_cache = 0 ) {
+    return $pkg_list_cache if !$invalidate_cache && $pkg_list_cache;
+
+    my $pkgmgr = $self->pkgmgr;
+
+    my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror( $pkgmgr, 'list', 'installed' );
+    while ( my $line = shift @lines ) {
+        last if $line && $line =~ m/^Installed Packages/;
+    }
+
+    my %repos;
+    while ( my $line = shift @lines ) {
+        chomp $line;
+        my ( $package, $version, $repo ) = split( qr{\s+}, $line );
+
+        if ( !length $version ) {
+            my $extra_line = shift @lines;
+            chomp $extra_line;
+            $extra_line =~ s/^\s+//;
+            ( $version, $repo ) = split( ' ', $extra_line );
+        }
+        if ( !length $repo ) {
+            $repo = shift @lines;
+            chomp $repo;
+            $repo =~ s/\s+//g;
+        }
+        length $repo or next;    # We screwed up the parse. move on.
+
+        $repo =~ s/^\@// or next;
+        $repos{$repo} ||= [];
+        next if $repo eq 'installed';    # Not installed from a repo.
+
+        $package =~ s/\.(noarch|x86_64)$//;
+        my $arch = $1 // '?';
+        push $repos{$repo}->@*, { 'package' => $package, 'version' => $version, arch => $arch };
+    }
+
+    return $pkg_list_cache = \%repos;
+}
+
+sub get_installed_pkgs_in_repo (@pkg_list) {
+
+    my @installed_pkgs;
+    my $installed = Elevate_PkgMgr::pkg_list();
+
+    # Regex for repos.
+    if ( ref $repo_list[0] eq 'Regexp' ) {
+        scalar @repo_list == 1 or Carp::confess("too many args");
+        my $regex = shift @repo_list;
+
+        @repo_list = grep { $_ =~ $regex } keys %$installed;
+    }
+
+    foreach my $repo (@repo_list) {
+        next unless ref $installed->{$repo};
+        next unless scalar $installed->{$repo}->@*;
+        push @installed_pkgs, map { $_->{'package'} } $installed->{$repo}->@*;
+    }
+
+    return @installed_pkgs;
+}
+
+sub remove_pkgs_from_repos (@pkg_list) {
+    my @to_remove = Elevate::PkgMgr::get_installed_pkgs_in_repo(@pkg_list);
+
+    return unless @to_remove;
+
+    INFO( "Removing packages for " . join( ", ", @repo_list ) );
+
+    Elevate::PkgMgr::remove(@to_remove);
+
+    return;
+}
+
 1;
