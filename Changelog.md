@@ -1,3 +1,12 @@
+##### **2024-10-28** - version 56
+
+* Fixed case RE-812: Fix elevate failures stemming from having a customized epel.repo file.
+* Fixed case RE-575: Support running elevate on systems that have the Acronis backup agent installed.
+* Fixed case RE-652: Attempt to resolve duplicate RPMs found prior to upgrade.
+* Fixed case RE-723: Use mv and cp from File::Copy instead of copy and move
+* Fixed case RE-862: Ensure Imunify upgrade is not executing before attempting to uninstall it
+* Fixed case RE-673: Merge blockers into components
+
 ##### **2024-09-30** - version 55
 * Add support for "cl7h" (Cloud Linux 7 Hybrid) repository.
 
