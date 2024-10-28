@@ -28,17 +28,8 @@ sub name ($self) {
     return Elevate::OS::package_manager();
 }
 
-sub pkgmgr ($self) {
+sub _pkgmgr ($self) {
     return '/usr/bin/' . Cpanel::OS::package_manager();
-}
-
-sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
-
-    my @installed_rpms = $self->get_installed_rpms(q[%{NAME}\n]);
-    my @ea_rpms        = grep { $_ =~ qr/^\Q$prefix\E/ } @installed_rpms;
-    my $config_files   = $self->get_config_files( \@ea_rpms );
-
-    return $config_files;
 }
 
 sub get_config_files ( $self, $pkgs ) {
@@ -74,27 +65,8 @@ sub get_config_files ( $self, $pkgs ) {
     return \%config_files;
 }
 
-sub restore_config_files ( $self, @files ) {
-
-    # %config and %config(noreplace) both get moved to '.rpmsave' when removing an RPM
-    my $suffix = '.rpmsave';
-
-    foreach my $file (@files) {
-        next unless length $file;
-
-        my $backup_file = $file . $suffix;
-
-        next unless -e $backup_file;
-
-        File::Copy::mv( $backup_file, $file ) or WARN("Unable to restore config file $backup_file: $!");
-    }
-
-    return;
-}
-
-sub remove_no_dependencies ( $self, $pkg ) {
-    $self->ssystem( $rpm, '-e', '--nodeps', $pkg );
-    return;
+sub _get_config_file_suffix ($self) {
+    return '.rpmsave';
 }
 
 sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
@@ -107,12 +79,12 @@ sub remove_no_dependencies_or_scripts_and_justdb ( $self, $pkg ) {
     return;
 }
 
-sub force_upgrade_rpm ( $self, $pkg ) {
+sub force_upgrade_pkg ( $self, $pkg ) {
     my $err = $self->ssystem( $rpm, '-Uv', '--force', $pkg );
     return $err;
 }
 
-sub get_installed_rpms ( $self, $format = undef ) {
+sub get_installed_pkgs ( $self, $format = undef ) {
     my @args = qw{-qa};
 
     if ($format) {
@@ -124,26 +96,10 @@ sub get_installed_rpms ( $self, $format = undef ) {
     return @{ $out->{stdout} };
 }
 
-sub get_cpanel_arch_rpms ($self) {
-    my @installed_rpms   = $self->get_installed_rpms();
-    my @cpanel_arch_rpms = grep { $_ =~ m/^cpanel-.*\.x86_64$/ } @installed_rpms;
-    return @cpanel_arch_rpms;
-}
-
-sub remove_cpanel_arch_rpms ($self) {
-    my @rpms_to_remove = $self->get_cpanel_arch_rpms();
-
-    foreach my $rpm (@rpms_to_remove) {
-        $self->remove_no_dependencies_and_justdb($rpm);
-    }
-
-    return;
-}
-
 sub remove ( $self, @pkgs ) {
     return unless scalar @pkgs;
 
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     $self->ssystem_and_die( $pkgmgr, '-y', 'remove', @pkgs );
 
@@ -151,17 +107,17 @@ sub remove ( $self, @pkgs ) {
 }
 
 sub clean_all ($self) {
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     my $out = $self->ssystem_capture_output( $pkgmgr, 'clean', 'all' );
 
     return $out;
 }
 
-sub install_rpm_via_url ( $self, $rpm_url ) {
-    my $pkgmgr = $self->pkgmgr;
+sub install_pkg_via_url ( $self, $pkg_url ) {
+    my $pkgmgr = $self->_pkgmgr();
 
-    $self->ssystem_and_die( $pkgmgr, '-y', 'install', $rpm_url );
+    $self->ssystem_and_die( $pkgmgr, '-y', 'install', $pkg_url );
 
     return;
 }
@@ -170,7 +126,7 @@ sub install_with_options ( $self, $options, $pkgs ) {
     return unless scalar @$options;
     return unless scalar @$pkgs;
 
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     # i.e. /usr/bin/yum -y install --enablerepo=jetapps --enablerepo=jetapps-stable jetphp81-zip
     $self->ssystem_and_die( $pkgmgr, '-y', 'install', @$options, @$pkgs );
@@ -191,7 +147,7 @@ sub install ( $self, @pkgs ) {
 sub reinstall ( $self, @pkgs ) {
     return unless scalar @pkgs;
 
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     $self->ssystem_and_die( $pkgmgr, '-y', 'reinstall', @pkgs );
 
@@ -207,7 +163,7 @@ sub repolist_enabled ($self) {
 }
 
 sub repolist ( $self, @options ) {
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     my $out   = $self->ssystem_hide_and_capture_output( $pkgmgr, '-q', 'repolist', @options );
     my @lines = @{ $out->{stdout} };
@@ -228,7 +184,7 @@ sub repolist ( $self, @options ) {
 # No cache here since this is currently only called one time from a blocker
 # Consider adding a cache if we ever call it anywhere else
 sub get_extra_packages ($self) {
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     # From the yum man page
     # yum list extras [glob_exp1] [...]
@@ -271,7 +227,7 @@ sub get_extra_packages ($self) {
 }
 
 sub config_manager_enable ( $self, $repo ) {
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     $self->ssystem( $pkgmgr, 'config-manager', '--enable', $repo );
 
@@ -279,7 +235,7 @@ sub config_manager_enable ( $self, $repo ) {
 }
 
 sub update ($self) {
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     $self->ssystem_and_die( $pkgmgr, '-y', 'update' );
 
@@ -290,7 +246,7 @@ sub update_with_options ( $self, $options, $pkgs ) {
     return unless scalar @$options;
     return unless scalar @$pkgs;
 
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     # i.e. /usr/bin/yum -y update --enablerepo=jetapps --enablerepo=jetapps-stable @packages
     $self->ssystem_and_die( $pkgmgr, '-y', 'update', @$options, @$pkgs );
@@ -299,7 +255,7 @@ sub update_with_options ( $self, $options, $pkgs ) {
 }
 
 sub update_allow_erasing ( $self, @args ) {
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     my @additional_args = scalar @args ? @args : '';
 
@@ -309,7 +265,7 @@ sub update_allow_erasing ( $self, @args ) {
 }
 
 sub makecache ($self) {
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     my $out    = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
     my $stderr = join "\n", @{ $out->{stderr} };
@@ -321,7 +277,7 @@ my $pkg_list_cache;
 sub pkg_list ( $self, $invalidate_cache = 0 ) {
     return $pkg_list_cache if !$invalidate_cache && $pkg_list_cache;
 
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror( $pkgmgr, 'list', 'installed' );
     while ( my $line = shift @lines ) {
@@ -358,10 +314,10 @@ sub pkg_list ( $self, $invalidate_cache = 0 ) {
     return $pkg_list_cache = \%repos;
 }
 
-sub get_installed_pkgs_in_repo (@pkg_list) {
+sub get_installed_pkgs_in_repo ( $self, @pkg_list ) {
 
     my @installed_pkgs;
-    my $installed = Elevate::PkgMgr::pkg_list();
+    my $installed = $self->pkg_list();
 
     # Regex for repos.
     if ( ref $pkg_list[0] eq 'Regexp' ) {
@@ -380,14 +336,14 @@ sub get_installed_pkgs_in_repo (@pkg_list) {
     return @installed_pkgs;
 }
 
-sub remove_pkgs_from_repos (@pkg_list) {
-    my @to_remove = Elevate::PkgMgr::get_installed_pkgs_in_repo(@pkg_list);
+sub remove_pkgs_from_repos ( $self, @pkg_list ) {
+    my @to_remove = $self->get_installed_pkgs_in_repo(@pkg_list);
 
     return unless @to_remove;
 
     INFO( "Removing packages for " . join( ", ", @pkg_list ) );
 
-    Elevate::PkgMgr::remove(@to_remove);
+    $self->remove(@to_remove);
 
     return;
 }
