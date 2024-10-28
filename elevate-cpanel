@@ -169,7 +169,6 @@ BEGIN {    # Suppress load of all of these at earliest point.
           ssystem_and_die
           ssystem_capture_output
           ssystem_hide_and_capture_output
-          remove_rpms_from_repos
         };
 
         foreach my $subname (@_DELEGATE_TO_CPEV) {
@@ -1214,7 +1213,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         my @installed_arch_cpanel_plugins;
 
-        my $installed    = cpev::yum_list();
+        my $installed    = Elevate::PkgMgr::pkg_list();
         my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
         foreach my $repo (@cpanel_repos) {
             push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
@@ -2651,7 +2650,7 @@ EOS
 
     sub _capture_imunify_packages ($self) {
 
-        my @packages = grep { m/^imunify-/ } cpev::get_installed_rpms_in_repo(qw{ imunify imunify360 });
+        my @packages = grep { m/^imunify-/ } Elevate::PkgMgr::get_installed_pkgs_in_repo(qw{ imunify imunify360 });
 
         return unless scalar @packages;
 
@@ -2830,7 +2829,7 @@ EOS
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
 
-        $self->remove_rpms_from_repos('imunify');
+        Elevate::PkgMgr::remove_pkgs_from_repos('imunify');
 
         return;
     }
@@ -3028,14 +3027,14 @@ EOS
 
         return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
 
-        my $repos = cpev::yum_list();
+        my $repos = Elevate::PkgMgr::pkg_list();
         my $jetbackup_tier =
             $repos->{'jetapps-stable'} ? 'jetapps-stable'
           : $repos->{'jetapps-edge'}   ? 'jetapps-edge'
           : $repos->{'jetapps-beta'}   ? 'jetapps-beta'
           :                              'jetapps-stable';    # Just give up and choose stable if you can't guess.
         INFO("Jetbackup tier '$jetbackup_tier' detected. Not removing jetbackup. Will re-install it after elevate.");
-        my @reinstall = cpev::get_installed_rpms_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
+        my @reinstall = Elevate::PkgMgr::get_installed_pkgs_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
         unshift @reinstall, $jetbackup_tier;
 
         my $data = {
@@ -3110,6 +3109,7 @@ EOS
 
     use Elevate::Constants ();
     use Elevate::OS        ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     use Cwd        ();
@@ -3146,7 +3146,7 @@ EOS
         return unless -x q[/usr/bin/kcarectl];
 
         local $ENV{KCARE_KEEP_REGISTRATION} = '1';
-        $self->remove_rpms_from_repos('kernelcare');
+        Elevate::PkgMgr::remove_pkgs_from_repos('kernelcare');
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
 
@@ -3462,6 +3462,7 @@ EOS
 
     use Elevate::Database  ();
     use Elevate::Notify    ();
+    use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
     # use Elevate::Components::Base();
@@ -3599,7 +3600,7 @@ EOS
           Mysql-tools-preview
         };
 
-        $self->remove_rpms_from_repos(@repos);
+        Elevate::PkgMgr::remove_pkgs_from_repos(@repos);
 
         return;
     }
@@ -3613,35 +3614,35 @@ EOS
           Mysql-tools-preview
         };
 
-        $self->remove_rpms_from_repos(@repos);
+        Elevate::PkgMgr::remove_pkgs_from_repos(@repos);
 
         return;
     }
 
     sub _cleanup_mysql_102_packages ($self) {
 
-        $self->remove_rpms_from_repos('MariaDB102');
+        Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB102');
 
         return;
     }
 
     sub _cleanup_mysql_103_packages ($self) {
 
-        $self->remove_rpms_from_repos('MariaDB103');
+        Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB103');
 
         return;
     }
 
     sub _cleanup_mysql_105_packages ($self) {
 
-        $self->remove_rpms_from_repos('MariaDB105');
+        Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB105');
 
         return;
     }
 
     sub _cleanup_mysql_106_packages ($self) {
 
-        $self->remove_rpms_from_repos('MariaDB106');
+        Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB106');
 
         return;
     }
@@ -5574,7 +5575,7 @@ EOS
 
                 if ( !$is_vetted ) {
                     $status{'UNVETTED'} = 1;
-                    my @installed_packages = cpev::get_installed_rpms_in_repo($current_repo_name);
+                    my @installed_packages = Elevate::PkgMgr::get_installed_pkgs_in_repo($current_repo_name);
                     if ( my $total_pkg = scalar @installed_packages ) {    # FIXME
                         ERROR(
                             sprintf(
@@ -6162,7 +6163,7 @@ EOS
     use Cwd        ();
     use File::Copy ();
 
-    # use Log::Log4perl           qw(:easy);
+    # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
     # use Elevate::Components::Base();
@@ -6194,7 +6195,7 @@ EOS
 
         Elevate::PkgMgr::remove('wp-toolkit-cpanel');
 
-        $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
+        Elevate::PkgMgr::remove_pkgs_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
 
@@ -6679,6 +6680,18 @@ EOS
         return instance()->makecache();
     }
 
+    sub pkg_list ( $invalidate_cache = 0 ) {
+        return instance()->pkg_list($invalidate_cache);
+    }
+
+    sub get_installed_pkgs_in_repo (@pkg_list) {
+        return instance()->get_installed_pkgs_in_repo(@pkg_list);
+    }
+
+    sub remove_pkgs_from_repos (@pkg_list) {
+        return instance()->remove_pkgs_from_repos(@pkg_list);
+    }
+
     1;
 
 }    # --- END lib/Elevate/PkgMgr.pm
@@ -7003,6 +7016,81 @@ EOS
         my $out    = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
         my $stderr = join "\n", @{ $out->{stderr} };
         return $stderr;
+    }
+
+    my $pkg_list_cache;
+
+    sub pkg_list ( $self, $invalidate_cache = 0 ) {
+        return $pkg_list_cache if !$invalidate_cache && $pkg_list_cache;
+
+        my $pkgmgr = $self->pkgmgr;
+
+        my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror( $pkgmgr, 'list', 'installed' );
+        while ( my $line = shift @lines ) {
+            last if $line && $line =~ m/^Installed Packages/;
+        }
+
+        my %repos;
+        while ( my $line = shift @lines ) {
+            chomp $line;
+            my ( $package, $version, $repo ) = split( qr{\s+}, $line );
+
+            if ( !length $version ) {
+                my $extra_line = shift @lines;
+                chomp $extra_line;
+                $extra_line =~ s/^\s+//;
+                ( $version, $repo ) = split( ' ', $extra_line );
+            }
+            if ( !length $repo ) {
+                $repo = shift @lines;
+                chomp $repo;
+                $repo =~ s/\s+//g;
+            }
+            length $repo or next;    # We screwed up the parse. move on.
+
+            $repo =~ s/^\@// or next;
+            $repos{$repo} ||= [];
+            next if $repo eq 'installed';    # Not installed from a repo.
+
+            $package =~ s/\.(noarch|x86_64)$//;
+            my $arch = $1 // '?';
+            push $repos{$repo}->@*, { 'package' => $package, 'version' => $version, arch => $arch };
+        }
+
+        return $pkg_list_cache = \%repos;
+    }
+
+    sub get_installed_pkgs_in_repo (@pkg_list) {
+
+        my @installed_pkgs;
+        my $installed = Elevate::PkgMgr::pkg_list();
+
+        if ( ref $pkg_list[0] eq 'Regexp' ) {
+            scalar @pkg_list == 1 or Carp::confess("too many args");
+            my $regex = shift @pkg_list;
+
+            @pkg_list = grep { $_ =~ $regex } keys %$installed;
+        }
+
+        foreach my $repo (@pkg_list) {
+            next unless ref $installed->{$repo};
+            next unless scalar $installed->{$repo}->@*;
+            push @installed_pkgs, map { $_->{'package'} } $installed->{$repo}->@*;
+        }
+
+        return @installed_pkgs;
+    }
+
+    sub remove_pkgs_from_repos (@pkg_list) {
+        my @to_remove = Elevate::PkgMgr::get_installed_pkgs_in_repo(@pkg_list);
+
+        return unless @to_remove;
+
+        INFO( "Removing packages for " . join( ", ", @pkg_list ) );
+
+        Elevate::PkgMgr::remove(@to_remove);
+
+        return;
     }
 
     1;
@@ -10099,83 +10187,6 @@ sub clear_cpanel_caches ($self) {
     }
 
     unlink $_ foreach @files;
-
-    return;
-}
-
-my $yum_list_cache;
-
-sub yum_list ( $invalidate_cache = 0 ) {    # FIXME isolate to its own namespace
-    return $yum_list_cache if !$invalidate_cache && $yum_list_cache;
-
-    my @lines = split "\n", Cpanel::SafeRun::Errors::saferunnoerror(qw{/usr/bin/yum list installed});
-    while ( my $line = shift @lines ) {
-        last if $line && $line =~ m/^Installed Packages/;
-    }
-
-    my %repos;
-    while ( my $line = shift @lines ) {
-        chomp $line;
-        my ( $package, $version, $repo ) = split( qr{\s+}, $line );
-
-        if ( !length $version ) {
-            my $extra_line = shift @lines;
-            chomp $extra_line;
-            $extra_line =~ s/^\s+//;
-            ( $version, $repo ) = split( ' ', $extra_line );
-        }
-        if ( !length $repo ) {
-            $repo = shift @lines;
-            chomp $repo;
-            $repo =~ s/\s+//g;
-        }
-        length $repo or next;    # We screwed up the parse. move on.
-
-        $repo =~ s/^\@// or next;
-        $repos{$repo} ||= [];
-        next if $repo eq 'installed';    # Not installed from a repo.
-
-        $package =~ s/\.(noarch|x86_64)$//;
-        my $arch = $1 // '?';
-        push $repos{$repo}->@*, { 'package' => $package, 'version' => $version, arch => $arch };
-    }
-
-    return $yum_list_cache = \%repos;
-}
-
-sub get_installed_rpms_in_repo (@repo_list) {
-
-    my @to_remove;
-    my $installed = yum_list();
-
-    # Regex for repos.
-    if ( ref $repo_list[0] eq 'Regexp' ) {
-        scalar @repo_list == 1 or Carp::confess("too many args");
-        my $regex = shift @repo_list;
-
-        @repo_list = grep { $_ =~ $regex } keys %$installed;
-    }
-
-    foreach my $repo (@repo_list) {
-        next unless ref $installed->{$repo};
-        next unless scalar $installed->{$repo}->@*;
-        push @to_remove, map { $_->{'package'} } $installed->{$repo}->@*;
-    }
-
-    return @to_remove;
-}
-
-sub remove_rpms_from_repos ( $self, @repo_list ) {
-
-    die qq[remove_rpms_from_repos: Not a method call - $self, @repo_list] unless ref $self;
-
-    my @to_remove = get_installed_rpms_in_repo(@repo_list);
-
-    return unless @to_remove;
-
-    INFO( "Removing packages for " . join( ", ", @repo_list ) );
-
-    Elevate::PkgMgr::remove(@to_remove);
 
     return;
 }
