@@ -41,14 +41,14 @@ sub pre_distro_upgrade ($self) {
 
     return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
 
-    my $repos = cpev::yum_list();
+    my $repos = Elevate::PkgMgr::pkg_list();
     my $jetbackup_tier =
         $repos->{'jetapps-stable'} ? 'jetapps-stable'
       : $repos->{'jetapps-edge'}   ? 'jetapps-edge'
       : $repos->{'jetapps-beta'}   ? 'jetapps-beta'
       :                              'jetapps-stable';    # Just give up and choose stable if you can't guess.
     INFO("Jetbackup tier '$jetbackup_tier' detected. Not removing jetbackup. Will re-install it after elevate.");
-    my @reinstall = cpev::get_installed_rpms_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
+    my @reinstall = Elevate::PkgMgr::get_installed_pkgs_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
     unshift @reinstall, $jetbackup_tier;
 
     my $data = {

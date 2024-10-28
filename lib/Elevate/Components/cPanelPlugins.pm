@@ -36,7 +36,7 @@ sub pre_distro_upgrade ($self) {
     # Backup arch rpms which we're going to remove and are provided by yum.
     my @installed_arch_cpanel_plugins;
 
-    my $installed    = cpev::yum_list();
+    my $installed    = Elevate::PkgMgr::pkg_list();
     my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
     foreach my $repo (@cpanel_repos) {
         push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;

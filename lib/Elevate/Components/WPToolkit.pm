@@ -27,9 +27,9 @@ use Elevate::Fetch     ();
 use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
-use Cwd                     ();
-use File::Copy              ();
-use Log::Log4perl           qw(:easy);
+use Cwd           ();
+use File::Copy    ();
+use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
 
@@ -58,7 +58,7 @@ sub _remove_wordpress_toolkit ($self) {
 
     Elevate::PkgMgr::remove('wp-toolkit-cpanel');
 
-    $self->remove_rpms_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
+    Elevate::PkgMgr::remove_pkgs_from_repos(qw/wp-toolkit-cpanel wp-toolkit-thirdparties/);
 
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'wordpress_toolkit' => 1 } } );
 

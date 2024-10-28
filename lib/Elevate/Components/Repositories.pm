@@ -360,7 +360,7 @@ sub _check_yum_repos ($self) {
 
             if ( !$is_vetted ) {
                 $status{'UNVETTED'} = 1;
-                my @installed_packages = cpev::get_installed_rpms_in_repo($current_repo_name);
+                my @installed_packages = Elevate::PkgMgr::get_installed_pkgs_in_repo($current_repo_name);
                 if ( my $total_pkg = scalar @installed_packages ) {    # FIXME
                     ERROR(
                         sprintf(
