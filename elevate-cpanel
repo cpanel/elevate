@@ -3211,7 +3211,7 @@ EOS
 
     sub _kernel_check ($self) {
 
-        my @kernel_rpms = Elevate::PkgMgr::get_installed_rpms();
+        my @kernel_rpms = Elevate::PkgMgr::get_installed_pkgs();
         @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
 
         return unless @kernel_rpms;
@@ -5334,7 +5334,7 @@ EOS
         }
 
         my $epel_url = EPEL_RPM_URL();
-        my $err      = Elevate::PkgMgr::force_upgrade_rpm($epel_url);
+        my $err      = Elevate::PkgMgr::force_upgrade_pkg($epel_url);
         ERROR("Error installing epel-release: $err") if $err;
 
         return;
@@ -5782,7 +5782,7 @@ EOS
 
     sub _cleanup_rpms ($self) {
 
-        Elevate::PkgMgr::remove_cpanel_arch_rpms();
+        Elevate::PkgMgr::remove_cpanel_arch_pkgs();
 
         $self->_remove_obsolete_packages();
 
@@ -5809,7 +5809,7 @@ EOS
         my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
 
         unless ( Cpanel::Pkgr::is_installed('epel-release') ) {
-            Elevate::PkgMgr::install_rpm_via_url($epel_url);
+            Elevate::PkgMgr::install_pkg_via_url($epel_url);
         }
 
         Elevate::PkgMgr::config_manager_enable('powertools');
@@ -5946,7 +5946,7 @@ EOS
     }
 
     sub _warn_about_other_modules_that_did_not_convert ($self) {
-        my @installed_packages     = Elevate::PkgMgr::get_installed_rpms();
+        my @installed_packages     = Elevate::PkgMgr::get_installed_pkgs();
         my @el7_installed_packages = grep { $_ =~ m/el7/ } @installed_packages;
 
         my @el7_packages_minus_exemptions;
@@ -6773,7 +6773,7 @@ EOS
     }
 
     sub force_upgrade_pkg ( $self, $pkg ) {
-        die "force_upgrade_rpm unimplemented";
+        die "force_upgrade_pkg unimplemented";
     }
 
     sub get_installed_pkgs ( $self, $format = undef ) {
@@ -7000,7 +7000,7 @@ EOS
     sub install ( $self, @pkgs ) {
         return unless scalar @pkgs;
 
-        my $pkgmgr = $self->pkgmgr;
+        my $pkgmgr = $self->_pkgmgr();
 
         $self->ssystem_and_die( $pkgmgr, '-y', 'install', @pkgs );
 
@@ -7611,7 +7611,7 @@ EOS
 
         unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
             my $elevate_rpm_url = Elevate::OS::elevate_rpm_url();
-            Elevate::PkgMgr::install_rpm_via_url($elevate_rpm_url);
+            Elevate::PkgMgr::install_pkg_via_url($elevate_rpm_url);
             $self->beta_if_enabled;    # If --leappbeta was passed, then enable it.
         }
 

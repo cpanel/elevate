@@ -45,7 +45,7 @@ sub install ($self) {
 
     unless ( Cpanel::Pkgr::is_installed('elevate-release') ) {
         my $elevate_rpm_url = Elevate::OS::elevate_rpm_url();
-        Elevate::PkgMgr::install_rpm_via_url($elevate_rpm_url);
+        Elevate::PkgMgr::install_pkg_via_url($elevate_rpm_url);
         $self->beta_if_enabled;    # If --leappbeta was passed, then enable it.
     }
 

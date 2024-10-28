@@ -109,7 +109,7 @@ sub _fixup_epel_repo ($self) {
     }
 
     my $epel_url = EPEL_RPM_URL();
-    my $err      = Elevate::PkgMgr::force_upgrade_rpm($epel_url);
+    my $err      = Elevate::PkgMgr::force_upgrade_pkg($epel_url);
     ERROR("Error installing epel-release: $err") if $err;
 
     return;
