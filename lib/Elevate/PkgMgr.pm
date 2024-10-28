@@ -56,20 +56,20 @@ sub remove_no_dependencies_or_scripts_and_justdb ($pkg) {
     return instance()->remove_no_dependencies_or_scripts_and_justdb($pkg);
 }
 
-sub force_upgrade_rpm ($pkg) {
-    return instance()->force_upgrade_rpm($pkg);
+sub force_upgrade_pkg ($pkg) {
+    return instance()->force_upgrade_pkg($pkg);
 }
 
-sub get_installed_rpms ( $format = undef ) {
-    return instance()->get_installed_rpms($format);
+sub get_installed_pkgs ( $format = undef ) {
+    return instance()->get_installed_pkgs($format);
 }
 
-sub get_cpanel_arch_rpms () {
-    return instance()->get_cpanel_arch_rpms();
+sub get_cpanel_arch_pkgs () {
+    return instance()->get_cpanel_arch_pkgs();
 }
 
-sub remove_cpanel_arch_rpms () {
-    return instance()->remove_cpanel_arch_rpms();
+sub remove_cpanel_arch_pkgs () {
+    return instance()->remove_cpanel_arch_pkgs();
 }
 
 sub remove (@pkgs) {
@@ -80,8 +80,8 @@ sub clean_all () {
     return instance()->clean_all();
 }
 
-sub install_rpm_via_url ($rpm_url) {
-    return instance()->install_rpm_via_url($rpm_url);
+sub install_pkg_via_url ($rpm_url) {
+    return instance()->install_pkg_via_url($rpm_url);
 }
 
 sub install_with_options ( $options, $pkgs ) {
