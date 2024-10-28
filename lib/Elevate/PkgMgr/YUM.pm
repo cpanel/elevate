@@ -361,17 +361,17 @@ sub pkg_list ( $self, $invalidate_cache = 0 ) {
 sub get_installed_pkgs_in_repo (@pkg_list) {
 
     my @installed_pkgs;
-    my $installed = Elevate_PkgMgr::pkg_list();
+    my $installed = Elevate::PkgMgr::pkg_list();
 
     # Regex for repos.
-    if ( ref $repo_list[0] eq 'Regexp' ) {
-        scalar @repo_list == 1 or Carp::confess("too many args");
-        my $regex = shift @repo_list;
+    if ( ref $pkg_list[0] eq 'Regexp' ) {
+        scalar @pkg_list == 1 or Carp::confess("too many args");
+        my $regex = shift @pkg_list;
 
-        @repo_list = grep { $_ =~ $regex } keys %$installed;
+        @pkg_list = grep { $_ =~ $regex } keys %$installed;
     }
 
-    foreach my $repo (@repo_list) {
+    foreach my $repo (@pkg_list) {
         next unless ref $installed->{$repo};
         next unless scalar $installed->{$repo}->@*;
         push @installed_pkgs, map { $_->{'package'} } $installed->{$repo}->@*;
@@ -385,7 +385,7 @@ sub remove_pkgs_from_repos (@pkg_list) {
 
     return unless @to_remove;
 
-    INFO( "Removing packages for " . join( ", ", @repo_list ) );
+    INFO( "Removing packages for " . join( ", ", @pkg_list ) );
 
     Elevate::PkgMgr::remove(@to_remove);
 
