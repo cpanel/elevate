@@ -28,6 +28,7 @@ sub instance {
     return $PKGUTILITY;
 }
 
+# Used in tests to verify that the factory is returning the correct thing
 sub name () {
     return instance()->name();
 }

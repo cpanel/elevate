@@ -81,7 +81,7 @@ sub remove_no_dependencies_or_scripts_and_justdb ( $self, $pkg ) {
 }
 
 sub force_upgrade_pkg ( $self, $pkg ) {
-    die "force_upgrade_rpm unimplemented";
+    die "force_upgrade_pkg unimplemented";
 }
 
 sub get_installed_pkgs ( $self, $format = undef ) {

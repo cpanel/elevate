@@ -137,7 +137,7 @@ sub install_with_options ( $self, $options, $pkgs ) {
 sub install ( $self, @pkgs ) {
     return unless scalar @pkgs;
 
-    my $pkgmgr = $self->pkgmgr;
+    my $pkgmgr = $self->_pkgmgr();
 
     $self->ssystem_and_die( $pkgmgr, '-y', 'install', @pkgs );
 
