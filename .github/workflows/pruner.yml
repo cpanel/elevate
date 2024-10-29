@@ -1,0 +1,12 @@
+name: Openstack Pruner
+run-name: Openstack Pruner
+on:
+  schedule:
+    - cron:  '5 * * * *'
+jobs:
+    run-pruner:
+      runs-on: [self-hosted]
+      steps:
+        - uses: actions/checkout@v4
+        - name: Run Openstack Pruner
+          run:  ./openstack/prune_openstack
