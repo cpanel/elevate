@@ -36,12 +36,13 @@ my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
 
     my @cmds;
     my $system_status;
-    my $cpev_mock = Test::MockModule->new('cpev');
-    $cpev_mock->redefine(
+    my $pkgmgr_mock = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $pkgmgr_mock->redefine(
         ssystem_and_die => sub ( $, @args ) {
             push @cmds, [@args];
             return $system_status;
         },
+        _pkgmgr => '/usr/bin/dnf',
     );
 
     $unconvertedmodules->_remove_leapp_packages();
@@ -67,9 +68,9 @@ my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
     note "checking _warn_about_other_modules_that_did_not_convert";
 
     my @mock_packages;
-    my $mock_rpm = Test::MockModule->new('Elevate::RPM');
+    my $mock_rpm = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
     $mock_rpm->redefine(
-        get_installed_rpms => sub {
+        get_installed_pkgs => sub {
             return @mock_packages;
         },
     );
