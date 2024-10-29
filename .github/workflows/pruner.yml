@@ -9,4 +9,4 @@ jobs:
       steps:
         - uses: actions/checkout@v4
         - name: Run Openstack Pruner
-          run:  ./openstack/prune_openstack
+          run:  ./.github/workflows/openstack/prune_openstack
