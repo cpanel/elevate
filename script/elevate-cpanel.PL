@@ -277,6 +277,7 @@ use Elevate::Components::Repositories       ();
 use Elevate::Components::RmMod              ();
 use Elevate::Components::RpmDB              ();
 use Elevate::Components::SSH                ();
+use Elevate::Components::Softaculous        ();
 use Elevate::Components::UnconvertedModules ();
 use Elevate::Components::WHM                ();
 use Elevate::Components::WPToolkit          ();
@@ -1328,6 +1329,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'AbsoluteSymlinks' => 'pre_distro_upgrade' );
     $self->run_component_once( 'ELS'              => 'pre_distro_upgrade' );
     $self->run_component_once( 'R1Soft'           => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Softaculous'      => 'pre_distro_upgrade' );
     $self->run_component_once( 'Panopta'          => 'pre_distro_upgrade' );
     $self->run_component_once( 'Acronis'          => 'pre_distro_upgrade' );
     $self->run_component_once( 'RpmDB'            => 'pre_distro_upgrade' );    # remove the RPMs last
@@ -1359,6 +1361,7 @@ sub post_distro_upgrade_update_restore ($self) {
     $self->run_component_once( 'NixStats'        => 'post_distro_upgrade' );
     $self->run_component_once( 'LiteSpeed'       => 'post_distro_upgrade' );
     $self->run_component_once( 'R1Soft'          => 'post_distro_upgrade' );
+    $self->run_component_once( 'Softaculous'     => 'post_distro_upgrade' );
     $self->run_component_once( 'PackageRestore'  => 'post_distro_upgrade' );
     $self->run_component_once( 'Acronis'         => 'post_distro_upgrade' );
 
