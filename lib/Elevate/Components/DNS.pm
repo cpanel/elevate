@@ -34,7 +34,7 @@ use Log::Log4perl qw(:easy);
 
 sub check ($self) {
 
-    return $self->_blocker_non_bind_powerdns( _get_nameserver_type() );
+    return $self->_blocker_nameserver_not_supported( _get_nameserver_type() );
 }
 
 sub _get_nameserver_type () {
@@ -43,17 +43,27 @@ sub _get_nameserver_type () {
     return $cpconf->{'local_nameserver_type'} // '';
 }
 
-sub _blocker_non_bind_powerdns ( $self, $nameserver = '' ) {
+sub _blocker_nameserver_not_supported ( $self, $nameserver = '' ) {
 
-    if ( $nameserver eq 'nsd' or $nameserver eq 'mydns' ) {
-        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
-        return $self->has_blocker( <<~"EOS");
-        $pretty_distro_name only supports bind or powerdns. We suggest you switch to powerdns.
-        Before upgrading, we suggest you run: /scripts/setupnameserver powerdns.
-        EOS
-    }
+    # Nameserver is not set so it is likely disabled which is ok
+    return 0 unless length $nameserver;
 
-    return 0;
+    my @supported_nameserver_types = Elevate::OS::supported_cpanel_nameserver_types();
+    return 0 if grep { $_ eq $nameserver } @supported_nameserver_types;
+
+    my $pretty_distro_name    = Elevate::OS::upgrade_to_pretty_name();
+    my $supported_nameservers = join( "\n", @supported_nameserver_types );
+    return $self->has_blocker( <<~"EOS");
+    $pretty_distro_name only supports the following nameservers:
+
+    $supported_nameservers
+
+    We suggest you switch to powerdns.
+    Before upgrading, we suggest you run:
+
+    /usr/local/cpanel/scripts/setupnameserver powerdns
+
+    EOS
 }
 
 1;

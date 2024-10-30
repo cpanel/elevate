@@ -236,61 +236,67 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # - fatpack Components
-use Elevate::Components::Base               ();
-use Elevate::Components                     ();
-use Elevate::Components::AbsoluteSymlinks   ();
-use Elevate::Components::AutoSSL            ();
-use Elevate::Components::BootKernel         ();
-use Elevate::Components::CCS                ();
-use Elevate::Components::CloudLinux         ();
-use Elevate::Components::cPanelPlugins      ();
-use Elevate::Components::cPanelPrep         ();
-use Elevate::Components::DatabaseUpgrade    ();
-use Elevate::Components::DiskSpace          ();
-use Elevate::Components::Distros            ();
-use Elevate::Components::DNS                ();
-use Elevate::Components::EA4                ();
-use Elevate::Components::ElevateScript      ();
-use Elevate::Components::ELS                ();
-use Elevate::Components::Grub2              ();
-use Elevate::Components::Imunify            ();
-use Elevate::Components::InfluxDB           ();
-use Elevate::Components::IsContainer        ();
-use Elevate::Components::JetBackup          ();
-use Elevate::Components::KernelCare         ();
-use Elevate::Components::Kernel             ();
-use Elevate::Components::Leapp              ();
-use Elevate::Components::LiteSpeed          ();
-use Elevate::Components::MountPoints        ();
-use Elevate::Components::MySQL              ();
-use Elevate::Components::NICs               ();
-use Elevate::Components::NixStats           ();
-use Elevate::Components::OVH                ();
-use Elevate::Components::PackageRestore     ();
-use Elevate::Components::PackageDupes       ();
-use Elevate::Components::Panopta            ();
-use Elevate::Components::PECL               ();
-use Elevate::Components::PerlXS             ();
-use Elevate::Components::PostgreSQL         ();
-use Elevate::Components::R1Soft             ();
-use Elevate::Components::Repositories       ();
-use Elevate::Components::RmMod              ();
-use Elevate::Components::RpmDB              ();
-use Elevate::Components::SSH                ();
-use Elevate::Components::Softaculous        ();
-use Elevate::Components::UnconvertedModules ();
-use Elevate::Components::WHM                ();
-use Elevate::Components::WPToolkit          ();
-use Elevate::Components::Acronis            ();
+use Elevate::Components::Base                  ();
+use Elevate::Components                        ();
+use Elevate::Components::AbsoluteSymlinks      ();
+use Elevate::Components::AutoSSL               ();
+use Elevate::Components::BootKernel            ();
+use Elevate::Components::CCS                   ();
+use Elevate::Components::CloudLinux            ();
+use Elevate::Components::cPanelPlugins         ();
+use Elevate::Components::cPanelPrep            ();
+use Elevate::Components::DatabaseUpgrade       ();
+use Elevate::Components::DiskSpace             ();
+use Elevate::Components::Distros               ();
+use Elevate::Components::DNS                   ();
+use Elevate::Components::EA4                   ();
+use Elevate::Components::ElevateScript         ();
+use Elevate::Components::ELS                   ();
+use Elevate::Components::Grub2                 ();
+use Elevate::Components::Imunify               ();
+use Elevate::Components::InfluxDB              ();
+use Elevate::Components::IsContainer           ();
+use Elevate::Components::JetBackup             ();
+use Elevate::Components::KernelCare            ();
+use Elevate::Components::Kernel                ();
+use Elevate::Components::Leapp                 ();
+use Elevate::Components::Lists                 ();
+use Elevate::Components::LiteSpeed             ();
+use Elevate::Components::MountPoints           ();
+use Elevate::Components::MySQL                 ();
+use Elevate::Components::NICs                  ();
+use Elevate::Components::NixStats              ();
+use Elevate::Components::OVH                   ();
+use Elevate::Components::PackageRestore        ();
+use Elevate::Components::PackageDupes          ();
+use Elevate::Components::Panopta               ();
+use Elevate::Components::PECL                  ();
+use Elevate::Components::PerlXS                ();
+use Elevate::Components::PostgreSQL            ();
+use Elevate::Components::R1Soft                ();
+use Elevate::Components::Repositories          ();
+use Elevate::Components::RmMod                 ();
+use Elevate::Components::RpmDB                 ();
+use Elevate::Components::SSH                   ();
+use Elevate::Components::Softaculous           ();
+use Elevate::Components::UnconvertedModules    ();
+use Elevate::Components::UpdateReleaseUpgrades ();
+use Elevate::Components::UpdateSystem          ();
+use Elevate::Components::WHM                   ();
+use Elevate::Components::WPToolkit             ();
+use Elevate::Components::Acronis               ();
 
 # - fatpack OS
 use Elevate::OS              ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
+use Elevate::OS::Ubuntu      ();
+use Elevate::OS::Ubuntu20    ();
 
 # - fatpack package logic
 use Elevate::PkgMgr       ();
+use Elevate::PkgMgr::APT  ();
 use Elevate::PkgMgr::Base ();
 use Elevate::PkgMgr::YUM  ();
 
@@ -600,6 +606,15 @@ EOS
 It is *highly* recommended that you have a full backup or snapshot
 of your server before proceeding.
 EOS
+
+    if ( Elevate::OS::is_experimental() ) {
+        my $pretty_name            = Elevate::OS::pretty_name();
+        my $upgrade_to_pretty_name = Elevate::OS::upgrade_to_pretty_name();
+        say <<"EOS";
+Warning*:  ELevate for $pretty_name to $upgrade_to_pretty_name is experimental software
+and is not recommended for production environments.
+EOS
+    }
 
     if ( !$self->getopt('non-interactive') ) {
         if (
@@ -948,9 +963,7 @@ sub run_stage_2 ($self) {
     # Best to do this before clearing the yum cache:
     $self->run_component_once( 'PackageDupes' => 'pre_distro_upgrade' );
 
-    Elevate::PkgMgr::clean_all();
-    $self->ssystem_and_die(qw{/scripts/update-packages});
-    Elevate::PkgMgr::update();
+    $self->run_component_once( 'UpdateSystem' => 'pre_distro_upgrade' );
 
     # This needs to happen before the database upgrade because
     # it will remove the packages we want to detect
@@ -1010,14 +1023,23 @@ sub run_stage_3 ($self) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
-    $self->run_once(
-        install_leapp => sub {
-            $self->leapp->install();
-            $self->leapp->remove_kernel_devel();
-        },
-    );
+    if ( Elevate::OS::needs_leapp() ) {
+        $self->run_once(
+            install_leapp => sub {
+                $self->leapp->install();
+                $self->leapp->remove_kernel_devel();
+            },
+        );
 
-    $self->leapp->upgrade();
+        $self->leapp->upgrade();
+    }
+    elsif ( Elevate::OS::needs_do_release_upgrade() ) {
+        INFO('Remounting /tmp partition with exec option');
+        $self->ssystem_and_die( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
+
+        INFO('Running do-release-upgrade');
+        $self->ssystem_and_die( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );
+    }
 
     WARN(<<~'EOS');
     Rebooting for distro upgrade. This will take over 10 minutes to run.
@@ -1070,34 +1092,46 @@ sub run_stage_4 ($self) {
         END
     }
 
-    if ( Cpanel::OS::major() != 8 ) {    ## no critic(Cpanel::CpanelOS)
+    my $major = Cpanel::OS::major();    ## no critic(Cpanel::CpanelOS)
+    if ( $major != Elevate::OS::expected_post_upgrade_major() ) {
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         my $current_distro     = Cpanel::OS::pretty_distro();
 
-        if ( Cpanel::OS::major() == 7 ) {    ## no critic(Cpanel::CpanelOS)
+        if ( $major == Elevate::OS::original_os_major() ) {
             WARN("Detected $current_distro from stage 4, reverting back to stage 3.");
             Elevate::Stages::update_stage_number(3);
         }
 
-        die( <<~"END");
-        Server is currently running $current_distro after leapp upgrade.
+        my $msg = <<~"END";
+        Server is currently running $current_distro $major after leapp upgrade.
         Upgrade to $pretty_distro_name did not succeed.
 
-        Please review your upgrade logs and correct the problem.
-        `leapp` logs are located at:
-            /var/log/leapp/leapp-report.txt
-            /var/log/leapp/leapp-report.json
+        END
 
+        if ( Elevate::OS::needs_leapp() ) {
+            $msg .= <<~'END';
+            Please review your upgrade logs and correct the problem.
+            `leapp` logs are located at:
+                /var/log/leapp/leapp-report.txt
+                /var/log/leapp/leapp-report.json
+
+            END
+        }
+
+        $msg .= <<~'END';
         Once you believe you have corrected the problem you can continue the upgrade process
         by running:
             /scripts/elevate-cpanel --continue
         END
+
+        die "$msg\n";
     }
 
     my $stash = Elevate::StageFile::read_stage_file();
 
     $stash->{stage4} //= {};    # run once each blocks
 
+    $self->run_component_once( 'Lists', => 'post_distro_upgrade' );
     $self->run_component_once( 'RpmDB', => 'post_distro_upgrade' );
 
     $self->run_once(
@@ -1315,35 +1349,38 @@ sub stop_services_before_upcp ($self) {
 sub run_final_components_pre_distro_upgrade ($self) {
 
     # order matters
-    $self->run_component_once( 'RmMod'            => 'pre_distro_upgrade' );
-    $self->run_component_once( 'MySQL'            => 'pre_distro_upgrade' );
-    $self->run_component_once( 'PostgreSQL'       => 'pre_distro_upgrade' );
-    $self->run_component_once( 'Repositories'     => 'pre_distro_upgrade' );
-    $self->run_component_once( 'cPanelPlugins'    => 'pre_distro_upgrade' );
-    $self->run_component_once( 'PerlXS'           => 'pre_distro_upgrade' );
-    $self->run_component_once( 'WPToolkit'        => 'pre_distro_upgrade' );
-    $self->run_component_once( 'InfluxDB'         => 'pre_distro_upgrade' );
-    $self->run_component_once( 'JetBackup'        => 'pre_distro_upgrade' );
-    $self->run_component_once( 'NixStats'         => 'pre_distro_upgrade' );
-    $self->run_component_once( 'LiteSpeed'        => 'pre_distro_upgrade' );
-    $self->run_component_once( 'AbsoluteSymlinks' => 'pre_distro_upgrade' );
-    $self->run_component_once( 'ELS'              => 'pre_distro_upgrade' );
-    $self->run_component_once( 'R1Soft'           => 'pre_distro_upgrade' );
-    $self->run_component_once( 'Softaculous'      => 'pre_distro_upgrade' );
-    $self->run_component_once( 'Panopta'          => 'pre_distro_upgrade' );
-    $self->run_component_once( 'Acronis'          => 'pre_distro_upgrade' );
-    $self->run_component_once( 'RpmDB'            => 'pre_distro_upgrade' );    # remove the RPMs last
+    $self->run_component_once( 'RmMod'                 => 'pre_distro_upgrade' );
+    $self->run_component_once( 'MySQL'                 => 'pre_distro_upgrade' );
+    $self->run_component_once( 'PostgreSQL'            => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Repositories'          => 'pre_distro_upgrade' );
+    $self->run_component_once( 'cPanelPlugins'         => 'pre_distro_upgrade' );
+    $self->run_component_once( 'PerlXS'                => 'pre_distro_upgrade' );
+    $self->run_component_once( 'WPToolkit'             => 'pre_distro_upgrade' );
+    $self->run_component_once( 'InfluxDB'              => 'pre_distro_upgrade' );
+    $self->run_component_once( 'JetBackup'             => 'pre_distro_upgrade' );
+    $self->run_component_once( 'NixStats'              => 'pre_distro_upgrade' );
+    $self->run_component_once( 'LiteSpeed'             => 'pre_distro_upgrade' );
+    $self->run_component_once( 'AbsoluteSymlinks'      => 'pre_distro_upgrade' );
+    $self->run_component_once( 'ELS'                   => 'pre_distro_upgrade' );
+    $self->run_component_once( 'R1Soft'                => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Softaculous'           => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Panopta'               => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Acronis'               => 'pre_distro_upgrade' );
+    $self->run_component_once( 'UpdateReleaseUpgrades' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'RpmDB'                 => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;
 }
 
 sub post_distro_upgrade_update_restore ($self) {
 
-    INFO('Removing leapp from excludes in /etc/yum.conf');
-    my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
-    if ( length $txt ) {
-        $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
-        File::Slurper::write_text( "/etc/yum.conf", $txt );
+    if ( Elevate::OS::needs_leapp() ) {
+        INFO('Removing leapp from excludes in /etc/yum.conf');
+        my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
+        if ( length $txt ) {
+            $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
+            File::Slurper::write_text( "/etc/yum.conf", $txt );
+        }
     }
 
     # plugins can use MySQL - restore database earlier
@@ -1395,7 +1432,7 @@ sub post_upgrade_check ($self) {
     my $expect_distro = Elevate::OS::default_upgrade_to();
     $expect_distro = lc $expect_distro;
 
-    unless ( Cpanel::OS::major() == 8 && Cpanel::OS::distro() eq $expect_distro ) {    ## no critic(Cpanel::CpanelOS)
+    unless ( Cpanel::OS::major() == Elevate::OS::expected_post_upgrade_major() && Cpanel::OS::distro() eq $expect_distro ) {    ## no critic(Cpanel::CpanelOS)
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         die "Your distro does not look like $pretty_distro_name.\n";
     }

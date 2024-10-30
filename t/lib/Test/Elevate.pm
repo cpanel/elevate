@@ -12,7 +12,7 @@ use Test::More;
 use Test::Deep;
 
 our @ISA       = qw(Exporter);
-our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen notification_seen clear_notifications_seen no_notifications_seen no_notification_seen set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to unmock_os);
+our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen notification_seen clear_notifications_seen no_notifications_seen no_notification_seen set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to_ubuntu_20 set_os_to unmock_os);
 our @EXPORT_OK = @EXPORT;
 
 use Log::Log4perl;
@@ -202,9 +202,16 @@ sub set_os_to_cloudlinux_7 {
     return;
 }
 
+sub set_os_to_ubuntu_20 {
+    note 'Mock Elevate::OS singleton to think this server is Ubuntu 20';
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::Ubuntu20';
+    return;
+}
+
 sub set_os_to ($os) {
-    return set_os_to_centos_7()   if $os =~ m/^cent/i;
+    return set_os_to_centos_7     if $os =~ m/^cent/i;
     return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i;
+    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i;
 
     die "Unknown os:  $os\n";
 }

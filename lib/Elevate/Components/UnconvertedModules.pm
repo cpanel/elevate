@@ -38,6 +38,8 @@ use constant EXEMPTED_PACKAGES => (
 );
 
 sub post_distro_upgrade ($self) {
+    return unless Elevate::OS::needs_leapp();
+
     $self->run_once('_remove_leapp_packages');
     $self->run_once('_warn_about_other_modules_that_did_not_convert');
     return;
@@ -64,8 +66,14 @@ sub _remove_leapp_packages ($self) {
 }
 
 sub _warn_about_other_modules_that_did_not_convert ($self) {
-    my @installed_packages     = Elevate::PkgMgr::get_installed_pkgs();
-    my @el7_installed_packages = grep { $_ =~ m/el7/ } @installed_packages;
+    my $installed_packages = Elevate::PkgMgr::get_installed_pkgs();
+
+    my @el7_installed_packages;
+    foreach my $pkg ( sort keys %$installed_packages ) {
+        if ( $installed_packages->{$pkg} =~ m/el7/ ) {
+            push @el7_installed_packages, "$pkg-$installed_packages->{$pkg}";
+        }
+    }
 
     my @el7_packages_minus_exemptions;
     foreach my $pkg (@el7_installed_packages) {

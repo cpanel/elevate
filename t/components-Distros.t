@@ -91,7 +91,22 @@ my $distros = $cpev->get_blocker('Distros');
     is( $distros->_blocker_os_is_not_supported(), 0, "now on a valid C7" );
     is( $distros->_blocker_is_old_centos7(),      0, "now on a up to date C7" );
 
-    #no_messages_seen();
+    undef $f;
+    Cpanel::OS::clear_cache_after_cloudlinux_update();
+    unmock_os();
+    $f = Test::MockFile->symlink( 'linux|ubuntu|22|04|3', '/var/cpanel/caches/Cpanel-OS' );
+    like(
+        dies { $distros->check() },
+        qr/This script is only designed to upgrade the following OSs/,
+        'U22 is not supported.'
+    );
+
+    undef $f;
+    Cpanel::OS::clear_cache_after_cloudlinux_update();
+    unmock_os();
+    $f = Test::MockFile->symlink( 'linux|ubuntu|20|04|6', '/var/cpanel/caches/Cpanel-OS' );
+    is( $distros->check(), 0, 'U20 is supported.' );
+
 }
 
 done_testing();

@@ -16,7 +16,7 @@ use Elevate::OS        ();
 use Elevate::StageFile ();
 
 our @ISA       = qw(Exporter);
-our @EXPORT    = qw(set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to set_os_to);
+our @EXPORT    = qw(set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to_ubuntu_20 set_os_to);
 our @EXPORT_OK = @EXPORT;
 
 my $mock_os;
@@ -66,9 +66,29 @@ sub set_os_to_cloudlinux_7 {
     return;
 }
 
+sub set_os_to_ubuntu_20 {
+    unmock_os();
+
+    note 'Mock Elevate::OS singleton to think this server is Ubuntu 20';
+
+    my $real_read_stage_file = \&Elevate::StageFile::read_stage_file;
+    my $mock_stagefile       = Test::MockModule->new('Elevate::StageFile')->redefine(
+        read_stage_file => sub { return 'Ubuntu20'; },
+    );
+
+    Elevate::OS::name();
+
+    $mock_stagefile->redefine(
+        read_stage_file => $real_read_stage_file,
+    );
+
+    return;
+}
+
 sub set_os_to ($os) {
-    return set_os_to_centos_7()   if $os =~ m/^cent/i;
+    return set_os_to_centos_7     if $os =~ m/^cent/i;
     return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i;
+    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i;
 
     die "Unknown os:  $os\n";
 }

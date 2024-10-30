@@ -21,6 +21,8 @@ use Test::Elevate;
 
 use cPstrict;
 
+set_os_to('cent');
+
 my $ccs = bless {}, 'Elevate::Components::CCS';
 
 my $mock_ccs       = Test::MockModule->new('Elevate::Components::CCS');

@@ -22,7 +22,17 @@ my $sr_mock     = Test::MockModule->new('Cpanel::SafeRun::Errors');
 my $mock_output = do { local $/; <DATA> };
 $sr_mock->redefine( 'saferunnoerror' => sub { return $mock_output } );
 
+set_os_to('ubuntu');
 my $installed = Elevate::PkgMgr::pkg_list();
+is(
+    $installed,
+    {},
+    'Returns an empty href on Ubuntu systems'
+);
+
+set_os_to('cent');
+$Elevate::PkgMgr::PKGUTILITY = undef;
+$installed                   = Elevate::PkgMgr::pkg_list();
 is(
     [ sort keys %$installed ],
     [
