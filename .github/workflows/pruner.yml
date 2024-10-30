@@ -6,6 +6,9 @@ on:
 jobs:
     run-pruner:
       runs-on: [self-hosted]
+      env:
+        OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+        OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
       steps:
         - uses: actions/checkout@v4
         - name: Run Openstack Pruner
