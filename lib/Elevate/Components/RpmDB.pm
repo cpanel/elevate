@@ -47,6 +47,8 @@ use constant OBSOLETE_PACKAGES => (
     'tcp_wrappers-devel',
     'tkinter',
     'yum-plugin-universal-hooks',
+    'eigid',
+    'quickinstall',
 );
 
 sub pre_distro_upgrade ($self) {

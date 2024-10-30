@@ -5771,6 +5771,8 @@ EOS
         'tcp_wrappers-devel',
         'tkinter',
         'yum-plugin-universal-hooks',
+        'eigid',
+        'quickinstall',
     );
 
     sub pre_distro_upgrade ($self) {
@@ -6528,6 +6530,7 @@ EOS
         qr/^jetapps-(?:stable|beta|edge)$/,
         'kernelcare',
         qr/^ul($|_)/,
+        'hgdedi',
         'updates',
         'r1soft',
         qr/^panopta(?:\.repo)?$/,
