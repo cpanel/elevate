@@ -6,6 +6,10 @@ export OS_IDENTITY_API_VERSION=3
 export OS_REGION_NAME="RegionOne"
 export OS_INTERFACE=public
 
+# Confs
+VM_NAME="elevate.github.cpanel.net"
+KEY_NAME="deletethis"
+
 # two hours ago
 HAMMER_TIME=$(date -d '-2 hour' --utc +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -13,7 +17,7 @@ get_elevatebcl_instances () {
     LIST=$(openstack server list -f json --no-name-lookup | jq -r .[].ID)
     rm id_created_name.txt > /dev/null 2>&1
     while IFS= read -r VM; do
-        openstack server show -f json "$VM" | jq -r '.id + "," + .created + "," + .name' | grep packer >> id_created_name.txt
+        openstack server show -f json "$VM" | jq -r '.id + "," + .created + "," + .name' | grep $VM_NAME >> id_created_name.txt
     done <<< "$LIST"
 }
 
@@ -33,7 +37,7 @@ get_keys () {
     LIST=$(openstack keypair list -f json  | jq -r .[].Name)
     rm keyid_created_name.txt > /dev/null 2>&1
     while IFS= read -r KEYPAIR; do
-        openstack keypair show -f json "$KEYPAIR" | jq -r '.id + "," + .created_at + "," + .name' | grep deletethis >> keyid_created_name.txt
+        openstack keypair show -f json "$KEYPAIR" | jq -r '.id + "," + .created_at + "," + .name' | grep $KEY_NAME >> keyid_created_name.txt
     done <<< "$LIST"
 }
 
@@ -60,6 +64,11 @@ remove_volumes () {
     done < <(cat volume_ids.txt)
 }
 
+cleanup () {
+    rm -fv id_created_name.txt
+    rm -fv keyid_created_name.txt
+}
+
 # prune VMs
 get_elevatebcl_instances
 remove_stale_instances
@@ -69,5 +78,7 @@ remove_stale_keys
 # prune volumes
 get_volumes
 remove_volumes
+# cleanup
+cleanup
 
 exit 0;
