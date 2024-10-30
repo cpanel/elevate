@@ -35,8 +35,8 @@ my $acronis = cpev->new->get_component('Acronis');
         is_installed => sub { return $is_installed; },
     );
 
-    my $mock_yum = Test::MockModule->new('Elevate::YUM');
-    $mock_yum->redefine(
+    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $mock_pkgmgr->redefine(
         remove => sub { $yum_remove_called = 1; },
     );
 
@@ -83,8 +83,8 @@ my $acronis = cpev->new->get_component('Acronis');
         read_stage_file => sub { return $stage_file_data; },
     );
 
-    my $mock_dnf = Test::MockModule->new('Elevate::DNF');
-    $mock_dnf->redefine(
+    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    $mock_pkgmgr->redefine(
         install => sub { $dnf_install_called = 1; },
     );
 

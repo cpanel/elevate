@@ -21,9 +21,6 @@ use Cpanel::JSON ();
 
 use Simple::Accessor qw(
   components
-  rpm
-  yum
-  dnf
 );
 
 use Log::Log4perl qw(:easy);
@@ -37,7 +34,6 @@ BEGIN {
       ssystem_and_die
       ssystem_capture_output
       ssystem_hide_and_capture_output
-      remove_rpms_from_repos
     };
 
     foreach my $subname (@_DELEGATE_TO_CPEV) {
@@ -59,18 +55,6 @@ sub _build_components {
 
     # outside unit tests we should always be initialized with an 'Elevate::Components' object
     Carp::confess(q[Missing components]);
-}
-
-sub _build_rpm ($self) {
-    return Elevate::RPM->new( cpev => $self );
-}
-
-sub _build_yum ($self) {
-    return Elevate::YUM->new( cpev => $self );
-}
-
-sub _build_dnf ($self) {
-    return Elevate::DNF->new( cpev => $self );
 }
 
 sub cpev ($self) {

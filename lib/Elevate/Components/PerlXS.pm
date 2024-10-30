@@ -26,6 +26,7 @@ use cPstrict;
 use Elevate::Constants ();
 use Elevate::Notify    ();
 use Elevate::OS        ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Config;
@@ -129,8 +130,9 @@ sub restore_perl_xs ( $self, $path ) {
         my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
         if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
-            my @cmd = ( '/usr/bin/dnf', '-y', '--enablerepo=epel', '--enablerepo=powertools', 'install', sort keys %$rpms );
-            $self->ssystem(@cmd);
+            my $pkgmgr_options = [ '--enablerepo=epel', '--enablerepo=powertools', ];
+            my @pkgs           = sort keys %$rpms;
+            Elevate::PkgMgr::install_with_options( $pkgmgr_options, \@pkgs );
         }
     }
 

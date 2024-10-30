@@ -26,6 +26,7 @@ use Elevate::Constants ();
 use Elevate::Fetch     ();
 use Elevate::Notify    ();
 use Elevate::OS        ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use Cwd           ();
@@ -71,7 +72,7 @@ sub post_distro_upgrade ($self) {
 sub _capture_imunify_packages ($self) {
 
     # only capture the imunify packages
-    my @packages = grep { m/^imunify-/ } cpev::get_installed_rpms_in_repo(qw{ imunify imunify360 });
+    my @packages = grep { m/^imunify-/ } Elevate::PkgMgr::get_installed_pkgs_in_repo(qw{ imunify imunify360 });
 
     return unless scalar @packages;
 
@@ -89,7 +90,7 @@ sub _restore_imunify_packages ($self) {
     foreach my $pkg (@$packages) {
         next unless Cpanel::Pkgr::is_installed($pkg);
         INFO("Try to reinstall Imunify package: $pkg");
-        $self->ssystem( qw{ /usr/bin/dnf -y install }, $pkg );
+        Elevate::PkgMgr::install($pkg);
     }
 
     return;
@@ -262,7 +263,7 @@ sub _remove_imunify_360 ($self) {
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
 
     # Cleanup any lingering packages.
-    $self->remove_rpms_from_repos('imunify');
+    Elevate::PkgMgr::remove_pkgs_from_repos('imunify');
 
     return;
 }
