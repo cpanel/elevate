@@ -57,6 +57,7 @@ use Elevate::Components::Repositories       ();
 use Elevate::Components::RmMod              ();
 use Elevate::Components::RpmDB              ();
 use Elevate::Components::SSH                ();
+use Elevate::Components::Softaculous        ();
 use Elevate::Components::UnconvertedModules ();
 use Elevate::Components::WHM                ();
 use Elevate::Components::WPToolkit          ();
@@ -120,6 +121,7 @@ our @NOOP_CHECKS = qw{
   R1Soft
   RmMod
   RpmDB
+  Softaculous
   UnconvertedModules
   WPToolkit
   cPanelPlugins
