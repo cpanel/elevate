@@ -78,6 +78,7 @@ use constant leapp_can_handle_kernelcare     => 0;
 use constant leapp_data_package              => undef;
 use constant leapp_flag                      => undef;
 use constant name                            => 'RHEL';
+use constant package_manager                 => 'YUM';
 use constant pretty_name                     => 'RHEL';
 use constant provides_mysql_governor         => 0;
 use constant remove_els                      => 0;

@@ -25,6 +25,7 @@ my $ccs = bless {}, 'Elevate::Components::CCS';
 
 my $mock_ccs       = Test::MockModule->new('Elevate::Components::CCS');
 my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+my $mock_pkgmgr    = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
 
 {
     note "Checking pre_distro_upgrade";
@@ -50,7 +51,11 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
         _export_data_for_single_user => sub ( $self, $user ) { push @called_for_user, $user; },
         clean_up_pkg_cruft           => sub { $called_clean_up_pkg_cruft = 1; },
         run_once                     => sub { $ccs->export_ccs_data(); },
-        ssystem_and_die              => sub {
+    );
+
+    $mock_pkgmgr->redefine(
+        _pkgmgr         => '/usr/bin/yum',
+        ssystem_and_die => sub {
             shift;
             @ssystem_and_die_params = @_;
             return;
@@ -118,6 +123,20 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
         move_pgsql_directory_back    => 0,
         run_once                     => sub { $_[0]->can( $_[1] )->( $_[0] ) },
         _import_data_for_single_user => sub ( $self, $user ) { push @called_for_user, $user; },
+    );
+
+    $mock_pkgmgr->redefine(
+        _pkgmgr         => '/usr/bin/dnf',
+        ssystem_and_die => sub {
+            shift;
+            push @{$ssystem_and_die_params}, @_;
+            return;
+        },
+        ssystem => sub {
+            shift;
+            push @{$ssystem_and_die_params}, @_;
+            return;
+        },
     );
 
     is( $ccs->post_distro_upgrade(), undef, 'post_distro_upgrade is a noop if CCS was not installed' );

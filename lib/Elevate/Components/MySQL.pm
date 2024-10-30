@@ -39,6 +39,7 @@ use Cpanel::Exception                  ();
 
 use Elevate::Database  ();
 use Elevate::Notify    ();
+use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
 use parent qw{Elevate::Components::Base};
@@ -191,7 +192,7 @@ sub _cleanup_mysql_57_packages ($self) {
       Mysql-tools-preview
     };
 
-    $self->remove_rpms_from_repos(@repos);
+    Elevate::PkgMgr::remove_pkgs_from_repos(@repos);
 
     return;
 }
@@ -205,35 +206,35 @@ sub _cleanup_mysql_80_packages ($self) {
       Mysql-tools-preview
     };
 
-    $self->remove_rpms_from_repos(@repos);
+    Elevate::PkgMgr::remove_pkgs_from_repos(@repos);
 
     return;
 }
 
 sub _cleanup_mysql_102_packages ($self) {
 
-    $self->remove_rpms_from_repos('MariaDB102');
+    Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB102');
 
     return;
 }
 
 sub _cleanup_mysql_103_packages ($self) {
 
-    $self->remove_rpms_from_repos('MariaDB103');
+    Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB103');
 
     return;
 }
 
 sub _cleanup_mysql_105_packages ($self) {
 
-    $self->remove_rpms_from_repos('MariaDB105');
+    Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB105');
 
     return;
 }
 
 sub _cleanup_mysql_106_packages ($self) {
 
-    $self->remove_rpms_from_repos('MariaDB106');
+    Elevate::PkgMgr::remove_pkgs_from_repos('MariaDB106');
 
     return;
 }

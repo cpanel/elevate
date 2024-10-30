@@ -41,6 +41,7 @@ use parent qw{Elevate::Components::Base};
 
 use Elevate::Constants        ();
 use Elevate::Notify           ();
+use Elevate::PkgMgr           ();
 use Elevate::StageFile        ();
 use Elevate::SystemctlService ();
 
@@ -275,7 +276,7 @@ sub _perform_postgresql_upgrade ($self) {
     return if $self->_gave_up_on_postgresql;
 
     INFO("Installing PostgreSQL update package:");
-    $self->dnf->install('postgresql-upgrade');
+    Elevate::PkgMgr::install('postgresql-upgrade');
 
     my $opts = Elevate::StageFile::read_stage_file('postgresql_locale');
     my @args;

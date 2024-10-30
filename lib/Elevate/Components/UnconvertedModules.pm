@@ -25,7 +25,8 @@ noop
 
 use cPstrict;
 
-use Elevate::OS ();
+use Elevate::OS     ();
+use Elevate::PkgMgr ();
 
 use Log::Log4perl qw(:easy);
 
@@ -57,13 +58,13 @@ sub _remove_leapp_packages ($self) {
 
     INFO('Removing packages provided by leapp');
     my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @leapp_packages;
-    $self->dnf->remove(@to_remove);
+    Elevate::PkgMgr::remove(@to_remove);
 
     return;
 }
 
 sub _warn_about_other_modules_that_did_not_convert ($self) {
-    my @installed_packages     = $self->rpm->get_installed_rpms();
+    my @installed_packages     = Elevate::PkgMgr::get_installed_pkgs();
     my @el7_installed_packages = grep { $_ =~ m/el7/ } @installed_packages;
 
     my @el7_packages_minus_exemptions;
