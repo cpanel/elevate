@@ -215,6 +215,19 @@ $mock_stagefile->redefine(
     foreach my $fail_version (@should_fail) {
         ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
     }
+
+    set_os_to('ubuntu');
+    @should_pass = qw(8.0 10.6 10.11);
+    @should_fail = qw(10.3 10.4 10.5);
+
+    foreach my $pass_version (@should_pass) {
+        ok( Elevate::Database::is_database_version_supported($pass_version), "$pass_version is supported" );
+    }
+
+    foreach my $fail_version (@should_fail) {
+        ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
+    }
+
 }
 
 done_testing();

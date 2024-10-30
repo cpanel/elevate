@@ -18,11 +18,20 @@ Gather list of installed cPanel plugins to reinstall in post
 
 Reinstall the list of installed cPanel plugins from pre
 
+=head2 NOTE
+
+This is skipped an apt based systems. It is not necessary there as things
+should continue to work after the upgrade and it would require a larger
+refactor away from using pkg_info() to determine what cPanel plugin
+packages are installed.  Likely, we would need to hard code the list of
+packages.
+
 =cut
 
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
@@ -32,6 +41,7 @@ use Log::Log4perl qw(:easy);
 use parent qw{Elevate::Components::Base};
 
 sub pre_distro_upgrade ($self) {
+    return if Elevate::OS::is_apt_based();
 
     # Backup arch rpms which we're going to remove and are provided by yum.
     my @installed_arch_cpanel_plugins;
@@ -50,6 +60,7 @@ sub pre_distro_upgrade ($self) {
 }
 
 sub post_distro_upgrade ($self) {
+    return if Elevate::OS::is_apt_based();
 
     # Restore YUM arch plugins.
 

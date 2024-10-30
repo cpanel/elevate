@@ -100,6 +100,8 @@ sub _persistent_id {
 }
 
 sub mark_cmdline ($self) {
+    return unless -x GRUBBY_PATH;
+
     my $arg = "elevate-" . _persistent_id;
     INFO("Marking default boot entry with additional parameter \"$arg\".");
 
@@ -118,6 +120,7 @@ sub _remove_but_dont_stop_service ($self) {
 }
 
 sub verify_cmdline ($self) {
+    return unless -x GRUBBY_PATH;
     if ( $self->cpev->should_run_distro_upgrade() ) {
         my $arg = "elevate-" . _persistent_id;
         INFO("Checking for \"$arg\" in booted kernel's command line...");
@@ -316,6 +319,7 @@ sub post_distro_upgrade ($self) {
 
 sub check ($self) {
 
+    return 1 unless Elevate::OS::needs_leapp();
     return 1 unless $self->should_run_distro_upgrade;    # skip when --upgrade-distro-manually is provided
 
     my $ok = 1;

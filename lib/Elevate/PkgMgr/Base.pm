@@ -37,8 +37,8 @@ sub _pkgmgr ($self) {
 
 sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
 
-    my @installed_pkgs = $self->get_installed_pkgs(q[%{NAME}\n]);
-    my @wanted_pkgs    = grep { $_ =~ qr/^\Q$prefix\E/ } @installed_pkgs;
+    my $installed_pkgs = $self->get_installed_pkgs($prefix);
+    my @wanted_pkgs    = sort keys %$installed_pkgs;
     my $config_files   = $self->get_config_files( \@wanted_pkgs );
 
     return $config_files;
@@ -84,12 +84,13 @@ sub force_upgrade_pkg ( $self, $pkg ) {
     die "force_upgrade_pkg unimplemented";
 }
 
-sub get_installed_pkgs ( $self, $format = undef ) {
-    die "get_installed_pkgs unimplemented";
+sub get_installed_pkgs ( $self, $filter = undef ) {
+    return $filter ? Cpanel::Pkgr::installed_packages($filter) : Cpanel::Pkgr::installed_packages();
 }
 
 sub get_cpanel_arch_pkgs ($self) {
-    my @installed_pkgs   = $self->get_installed_pkgs();
+    my $pkg_info         = $self->get_installed_pkgs();
+    my @installed_pkgs   = keys %$pkg_info;
     my @cpanel_arch_pkgs = grep { $_ =~ m/^cpanel-.*\.x86_64$/ } @installed_pkgs;
     return @cpanel_arch_pkgs;
 }
@@ -174,6 +175,10 @@ sub get_installed_pkgs_in_repo ( $self, @pkg_list ) {
 
 sub remove_pkgs_from_repos ( $self, @pkg_list ) {
     die "remove_pkgs_from_repos unimplemented";
+}
+
+sub showhold ($self) {
+    die "showhold unimplemented";
 }
 
 1;

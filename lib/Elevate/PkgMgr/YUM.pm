@@ -12,8 +12,6 @@ Logic wrapping the RHEL based package managers
 
 use cPstrict;
 
-use File::Copy ();
-
 use Cpanel::OS ();
 
 use Elevate::OS ();
@@ -82,18 +80,6 @@ sub remove_no_dependencies_or_scripts_and_justdb ( $self, $pkg ) {
 sub force_upgrade_pkg ( $self, $pkg ) {
     my $err = $self->ssystem( $rpm, '-Uv', '--force', $pkg );
     return $err;
-}
-
-sub get_installed_pkgs ( $self, $format = undef ) {
-    my @args = qw{-qa};
-
-    if ($format) {
-        push @args, '--queryformat';
-        push @args, $format;
-    }
-
-    my $out = $self->ssystem_capture_output( $rpm, @args );
-    return @{ $out->{stdout} };
 }
 
 sub remove ( $self, @pkgs ) {

@@ -50,6 +50,8 @@ my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 {
     note 'cPanel MySQL behavior';
 
+    set_os_to('cent');
+
     clear_messages_seen();
 
     my $test_db_version = '13';
