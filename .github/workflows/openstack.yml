@@ -505,9 +505,17 @@ jobs:
           run: |
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
-    watch_for_final_reboot:
+    delay_final_reboot_watch:
       runs-on: self-hosted
       needs: wait_for_stage_5_reboot
+      steps:
+        - name: Wait 10 seconds
+          uses: actions/download-artifact@v4
+          run: sleep 10
+
+    watch_for_final_reboot:
+      runs-on: self-hosted
+      needs: delay_final_reboot_watch
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
       steps:
