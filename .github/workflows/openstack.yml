@@ -111,7 +111,7 @@ jobs:
 
         - name: Checkout Repo and Commit
           if: github.event_name != 'pull_request'
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -129,7 +129,7 @@ jobs:
 
         - name: Checking out Repo and Pull Request
           if: github.event_name == 'pull_request'
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -168,7 +168,7 @@ jobs:
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
 
         - name: Setup for Integration Checks Prior to Running Elevate
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -203,7 +203,7 @@ jobs:
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
 
         - name: Starting Elevate
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -270,7 +270,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Reboot from Stage 1 into Stage 2
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -335,7 +335,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Stage 3 Reboot
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -400,7 +400,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Stage 4 Reboot
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -464,7 +464,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Stage 5 Reboot
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -528,7 +528,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Final Reboot
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -592,7 +592,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Verify End Result Integration Tests
-          uses: appleboy/ssh-action@v1.0.3
+          uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -617,4 +617,4 @@ jobs:
           name: ${{ github.run_id }}-tf.out.json
           path: ${{ github.workspace }}/tf.out.json
       - name: Destroy OpenStack VM
-        run: terraform destroy -no-color -auto-approve 
+        run: terraform destroy -no-color -auto-approve
