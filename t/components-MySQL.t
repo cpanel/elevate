@@ -214,4 +214,128 @@ EOS
     is( $db->_blocker_old_mysql(), 0, '8.0 is supported by cPanel' );
 }
 
+{
+    note 'Test _blocker_mysql_database_corrupted';
+
+    clear_messages_seen();
+
+    my $is_mysql_local;
+    my $is_mysql_running;
+    my $is_mysql_enabled;
+    my $restart_mysql;
+    my @ssystem_output;
+
+    my $mock_mysqlutils_mycnf = Test::MockModule->new('Cpanel::MysqlUtils::MyCnf::Basic');
+    $mock_mysqlutils_mycnf->redefine(
+        is_local_mysql => sub { return $is_mysql_local; },
+    );
+
+    my $mock_mysqlutils_running = Test::MockModule->new('Cpanel::MysqlUtils::Running');
+    $mock_mysqlutils_running->redefine(
+        is_mysql_running => sub { return $is_mysql_running; },
+    );
+
+    my $mock_services = Test::MockModule->new('Cpanel::Services::Enabled');
+    $mock_services->redefine(
+        is_enabled => sub { return $is_mysql_enabled; },
+    );
+
+    my $mock_comp = Test::MockModule->new('Elevate::Components::MySQL');
+    $mock_comp->redefine(
+        'ssystem_capture_output' => sub {
+            $is_mysql_running = 1 if ($restart_mysql);
+            return { status => 0, stdout => \@ssystem_output, stderr => [] };
+        },
+    );
+
+    $is_mysql_local   = 0;
+    $is_mysql_running = 1;
+    $is_mysql_enabled = 1;
+    $restart_mysql    = 0;
+    @ssystem_output   = ();
+
+    is( $db->_blocker_mysql_database_corrupted(), 0, 'Do not block if MySQL not local' );
+    no_messages_seen();
+
+    $is_mysql_local   = 1;
+    $is_mysql_running = 0;
+    $is_mysql_enabled = 0;
+
+    is( $db->_blocker_mysql_database_corrupted(), 0, 'Do not block if MySQL not running and not enabled' );
+    no_messages_seen();    # Don't complain if not running because not enabled;
+
+    $is_mysql_running = 0;
+    $is_mysql_enabled = 1;
+    $restart_mysql    = 0;
+    @ssystem_output   = ();
+
+    like(
+        $db->_blocker_mysql_database_corrupted(),
+        {
+            id  => q[Elevate::Components::MySQL::_blocker_mysql_database_corrupted],
+            msg => qr/Unable to to start the database server/
+        },
+        'Blocks if we cannot restart the database server'
+    );
+
+    $restart_mysql = 1;
+
+    like(
+        $db->_blocker_mysql_database_corrupted(),
+        {
+            id  => q[Elevate::Components::MySQL::_blocker_mysql_database_corrupted],
+            msg => qr/Unable to to start the database server/
+        },
+        'Blocks if we cannot restart the database server'
+    );
+
+    $is_mysql_running = 0;
+    $restart_mysql    = 0;
+    @ssystem_output   = ('mysql started successfully.');
+
+    like(
+        $db->_blocker_mysql_database_corrupted(),
+        {
+            id  => q[Elevate::Components::MySQL::_blocker_mysql_database_corrupted],
+            msg => qr/Unable to to start the database server/
+        },
+        'Blocks if we cannot restart the database server'
+    );
+
+    $restart_mysql = 1;
+
+    clear_messages_seen();
+    is( $db->_blocker_mysql_database_corrupted(), 0, 'Do not block if we could restart MySQL and no DB errors' );
+    message_seen(
+        'WARN',
+        'Database server was down, starting it to check database integrity'
+    );
+    no_messages_seen();
+
+    $is_mysql_running = 1;
+    $is_mysql_enabled = 1;
+    @ssystem_output   = (
+        'Warning  : InnoDB: Tablespace is missing for table classicmodels/offices.',
+    );
+
+    is( $db->_blocker_mysql_database_corrupted(), 0, 'Do not block if mysqlcheck gives only warnings' );
+    no_messages_seen();
+
+    $is_mysql_running = 1;
+    $is_mysql_enabled = 1;
+    @ssystem_output   = (
+        'Warning  : InnoDB: Tablespace is missing for table classicmodels/offices.',
+        'Error    : Tablespace is missing for table `classicmodels`.`offices`.',
+    );
+
+    like(
+        $db->_blocker_mysql_database_corrupted(),
+        {
+            id  => q[Elevate::Components::MySQL::_blocker_mysql_database_corrupted],
+            msg => qr/We have found the following problems with your database/
+        },
+        'Blocks if mysqlcheck reports errors'
+    );
+}
+
 done_testing();
