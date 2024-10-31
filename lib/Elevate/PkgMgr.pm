@@ -125,8 +125,8 @@ sub update_with_options ( $options, $pkgs ) {
     return instance()->update_with_options( $options, $pkgs );
 }
 
-sub update_allow_erasing (@args) {
-    return instance()->update_allow_erasing(@args);
+sub update_allow_erasing (@additional_args) {
+    return instance()->update_allow_erasing(@additional_args);
 }
 
 sub makecache () {

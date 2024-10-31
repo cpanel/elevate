@@ -254,13 +254,16 @@ sub update_with_options ( $self, $options, $pkgs ) {
     return;
 }
 
-sub update_allow_erasing ( $self, @args ) {
+sub update_allow_erasing ( $self, @additional_args ) {
     my $pkgmgr = $self->_pkgmgr();
 
-    my @additional_args = scalar @args ? @args : '';
+    my @args = (
+        '-y',
+        '--allowerasing',
+    );
 
-    $self->ssystem( $pkgmgr, '-y', '--allowerasing', @additional_args, 'update' );
-
+    push @args, @additional_args;
+    $self->ssystem_and_die( $pkgmgr, @args, 'update' );
     return;
 }
 
