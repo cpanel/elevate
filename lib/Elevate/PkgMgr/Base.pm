@@ -156,7 +156,7 @@ sub update_with_options ( $self, $options, $pkgs ) {
     die "update_with_options unimplemented";
 }
 
-sub update_allow_erasing ( $self, @args ) {
+sub update_allow_erasing ( $self, @additional_args ) {
     die "update_allow_erasing unimplemented";
 }
 
