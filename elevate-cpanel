@@ -6717,8 +6717,8 @@ EOS
         return instance()->update_with_options( $options, $pkgs );
     }
 
-    sub update_allow_erasing (@args) {
-        return instance()->update_allow_erasing(@args);
+    sub update_allow_erasing (@additional_args) {
+        return instance()->update_allow_erasing(@additional_args);
     }
 
     sub makecache () {
@@ -6893,7 +6893,7 @@ EOS
         die "update_with_options unimplemented";
     }
 
-    sub update_allow_erasing ( $self, @args ) {
+    sub update_allow_erasing ( $self, @additional_args ) {
         die "update_allow_erasing unimplemented";
     }
 
@@ -7153,13 +7153,16 @@ EOS
         return;
     }
 
-    sub update_allow_erasing ( $self, @args ) {
+    sub update_allow_erasing ( $self, @additional_args ) {
         my $pkgmgr = $self->_pkgmgr();
 
-        my @additional_args = scalar @args ? @args : '';
+        my @args = (
+            '-y',
+            '--allowerasing',
+        );
 
-        $self->ssystem( $pkgmgr, '-y', '--allowerasing', @additional_args, 'update' );
-
+        push @args, @additional_args;
+        $self->ssystem_and_die( $pkgmgr, @args, 'update' );
         return;
     }
 
