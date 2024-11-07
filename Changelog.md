@@ -1,3 +1,12 @@
+##### **2024-11-07** - version 57
+
+* Fixed case RE-846: Re-install Softaculous after upgrade.
+* Fixed case RE-934: Ensure final dnf update is executed
+* Fixed case RE-844: Add support for the hgdedi repository and remove obsolete packages it provides:  eigid and quickinstall.
+* Fixed case RE-252: Refactor package manager logic
+* Fixed case RE-782: Verify integrity of databases before elevation.
+* Fixed case RE-845: Add 'ul' and 'ul_*' to the list of vetted repositories.
+
 ##### **2024-10-28** - version 56
 
 * Fixed case RE-812: Fix elevate failures stemming from having a customized epel.repo file.
