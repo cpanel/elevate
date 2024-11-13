@@ -149,3 +149,22 @@ These issues with the YUM repositories can cause ELevate to block your upgrade:
   * If YUM is in an unstable state (running `yum makecache` fails).
 
 If any unfinished yum transactions are detected, ELevate will attempt to complete them by executing `/usr/sbin/yum-complete-transaction --cleanup-only`. If this fails, ELevate will block you from beginning the upgrade process until you manually resolve any outstanding issues or transactions.
+
+#### Unsupported Repository
+
+If you receive the following error message when you use this script,
+you have installed packages from an unsupported repository:
+
+One or more enabled YUM repo[sitories] are currently unsupported and have installed packages.
+You should disable these repositories and remove packages installed from them before continuing the update.
+
+We will not allow upgrades while you are using packages from unsupported repositories for the following reasons:
+
+* We cannot be sure that unsupported repositories provides packages for your upgraded distribution version.
+* Even if an unsupported repository provides packages for your upgraded distribution version, we cannot
+be sure installing them will not interfere with your upgrade process.
+
+To upgrade your distribution version, you must first disable these repositories and remove their packages.
+Then, when the upgrade completes, you can reenable and reinstall, or install equivalent packages
+from other repositories. If no equivalent packages exist, you may have to find a different solution
+to provide the package's functionality.
