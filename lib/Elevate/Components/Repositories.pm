@@ -164,7 +164,7 @@ sub _blocker_invalid_yum_repos ($self) {
         }
         if ( $status_hr->{'USE_RPMS_FROM_UNVETTED_REPO'} ) {
             $msg .= <<~'EOS';
-            One or more enabled YUM repo are currently unsupported and have installed packages.
+            One or more enabled YUM repositories are currently unsupported and have installed packages.
             You should disable these repositories and remove packages installed from them
             before continuing the update.
             EOS
