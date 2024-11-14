@@ -4354,6 +4354,7 @@ EOS
     sub _get_packages_to_check () {
         return qw{
           net-snmp
+          sys-snap
         };
     }
 
@@ -4367,6 +4368,8 @@ EOS
                 push @installed_packages, $package;
             }
         }
+
+        Elevate::PkgMgr::remove(@installed_packages);
 
         my $config_files = Elevate::PkgMgr::get_config_files( \@installed_packages );
 
