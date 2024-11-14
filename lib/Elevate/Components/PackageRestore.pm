@@ -35,6 +35,7 @@ use parent qw{Elevate::Components::Base};
 sub _get_packages_to_check () {
     return qw{
       net-snmp
+      sys-snap
     };
 }
 
@@ -48,6 +49,8 @@ sub pre_distro_upgrade ($self) {
             push @installed_packages, $package;
         }
     }
+
+    Elevate::PkgMgr::remove(@installed_packages);
 
     my $config_files = Elevate::PkgMgr::get_config_files( \@installed_packages );
 
