@@ -30,19 +30,19 @@ my $cpev = cpev->new->_init;
 
 like(
     dies { cpev->ssystem('nope') },
-    qr/Program is not an executable absolute path/,
+    qr/Program 'nope' is not an executable absolute path/,
     'Program is not an executable path.'
 );
 
 like(
     dies { cpev->ssystem('grep') },
-    qr/Program is not an executable absolute path/,
+    qr/Program 'grep' is not an executable absolute path/,
     'Program is not an executable absolute path.'
 );
 
 like(
     dies { cpev->ssystem('/etc/apache2/conf/httpd.conf') },
-    qr/Program is not an executable absolute path/,
+    qr{Program '/etc/apache2/conf/httpd.conf' is not an executable absolute path},
     'Paths that are not executable are not allowed.'
 );
 
