@@ -74,7 +74,7 @@ sub _ssystem ( $command, %opts ) {
     my @args = @{ $command // [] };
 
     # Only allow the program to be an executable absolute path
-    Carp::croak("Program is not an executable absolute path.") if $args[0] !~ '^/' || !-x $args[0];
+    Carp::croak("Program '$args[0]' is not an executable absolute path.") if $args[0] !~ '^/' || !-x $args[0];
 
     INFO( "Running: " . join( " ", @args ) );
     INFO();    # Buffer so they can more easily read the output.
