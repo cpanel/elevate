@@ -55,6 +55,7 @@ my $pkg_restore = cpev->new->get_component('PackageRestore');
             $pkgs_checked_for_config_files = $_[1];
             return \%config_files;
         },
+        remove => 1,
     );
 
     my $mock_upsf = Test::MockModule->new('Elevate::StageFile');
