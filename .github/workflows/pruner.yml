@@ -7,6 +7,7 @@ jobs:
     run-pruner:
       runs-on: [self-hosted]
       env:
+        ACTIONS_STEP_DEBUG: true
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
       steps:

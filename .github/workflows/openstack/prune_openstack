@@ -1,84 +1,98 @@
-#!/usr/bin/env bash
+#!/usr/bin/env perl
 
-export OS_AUTH_TYPE=v3applicationcredential
-export OS_AUTH_URL=https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3
-export OS_IDENTITY_API_VERSION=3
-export OS_REGION_NAME="RegionOne"
-export OS_INTERFACE=public
+use JSON::PP ();
+use POSIX    ();
+use strict;
+use warnings;
 
-# Confs
-VM_NAME="elevate.github.cpanel.net"
-KEY_NAME="deletethis"
+# Environment constants
+our $OS_APPLICATION_CREDENTIAL_ID     = $ENV{OS_APPLICATION_CREDENTIAL_ID};
+our $OS_APPLICATION_CREDENTIAL_SECRET = $ENV{OS_APPLICATION_CREDENTIAL_SECRET};
 
-# two hours ago
-HAMMER_TIME=$(date -d '-2 hour' --utc +"%Y-%m-%dT%H:%M:%SZ")
+# Static constants
+use constant {
+    OS_AUTH_TYPE            => 'v3applicationcredential',
+    OS_AUTH_URL             => 'https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3',
+    OS_IDENTITY_API_VERSION => '3',
+    OS_REGION_NAME          => 'RegionOne',
+    OS_INTERFACE            => 'public',
+    KEY_NAME                => "deletethis",
+    VM_NAME                 => "elevate.github.cpanel.net",
+};
 
-get_elevatebcl_instances () {
-    LIST=$(openstack server list -f json --no-name-lookup | jq -r .[].ID)
-    rm id_created_name.txt > /dev/null 2>&1
-    while IFS= read -r VM; do
-        openstack server show -f json "$VM" | jq -r '.id + "," + .created + "," + .name' | grep $VM_NAME >> id_created_name.txt
-    done <<< "$LIST"
+my $openstack_path = "/usr/bin/openstack" if -x "/usr/bin/openstack";
+die "No Openstack CLI binary installed." unless $openstack_path;
+
+# Define "two hours ago" timestamp
+my $time_offset = 7200;
+my $hammer_time = POSIX::strftime( "%Y-%m-%dT%H:%M:%SZ", gmtime( time - $time_offset ) );
+
+# Run removal functions
+remove_stale_entities( 'keys',      KEY_NAME, 'keypair' );
+remove_stale_entities( 'instances', VM_NAME,  'server' );
+
+# Fetch and format entities
+sub get_entities {
+    my ($entity_type) = @_;
+
+    my $entities = {};
+
+    my ( $list_command, $show_command );
+    if ( $entity_type eq 'keys' ) {
+        $list_command = "$openstack_path keypair list -f json";
+        $show_command = "$openstack_path keypair show -f json";
+    }
+    else {
+        $list_command = "$openstack_path server list -f json --no-name-lookup";
+        $show_command = "$openstack_path server show -f json";
+    }
+
+    my $out  = _run_cmd( $list_command, 0 );
+    my $json = JSON::PP->new->decode($out);
+
+    foreach my $entry (@$json) {
+        my $entity_name = length $entry->{ID} ? $entry->{ID} : $entry->{Name};
+        my $show_out    = _run_cmd( qq{$show_command "$entity_name"}, 0 );
+        my $entity_data = JSON::PP->new->decode($show_out);
+
+        $entities->{$entity_name}->{name}       = $entity_data->{name};
+        $entities->{$entity_name}->{created_on} = length $entity_data->{created_at} ? $entity_data->{created_at} : $entity_data->{created};
+        if ( length $entity_data->{id} ) {
+            $entities->{$entity_name}->{id} = $entity_data->{id};
+        }
+    }
+    return $entities;
 }
 
-remove_stale_instances () {
-    echo "HAMMERTIME: $HAMMER_TIME"
-    while IFS="," read -r ID CREATED_DATE NAME
-    do
-        if [[ $CREATED_DATE < $HAMMER_TIME ]];
-        then
-            echo "deleting: $ID,$CREATED_DATE,$NAME"
-            openstack server delete "$ID"
-        fi
-    done < <(cat id_created_name.txt)
+# Remove stale entities
+sub remove_stale_entities {
+    my ( $entity_type, $name_pattern, $delete_command ) = @_;
+
+    my $entities = get_entities($entity_type);
+
+    foreach my $entity ( values %$entities ) {
+        unless ( length $entity->{id} && length $entity->{name} && length $entity->{created_on} ) {
+            print "## [WARN]: Skipping entity due to missing keys\n";
+            next;
+        }
+
+        next unless $entity->{'name'} =~ /${\$name_pattern}/;
+
+        if ( $entity->{created_on} lt $hammer_time ) {
+            print "## [INFO]: Deleting: ID: $entity->{id}, Name: $entity->{name}, Created On: $entity->{created_on}\n";
+            _run_cmd( "$openstack_path $delete_command delete $entity->{id}", 1 );
+        }
+    }
+    return 0;
 }
 
-get_keys () {
-    LIST=$(openstack keypair list -f json  | jq -r .[].Name)
-    rm keyid_created_name.txt > /dev/null 2>&1
-    while IFS= read -r KEYPAIR; do
-        openstack keypair show -f json "$KEYPAIR" | jq -r '.id + "," + .created_at + "," + .name' | grep $KEY_NAME >> keyid_created_name.txt
-    done <<< "$LIST"
+# Run command subroutine with basic error handling
+sub _run_cmd {
+    my ( $cmd, $logger ) = @_;
+
+    print "## [INFO]: Running command: $cmd\n" if $logger;
+    my $output = `$cmd`;
+    die "Command failed with error: $?" if $?;
+
+    return $output;
 }
-
-remove_stale_keys () {
-    echo "HAMMERTIME: $HAMMER_TIME"
-    while IFS="," read -r ID CREATED_DATE NAME
-    do
-        if [[ $CREATED_DATE < $HAMMER_TIME ]];
-        then
-            echo "deleting: $ID,$CREATED_DATE,$NAME"
-            openstack keypair delete "$ID"
-        fi
-    done < <(cat keyid_created_name.txt)
-}
-
-get_volumes () {
-    rm volume_ids.txt > /dev/null 2>&1
-    openstack volume list | grep packer  | grep available | awk '{print $2}' >> volume_ids.txt
-}
-
-remove_volumes () {
-    while IFS= read -r ID; do
-        openstack volume delete "$ID" || true
-    done < <(cat volume_ids.txt)
-}
-
-cleanup () {
-    rm -fv id_created_name.txt
-    rm -fv keyid_created_name.txt
-}
-
-# prune VMs
-get_elevatebcl_instances
-remove_stale_instances
-# prune keys
-get_keys
-remove_stale_keys
-# prune volumes
-get_volumes
-remove_volumes
-# cleanup
-cleanup
-
-exit 0;
