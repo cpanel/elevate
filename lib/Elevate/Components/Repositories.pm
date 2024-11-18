@@ -326,7 +326,7 @@ sub _check_yum_repos ($self) {
     $self->{_yum_repos_path_using_invalid_syntax} = [];
     $self->{_yum_repos_to_disable}                = [];
     $self->{_yum_repos_unsupported_with_packages} = [];
-    $self->{_duplicate_repoids}                   = [];
+    $self->{_duplicate_repoids}                   = {};
 
     my @vetted_repos = Elevate::OS::vetted_yum_repo();
 
@@ -458,6 +458,7 @@ sub _check_yum_repos ($self) {
 }
 
 sub _autofix_duplicate_repoids ($self) {
+    return unless ref $self->{_duplicate_repoids} && ref $self->{_duplicate_repoids} eq 'HASH';
     my %duplicate_ids = $self->{_duplicate_repoids}->%*;
     foreach my $id ( keys %duplicate_ids ) {
         if ( $id =~ m/^MariaDB[0-9]+/ ) {
