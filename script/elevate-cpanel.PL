@@ -940,7 +940,7 @@ sub run_stage_1 ($self) {
 
     Elevate::Motd->setup();
 
-    if ( !$self->should_run_distro_upgrade() ) {
+    if ( !$self->upgrade_distro_manually() ) {
         Elevate::Stages::bump_stage();
         return ACTION_CONTINUE;
     }
@@ -1019,7 +1019,7 @@ sub run_stage_3 ($self) {
 
     $self->run_once('run_final_components_pre_distro_upgrade');
 
-    if ( !$self->should_run_distro_upgrade() ) {
+    if ( !$self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
@@ -1445,7 +1445,7 @@ sub post_upgrade_check ($self) {
 
 # TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.
 
-sub should_run_distro_upgrade ($self) {
+sub upgrade_distro_manually ($self) {
 
     # we store the upgrade_distro_manually option, but prefer using a positive check instead
     # we need to check to see if the CLI option is passed here too in order
