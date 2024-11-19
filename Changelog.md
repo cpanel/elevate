@@ -1,3 +1,9 @@
+##### **2024-11-19** - version 58
+
+* Fixed case RE-964: Avoid Perl error in 'Elevate::Components::Repositories'
+* Fixed case RE-952: Add 'sys-snap' to the list of packages that the PackageRestore component handles
+* Fail with a more specific error about what executable is not available
+
 ##### **2024-11-07** - version 57
 
 * Fixed case RE-846: Re-install Softaculous after upgrade.
