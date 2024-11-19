@@ -40,16 +40,15 @@ $mock_notify->redefine(
 
 my $cpev = bless {}, 'cpev';
 
-for my $os ( 'cent', 'cloud' ) {
+for my $os ( 'cent', 'cloud', 'ubuntu' ) {
     set_os_to($os);
 
     my $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
-    my $expect_title = $os eq 'cent' ? 'Successfully updated to AlmaLinux 8' : 'Successfully updated to CloudLinux 8';
-    my $expect_body =
-      $os eq 'cent'
-      ? qq[The cPanel & WHM server has completed the elevation process from CentOS 7 to AlmaLinux 8.\n]
-      : qq[The cPanel & WHM server has completed the elevation process from CloudLinux 7 to CloudLinux 8.\n];
+    my $start_os     = Elevate::OS::pretty_name();
+    my $expect_os    = Elevate::OS::upgrade_to_pretty_name();
+    my $expect_title = "Successfully updated to $expect_os";
+    my $expect_body  = "The cPanel & WHM server has completed the elevation process from $start_os to $expect_os.\n";
 
     $cpev->_notify_success();
 
@@ -85,14 +84,11 @@ for my $os ( 'cent', 'cloud' ) {
 
     $cpev->_notify_success();
 
-    my $expect_upgrade_from = $os eq 'cent' ? 'CentOS 7'    : 'CloudLinux 7';
-    my $expect_upgrade_to   = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+    is $notification->{title}, "Successfully updated to $expect_os", '_notify_success: title';
+    is $notification->{body},  <<EOS,                                '_notify_success: body' or note $notification->{body};
+The cPanel & WHM server has completed the elevation process from $start_os to $expect_os.
 
-    is $notification->{title}, "Successfully updated to $expect_upgrade_to", '_notify_success: title';
-    is $notification->{body},  <<EOS,                                        '_notify_success: body' or note $notification->{body};
-The cPanel & WHM server has completed the elevation process from $expect_upgrade_from to $expect_upgrade_to.
-
-The update to $expect_upgrade_to was successful but please note that one ore more notifications require your attention:
+The update to $expect_os was successful but please note that one ore more notifications require your attention:
 
 * My First Notification
 

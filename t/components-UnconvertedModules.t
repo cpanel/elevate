@@ -27,6 +27,8 @@ my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
 {
     note "checking _remove_leapp_packages";
 
+    set_os_to('cent');
+
     my $mock_cpanel_pkgr = Test::MockModule->new('Cpanel::Pkgr');
     $mock_cpanel_pkgr->redefine(
         is_installed => sub ($pkg) {
@@ -67,11 +69,11 @@ my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
 {
     note "checking _warn_about_other_modules_that_did_not_convert";
 
-    my @mock_packages;
-    my $mock_rpm = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+    my $mock_packages = {};
+    my $mock_rpm      = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
     $mock_rpm->redefine(
         get_installed_pkgs => sub {
-            return @mock_packages;
+            return $mock_packages;
         },
     );
 
@@ -86,16 +88,23 @@ my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
         },
     );
 
-    @mock_packages = qw{ foo bar finn-el7 acronis-backup-cpanel kernel-3.10.el7.x86_64 kernel-tools-3.10.el7.x86_64 };
+    $mock_packages = {
+        'foo'                   => 1,
+        'bar'                   => 1,
+        'finn'                  => '1.el7.x86_64',
+        'acronis-backup-cpanel' => 1,
+        'kernel'                => '3.10.el7.x86_64',
+        'kernel-tools'          => '3.10.el7.x86_64',
+    };
     $unconvertedmodules->_warn_about_other_modules_that_did_not_convert();
     is(
         $message,
         <<'EOS',
 The following packages should probably be removed as they will not function on AlmaLinux 8
 
-    finn-el7
+    finn-1.el7.x86_64
 
-You can remove these by running: yum -y remove finn-el7
+You can remove these by running: yum -y remove finn-1.el7.x86_64
 EOS
         'The expected final notification is added'
     );

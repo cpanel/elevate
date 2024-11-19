@@ -444,4 +444,16 @@ EOS
     no_messages_seen();
 }
 
+{
+    note 'Testing Ubuntu';
+
+    set_os_to('ubuntu');
+    is( $yum->check(), 1, 'The Repository blocker is skipped for apt based systems' );
+    is(
+        $yum->pre_distro_upgrade(),
+        undef,
+        'The Repository pre_distro_upgrade changes are skipped for apt based systems'
+    );
+}
+
 done_testing();

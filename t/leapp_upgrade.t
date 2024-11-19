@@ -335,6 +335,10 @@ note 'LEAPP upgrade log failure checks';
 
     $mock_leapp_upgrade_log->contents("blah\nblah\nblah Starting stage After of phase FirstBoot blah\ndjdjd\n");
     is( cpev->leapp->wait_for_leapp_completion, 1, "wait_for_leapp_completion succeeds if magic string shows up." );
+
+    set_os_to('ubuntu');
+    $mock_leapp_cont_file->unlink;
+    is( cpev->leapp->wait_for_leapp_completion, 1, "wait_for_leapp_completion is skipped if the OS is ubuntu" );
 }
 
 done_testing();

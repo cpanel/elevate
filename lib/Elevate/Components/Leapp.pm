@@ -23,6 +23,7 @@ noop
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 
 use parent qw{Elevate::Components::Base};
 
@@ -32,6 +33,8 @@ use Log::Log4perl qw(:easy);
 sub check ($self) {
 
     return if $self->is_check_mode();    # skip for --check
+
+    return unless Elevate::OS::needs_leapp();
 
     return unless $self->should_run_distro_upgrade;    # skip when --upgrade-distro-manually is provided
 

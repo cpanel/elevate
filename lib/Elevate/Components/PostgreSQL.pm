@@ -16,7 +16,7 @@ ELevate process or otherwise cause it to be considered an overall failure.
 
 =head2 check
 
-noop
+1. Block if PG is installed on Ubuntu upgrades
 
 =head2 pre_distro_upgrade
 
@@ -59,6 +59,21 @@ sub _build_service ($self) {
     return Elevate::SystemctlService->new( name => 'postgresql' );
 }
 
+sub check ($self) {
+    return if Elevate::OS::supports_postgresql();
+
+    if ( Cpanel::Pkgr::is_installed('postgresql') ) {
+
+        my $name = Elevate::OS::default_upgrade_to();
+        $self->has_blocker( <<~"END" );
+        ELevate does not currently support PostgreSQL for upgrades to $name.
+        END
+
+    }
+
+    return;
+}
+
 =head1 BEFORE LEAPP
 
 =over
@@ -66,6 +81,8 @@ sub _build_service ($self) {
 =cut
 
 sub pre_distro_upgrade ($self) {
+    return unless Elevate::OS::supports_postgresql();
+
     if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
         $self->_store_postgresql_encoding_and_locale();
         $self->_disable_postgresql_service();
@@ -202,6 +219,8 @@ sub _backup_postgresql_datadir ($self) {
 =cut
 
 sub post_distro_upgrade ($self) {
+    return unless Elevate::OS::supports_postgresql();
+
     if ( Cpanel::Pkgr::is_installed('postgresql-server') ) {
         $self->_perform_config_workaround();
         $self->_perform_postgresql_upgrade();

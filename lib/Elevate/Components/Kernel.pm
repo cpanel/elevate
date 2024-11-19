@@ -40,20 +40,25 @@ sub post_distro_upgrade ($self) {
 
 sub _kernel_check ($self) {
 
-    my @kernel_rpms = Elevate::PkgMgr::get_installed_pkgs();
-    @kernel_rpms = sort grep { m/^kernel-\S+el7/ } @kernel_rpms;
+    my $kernel_pkgs = Elevate::PkgMgr::get_installed_pkgs('kernel-*');
 
-    return unless @kernel_rpms;
-    chomp @kernel_rpms;
+    my @el7_kernels;
+    foreach my $kernel ( sort keys %$kernel_pkgs ) {
+        if ( $kernel_pkgs->{$kernel} =~ m/\.el7\./ ) {
+            push @el7_kernels, "$kernel-$kernel_pkgs->{$kernel}";
+        }
+    }
+
+    return unless @el7_kernels;
 
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $msg = "The following kernels should probably be removed as they will not function on $pretty_distro_name:\n\n";
-    foreach my $kernel (@kernel_rpms) {
+    foreach my $kernel (@el7_kernels) {
         $msg .= "    $kernel\n";
     }
 
-    $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @kernel_rpms ) . "\n";
+    $msg .= "\nYou can remove these by running: /usr/bin/rpm -e " . join( " ", @el7_kernels ) . "\n";
 
     Elevate::Notify::add_final_notification($msg);
 

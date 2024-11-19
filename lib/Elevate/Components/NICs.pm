@@ -39,6 +39,7 @@ use constant PERSISTENT_NET_RULES_PATH => q[/etc/udev/rules.d/70-persistent-net.
 use constant SBIN_IP                   => Elevate::Constants::SBIN_IP;
 
 sub pre_distro_upgrade ($self) {
+    return unless Elevate::OS::needs_leapp();
 
     $self->_rename_nics();
 
@@ -106,7 +107,11 @@ sub _rename_nics ($self) {
 }
 
 sub check ($self) {
-    return 1 unless $self->should_run_distro_upgrade;    # skip when --upgrade-distro-manually is provided
+
+    # This only matters for upgrades performed with the leapp utility
+    return 1 unless Elevate::OS::needs_leapp();
+    return 1 unless $self->should_run_distro_upgrade;
+
     return $self->_blocker_bad_nics_naming;
 }
 

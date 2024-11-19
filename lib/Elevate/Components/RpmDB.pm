@@ -28,6 +28,7 @@ noop
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::OS        ();
 use Elevate::PkgMgr    ();
 
 use Cwd           ();
@@ -73,6 +74,10 @@ sub _cleanup_rpms ($self) {
 }
 
 sub _remove_obsolete_packages ($self) {
+
+    # This is specific to leapp upgrades
+    return unless Elevate::OS::needs_leapp();
+
     my @pkgs_to_remove = OBSOLETE_PACKAGES();
     Elevate::PkgMgr::remove(@pkgs_to_remove);
     return;
@@ -89,15 +94,19 @@ sub _sysup ($self) {
     Cpanel::Yum::Vars::install();
     Elevate::PkgMgr::clean_all();
 
-    my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
+    if ( Elevate::OS::needs_epel() ) {
+        my $epel_url = 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm';
 
-    # no failures once already installed: no need to check for the epel-release version
-    unless ( Cpanel::Pkgr::is_installed('epel-release') ) {
-        Elevate::PkgMgr::install_pkg_via_url($epel_url);
+        # no failures once already installed: no need to check for the
+        # epel-release version
+        unless ( Cpanel::Pkgr::is_installed('epel-release') ) {
+            Elevate::PkgMgr::install_pkg_via_url($epel_url);
+        }
+
+        Elevate::PkgMgr::config_manager_enable('epel');
     }
 
-    Elevate::PkgMgr::config_manager_enable('powertools');
-    Elevate::PkgMgr::config_manager_enable('epel');
+    Elevate::PkgMgr::config_manager_enable('powertools') if Elevate::OS::needs_powertools();
 
     # Break cpanel-perl (NOTE: This only works on perl 5.36)
     unlink('/usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm');
