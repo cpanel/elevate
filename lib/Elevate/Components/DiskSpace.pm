@@ -48,9 +48,11 @@ sub _disk_space_check ($self) {
     #   - /boot is small enough
     #   - /usr/local/cpanel is not going to be used at the same time than /var/lib
     my $need_space = {
-        '/boot'             => 120 * MEG,
+        '/boot'             => 200 * MEG,
         '/usr/local/cpanel' => 1.5 * GIG,    #
         '/var/lib'          => 5 * GIG,
+        '/tmp'              => 5 * MEG,
+        '/'                 => 5 * GIG,
     };
 
     my @keys = ( sort keys %$need_space );
