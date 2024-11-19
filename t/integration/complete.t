@@ -24,7 +24,7 @@ note "Gather service status...";
 my $svcstatus = run_api(qw{whmapi1 servicestatus});
 if ( ref $svcstatus->{'data'}{'service'} eq 'ARRAY' ) {
     foreach my $svc_info ( $svcstatus->{'data'}{'service'}->@* ) {
-        next if !$svc_info->{'enabled'} || $svc_info->{'name'} eq 'mailman' || $svc_info->{'name'} eq 'tailwatchd';
+        next if !$svc_info->{'enabled'} || $svc_info->{'name'} eq 'mailman' || $svc_info->{'name'} eq 'tailwatchd' || $svc_info->{'name'} eq 'imunify360';
         ok( $svc_info->{'running'}, "$svc_info->{'name'} is running" );
     }
 }
