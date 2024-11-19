@@ -67,6 +67,8 @@ use constant EXPECTED_EXTRA_PACKAGES => (
 
 sub pre_distro_upgrade ($self) {
 
+    return if Elevate::OS::is_apt_based();
+
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
     $self->run_once("_fixup_epel_repo");
@@ -123,6 +125,9 @@ sub _erase_package ( $self, $pkg ) {
 
 sub check ($self) {
     my $ok = 1;
+
+    return $ok if Elevate::OS::is_apt_based();
+
     $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
     $ok = 0 if $self->_blocker_invalid_yum_repos;
     $ok = 0 if $self->_yum_is_stable();

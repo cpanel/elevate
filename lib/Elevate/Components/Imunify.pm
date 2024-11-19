@@ -46,7 +46,9 @@ use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . 
 
 sub pre_distro_upgrade ($self) {
 
-    return if Elevate::OS::leapp_can_handle_imunify();
+    if ( Elevate::OS::needs_leapp() ) {
+        return if Elevate::OS::leapp_can_handle_imunify();
+    }
 
     return unless $self->is_installed;
 
@@ -59,7 +61,9 @@ sub pre_distro_upgrade ($self) {
 
 sub post_distro_upgrade ($self) {
 
-    return if Elevate::OS::leapp_can_handle_imunify();
+    if ( Elevate::OS::needs_leapp() ) {
+        return if Elevate::OS::leapp_can_handle_imunify();
+    }
 
     # order matters
     $self->run_once('_reinstall_imunify_360');
@@ -71,8 +75,8 @@ sub post_distro_upgrade ($self) {
 
 sub _capture_imunify_packages ($self) {
 
-    # only capture the imunify packages
-    my @packages = grep { m/^imunify-/ } Elevate::PkgMgr::get_installed_pkgs_in_repo(qw{ imunify imunify360 });
+    my $pkg_info = Elevate::PkgMgr::get_installed_pkgs('imunify-*');
+    my @packages = keys %$pkg_info;
 
     return unless scalar @packages;
 
@@ -254,7 +258,7 @@ sub _remove_imunify_360 ($self) {
     INFO("Imunify360: Removing $product_type prior to upgrade.");
     INFO("Imunify360: Product $product_type detected. Uninstalling before upgrade for later restore.");
 
-    if ( $self->ssystem( '/usr/bin/bash', $installer_script, '--uninstall' ) != 0 ) {
+    if ( $self->ssystem( '/usr/bin/bash', $installer_script, '-y', '--uninstall' ) != 0 ) {
         LOGDIE("Imunify360: Failed to uninstall $product_type.");
         return;
     }
@@ -263,7 +267,9 @@ sub _remove_imunify_360 ($self) {
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'imunify360' => $product_type } } );
 
     # Cleanup any lingering packages.
-    Elevate::PkgMgr::remove_pkgs_from_repos('imunify');
+    my $pkg_info = Elevate::PkgMgr::get_installed_pkgs('imunify-*');
+    my @packages = keys %$pkg_info;
+    Elevate::PkgMgr::remove(@packages);
 
     return;
 }
@@ -275,7 +281,7 @@ sub _reinstall_imunify_360 ($self) {
 
     my $installer_script = _fetch_imunify_installer($product_type) or return;
 
-    if ( $self->ssystem( '/usr/bin/bash', $installer_script ) == 0 ) {
+    if ( $self->ssystem( '/usr/bin/bash', $installer_script, '-y' ) == 0 ) {
         INFO("Successfully reinstalled $product_type.");
     }
     else {

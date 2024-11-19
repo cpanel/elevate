@@ -8,7 +8,7 @@ Elevate::Components::KernelCare
 
 =head2 check
 
-noop
+Check if KernelCare is supported for the upgrade if it is installed
 
 =head2 pre_distro_upgrade
 
@@ -36,6 +36,7 @@ use parent qw{Elevate::Components::Base};
 
 sub pre_distro_upgrade ($self) {
 
+    return unless Elevate::OS::supports_kernelcare();
     return if Elevate::OS::leapp_can_handle_kernelcare();
 
     $self->run_once("_remove_kernelcare_if_needed");
@@ -45,6 +46,7 @@ sub pre_distro_upgrade ($self) {
 
 sub post_distro_upgrade ($self) {
 
+    return unless Elevate::OS::supports_kernelcare();
     return if Elevate::OS::leapp_can_handle_kernelcare();
 
     $self->run_once('_restore_kernelcare');
@@ -90,6 +92,17 @@ sub _restore_kernelcare ($self) {
     $self->ssystem(qw{ /usr/bin/kcarectl --update });
 
     return;
+}
+
+sub check ($self) {
+    return unless -x q[/usr/bin/kcarectl];
+    return if Elevate::OS::supports_kernelcare();
+
+    my $name = Elevate::OS::default_upgrade_to();
+    return $self->has_blocker( <<~"EOS" );
+    ELevate does not currently support KernelCare for upgrades of $name.
+    Support for KernelCare on $name will be added in a future version of ELevate.
+    EOS
 }
 
 1;

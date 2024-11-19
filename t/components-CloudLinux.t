@@ -48,8 +48,12 @@ my $cl   = $cpev->get_blocker('CloudLinux');
         },
     );
 
-    set_os_to('cent');
-    is $cl->_check_cloudlinux_license(), 0, 'The blocker check is skipped and returns 0 when the OS is CentOS';
+    foreach my $os (qw{ cent ubuntu }) {
+        set_os_to($os);
+
+        my $name = $os eq 'cent' ? 'CentOS' : 'Ubuntu';
+        is $cl->_check_cloudlinux_license(), 0, "The blocker check is skipped and returns 0 when the OS is $name";
+    }
 
     set_os_to('cloud');
 

@@ -114,9 +114,9 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
     return;
 }
 
-sub test_missing_ea4_profile : Test(6) ($self) {
+sub test_missing_ea4_profile : Test(9) ($self) {
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
         $self->{mock_saferun}->redefine(
@@ -199,9 +199,9 @@ EOS
     return;
 }
 
-sub test_get_ea4_profile_check_mode : Test(19) ($self) {
+sub test_get_ea4_profile_check_mode : Test(26) ($self) {
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
         my $output = qq[void\n];
@@ -230,7 +230,11 @@ sub test_get_ea4_profile_check_mode : Test(19) ($self) {
         my $ea4 = $cpev->get_component('EA4');
         is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
 
-        my $expected_target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
+        # TODO: Update this to Ubuntu_22.04 via RE-954
+        my $expected_target =
+            $os eq 'cent'  ? 'CentOS_8'
+          : $os eq 'cloud' ? 'CloudLinux_8'
+          :                  'Ubuntu_20.04';
         message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
         message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
 
@@ -266,11 +270,11 @@ sub test_tmp_dir : Test(3) ($self) {
     return;
 }
 
-sub backup_non_existing_profile : Test(16) ($self) {
+sub backup_non_existing_profile : Test(34) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
         like(
@@ -300,7 +304,7 @@ sub backup_non_existing_profile : Test(16) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
+sub test_backup_and_restore_ea4_profile : Test(18) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
@@ -313,7 +317,7 @@ sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
 
     $self->_update_profile_file($profile);
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
         is( $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4" );
@@ -329,11 +333,11 @@ sub test_backup_and_restore_ea4_profile : Test(13) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_dropped_packages : Test(28) ($self) {
+sub test_backup_and_restore_ea4_profile_dropped_packages : Test(42) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
         my $profile = {
@@ -386,11 +390,11 @@ EOS
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($self) {
+sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(36) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
         my $profile = {
@@ -451,68 +455,77 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(28) ($se
 
 }
 
-sub test_backup_and_restore_config_files : Test(10) ($self) {
-    my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
-    $mock_pkgmgr->redefine(
-        ssystem_capture_output => sub ( $, @args ) {
-            my $pkg         = pop @args;
-            my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
-            my $ret         = {
-                status => 0,
-                stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
-            };
-            return $ret;
-        },
-        get_installed_pkgs => sub {
-            return ( 'ea-foo', 'ea-bar', 'ea-nginx' );
-        },
-    );
+sub test_backup_and_restore_config_files : Test(30) ($self) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+        set_os_to($os);
 
-    my $ea4 = cpev->new->get_component('EA4');
-
-    is( $ea4->_backup_config_files(), undef, '_backup_config_files() successfully completes' );
-
-    is(
-        Elevate::StageFile::read_stage_file(),
-        {
-            ea4_config_files => {
-                'ea-foo'   => ['/tmp/foo.conf'],
-                'ea-bar'   => ['/tmp/bar.conf'],
-                'ea-nginx' => [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ],
+        my %config_files_restored;
+        my $mock_file_copy = Test::MockModule->new('File::Copy');
+        $mock_file_copy->redefine(
+            cp => 1,
+            mv => sub {
+                my ( $from, $to ) = @_;
+                $config_files_restored{$to} = 1;
+                return 1;
             },
-        },
-        'stage file contains the expected config files',
-    );
+        );
 
-    my %config_files_restored;
-    my $mock_file_copy = Test::MockModule->new('File::Copy');
-    $mock_file_copy->redefine(
-        mv => sub {
-            my ( $from, $to ) = @_;
-            $config_files_restored{$to} = 1;
-            return 1;
-        },
-    );
+        my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+        $mock_pkgmgr->redefine(
+            ssystem_capture_output => sub ( $, @args ) {
+                my $pkg         = pop @args;
+                my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
+                my $ret         = {
+                    status => 0,
+                    stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
+                };
+                return $ret;
+            },
+            get_installed_pkgs => sub {
+                return {
+                    'ea-foo'   => 1,
+                    'ea-bar'   => 1,
+                    'ea-nginx' => 1,
+                };
+            },
+        );
 
-    my $mock_foo   = Test::MockFile->file( '/tmp/foo.conf.rpmsave',         '' );
-    my $mock_bar   = Test::MockFile->file( '/tmp/bar.conf.rpmsave',         '' );
-    my $mock_nginx = Test::MockFile->file( '/etc/nginx/nginx.conf.rpmsave', '' );
+        my $ea4 = cpev->new->get_component('EA4');
 
-    is( $ea4->_restore_config_files(), undef, '_restore_config_files() successfully completes' );
+        is( $ea4->_backup_config_files(), undef, '_backup_config_files() successfully completes' );
 
-    is(
-        \%config_files_restored,
-        {
-            '/tmp/foo.conf'         => 1,
-            '/tmp/bar.conf'         => 1,
-            '/etc/nginx/nginx.conf' => 1,
-        },
-        'The expected files are restored',
-    );
+        is(
+            Elevate::StageFile::read_stage_file(),
+            {
+                ea4_config_files => {
+                    'ea-foo'   => ['/tmp/foo.conf'],
+                    'ea-bar'   => ['/tmp/bar.conf'],
+                    'ea-nginx' => [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ],
+                },
+            },
+            'stage file contains the expected config files',
+        );
 
-    message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
-    message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
-    message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
+        my $mock_foo   = Test::MockFile->file( '/tmp/foo.conf.rpmsave',         '' );
+        my $mock_bar   = Test::MockFile->file( '/tmp/bar.conf.rpmsave',         '' );
+        my $mock_nginx = Test::MockFile->file( '/etc/nginx/nginx.conf.rpmsave', '' );
+
+        is( $ea4->_restore_config_files(), undef, '_restore_config_files() successfully completes' );
+
+        is(
+            \%config_files_restored,
+            {
+                '/tmp/foo.conf'         => 1,
+                '/tmp/bar.conf'         => 1,
+                '/etc/nginx/nginx.conf' => 1,
+            },
+            'The expected files are restored',
+        );
+
+        message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
+        message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
+        message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
+    }
 
     return;
 }
@@ -653,7 +666,7 @@ Please remove these packages before continuing the update.
     return;
 }
 
-sub test_blocker_incompatible_package : Test(11) ($self) {
+sub test_blocker_incompatible_package : Test(16) ($self) {
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');
@@ -678,10 +691,10 @@ sub test_blocker_incompatible_package : Test(11) ($self) {
 
     # only testing the blocking case
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
-        my $expected_target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();
         like(
             $ea4->_blocker_ea4_profile(),
             {
@@ -696,11 +709,10 @@ sub test_blocker_incompatible_package : Test(11) ($self) {
             'blocks when EA4 has an incompatible package'
         );
 
-        my $target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
-        $self->_ea_info_check($target_os);
+        $self->_ea_info_check($expected_target_os);
         message_seen( WARN => <<"EOS");
 *** Elevation Blocker detected: ***
-One or more EasyApache 4 package(s) are not compatible with $target_os.
+One or more EasyApache 4 package(s) are not compatible with $expected_target_os.
 Please remove these packages before continuing the update.
 - ea4-bad-pkg
 
@@ -712,7 +724,7 @@ EOS
     return;
 }
 
-sub test_blocker_behavior : Test(49) ($self) {
+sub test_blocker_behavior : Test(75) ($self) {
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');
@@ -722,10 +734,10 @@ sub test_blocker_behavior : Test(49) ($self) {
     my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
     $mock_elevate_ea4->redefine( backup => sub { return; } );
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
-        my $target_os = $os eq 'cent' ? 'AlmaLinux 8' : 'CloudLinux 8';
+        my $target_os = Elevate::OS::upgrade_to_pretty_name();
 
         ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
         $self->_ea_info_check($target_os);
@@ -940,7 +952,7 @@ sub test__get_php_versions_in_use : Test(7) ($self) {
 
 sub _message_run_ea_current_to_profile ( $os = 'cent', $success = 0 ) {
 
-    my $target = $os eq 'cent' ? 'CentOS_8' : 'CloudLinux_8';
+    my $target = Elevate::OS::ea_alias();
 
     message_seen( 'INFO' => qq[Running: /usr/local/bin/ea_current_to_profile --target-os=$target] );
     return unless $success;

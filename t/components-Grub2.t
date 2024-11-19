@@ -32,6 +32,7 @@ my $grub2_comp = cpev->new->get_component('Grub2');
 
 my $mock_g2 = Test::MockModule->new('Elevate::Components::Grub2');
 
+my $mock_grubby  = Test::MockFile->file( '/usr/sbin/grubby', '', { mode => 0755 } );
 my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
 
 my $mock_stage_file = Test::MockModule->new('Elevate::StageFile');
@@ -97,6 +98,11 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
 
 {
     note "checking _blocker_blscfg: GRUB_ENABLE_BLSCFG state check";
+
+    set_os_to('ubuntu');
+    is( $components->_check_single_blocker('Grub2'), 1, 'Blocker is bypassed on Ubuntu upgrades' );
+
+    set_os_to('cent');
 
     $mock_g2->redefine( '_blocker_grub2_workaround'    => 0 );
     $mock_g2->redefine( '_blocker_grub_not_installed'  => 0 );

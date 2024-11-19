@@ -17,8 +17,6 @@ use Cpanel::JSON ();
 use File::Copy  ();
 use Hash::Merge ();
 
-use Log::Log4perl qw(:easy);
-
 use constant ELEVATE_STAGE_FILE   => '/var/cpanel/elevate';
 use constant ELEVATE_SUCCESS_FILE => '/var/cpanel/version/elevate';
 

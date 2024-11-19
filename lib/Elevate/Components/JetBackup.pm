@@ -84,7 +84,23 @@ sub post_distro_upgrade ($self) {
 
 sub check ($self) {
 
-    return $self->_blocker_old_jetbackup;
+    $self->_blocker_jetbackup_is_supported();
+    $self->_blocker_old_jetbackup;
+
+    return;
+}
+
+# Support for JetBackup on Ubuntu is scheduled via RE-668
+# For now, we block to reduce scope for the initial release
+sub _blocker_jetbackup_is_supported ($self) {
+    return unless Cpanel::Pkgr::is_installed('jetbackup');
+    return if Elevate::OS::supports_jetbackup();
+
+    my $name = Elevate::OS::default_upgrade_to();
+    return $self->has_blocker( <<~"END" );
+    ELevate does not currently support JetBackup for upgrades of $name.
+    Support for JetBackup on $name will be added in a future version of ELevate.
+    END
 }
 
 sub _blocker_old_jetbackup ($self) {

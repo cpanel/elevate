@@ -14,6 +14,7 @@ as rpm and dpkg
 use cPstrict;
 
 use Elevate::PkgMgr::YUM ();
+use Elevate::PkgMgr::APT ();
 
 our $PKGUTILITY;
 
@@ -61,8 +62,8 @@ sub force_upgrade_pkg ($pkg) {
     return instance()->force_upgrade_pkg($pkg);
 }
 
-sub get_installed_pkgs ( $format = undef ) {
-    return instance()->get_installed_pkgs($format);
+sub get_installed_pkgs ( $filter = undef ) {
+    return instance()->get_installed_pkgs($filter);
 }
 
 sub get_cpanel_arch_pkgs () {
@@ -143,6 +144,10 @@ sub get_installed_pkgs_in_repo (@pkg_list) {
 
 sub remove_pkgs_from_repos (@pkg_list) {
     return instance()->remove_pkgs_from_repos(@pkg_list);
+}
+
+sub showhold () {
+    return instance()->showhold();
 }
 
 1;
