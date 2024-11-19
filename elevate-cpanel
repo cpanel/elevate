@@ -1590,9 +1590,11 @@ BEGIN {    # Suppress load of all of these at earliest point.
     sub _disk_space_check ($self) {
 
         my $need_space = {
-            '/boot'             => 120 * MEG,
+            '/boot'             => 200 * MEG,
             '/usr/local/cpanel' => 1.5 * GIG,    #
             '/var/lib'          => 5 * GIG,
+            '/tmp'              => 5 * MEG,
+            '/'                 => 5 * GIG,
         };
 
         my @keys = ( sort keys %$need_space );
