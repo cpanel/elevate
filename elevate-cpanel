@@ -168,7 +168,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     BEGIN {
         my @_DELEGATE_TO_CPEV = qw{
           getopt
-          should_run_distro_upgrade
+          upgrade_distro_manually
           ssystem
           ssystem_and_die
           ssystem_capture_output
@@ -686,7 +686,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub check ($self) {
 
-        return 1 unless $self->should_run_distro_upgrade;    # skip when --upgrade-distro-manually is provided
+        return 1 unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
         my $ok = 0;
         try {
@@ -2262,7 +2262,7 @@ EOS
 
     sub verify_cmdline ($self) {
         return unless -x GRUBBY_PATH;
-        if ( $self->cpev->should_run_distro_upgrade() ) {
+        if ( $self->cpev->upgrade_distro_manually() ) {
             my $arg = "elevate-" . _persistent_id;
             INFO("Checking for \"$arg\" in booted kernel's command line...");
 
@@ -2448,7 +2448,7 @@ EOS
     sub check ($self) {
 
         return 1 unless Elevate::OS::needs_leapp();
-        return 1 unless $self->should_run_distro_upgrade;    # skip when --upgrade-distro-manually is provided
+        return 1 unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
         my $ok = 1;
         $ok = 0 unless $self->_blocker_grub2_workaround;
@@ -3006,7 +3006,7 @@ EOS
 
     sub check ($self) {    # $self is a cpev object here
 
-        return 0 unless $self->should_run_distro_upgrade;
+        return 0 unless $self->upgrade_distro_manually;
 
         if ( _is_container_envtype() ) {
             return $self->has_blocker( <<~'EOS');
@@ -3328,7 +3328,7 @@ EOS
 
         return unless Elevate::OS::needs_leapp();
 
-        return unless $self->should_run_distro_upgrade;    # skip when --upgrade-distro-manually is provided
+        return unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
         return if ( $self->components->num_blockers_found() > 0 );    # skip if any blockers have already been found
 
@@ -4162,7 +4162,7 @@ EOS
     sub check ($self) {
 
         return 1 unless Elevate::OS::needs_leapp();
-        return 1 unless $self->should_run_distro_upgrade;
+        return 1 unless $self->upgrade_distro_manually;
 
         return $self->_blocker_bad_nics_naming;
     }
@@ -8519,7 +8519,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
     sub upgrade ($self) {
 
-        return unless $self->cpev->should_run_distro_upgrade();
+        return unless $self->cpev->upgrade_distro_manually();
 
         $self->cpev->run_once(
             setup_answer_file => sub {
@@ -8648,7 +8648,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
     sub wait_for_leapp_completion ($self) {
         return 1 unless Elevate::OS::needs_leapp();
 
-        return 1 unless $self->cpev->should_run_distro_upgrade();
+        return 1 unless $self->cpev->upgrade_distro_manually();
 
         my $upgrade_log = LEAPP_UPGRADE_LOG;
 
@@ -10714,7 +10714,7 @@ sub run_stage_1 ($self) {
 
     Elevate::Motd->setup();
 
-    if ( !$self->should_run_distro_upgrade() ) {
+    if ( !$self->upgrade_distro_manually() ) {
         Elevate::Stages::bump_stage();
         return ACTION_CONTINUE;
     }
@@ -10793,7 +10793,7 @@ sub run_stage_3 ($self) {
 
     $self->run_once('run_final_components_pre_distro_upgrade');
 
-    if ( !$self->should_run_distro_upgrade() ) {
+    if ( !$self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
@@ -11219,7 +11219,7 @@ sub post_upgrade_check ($self) {
 
 # TODO: We're going to need to store reboot time so we know if the last reboot has happened when we re-run the script.
 
-sub should_run_distro_upgrade ($self) {
+sub upgrade_distro_manually ($self) {
 
     # we store the upgrade_distro_manually option, but prefer using a positive check instead
     # we need to check to see if the CLI option is passed here too in order

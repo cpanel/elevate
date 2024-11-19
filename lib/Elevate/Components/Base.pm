@@ -29,7 +29,7 @@ use Log::Log4perl qw(:easy);
 BEGIN {
     my @_DELEGATE_TO_CPEV = qw{
       getopt
-      should_run_distro_upgrade
+      upgrade_distro_manually
       ssystem
       ssystem_and_die
       ssystem_capture_output
