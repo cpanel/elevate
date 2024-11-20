@@ -89,7 +89,7 @@ sub preupgrade ($self) {
 
 sub upgrade ($self) {
 
-    return unless $self->cpev->should_run_distro_upgrade();
+    return unless $self->cpev->upgrade_distro_manually();
 
     $self->cpev->run_once(
         setup_answer_file => sub {
@@ -240,7 +240,7 @@ sub wait_for_leapp_completion ($self) {
     return 1 unless Elevate::OS::needs_leapp();
 
     # No use waiting for leapp to complete if we did not run leapp
-    return 1 unless $self->cpev->should_run_distro_upgrade();
+    return 1 unless $self->cpev->upgrade_distro_manually();
 
     my $upgrade_log = LEAPP_UPGRADE_LOG;
 
