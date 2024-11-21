@@ -50,43 +50,49 @@ EOS
 
 like(
     dies { check_blocker() },
-    qr{expected 3 lines ; got 1 lines},
+    qr{expected 5 lines ; got 1 lines},
     "_disk_space_check"
 );
 
 $saferun_output = <<EOS;
 Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       83874796 76307692   7567104  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
 EOS
 
 is( check_blocker(), 1, "_disk_space_check ok" );
 
-my $boot = 121 * MEG;
+my $boot = 201 * MEG;
 
 $saferun_output = <<"EOS";
 Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       83874796 76307692   $boot  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   $boot    56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
 EOS
 
-is( check_blocker(), 1, "_disk_space_check ok - /boot 121 M" );
+is( check_blocker(), 1, "_disk_space_check ok - /boot 201 M" );
 
-$boot = 119 * MEG;
+$boot = 199 * MEG;
 
 $saferun_output = <<"EOS";
 Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       83874796 76307692   $boot  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   $boot    56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
 EOS
 
 my $check;
 like(
     warnings { $check = check_blocker() },
-    [qr{/boot needs 120 M => available 119 M}],
+    [qr{/boot needs 200 M => available 199 M}],
     q[Got expected warnings]
 );
 
@@ -96,9 +102,11 @@ my $usr_local_cpanel = 2 * GIG;
 
 $saferun_output = <<"EOS";
 Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       83874796 76307692   7567104 91% /
-/dev/vda1       83874796 76307692   $usr_local_cpanel  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   $usr_local_cpanel  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
 EOS
 
 is( check_blocker(), 1, "_disk_space_check ok - /usr/local/cpanel 2 G" );
@@ -107,9 +115,11 @@ $usr_local_cpanel = 1.4 * GIG;
 
 $saferun_output = <<"EOS";
 Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       83874796 76307692   7567104 91% /
-/dev/vda1       83874796 76307692   $usr_local_cpanel  91% /
-/dev/vda1       83874796 76307692   7567104  91% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   $usr_local_cpanel  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
 EOS
 
 like(
