@@ -25,7 +25,6 @@ use constant APT_NON_INTERACTIVE_ARGS => qw{
   -o Dpkg::Options::=--force-confold
 };
 
-our $apt        = '/usr/bin/apt';
 our $apt_get    = '/usr/bin/apt-get';
 our $apt_mark   = '/usr/bin/apt-mark';
 our $dpkg       = '/usr/bin/dpkg';
@@ -197,10 +196,11 @@ sub update ($self) {
 
     my @apt_args = (
         '-y',
+        '--with-new-pkgs',
         APT_NON_INTERACTIVE_ARGS,
     );
 
-    $self->ssystem_and_die( $apt, @apt_args, 'upgrade' );
+    $self->ssystem_and_die( $apt_get, @apt_args, 'upgrade' );
 
     return;
 }
@@ -218,13 +218,13 @@ sub update_with_options ( $self, $options, $pkgs ) {
 }
 
 sub update_allow_erasing ( $self, @additional_args ) {
-    $self->ssystem_and_die( $apt, '-y', 'autoremove', '--purge' );
+    $self->ssystem_and_die( $apt_get, '-y', 'autoremove', '--purge' );
     $self->update();
     return;
 }
 
 sub makecache ($self) {
-    my $out    = $self->ssystem_capture_output( $apt, 'update' );
+    my $out    = $self->ssystem_capture_output( $apt_get, 'update' );
     my @errors = grep { $_ !~ m/apt does not have a stable CLI interface/ } @{ $out->{stderr} };
     my $stderr = join "\n", @errors;
     return $stderr;
