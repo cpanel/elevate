@@ -369,6 +369,8 @@ sub _blocker_mysql_upgrade_in_progress ($self) {
 
 sub _blocker_mysql_database_corrupted ($self) {
 
+    return 0 if $self->is_check_mode();
+
     # Do not perform this check for remote mysql
     return 0 unless Cpanel::MysqlUtils::MyCnf::Basic::is_local_mysql();
 
