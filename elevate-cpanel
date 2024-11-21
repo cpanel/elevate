@@ -2018,6 +2018,7 @@ EOS
             my $type = $dropped_pkgs->{$pkg} // '';
             next if $type eq 'exp';                          # use of experimental packages is a non blocker
             next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
+            next if $pkg =~ m/^ea-noop-u20$/;                # ignore this package since it is specifically for ubuntu 20
 
             if ( $pkg =~ m/^(ea-php[0-9]+)/ ) {
                 my $php_pkg = $1;
@@ -7232,7 +7233,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
     use constant default_upgrade_to => 'Ubuntu';
 
-    use constant ea_alias => 'Ubuntu_20.04';
+    use constant ea_alias => 'Ubuntu_22.04';
 
     use constant expected_post_upgrade_major => 22;
     use constant is_experimental             => 1;
