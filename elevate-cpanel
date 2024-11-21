@@ -4020,6 +4020,8 @@ EOS
 
     sub _blocker_mysql_database_corrupted ($self) {
 
+        return 0 if $self->is_check_mode();
+
         return 0 unless Cpanel::MysqlUtils::MyCnf::Basic::is_local_mysql();
 
         if ( !Cpanel::MysqlUtils::Running::is_mysql_running() ) {
