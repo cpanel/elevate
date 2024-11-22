@@ -4,6 +4,7 @@ use constant ELEVATE_LOG_PATH => '/var/log/elevate-cpanel.log';
 use constant ELEVATE_PID      => '/var/run/elevate-cpanel.pid';
 
 use File::Tail;
+use JSON::PP;
 use POSIX;
 
 my $RETVAL = 1;
@@ -35,14 +36,72 @@ while ( $RETVAL != 0 ) {
 sub _check_elevate_log_for_REBOOT_STRING {
     my ( $filepath, $REBOOT_STRING, $RETRIES ) = @_;
 
+    my $has_continued = 0;
+
     $file = File::Tail->new( name => $filepath, maxinterval => 1, adjustafter => 5, interval => 1 );
     while ( defined( $line = $file->read ) ) {
-        _pid_check() unless $ENV{SKIP_PID_CHECK};
+
+        # Lines that match ERROR or FATAL are an indication that the script
+        # has failed or is about to fail
+        if ( $line =~ /\[(?:ERROR|FATAL)\[/ ) {
+            if ( _script_has_failed() ) {
+
+                # If it failed due to temporary mirror issues,
+                # then it may take a minute or two for the mirrors to be stable again
+                sleep 60;
+
+                $has_continued ? _exit_with_haste(1) : _restart_script();
+                $has_continued = 1;
+            }
+        }
+
         if ( index( $line, $ENV{REBOOT_STRING} ) >= 0 ) {
             _success_message();
             _exit_with_haste(0);
         }
     }
+}
+
+sub _script_has_failed {
+
+    # This is too slow (~.57 seconds to make it as a system call)
+    # So we are going pull this data out of '/var/cpanel/elevate' directly
+    # (~.007 seconds to pull the data out of the json file) which is
+    # what the script is doing
+    # my $status = `/scripts/elevate-cpanel --status`;
+    # chomp $status;
+
+    open( my $fh, '<', '/var/cpanel/elevate' ) or _exit_with_haste(1);
+    my $raw_content = do { local $/; <$fh>; };
+    close $fh;
+
+    my $elevate_data   = JSON::PP->new->decode($raw_content);
+    my $elevate_status = $elevate_data->{status};
+    return $elevate_status eq 'failed' ? 1 : 0;
+}
+
+sub _restart_script {
+    my $pid = fork();
+    _exit_with_haste(1) unless defined $pid;
+    if ($pid) {
+        my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+        print "## [$time] [WARN]: elevate-cpanel failed.  Attempting to restart the script to see if the failure was due to a temporary issue ##\n";
+
+        waitpid( $pid, 0 );
+        return;
+    }
+    else {
+
+        # release the pid so the service can use it
+        unlink ELEVATE_PID;
+
+        # Do it this way so that this process goes away since --continue
+        # will follow the elevate log afterwards
+        system( '/usr/bin/systemctl', 'start', 'elevate-cpanel.service' );
+        exit 0;
+    }
+
+    return;
 }
 
 sub _pre_success_message {
