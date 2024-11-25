@@ -271,6 +271,17 @@ EOS
     $restart_mysql    = 0;
     @ssystem_output   = ();
 
+    my $mock_elevate_comp = Test::MockModule->new('Elevate::Components');
+    $mock_elevate_comp->redefine(
+        is_check_mode => 1,
+    );
+
+    is( $db->_blocker_mysql_database_corrupted(), 0, 'The check is a noop in check mode' );
+
+    $mock_elevate_comp->redefine(
+        is_check_mode => 0,
+    );
+
     like(
         $db->_blocker_mysql_database_corrupted(),
         {
