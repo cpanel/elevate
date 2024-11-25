@@ -46,6 +46,9 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/wp-toolkit/ .
 
 # WP Toolkit Thirdparties
 deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ ./},
+
+    # If you don't assign $_ it is a syntax error in this context. Can't cheat with postfix for either.
+    map { my $thing = $_; "jetapps-$_.list" => "deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/$_ main" } qw{base plugins alpha beta edge rc release stable},
 };
 
 use constant supported_cpanel_mysql_versions => qw{

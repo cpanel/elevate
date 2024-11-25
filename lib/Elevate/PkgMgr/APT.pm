@@ -12,9 +12,12 @@ Logic wrapping the DEBIAN based package managers
 
 use cPstrict;
 
-use File::Copy ();
+use File::Copy    ();
+use File::Slurper ();
 
 use Elevate::OS ();
+
+use Cpanel::Pkgr ();
 
 use Log::Log4perl qw(:easy);
 
@@ -254,6 +257,66 @@ This is a noop for apt since it is not currently needed for debian based upgrade
 
 sub remove_pkgs_from_repos ( $self, @pkg_list ) {
     return;
+}
+
+=head1 get_installed_pkgs_in_repo
+
+The "repo" in this case looks different from how it'd look in yum (name wise)
+as we're ultimately just reading from /var/lib/apt/lists/ for the cached
+list of packages from whatever URL.
+
+As such i've made a small translation hash here so that callers which so far
+still need this don't have to get updated.
+
+Yeah it's a pain in the rear but I'd rather not add more abstraction around
+this right now (I'd rather fix Cpanel::RepoQuery).
+
+=cut
+
+# So, I *could* use Cpanel::RepoQuery here, but it isn't quite suited to what
+# we are doing here. First off we know more about the repos we care about,
+# second of all there's a bug in RepoQuery:
+# perl -MCpanel::RepoQuery -MData::Dumper -e 'print Data::Dumper::Dumper(Cpanel::RepoQuery::get_all_packages_from_repo("deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/base main"));'
+# Error open (<:unix) on '/var/lib/apt/lists/repo.jetlicense.com_ubuntu jammy_base main-mirrorlist_._Packages': No such file or directory at /usr/local/cpanel/Cpanel/RepoQuery/Apt.pm line 143.
+#
+# This works fine where we use it (cpanel-plugins) but isn't yet updated to be
+# more generic.
+#
+# Also, excuse the tedious var naming. It's a syntax error to just use $_ here.
+my %repo2filepart = (
+    map { my $dollar_underscore = $_; "jetapps-$dollar_underscore" => "repo.jetlicense.com_ubuntu_dists_jammy_$dollar_underscore" } qw{base plugins alpha beta edge rc release stable},
+);
+
+sub get_installed_pkgs_in_repo ( $self, @repos ) {
+    return unless scalar @repos;
+
+    # Forcibly update (not upgrade) apt so that you have the list on disk
+    # XXX This could mean a lot of apt update invocations. May want an extra
+    # caching layer here at some point if it becomes a problem.
+    my @apt_args = (APT_NON_INTERACTIVE_ARGS);
+    $self->ssystem_and_die( $Elevate::PkgMgr::APT::apt_get, @apt_args, 'update' );
+
+    my $dir2read = '/var/lib/apt/lists';
+    opendir( my $dh, $dir2read ) or die "Can't open $dir2read: $!";
+    my @pkglists = grep { m/_Packages$/ } readdir($dh);
+    closedir($dh);
+    $repos[0] = 'jetapps-base' if $repos[0] eq 'jetapps';
+    my @installed;
+    foreach my $repo (@repos) {
+        my $filepart = $repo2filepart{$repo};
+        foreach my $pkglist (@pkglists) {
+            if ( $pkglist =~ qr/^$filepart/ ) {
+                my @lines = File::Slurper::read_lines("$dir2read/$pkglist");
+
+                # Use hash to dedupe
+                my %pkgs = map { substr( $_, 9 ) => 1 } grep { m/^Package: / } @lines;
+                push @installed, sort grep { Cpanel::Pkgr::is_installed($_) } keys %pkgs;
+                last;
+            }
+        }
+    }
+
+    return @installed;
 }
 
 1;
