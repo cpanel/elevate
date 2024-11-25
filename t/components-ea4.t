@@ -230,11 +230,10 @@ sub test_get_ea4_profile_check_mode : Test(26) ($self) {
         my $ea4 = $cpev->get_component('EA4');
         is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
 
-        # TODO: Update this to Ubuntu_22.04 via RE-954
         my $expected_target =
             $os eq 'cent'  ? 'CentOS_8'
           : $os eq 'cloud' ? 'CloudLinux_8'
-          :                  'Ubuntu_20.04';
+          :                  'Ubuntu_22.04';
         message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
         message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
 
