@@ -271,6 +271,7 @@ sub _get_incompatible_packages ($self) {
         my $type = $dropped_pkgs->{$pkg} // '';
         next if $type eq 'exp';                          # use of experimental packages is a non blocker
         next if $pkg =~ m/^ea-openssl(?:11)?-devel$/;    # ignore these packages, as they can be orphans
+        next if $pkg =~ m/^ea-noop-u20$/;                # ignore this package since it is specifically for ubuntu 20
 
         if ( $pkg =~ m/^(ea-php[0-9]+)/ ) {
             my $php_pkg = $1;
