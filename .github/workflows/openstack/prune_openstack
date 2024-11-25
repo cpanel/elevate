@@ -5,19 +5,10 @@ use POSIX    ();
 use strict;
 use warnings;
 
-# Environment constants
-our $OS_APPLICATION_CREDENTIAL_ID     = $ENV{OS_APPLICATION_CREDENTIAL_ID};
-our $OS_APPLICATION_CREDENTIAL_SECRET = $ENV{OS_APPLICATION_CREDENTIAL_SECRET};
-
 # Static constants
 use constant {
-    OS_AUTH_TYPE            => 'v3applicationcredential',
-    OS_AUTH_URL             => 'https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3',
-    OS_IDENTITY_API_VERSION => '3',
-    OS_REGION_NAME          => 'RegionOne',
-    OS_INTERFACE            => 'public',
-    KEY_NAME                => "deletethis",
-    VM_NAME                 => "elevate.github.cpanel.net",
+    KEY_NAME => "deletethis",
+    VM_NAME  => "elevate.github.cpanel.net",
 };
 
 my $openstack_path = "/usr/bin/openstack" if -x "/usr/bin/openstack";
