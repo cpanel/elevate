@@ -84,23 +84,12 @@ my $jb   = $cpev->get_blocker('JetBackup');
 
     my $jb_mock = Test::MockModule->new('Elevate::Components::JetBackup');
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
 
         my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();
         is( $jb->_blocker_jetbackup_is_supported(), undef, "JetBackup is supported for upgrades to $expected_target_os" );
     }
-
-    set_os_to('ubuntu');
-    like(
-        $jb->_blocker_jetbackup_is_supported(),
-        {
-            id  => q[Elevate::Components::JetBackup::_blocker_jetbackup_is_supported],
-            msg => qr/ELevate does not currently support JetBackup for upgrades of/,
-        },
-        'Jetbackup is not yet supported for Ubuntu upgrades',
-    );
-
 }
 
 done_testing();
