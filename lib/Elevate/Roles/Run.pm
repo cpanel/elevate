@@ -67,7 +67,25 @@ sub ssystem ( $, @args ) {
 
 sub ssystem_and_die ( $self, @args ) {
     $self->ssystem(@args) or return 0;
-    Carp::croak("command failed. Fix it and run command.");
+
+    # Allow for one retry when running package manager commands
+    my $cmd = join ' ', @args;
+    if ( $args[0] =~ m/yum|dnf|apt|rpm|dpkg/ ) {
+        WARN("Initial attempt to execute '$cmd' failed. Attempting again");
+
+        # Give it a cool off period before retrying
+        $self->sleep();
+
+        $self->ssystem(@args) or return 0;
+    }
+
+    Carp::croak("‘$cmd’ failed. Review and fix the error, then try again with ‘/scripts/elevate-cpanel --continue’");
+}
+
+# This is done this way for mocking
+sub sleep ($self) {
+    sleep 15;
+    return;
 }
 
 sub _ssystem ( $command, %opts ) {
