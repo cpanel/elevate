@@ -5,55 +5,11 @@
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
 
-set -e
+set -ex
 
 ULC=/usr/local/cpanel
 VERSION=11.110.0.17
 REPO=$(pwd)
-
-rm -f /etc/yum.repos.d/CentOS-Base.repo
-cat <<'EOF' > /etc/yum.repos.d/CentOS-Base.repo
-# CentOS-Base.repo
-#
-# The mirror system uses the connecting IP address of the client and the
-# update status of each mirror to pick mirrors that are updated to and
-# geographically close to the client.  You should use this for CentOS updates
-# unless you are manually picking other mirrors.
-#
-# If the mirrorlist= does not work for you, as a fall back you can try the
-# remarked out baseurl= line instead.
-#
-#
-
-[base]
-name=CentOS-$releasever - Base
-baseurl=https://vault.centos.org/7.9.2009/os/$basearch
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-#released updates
-[updates]
-name=CentOS-$releasever - Updates
-baseurl=https://vault.centos.org/7.9.2009/updates/$basearch
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-#additional packages that may be useful
-[extras]
-name=CentOS-$releasever - Extras
-baseurl=https://vault.centos.org/7.9.2009/extras/$basearch
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-#additional packages that extend functionality of existing packages
-[centosplus]
-name=CentOS-$releasever - Plus
-baseurl=https://vault.centos.org/7.9.2009/centosplus/$basearch
-gpgcheck=1
-enabled=0
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-EOF
 
 yum clean all
 
@@ -66,6 +22,7 @@ wget http://httpupdate.cpanel.net/cpanelsync/${VERSION}/install/common/cpanel.ta
     -o wget.log \
     -O cpanel.tar.xz
 
+ls -l cpanel.tar.xz
 unxz cpanel.tar.xz
 
 mkdir -p $ULC
@@ -75,6 +32,10 @@ mkdir -p $ULC/3rdparty/bin
 tar xf cpanel.tar -C $ULC
 
 pushd $ULC
+
+export CPANEL_BASE_INSTALL=1
+
+echo 'signature_validation=Off' >> /var/cpanel/cpanel.config
 
 echo "# ............. setup symlinks"
 ln -sf usr/local/cpanel/scripts /scripts
@@ -94,17 +55,13 @@ which perl
 ls -l /usr/local/cpanel/3rdparty/perl/536/bin/perl
 
 echo "# ............. cpanm round 2"
-#perl bin/cpanm -n Params::Util
 perl bin/cpanm -n --cpanfile ${REPO}/t/cpanfile --installdeps .
-#Crypt::Cracklib
 
 echo "# ............. scripts/cpservice"
 scripts/cpservice cpanel install ||:
 
 echo "# ............. install fake tailwatchd service"
 install ${REPO}/t/setup/tailwatchd.fake.service /etc/systemd/system/tailwatchd.service
-#systemctl daemon-reload
-#systemctl start tailwatchd
 
 echo "# ............. scripts/sysup"
 /scripts/sysup ||:
