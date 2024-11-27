@@ -43,6 +43,13 @@ jobs:
       - name: cpanel-setup
         run: /bin/bash t/cpanel-setup
 
+      - name: Install Extra Perl dependencies
+        uses: perl-actions/install-with-cpm@v1
+        with:
+          sudo: false
+          cpanfile: "t/cpanfile"
+          args: "--with-all"
+
       - name: which prove
         run: ls -l $(which prove)
 
