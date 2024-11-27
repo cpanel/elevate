@@ -5,138 +5,16 @@
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
 
-requires "Algorithm::Dependency::Ordered";
-requires "Config::Tiny";
-requires "File::Copy::Recursive";
-requires "File::Slurper";
-requires "Hash::Merge";
-requires "HTTP::Tiny::UA::Response";
-requires "Log::Log4perl";
-requires "Moo";
-requires "Params::Util";
-requires "Simple::Accessor";
-requires "Sub::Identify";
-requires "Net::CIDR";
-requires "IO::Prompt";
+##
+## This file is listing extra dependencies not provided by the default cPanel stack
+##
 
 # test
 on 'test' => sub {
-    requires "File::Temp";
-    requires "Overload::FileCheck";
-    requires "Pod::PlainText";
-    requires "Test2::Bundle::Extended";
-    requires "Test2::Plugin::NoWarnings";
-    requires "Test2::Tools::Explain";
-    requires "Test::MockFile" => "0.032";
-    requires "Test::MockModule";
-    requires "Test::More";
-    requires "Test::Class";
 
-    # perlcritic
-    recommends "Perl::Critic::Policy::CodeLayout::ProhibitFatCommaNewline";
-    recommends "Perl::Critic::Policy::CodeLayout::ProhibitIfIfSameLine";
-    recommends "Perl::Critic::Policy::CodeLayout::RequireFinalSemicolon";
-    recommends "Perl::Critic::Policy::CodeLayout::RequireTrailingCommaAtNewline";
-    recommends "Perl::Critic::Policy::Community::AmpersandSubCalls";
-    recommends "Perl::Critic::Policy::Community::ArrayAssignAref";
-    recommends "Perl::Critic::Policy::Community::BarewordFilehandles";
-    recommends "Perl::Critic::Policy::Community::ConditionalDeclarations";
-    recommends "Perl::Critic::Policy::Community::ConditionalImplicitReturn";
-    recommends "Perl::Critic::Policy::Community::DeprecatedFeatures";
-    recommends "Perl::Critic::Policy::Community::DiscouragedModules";
-    recommends "Perl::Critic::Policy::Community::DollarAB";
-    recommends "Perl::Critic::Policy::Community::Each";
-    recommends "Perl::Critic::Policy::Community::EmptyReturn";
-    recommends "Perl::Critic::Policy::Community::IndirectObjectNotation";
-    recommends "Perl::Critic::Policy::Community::LexicalForeachIterator";
-    recommends "Perl::Critic::Policy::Community::LoopOnHash";
-    recommends "Perl::Critic::Policy::Community::ModPerl";
-    recommends "Perl::Critic::Policy::Community::MultidimensionalArrayEmulation";
-    recommends "Perl::Critic::Policy::Community::OverloadOptions";
-    recommends "Perl::Critic::Policy::Community::POSIXImports";
-    recommends "Perl::Critic::Policy::Community::PackageMatchesFilename";
-    recommends "Perl::Critic::Policy::Community::PreferredAlternatives";
-    recommends "Perl::Critic::Policy::Community::StrictWarnings";
-    recommends "Perl::Critic::Policy::Community::Threads";
-    recommends "Perl::Critic::Policy::Community::WarningsSwitch";
-    recommends "Perl::Critic::Policy::Community::WarningsSwitch";
-    recommends "Perl::Critic::Policy::Compatibility::ConstantLeadingUnderscore";
-    recommends "Perl::Critic::Policy::Compatibility::ConstantPragmaHash";
-    recommends "Perl::Critic::Policy::Compatibility::Gtk2Constants";
-    recommends "Perl::Critic::Policy::Compatibility::PerlMinimumVersionAndWhy";
-    recommends "Perl::Critic::Policy::Compatibility::PodMinimumVersion";
-    recommends "Perl::Critic::Policy::Compatibility::ProhibitUnixDevNull";
-    recommends "Perl::Critic::Policy::CompileTime";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitAdjacentLinks";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitBadAproposMarkup";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitDuplicateHeadings";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitDuplicateSeeAlso";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitLinkToSelf";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitParagraphEndComma";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitParagraphTwoDots";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitUnbalancedParens";
-    recommends "Perl::Critic::Policy::Documentation::ProhibitVerbatimMarkup";
-    recommends "Perl::Critic::Policy::Documentation::RequireEndBeforeLastPod";
-    recommends "Perl::Critic::Policy::Documentation::RequireFilenameMarkup";
-    recommends "Perl::Critic::Policy::Documentation::RequireFinalCut";
-    recommends "Perl::Critic::Policy::Documentation::RequireLinkedURLs";
-    recommends "Perl::Critic::Policy::Freenode::AmpersandSubCalls";
-    recommends "Perl::Critic::Policy::Freenode::ArrayAssignAref";
-    recommends "Perl::Critic::Policy::Freenode::BarewordFilehandles";
-    recommends "Perl::Critic::Policy::Freenode::ConditionalDeclarations";
-    recommends "Perl::Critic::Policy::Freenode::ConditionalImplicitReturn";
-    recommends "Perl::Critic::Policy::Freenode::DeprecatedFeatures";
-    recommends "Perl::Critic::Policy::Freenode::DiscouragedModules";
-    recommends "Perl::Critic::Policy::Freenode::DollarAB";
-    recommends "Perl::Critic::Policy::Freenode::Each";
-    recommends "Perl::Critic::Policy::Freenode::EmptyReturn";
-    recommends "Perl::Critic::Policy::Freenode::IndirectObjectNotation";
-    recommends "Perl::Critic::Policy::Freenode::LexicalForeachIterator";
-    recommends "Perl::Critic::Policy::Freenode::LoopOnHash";
-    recommends "Perl::Critic::Policy::Freenode::ModPerl";
-    recommends "Perl::Critic::Policy::Freenode::MultidimensionalArrayEmulation";
-    recommends "Perl::Critic::Policy::Freenode::OpenArgs";
-    recommends "Perl::Critic::Policy::Freenode::OverloadOptions";
-    recommends "Perl::Critic::Policy::Freenode::POSIXImports";
-    recommends "Perl::Critic::Policy::Freenode::PackageMatchesFilename";
-    recommends "Perl::Critic::Policy::Freenode::PreferredAlternatives";
-    recommends "Perl::Critic::Policy::Freenode::Prototypes";
-    recommends "Perl::Critic::Policy::Freenode::StrictWarnings";
-    recommends "Perl::Critic::Policy::Freenode::Threads";
-    recommends "Perl::Critic::Policy::Freenode::Wantarray";
-    recommends "Perl::Critic::Policy::Freenode::WarningsSwitch";
-    recommends "Perl::Critic::Policy::Freenode::WhileDiamondDefaultAssignment";
-    recommends "Perl::Critic::Policy::Miscellanea::TextDomainPlaceholders";
-    recommends "Perl::Critic::Policy::Miscellanea::TextDomainUnused";
-    recommends "Perl::Critic::Policy::Modules::ProhibitModuleShebang";
-    recommends "Perl::Critic::Policy::Modules::ProhibitPOSIXimport";
-    recommends "Perl::Critic::Policy::Modules::ProhibitUseQuotedVersion";
-    recommends "Perl::Critic::Policy::Modules::RequireExplicitInclusion";
-    recommends "Perl::Critic::Policy::Subroutines::ProhibitCallsToUndeclaredSubs";
-    recommends "Perl::Critic::Policy::Subroutines::ProhibitCallsToUnexportedSubs";
-    recommends "Perl::Critic::Policy::Subroutines::ProhibitExportingUndeclaredSubs";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ConstantBeforeLt";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::NotWithCompare";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ProhibitArrayAssignAref";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ProhibitBarewordDoubleColon";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ProhibitDuplicateHashKeys";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ProhibitEmptyCommas";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ProhibitFiletest_f";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ProhibitNullStatements";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::ProhibitUnknownBackslash";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::RequireNumericVersion";
-    recommends "Perl::Critic::Policy::ValuesAndExpressions::UnexpandedSpecialLiteral";
-    recommends "Perl::Critic::Policy::Variables::ProhibitLoopOnHash";
-    recommends "Perl::Critic::Policy::Community::OpenArgs";
-    recommends "Perl::Critic::Policy::Community::Prototypes";
-    recommends "Perl::Critic::Policy::Community::Wantarray";
-    recommends "Perl::Critic::Policy::Subroutines::ProhibitQualifiedSubDeclarations";
+    requires "Test::MockFile" => "0.032";
 
     # test coverage
-    recommends "Devel::Cover";
-    recommends "Template";
-    recommends "JSON::MaybeXS";
-    recommends "Perl::Critic::Policy::TestingAndDebugging::ProhibitNoWarnings";
     recommends "Test::Perl::Critic";
     recommends "Test::PerlTidy";
     recommends "Test::Pod";
