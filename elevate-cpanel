@@ -11,82 +11,83 @@
 ## ----------------------------------------------------------------------------
 
 BEGIN {    # Suppress load of all of these at earliest point.
-    $INC{'Elevate/Constants.pm'}                        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Base.pm'}                  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/AbsoluteSymlinks.pm'}      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/AutoSSL.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/BootKernel.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/CCS.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/CloudLinux.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/cPanelPlugins.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/cPanelPrep.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/DatabaseUpgrade.pm'}       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/DiskSpace.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Distros.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/DNS.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/EA4.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/ElevateScript.pm'}         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/ELS.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Grub2.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Imunify.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/InfluxDB.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/IsContainer.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/JetBackup.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/KernelCare.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Kernel.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Leapp.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Lists.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/LiteSpeed.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/MountPoints.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/MySQL.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/NICs.pm'}                  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/NixStats.pm'}              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/OVH.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PackageRestore.pm'}        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PackageDupes.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Panopta.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PECL.pm'}                  = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PerlXS.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/PostgreSQL.pm'}            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/R1Soft.pm'}                = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Repositories.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/RmMod.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/RpmDB.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/SSH.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Softaculous.pm'}           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/UnconvertedModules.pm'}    = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/UpdateReleaseUpgrades.pm'} = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/UpdateSystem.pm'}          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/WHM.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/WPToolkit.pm'}             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Components/Acronis.pm'}               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS.pm'}                               = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/CentOS7.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/CloudLinux7.pm'}                   = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/RHEL.pm'}                          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/Ubuntu.pm'}                        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/OS/Ubuntu20.pm'}                      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/PkgMgr.pm'}                           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/PkgMgr/APT.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/PkgMgr/Base.pm'}                      = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/PkgMgr/YUM.pm'}                       = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Database.pm'}                         = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/EA4.pm'}                              = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Fetch.pm'}                            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Leapp.pm'}                            = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Logger.pm'}                           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Marker.pm'}                           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Motd.pm'}                             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/NICs.pm'}                             = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Notify.pm'}                           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Roles/Run.pm'}                        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Script.pm'}                           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Service.pm'}                          = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/StageFile.pm'}                        = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Stages.pm'}                           = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/SystemctlService.pm'}                 = 'script/elevate-cpanel.PL.static';
-    $INC{'Elevate/Usage.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Constants.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Base.pm'}                   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/AbsoluteSymlinks.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/AutoSSL.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/BootKernel.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/CCS.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/CloudLinux.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/cPanelPlugins.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/cPanelPrep.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/DatabaseUpgrade.pm'}        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/DiskSpace.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Distros.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/DNS.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/EA4.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/ElevateScript.pm'}          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/ELS.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Grub2ControlTest.pm'}       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Grub2ChecksWorkarounds.pm'} = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Imunify.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/InfluxDB.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/IsContainer.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/JetBackup.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/KernelCare.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Kernel.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Leapp.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Lists.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/LiteSpeed.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/MountPoints.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/MySQL.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/NICs.pm'}                   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/NixStats.pm'}               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/OVH.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PackageRestore.pm'}         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PackageDupes.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Panopta.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PECL.pm'}                   = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PerlXS.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/PostgreSQL.pm'}             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/R1Soft.pm'}                 = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Repositories.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/RmMod.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/RpmDB.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/SSH.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Softaculous.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/UnconvertedModules.pm'}     = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/UpdateReleaseUpgrades.pm'}  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/UpdateSystem.pm'}           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/WHM.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/WPToolkit.pm'}              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Acronis.pm'}                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS.pm'}                                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/CentOS7.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/CloudLinux7.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/RHEL.pm'}                           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/Ubuntu.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/Ubuntu20.pm'}                       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/PkgMgr.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/PkgMgr/APT.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/PkgMgr/Base.pm'}                       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/PkgMgr/YUM.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Database.pm'}                          = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/EA4.pm'}                               = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Fetch.pm'}                             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Leapp.pm'}                             = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Logger.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Marker.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Motd.pm'}                              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/NICs.pm'}                              = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Notify.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Roles/Run.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Script.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Service.pm'}                           = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/StageFile.pm'}                         = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Stages.pm'}                            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/SystemctlService.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Usage.pm'}                             = 'script/elevate-cpanel.PL.static';
 }
 
 {    # --- BEGIN lib/Elevate/Constants.pm
@@ -295,53 +296,54 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Elevate::Components::Base ();
 
-    use Elevate::Components::AbsoluteSymlinks      ();
-    use Elevate::Components::AutoSSL               ();
-    use Elevate::Components::BootKernel            ();
-    use Elevate::Components::CCS                   ();
-    use Elevate::Components::CloudLinux            ();
-    use Elevate::Components::cPanelPlugins         ();
-    use Elevate::Components::cPanelPrep            ();
-    use Elevate::Components::DatabaseUpgrade       ();
-    use Elevate::Components::DiskSpace             ();
-    use Elevate::Components::Distros               ();
-    use Elevate::Components::DNS                   ();
-    use Elevate::Components::EA4                   ();
-    use Elevate::Components::ElevateScript         ();
-    use Elevate::Components::ELS                   ();
-    use Elevate::Components::Grub2                 ();
-    use Elevate::Components::Imunify               ();
-    use Elevate::Components::InfluxDB              ();
-    use Elevate::Components::IsContainer           ();
-    use Elevate::Components::JetBackup             ();
-    use Elevate::Components::KernelCare            ();
-    use Elevate::Components::Kernel                ();
-    use Elevate::Components::Leapp                 ();
-    use Elevate::Components::Lists                 ();
-    use Elevate::Components::LiteSpeed             ();
-    use Elevate::Components::MountPoints           ();
-    use Elevate::Components::MySQL                 ();
-    use Elevate::Components::NICs                  ();
-    use Elevate::Components::NixStats              ();
-    use Elevate::Components::OVH                   ();
-    use Elevate::Components::PackageRestore        ();
-    use Elevate::Components::PackageDupes          ();
-    use Elevate::Components::Panopta               ();
-    use Elevate::Components::PECL                  ();
-    use Elevate::Components::PerlXS                ();
-    use Elevate::Components::PostgreSQL            ();
-    use Elevate::Components::R1Soft                ();
-    use Elevate::Components::Repositories          ();
-    use Elevate::Components::RmMod                 ();
-    use Elevate::Components::RpmDB                 ();
-    use Elevate::Components::SSH                   ();
-    use Elevate::Components::Softaculous           ();
-    use Elevate::Components::UnconvertedModules    ();
-    use Elevate::Components::UpdateReleaseUpgrades ();
-    use Elevate::Components::UpdateSystem          ();
-    use Elevate::Components::WHM                   ();
-    use Elevate::Components::WPToolkit             ();
-    use Elevate::Components::Acronis               ();
+    use Elevate::Components::AbsoluteSymlinks       ();
+    use Elevate::Components::AutoSSL                ();
+    use Elevate::Components::BootKernel             ();
+    use Elevate::Components::CCS                    ();
+    use Elevate::Components::CloudLinux             ();
+    use Elevate::Components::cPanelPlugins          ();
+    use Elevate::Components::cPanelPrep             ();
+    use Elevate::Components::DatabaseUpgrade        ();
+    use Elevate::Components::DiskSpace              ();
+    use Elevate::Components::Distros                ();
+    use Elevate::Components::DNS                    ();
+    use Elevate::Components::EA4                    ();
+    use Elevate::Components::ElevateScript          ();
+    use Elevate::Components::ELS                    ();
+    use Elevate::Components::Grub2ControlTest       ();
+    use Elevate::Components::Grub2ChecksWorkarounds ();
+    use Elevate::Components::Imunify                ();
+    use Elevate::Components::InfluxDB               ();
+    use Elevate::Components::IsContainer            ();
+    use Elevate::Components::JetBackup              ();
+    use Elevate::Components::KernelCare             ();
+    use Elevate::Components::Kernel                 ();
+    use Elevate::Components::Leapp                  ();
+    use Elevate::Components::Lists                  ();
+    use Elevate::Components::LiteSpeed              ();
+    use Elevate::Components::MountPoints            ();
+    use Elevate::Components::MySQL                  ();
+    use Elevate::Components::NICs                   ();
+    use Elevate::Components::NixStats               ();
+    use Elevate::Components::OVH                    ();
+    use Elevate::Components::PackageRestore         ();
+    use Elevate::Components::PackageDupes           ();
+    use Elevate::Components::Panopta                ();
+    use Elevate::Components::PECL                   ();
+    use Elevate::Components::PerlXS                 ();
+    use Elevate::Components::PostgreSQL             ();
+    use Elevate::Components::R1Soft                 ();
+    use Elevate::Components::Repositories           ();
+    use Elevate::Components::RmMod                  ();
+    use Elevate::Components::RpmDB                  ();
+    use Elevate::Components::SSH                    ();
+    use Elevate::Components::Softaculous            ();
+    use Elevate::Components::UnconvertedModules     ();
+    use Elevate::Components::UpdateReleaseUpgrades  ();
+    use Elevate::Components::UpdateSystem           ();
+    use Elevate::Components::WHM                    ();
+    use Elevate::Components::WPToolkit              ();
+    use Elevate::Components::Acronis                ();
 
     use Simple::Accessor qw(
       cpev
@@ -376,7 +378,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       NICs
       EA4
       BootKernel
-      Grub2
+      Grub2ChecksWorkarounds
       OVH
       AbsoluteSymlinks
       AutoSSL
@@ -386,6 +388,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       CCS
       DatabaseUpgrade
       ELS
+      Grub2ControlTest
       InfluxDB
       Kernel
       LiteSpeed
@@ -2169,41 +2172,21 @@ EOS
 
 }    # --- END lib/Elevate/Components/ELS.pm
 
-{    # --- BEGIN lib/Elevate/Components/Grub2.pm
+{    # --- BEGIN lib/Elevate/Components/Grub2ControlTest.pm
 
-    package Elevate::Components::Grub2;
+    package Elevate::Components::Grub2ControlTest;
 
     use cPstrict;
 
-    use Elevate::Constants ();
     use Elevate::OS        ();
     use Elevate::StageFile ();
-
-    use Cwd ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
 
-    use Cpanel::JSON            ();
-    use Cpanel::Pkgr            ();
-    use Cpanel::SafeRun::Simple ();
-    use Cpanel::SafeRun::Object ();
-
     # use Elevate::Components::Base();
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
-
-    our $GRUB2_PREFIX_DEBIAN = '/boot/grub';
-    our $GRUB2_PREFIX_RHEL   = '/boot/grub2';
-
-    use constant GRUB2_WORKAROUND_NONE => 0;
-    use constant GRUB2_WORKAROUND_OLD  => 1;
-    use constant GRUB2_WORKAROUND_NEW  => 2;
-
-    use constant GRUB2_WORKAROUND_UNCERTAIN => -1;
-
-    use constant GRUB_EDITENV  => '/usr/bin/grub2-editenv';
-    use constant GRUB_ENV_FILE => '/boot/grub2/grubenv';
 
     use constant GRUBBY_PATH  => '/usr/sbin/grubby';
     use constant CMDLINE_PATH => '/proc/cmdline';
@@ -2319,6 +2302,45 @@ EOS
 
         return;
     }
+
+    1;
+
+}    # --- END lib/Elevate/Components/Grub2ControlTest.pm
+
+{    # --- BEGIN lib/Elevate/Components/Grub2ChecksWorkarounds.pm
+
+    package Elevate::Components::Grub2ChecksWorkarounds;
+
+    use cPstrict;
+
+    use Elevate::Constants ();
+    use Elevate::OS        ();
+    use Elevate::StageFile ();
+
+    use Cwd ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use Cpanel::Pkgr            ();
+    use Cpanel::SafeRun::Simple ();
+    use Cpanel::SafeRun::Object ();
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    our $GRUB2_PREFIX_DEBIAN = '/boot/grub';
+    our $GRUB2_PREFIX_RHEL   = '/boot/grub2';
+
+    use constant GRUB2_WORKAROUND_NONE => 0;
+    use constant GRUB2_WORKAROUND_OLD  => 1;
+    use constant GRUB2_WORKAROUND_NEW  => 2;
+
+    use constant GRUB2_WORKAROUND_UNCERTAIN => -1;
+
+    use constant GRUB_EDITENV  => '/usr/bin/grub2-editenv';
+    use constant GRUB_ENV_FILE => '/boot/grub2/grubenv';
 
     sub pre_distro_upgrade ($self) {
 
@@ -2623,7 +2645,7 @@ EOS
 
     1;
 
-}    # --- END lib/Elevate/Components/Grub2.pm
+}    # --- END lib/Elevate/Components/Grub2ChecksWorkarounds.pm
 
 {    # --- BEGIN lib/Elevate/Components/Imunify.pm
 
@@ -10067,55 +10089,56 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # - fatpack Components
-use Elevate::Components::Base                  ();
-use Elevate::Components                        ();
-use Elevate::Components::AbsoluteSymlinks      ();
-use Elevate::Components::AutoSSL               ();
-use Elevate::Components::BootKernel            ();
-use Elevate::Components::CCS                   ();
-use Elevate::Components::CloudLinux            ();
-use Elevate::Components::cPanelPlugins         ();
-use Elevate::Components::cPanelPrep            ();
-use Elevate::Components::DatabaseUpgrade       ();
-use Elevate::Components::DiskSpace             ();
-use Elevate::Components::Distros               ();
-use Elevate::Components::DNS                   ();
-use Elevate::Components::EA4                   ();
-use Elevate::Components::ElevateScript         ();
-use Elevate::Components::ELS                   ();
-use Elevate::Components::Grub2                 ();
-use Elevate::Components::Imunify               ();
-use Elevate::Components::InfluxDB              ();
-use Elevate::Components::IsContainer           ();
-use Elevate::Components::JetBackup             ();
-use Elevate::Components::KernelCare            ();
-use Elevate::Components::Kernel                ();
-use Elevate::Components::Leapp                 ();
-use Elevate::Components::Lists                 ();
-use Elevate::Components::LiteSpeed             ();
-use Elevate::Components::MountPoints           ();
-use Elevate::Components::MySQL                 ();
-use Elevate::Components::NICs                  ();
-use Elevate::Components::NixStats              ();
-use Elevate::Components::OVH                   ();
-use Elevate::Components::PackageRestore        ();
-use Elevate::Components::PackageDupes          ();
-use Elevate::Components::Panopta               ();
-use Elevate::Components::PECL                  ();
-use Elevate::Components::PerlXS                ();
-use Elevate::Components::PostgreSQL            ();
-use Elevate::Components::R1Soft                ();
-use Elevate::Components::Repositories          ();
-use Elevate::Components::RmMod                 ();
-use Elevate::Components::RpmDB                 ();
-use Elevate::Components::SSH                   ();
-use Elevate::Components::Softaculous           ();
-use Elevate::Components::UnconvertedModules    ();
-use Elevate::Components::UpdateReleaseUpgrades ();
-use Elevate::Components::UpdateSystem          ();
-use Elevate::Components::WHM                   ();
-use Elevate::Components::WPToolkit             ();
-use Elevate::Components::Acronis               ();
+use Elevate::Components::Base                   ();
+use Elevate::Components                         ();
+use Elevate::Components::AbsoluteSymlinks       ();
+use Elevate::Components::AutoSSL                ();
+use Elevate::Components::BootKernel             ();
+use Elevate::Components::CCS                    ();
+use Elevate::Components::CloudLinux             ();
+use Elevate::Components::cPanelPlugins          ();
+use Elevate::Components::cPanelPrep             ();
+use Elevate::Components::DatabaseUpgrade        ();
+use Elevate::Components::DiskSpace              ();
+use Elevate::Components::Distros                ();
+use Elevate::Components::DNS                    ();
+use Elevate::Components::EA4                    ();
+use Elevate::Components::ElevateScript          ();
+use Elevate::Components::ELS                    ();
+use Elevate::Components::Grub2ControlTest       ();
+use Elevate::Components::Grub2ChecksWorkarounds ();
+use Elevate::Components::Imunify                ();
+use Elevate::Components::InfluxDB               ();
+use Elevate::Components::IsContainer            ();
+use Elevate::Components::JetBackup              ();
+use Elevate::Components::KernelCare             ();
+use Elevate::Components::Kernel                 ();
+use Elevate::Components::Leapp                  ();
+use Elevate::Components::Lists                  ();
+use Elevate::Components::LiteSpeed              ();
+use Elevate::Components::MountPoints            ();
+use Elevate::Components::MySQL                  ();
+use Elevate::Components::NICs                   ();
+use Elevate::Components::NixStats               ();
+use Elevate::Components::OVH                    ();
+use Elevate::Components::PackageRestore         ();
+use Elevate::Components::PackageDupes           ();
+use Elevate::Components::Panopta                ();
+use Elevate::Components::PECL                   ();
+use Elevate::Components::PerlXS                 ();
+use Elevate::Components::PostgreSQL             ();
+use Elevate::Components::R1Soft                 ();
+use Elevate::Components::Repositories           ();
+use Elevate::Components::RmMod                  ();
+use Elevate::Components::RpmDB                  ();
+use Elevate::Components::SSH                    ();
+use Elevate::Components::Softaculous            ();
+use Elevate::Components::UnconvertedModules     ();
+use Elevate::Components::UpdateReleaseUpgrades  ();
+use Elevate::Components::UpdateSystem           ();
+use Elevate::Components::WHM                    ();
+use Elevate::Components::WPToolkit              ();
+use Elevate::Components::Acronis                ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -10776,7 +10799,7 @@ sub run_stage_1 ($self) {
         return ACTION_CONTINUE;
     }
 
-    $self->run_component_once( 'Grub2' => 'mark_cmdline' );
+    $self->run_component_once( 'Grub2ControlTest' => 'mark_cmdline' );
 
     return ACTION_REBOOT_NEEDED;
 }
@@ -10789,7 +10812,7 @@ Update the current distro packages then reboot.
 
 sub run_stage_2 ($self) {
 
-    $self->run_component_once( 'Grub2' => 'verify_cmdline' );
+    $self->run_component_once( 'Grub2ControlTest' => 'verify_cmdline' );
 
     # Best to do this before clearing the yum cache:
     $self->run_component_once( 'PackageDupes' => 'pre_distro_upgrade' );
@@ -10808,11 +10831,11 @@ sub run_stage_2 ($self) {
     # This disable cPanel services
     $self->run_component_once( 'cPanelPrep' => 'pre_distro_upgrade' );
 
-    $self->run_component_once( 'SSH'        => 'pre_distro_upgrade' );
-    $self->run_component_once( 'AutoSSL'    => 'pre_distro_upgrade' );
-    $self->run_component_once( 'KernelCare' => 'pre_distro_upgrade' );
-    $self->run_component_once( 'Grub2'      => 'pre_distro_upgrade' );
-    $self->run_component_once( 'NICs'       => 'pre_distro_upgrade' );
+    $self->run_component_once( 'SSH'                    => 'pre_distro_upgrade' );
+    $self->run_component_once( 'AutoSSL'                => 'pre_distro_upgrade' );
+    $self->run_component_once( 'KernelCare'             => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Grub2ChecksWorkarounds' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'NICs'                   => 'pre_distro_upgrade' );
 
     # Imunify depends on EA4 so the Imunify component needs to
     # run before EA4 is removed.  However, Imunify 360 can provide
@@ -11028,7 +11051,7 @@ sub run_stage_5 ($self) {
     my $el_backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR;
     File::Path::remove_tree($el_backup_dir) if -d $el_backup_dir;
 
-    $self->run_component_once( 'Grub2' => 'post_distro_upgrade' );
+    $self->run_component_once( 'Grub2ChecksWorkarounds' => 'post_distro_upgrade' );
 
     Elevate::Marker::success();
 
