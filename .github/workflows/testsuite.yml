@@ -21,36 +21,43 @@ jobs:
       PERL_USE_UNSAFE_INC: 1
       CPANEL_BIN_PATH: /usr/local/cpanel/3rdparty/bin
       CPANEL_PERL: /usr/local/cpanel/3rdparty/perl/536/bin/perl
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-
+    # Note: the container is not a CentOS 7 distro
+    #       this is ok if we use it for unit test purpose
+    #       we are also relying on e2e test using C7 VM on self-hosted runner.
     container:
-      image: cpanelos/perl-compiler:perl-v5.36.0
+      image: cpanelos/perl-compiler:alma8-perl-v5.36.0
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+
       - name: Setup PATH
         run: |
-          echo $CPANEL_BIN_PATH >> $GITHUB_PATH;
-          $CPANEL_PERL -MConfig -E 'say $Config{sitebin}'   >> $GITHUB_PATH
-          $CPANEL_PERL -MConfig -E 'say $Config{vendorbin}' >> $GITHUB_PATH
+            echo $CPANEL_BIN_PATH >> $GITHUB_PATH;
+            $CPANEL_PERL -MConfig -E 'say $Config{sitebin}'   >> $GITHUB_PATH
+            $CPANEL_PERL -MConfig -E 'say $Config{vendorbin}' >> $GITHUB_PATH
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - run: perl -V
-      - name: install Perl dependencies
-        uses: perl-actions/install-with-cpm@v1.7
+
+      - name: cpanel-setup
+        run: /bin/bash t/cpanel-setup
+
+      - name: Install Extra Perl dependencies
+        uses: perl-actions/install-with-cpm@v1
         with:
           sudo: false
           cpanfile: "t/cpanfile"
           args: "--with-all"
-      - name: cpanel-setup
-        run: /bin/bash t/cpanel-setup
+
       - name: which prove
         run: ls -l $(which prove)
+
       - run: perl -cw elevate-cpanel
+
       - name: Run tests
         run: prove -lv -It/lib t/*.t
 
