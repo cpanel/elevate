@@ -5,8 +5,7 @@
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
 
-use strict;
-use warnings;
+use cPstrict;
 use FindBin;
 
 use version;
