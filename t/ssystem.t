@@ -96,5 +96,36 @@ is $out, {
   q[ssystem_capture_output( echo -e 'a\nb\nc' )]
   or diag explain $out;
 
+clear_messages_seen();
+
+ok lives { cpev->ssystem_and_die(qw{/bin/true}); }, 'Lives when the command is successful';
+message_seen( INFO => 'Running: /bin/true' );
+message_seen( INFO => '' );
+message_seen( INFO => '' );
+no_messages_seen();
+
+ok dies { cpev->ssystem_and_die(qw{/bin/false}); }, 'Dies when the command fails';
+message_seen( INFO => 'Running: /bin/false' );
+message_seen( INFO => '' );
+message_seen( INFO => '' );
+no_messages_seen();
+
+my $mock_ssystem = Test::MockModule->new('Elevate::Roles::Run');
+$mock_ssystem->redefine(
+    _ssystem => sub { return 0; },
+);
+
+ok lives { cpev->ssystem_and_die(qw{/usr/bin/yum -y install foo}); }, 'Lives when yum is successful';
+no_messages_seen();
+
+$mock_ssystem->redefine(
+    _ssystem => sub { return 42; },
+    sleep    => 1,
+);
+
+ok dies { cpev->ssystem_and_die(qw{/usr/bin/yum -y install foo}); }, 'Lives when yum is successful';
+message_seen( WARN => "Initial attempt to execute '/usr/bin/yum -y install foo' failed. Attempting again" );
+no_messages_seen();
+
 done_testing();
 exit;

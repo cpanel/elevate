@@ -9174,7 +9174,22 @@ EOS
 
     sub ssystem_and_die ( $self, @args ) {
         $self->ssystem(@args) or return 0;
-        Carp::croak("command failed. Fix it and run command.");
+
+        my $cmd = join ' ', @args;
+        if ( $args[0] =~ m/yum|dnf|apt|rpm|dpkg/ ) {
+            WARN("Initial attempt to execute '$cmd' failed. Attempting again");
+
+            $self->sleep();
+
+            $self->ssystem(@args) or return 0;
+        }
+
+        Carp::croak("‘$cmd’ failed. Review and fix the error, then try again with ‘/scripts/elevate-cpanel --continue’");
+    }
+
+    sub sleep ($self) {
+        sleep 15;
+        return;
     }
 
     sub _ssystem ( $command, %opts ) {
