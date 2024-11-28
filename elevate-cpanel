@@ -3074,8 +3074,21 @@ EOS
           : $repos->{'jetapps-beta'}   ? 'jetapps-beta'
           :                              'jetapps-stable';    # Just give up and choose stable if you can't guess.
         INFO("Jetbackup tier '$jetbackup_tier' detected. Not removing jetbackup. Will re-install it after elevate.");
+        if ( ref Elevate::PkgMgr::instance() eq 'Elevate::PkgMgr::APT' ) {
+
+            if ( -f "/etc/apt/sources.list.d/$jetbackup_tier.list.disabled" ) {
+                rename( "/etc/apt/sources.list.d/$jetbackup_tier.list.disabled", "/etc/apt/sources.list.d/$jetbackup_tier.list" ) || WARN("Couldn't enable repository for $jetbackup_tier: $!");
+            }
+        }
         my @reinstall = Elevate::PkgMgr::get_installed_pkgs_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
+
+        push @reinstall, 'jetbackup5-cpanel' if !grep { $_ eq 'jetbackup5-cpanel' } @reinstall;
         unshift @reinstall, $jetbackup_tier;
+
+        if ( Elevate::OS::needs_leapp() && Cpanel::Pkgr::is_installed('jetphp81-zip') ) {
+            Elevate::PkgMgr::remove_no_dependencies('jetphp81-zip');
+            push @reinstall, 'jetphp81-zip' if !grep { $_ eq 'jetphp81-zip' } @reinstall;
+        }
 
         my $data = {
             tier     => $jetbackup_tier,
@@ -3083,8 +3096,6 @@ EOS
         };
 
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
-
-        Elevate::PkgMgr::remove_no_dependencies('jetphp81-zip');
 
         return;
     }
@@ -3101,7 +3112,6 @@ EOS
 
         my $pkgmgr_options = [ '--enablerepo=jetapps', "--enablerepo=$tier" ];
 
-        Elevate::PkgMgr::install_with_options( $pkgmgr_options, ['jetphp81-zip'] );
         Elevate::PkgMgr::update_with_options( $pkgmgr_options, \@packages );
 
         return;
@@ -3109,22 +3119,12 @@ EOS
 
     sub check ($self) {
 
-        $self->_blocker_jetbackup_is_supported();
         $self->_blocker_old_jetbackup;
 
         return;
     }
 
-    sub _blocker_jetbackup_is_supported ($self) {
-        return unless Cpanel::Pkgr::is_installed('jetbackup');
-        return if Elevate::OS::supports_jetbackup();
-
-        my $name = Elevate::OS::default_upgrade_to();
-        return $self->has_blocker( <<~"END" );
-    ELevate does not currently support JetBackup for upgrades of $name.
-    Support for JetBackup on $name will be added in a future version of ELevate.
-    END
-    }
+    sub _blocker_jetbackup_is_supported { return undef }
 
     sub _blocker_old_jetbackup ($self) {
 
@@ -7220,6 +7220,8 @@ deb-src https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0},
 deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/wp-toolkit/ ./
 
 deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ ./},
+
+        map { my $thing = $_; "jetapps-$_.list" => "deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/$_ main" } qw{base plugins alpha beta edge rc release stable},
     };
 
     use constant supported_cpanel_mysql_versions => qw{
@@ -7400,9 +7402,12 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
     use cPstrict;
 
-    use File::Copy ();
+    use File::Copy    ();
+    use File::Slurper ();
 
     use Elevate::OS ();
+
+    use Cpanel::Pkgr ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -7574,6 +7579,38 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
     sub remove_pkgs_from_repos ( $self, @pkg_list ) {
         return;
+    }
+
+    my %repo2filepart = (
+        map { my $dollar_underscore = $_; "jetapps-$dollar_underscore" => "repo.jetlicense.com_ubuntu_dists_jammy_$dollar_underscore" } qw{base plugins alpha beta edge rc release stable},
+    );
+
+    sub get_installed_pkgs_in_repo ( $self, @repos ) {
+        return unless scalar @repos;
+
+        my @apt_args = (APT_NON_INTERACTIVE_ARGS);
+        $self->ssystem_and_die( $Elevate::PkgMgr::APT::apt_get, @apt_args, 'update' );
+
+        my $dir2read = '/var/lib/apt/lists';
+        opendir( my $dh, $dir2read ) or die "Can't open $dir2read: $!";
+        my @pkglists = grep { m/_Packages$/ } readdir($dh);
+        closedir($dh);
+        $repos[0] = 'jetapps-base' if $repos[0] eq 'jetapps';
+        my @installed;
+        foreach my $repo (@repos) {
+            my $filepart = $repo2filepart{$repo};
+            foreach my $pkglist (@pkglists) {
+                if ( $pkglist =~ qr/^$filepart/ ) {
+                    my @lines = File::Slurper::read_lines("$dir2read/$pkglist");
+
+                    my %pkgs = map { substr( $_, 9 ) => 1 } grep { m/^Package: / } @lines;
+                    push @installed, sort grep { Cpanel::Pkgr::is_installed($_) } keys %pkgs;
+                    last;
+                }
+            }
+        }
+
+        return @installed;
     }
 
     1;
