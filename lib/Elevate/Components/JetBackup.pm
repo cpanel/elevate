@@ -48,8 +48,24 @@ sub pre_distro_upgrade ($self) {
       : $repos->{'jetapps-beta'}   ? 'jetapps-beta'
       :                              'jetapps-stable';    # Just give up and choose stable if you can't guess.
     INFO("Jetbackup tier '$jetbackup_tier' detected. Not removing jetbackup. Will re-install it after elevate.");
+    if ( ref Elevate::PkgMgr::instance() eq 'Elevate::PkgMgr::APT' ) {
+
+        # We need to enable that repo if possible and run apt update so that we can fetch the pkglist for it
+        if ( -f "/etc/apt/sources.list.d/$jetbackup_tier.list.disabled" ) {
+            rename( "/etc/apt/sources.list.d/$jetbackup_tier.list.disabled", "/etc/apt/sources.list.d/$jetbackup_tier.list" ) || WARN("Couldn't enable repository for $jetbackup_tier: $!");
+        }
+    }
     my @reinstall = Elevate::PkgMgr::get_installed_pkgs_in_repo(qw/jetapps jetapps-stable jetapps-beta jetapps-edge/);
+
+    # Force certain things onto the list no matter what
+    push @reinstall, 'jetbackup5-cpanel' if !grep { $_ eq 'jetbackup5-cpanel' } @reinstall;
     unshift @reinstall, $jetbackup_tier;
+
+    # Remove this package because leapp will remove it as it depends on libzip.so.2 which isn't available in 8.
+    if ( Elevate::OS::needs_leapp() && Cpanel::Pkgr::is_installed('jetphp81-zip') ) {
+        Elevate::PkgMgr::remove_no_dependencies('jetphp81-zip');
+        push @reinstall, 'jetphp81-zip' if !grep { $_ eq 'jetphp81-zip' } @reinstall;
+    }
 
     my $data = {
         tier     => $jetbackup_tier,
@@ -57,9 +73,6 @@ sub pre_distro_upgrade ($self) {
     };
 
     Elevate::StageFile::update_stage_file( { 'reinstall' => { 'jetbackup' => $data } } );
-
-    # Remove this package because leapp will remove it as it depends on libzip.so.2 which isn't available in 8.
-    Elevate::PkgMgr::remove_no_dependencies('jetphp81-zip');
 
     return;
 }
@@ -76,7 +89,8 @@ sub post_distro_upgrade ($self) {
 
     my $pkgmgr_options = [ '--enablerepo=jetapps', "--enablerepo=$tier" ];
 
-    Elevate::PkgMgr::install_with_options( $pkgmgr_options, ['jetphp81-zip'] );
+    # Technically, this isn't possible on ubuntu, but we need it for cent.
+    # It falls through to just update thankfully.
     Elevate::PkgMgr::update_with_options( $pkgmgr_options, \@packages );
 
     return;
@@ -84,24 +98,12 @@ sub post_distro_upgrade ($self) {
 
 sub check ($self) {
 
-    $self->_blocker_jetbackup_is_supported();
     $self->_blocker_old_jetbackup;
 
     return;
 }
 
-# Support for JetBackup on Ubuntu is scheduled via RE-668
-# For now, we block to reduce scope for the initial release
-sub _blocker_jetbackup_is_supported ($self) {
-    return unless Cpanel::Pkgr::is_installed('jetbackup');
-    return if Elevate::OS::supports_jetbackup();
-
-    my $name = Elevate::OS::default_upgrade_to();
-    return $self->has_blocker( <<~"END" );
-    ELevate does not currently support JetBackup for upgrades of $name.
-    Support for JetBackup on $name will be added in a future version of ELevate.
-    END
-}
+sub _blocker_jetbackup_is_supported { return undef }
 
 sub _blocker_old_jetbackup ($self) {
 

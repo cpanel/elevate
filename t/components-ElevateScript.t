@@ -14,7 +14,7 @@ use Test2::Tools::Explain;
 use Test2::Plugin::NoWarnings;
 use Test2::Tools::Exception;
 
-use Test::MockFile 0.032;
+use Test::MockFile 0.032 qw{nostrict};
 use Test::MockModule qw/strict/;
 
 use lib $FindBin::Bin . "/lib";
@@ -29,7 +29,7 @@ my $cpev   = cpev->new;
 my $script = $cpev->get_blocker('ElevateScript');
 
 {
-    $0 = '/root/elevate-cpanel';
+    local $0 = '/root/elevate-cpanel';
     is(
         $script->_blocker_wrong_location(),
         {
@@ -39,7 +39,7 @@ my $script = $cpev->get_blocker('ElevateScript');
         q{We need elevate-cpanel to live in /scripts/}
     );
 
-    $0 = '';
+    local $0 = '';
     is(
         $script->_blocker_wrong_location(),
         {
@@ -49,9 +49,13 @@ my $script = $cpev->get_blocker('ElevateScript');
         q{Handle if \$0 is broken.}
     );
 
-    $0 = '/scripts/elevate-cpanel';
-    is( $script->_blocker_wrong_location(), 0, "\$0 can be /scripts/" );
-    $0 = '/usr/local/cpanel/scripts/elevate-cpanel';
+    # Cwd::abs_path will return undef if the file doesn't exist
+  SKIP: {
+        skip "/scripts does not exist on this host, assertion will fail due to Cwd::abs_path returning undef in that case", 1 if ( !-d '/scripts' );
+        local $0 = '/scripts/elevate-cpanel';
+        is( $script->_blocker_wrong_location(), 0, "\$0 can be /scripts/" ) || diag explain $script->_blocker_wrong_location();
+    }
+    local $0 = '/usr/local/cpanel/scripts/elevate-cpanel';
     is( $script->_blocker_wrong_location(), 0, "\$0 can be /usr/local/cpanel/scripts/" );
 }
 
@@ -68,8 +72,8 @@ my $script = $cpev->get_blocker('ElevateScript');
 
       is(
         $components->blockers,
-        [
-            {
+        bag {
+            item {
                 id  => q[Elevate::Components::ElevateScript::_is_up_to_date],
                 msg => <<~'EOS',
         The script could not fetch information about the latest version.
@@ -77,8 +81,9 @@ my $script = $cpev->get_blocker('ElevateScript');
         Pass the --skip-elevate-version-check flag to skip this check.
         EOS
 
-            }
-        ],
+            };
+            etc;
+        },
         "blocks when info about latest version can't be fetched"
       );
 
@@ -87,8 +92,8 @@ my $script = $cpev->get_blocker('ElevateScript');
 
       is(
         $components->blockers,
-        [
-            {
+        bag {
+            item {
                 id  => q[Elevate::Components::ElevateScript::_is_up_to_date],
                 msg => <<~'EOS',
         The script could not fetch information about the latest version.
@@ -96,8 +101,9 @@ my $script = $cpev->get_blocker('ElevateScript');
         Pass the --skip-elevate-version-check flag to skip this check.
         EOS
 
-            }
-        ],
+            };
+            etc;
+        },
         "blocks when the installed script isn't the latest release"
       );
 

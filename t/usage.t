@@ -24,7 +24,8 @@ use Elevate::Usage;
 
 require $FindBin::Bin . '/../elevate-cpanel';
 
-my $mock_usage = Test::MockModule->new('Elevate::Usage');
+my $mock_no_noc = Test::MockFile->file('/var/cpanel/elevate-noc-recommendations');
+my $mock_usage  = Test::MockModule->new('Elevate::Usage');
 
 my $parse_results = {};
 
@@ -282,6 +283,7 @@ foreach my $test_hr (@TEST_DATA) {
 
 my $user_has_been_prompted = 0;
 
+require IO::Prompt;
 my $mock_io_prompt = Test::MockModule->new('IO::Prompt');
 $mock_io_prompt->redefine(
     prompt => sub {
@@ -289,15 +291,14 @@ $mock_io_prompt->redefine(
         return 1;
     }
 );
-
 my $cpev = cpev->new->_init('--start');
 $cpev->give_last_chance();
-is $user_has_been_prompted, 1, 'IP::Prompt invoked without the non-interactive option';
+is $user_has_been_prompted, 1, 'IO::Prompt invoked without the non-interactive option';
 
 $user_has_been_prompted = 0;
 $cpev                   = cpev->new->_init( '--start', '--non-interactive' );
 $cpev->give_last_chance();
-is $user_has_been_prompted, 0, 'IP::Prompt not invoked with the non-interactive option';
+is $user_has_been_prompted, 0, 'IO::Prompt not invoked with the non-interactive option';
 
 done_testing();
 exit;
