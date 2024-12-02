@@ -80,6 +80,7 @@ BEGIN {
     # The value specifies how many args the method is designed to take.
     %methods = map { $_ => 0 } (
         ### General distro specific methods.
+        'bootloader_config_method',             # This describes the canonical way to configure GRUB2
         'default_upgrade_to',                   # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
         'disable_mysql_yum_repos',              # This is a list of mysql repo files to disable
         'ea_alias',                             # This is the value for the --target-os flag used when backing up an EA4 profile
