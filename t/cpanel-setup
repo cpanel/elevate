@@ -54,7 +54,9 @@ echo "# ............. which perl"
 which perl
 ls -l /usr/local/cpanel/3rdparty/perl/536/bin/perl
 
-echo "# ............. scripts/cpservice"
+echo "# ............. cpanm round 2"
+perl bin/cpanm -n --cpanfile ${REPO}/t/cpanfile --installdeps .
+
 scripts/cpservice cpanel install ||:
 
 echo "# ............. install fake tailwatchd service"
