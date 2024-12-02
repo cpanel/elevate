@@ -6,7 +6,7 @@ my $CPANEL_VERSION = `cat /usr/local/cpanel/version`;
 
 use strict;
 
-print "######################################\n";
+print "###################################\n";
 
 sub main {
     my @arr = (
@@ -16,7 +16,7 @@ sub main {
 
     for my $row (@arr) {
         format STDOUT =
-@<<<<<<<<<<<<<<<<<  @<<<<<<<<<<<<<<<<<
+@<<<<<<<<<<  @<<<<<<<<<<<<<<<<<<<<<
          @$row
 .
         write;
@@ -26,4 +26,4 @@ sub main {
 
 main();
 
-print "######################################\n";
+print "###################################\n";

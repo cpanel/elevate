@@ -39,6 +39,7 @@ sub _check_elevate_log_for_REBOOT_STRING {
     my $has_continued = 0;
 
     $file = File::Tail->new( name => $filepath, maxinterval => 1, adjustafter => 5, interval => 1 );
+
     while ( defined( $line = $file->read ) ) {
 
         # Lines that match ERROR or FATAL are an indication that the script
