@@ -82,6 +82,7 @@ use constant supported_cpanel_nameserver_types => qw{
   powerdns
 };
 
+use constant bootloader_config_method        => 'grubby';
 use constant default_upgrade_to              => undef;
 use constant ea_alias                        => undef;
 use constant elevate_rpm_url                 => undef;
@@ -107,7 +108,7 @@ use constant supports_jetbackup              => 1;
 use constant supports_kernelcare             => 1;
 use constant supports_postgresql             => 1;
 use constant skip_minor_version_check        => 0;
-use constant leapp_repo_beta                 => '';       # Unavailable by default.
+use constant leapp_repo_beta                 => '';         # Unavailable by default.
 use constant upgrade_to_pretty_name          => undef;
 use constant vetted_apt_lists                => {};
 

@@ -22,11 +22,15 @@ use Elevate::OS        ();
 use Elevate::StageFile ();
 
 use Log::Log4perl qw(:easy);
+use File::Slurper ();
 
 use parent qw{Elevate::Components::Base};
 
-use constant GRUBBY_PATH  => '/usr/sbin/grubby';
-use constant CMDLINE_PATH => '/proc/cmdline';
+use constant GRUBBY_PATH                  => '/usr/sbin/grubby';
+use constant UPDATE_GRUB_PATH             => '/usr/sbin/update-grub';                            # This is an official alias for grub-mkconfig with the correct arguments
+use constant GRUB_MKCONFIG_FRAG_DIR_PATH  => '/etc/default/grub.d';
+use constant GRUB_MKCONFIG_FRAG_FILE_PATH => GRUB_MKCONFIG_FRAG_DIR_PATH . '/zzz-elevate.cfg';
+use constant CMDLINE_PATH                 => '/proc/cmdline';
 
 # In place of Unix::Sysexits:
 use constant EX_UNAVAILABLE => 69;
@@ -51,6 +55,11 @@ sub _call_grubby ( $self, @args ) {
     return $opts{die_on_error} ? $self->ssystem_and_die(@args) : $self->ssystem( \%opts, @args );
 }
 
+sub _call_update_grub ( $self, $opts = {} ) {
+    die "Argument must be a hashref" unless ref $opts eq 'HASH';
+    return $opts->{die_on_error} ? $self->ssystem_and_die(UPDATE_GRUB_PATH) : $self->ssystem(UPDATE_GRUB_PATH);
+}
+
 sub _default_kernel ($self) {
     return $self->_call_grubby( { should_capture_output => 1, should_hide_output => 1 }, '--default-kernel' )->{'stdout'}->[0] // '';
 }
@@ -64,14 +73,43 @@ sub _persistent_id {
     return $id;
 }
 
+sub _add_kernel_arg ( $self, $arg ) {
+
+    if ( Elevate::OS::bootloader_config_method() eq 'grubby' ) {
+        my $kernel_path = $self->_default_kernel;
+        $self->_call_grubby( { die_on_error => 1 }, "--update-kernel=$kernel_path", "--args=$arg" );
+    }
+    elsif ( Elevate::OS::bootloader_config_method() eq 'grub-mkconfig' ) {
+        my $content = qq{GRUB_CMDLINE_LINUX_DEFAULT="\$GRUB_CMDLINE_LINUX_DEFAULT $arg"};
+        File::Slurper::write_text( GRUB_MKCONFIG_FRAG_FILE_PATH, $content );
+        $self->_call_update_grub( { die_on_error => 1 } );
+    }
+    else {
+        LOGDIE("We don't know how to manipulate the bootloader!");
+    }
+    return;
+}
+
+sub _check_command_exists {
+    if ( Elevate::OS::bootloader_config_method() eq 'grubby' ) {
+        return -x GRUBBY_PATH;
+    }
+    elsif ( Elevate::OS::bootloader_config_method() eq 'grub-mkconfig' ) {
+        return -x UPDATE_GRUB_PATH;
+    }
+    else {
+        LOGDIE("We don't know how to manipulate the bootloader!");
+    }
+    return;
+}
+
 sub mark_cmdline ($self) {
-    return unless -x GRUBBY_PATH;
+    return unless _check_command_exists();
 
     my $arg = "elevate-" . _persistent_id;
     INFO("Marking default boot entry with additional parameter \"$arg\".");
 
-    my $kernel_path = $self->_default_kernel;
-    $self->_call_grubby( { die_on_error => 1 }, "--update-kernel=$kernel_path", "--args=$arg" );
+    $self->_add_kernel_arg($arg);
 
     return;
 }
@@ -84,8 +122,24 @@ sub _remove_but_dont_stop_service ($self) {
     return;
 }
 
+# Return true on success, false on failure
+sub _remove_kernel_arg ( $self, $arg ) {
+    my $result;
+    if ( Elevate::OS::bootloader_config_method() eq 'grubby' ) {
+        my $kernel_path = $self->_default_kernel;
+        $result = !$self->_call_grubby( "--update-kernel=$kernel_path", "--remove-args=$arg" );
+    }
+    elsif ( Elevate::OS::bootloader_config_method() eq 'grub-mkconfig' ) {
+        $result = unlink(GRUB_MKCONFIG_FRAG_FILE_PATH) && !$self->_call_update_grub();
+    }
+    else {
+        LOGDIE("We don't know how to manipulate the bootloader!");
+    }
+    return $result;
+}
+
 sub verify_cmdline ($self) {
-    return unless -x GRUBBY_PATH;
+    return unless _check_command_exists();
     if ( $self->cpev->upgrade_distro_manually() ) {
         my $arg = "elevate-" . _persistent_id;
         INFO("Checking for \"$arg\" in booted kernel's command line...");
@@ -101,9 +155,8 @@ sub verify_cmdline ($self) {
             ERROR("Parameter not detected. Attempt to upgrade is being aborted.");
         }
 
-        my $kernel_path = $self->_default_kernel;
-        my $result      = $self->_call_grubby( "--update-kernel=$kernel_path", "--remove-args=$arg" );
-        WARN("Unable to restore original command line. This should not cause problems but is unusual.") if $result != 0;
+        my $result = $self->_remove_kernel_arg($arg);
+        WARN("Unable to restore original command line. This should not cause problems but is unusual.") unless $result;
 
         if ( !$detected ) {
 
