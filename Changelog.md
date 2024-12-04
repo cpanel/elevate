@@ -1,3 +1,11 @@
+##### **2024-12-02** - version 59
+
+* Fixed case RE-664: Add initial support for Ubuntu 20 to Ubuntu 22 upgrades
+* Fixed case RE-996: Add auto retry for package manager based commands
+* Fixed case RE-974: Only perform the check to determine if MySQL has any corrupted databases while in start mode
+* Fixed case RE-672: Update DiskSpace check to account for Ubuntu
+* Fixed case RE-668: Add support for Jetbackup in U20->U22
+
 ##### **2024-11-19** - version 58
 
 * Fixed case RE-964: Avoid Perl error in 'Elevate::Components::Repositories'
