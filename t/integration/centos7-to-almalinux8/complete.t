@@ -7,13 +7,11 @@
 
 use lib '/usr/local/cpanel/';
 
-use Cpanel::OS              ();
-use Cpanel::SafeRun::Simple ();
+use Cpanel::OS ();
 
-use Test::More tests => 2;
-
-use Data::Dumper;
+use Test::More;
 
 is( Cpanel::OS->distro(), 'almalinux', 'System is Almalinux after upgrade.' );
 is( Cpanel::OS->major(),  '8',         'Verson 8 of OS.' );
 
+done_testing();
