@@ -6,12 +6,12 @@ my $HOST    = $ARGV[0];
 my $PORT    = $ARGV[1] // 22;
 my $RETVAL  = 1;
 my $RETRIES = 0;
-my $RETRY   = $ARGV[2] // 900;
+my $RETRY   = $ARGV[2] // 1200; # Bumping this to 20 minutes per cloudlinux Stage 4 averaging right at 15 mins
 
 return unless defined $HOST;
 
 while ( $RETVAL != 0 ) {
-    my $cmd    = qq{ /usr/bin/nc -z -w 3 $HOST $PORT };
+    my $cmd    = qq{ /usr/bin/nc -z -w 1 $HOST $PORT };
     my $output = `$cmd`;
     my $time   = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
 
