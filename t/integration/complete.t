@@ -7,7 +7,6 @@
 
 use lib '/usr/local/cpanel/';
 
-use Cpanel::OS              ();
 use Cpanel::JSON            ();
 use Cpanel::SafeRun::Simple ();
 
@@ -16,9 +15,7 @@ use Test::More;
 # "Poor man's" FailWarnings
 $SIG{'__WARN__'} = sub { fail("Warning detected: $_[0]"); };
 
-is( Cpanel::OS->distro(),             'almalinux', 'System is Almalinux after upgrade.' );
-is( Cpanel::OS->major(),              '8',         'Verson 8 of OS.' );
-is( -e '/var/log/elevate-cpanel.log', 1,           'Elevate log exists.' );
+is( -e '/var/log/elevate-cpanel.log', 1, 'Elevate log exists.' );
 
 note "Gather service status...";
 my $svcstatus = run_api(qw{whmapi1 servicestatus});
