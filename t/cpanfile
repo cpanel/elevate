@@ -11,17 +11,6 @@
 
 # test
 on 'test' => sub {
-    requires "File::Temp";
-    requires "Overload::FileCheck";
-    requires "Pod::PlainText";
-    requires "Test2::Bundle::Extended";
-    requires "Test2::Plugin::NoWarnings";
-    requires "Test2::Tools::Explain";
-    requires "Test::MockFile" => "0.032";
-    requires "Test::MockModule";
-    requires "Test::More";
-    requires "Test::Class";
-    requires "Test::Simple";
 
     requires "Test::MockFile" => "0.032";
 
