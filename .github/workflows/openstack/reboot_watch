@@ -7,13 +7,6 @@ use File::Tail;
 use JSON::PP;
 use POSIX;
 
-my $RETVAL = 1;
-
-# Verify REBOOT_STRING isn't already in the log before we go into tail mode.  The logodump here is sgnificantly faster than File::Tail.
-# Jump if it's found.
-
-_pid_check() unless $ENV{SKIP_PID_CHECK};
-
 _exit_with_haste(1) if !length( $ENV{REBOOT_STRING} );
 
 open( my $elevate_log_fh, '<', ELEVATE_LOG_PATH ) or die "## [ERROR][reboot_watch]: Unable to open ELEVATE_LOG_PATH: $!\n";
@@ -28,18 +21,15 @@ while ( my $line = readline $elevate_log_fh ) {
 
 close $elevate_log_fh;
 
-while ( $RETVAL != 0 ) {
-    _check_elevate_log_for_REBOOT_STRING( ELEVATE_LOG_PATH, $ENV{REBOOT_STRING} );
-    _exit_with_haste(0);
-}
+_check_elevate_log_for_REBOOT_STRING( ELEVATE_LOG_PATH, $ENV{REBOOT_STRING} );
+_exit_with_haste(1);
 
 sub _check_elevate_log_for_REBOOT_STRING {
     my ( $filepath, $REBOOT_STRING, $RETRIES ) = @_;
 
     my $has_continued = 0;
 
-    $file = File::Tail->new( name => $filepath, maxinterval => 1, adjustafter => 5, interval => 1 );
-
+    $file = File::Tail->new( name => $filepath, maxinterval => .1, adjustafter => 1000, interval => .1, resetafter => 1000000 );
     while ( defined( $line = $file->read ) ) {
 
         # Lines that match ERROR or FATAL are an indication that the script
@@ -125,13 +115,4 @@ sub _exit_with_haste {
     exit $code;
 }
 
-sub _pid_check {
-    ## Make sure the PID is in place before we continue parsing through.  This can prevent the timeout from being hit when we miss elevate has already died.
-    if ( !-s ELEVATE_PID ) {
-        print "## [ERROR]: NO PID for elevate-cpanel detected.  Exiting. ##\n";
-        _exit_with_haste(1);
-    }
-    return 0;
-}
-
-_exit_with_haste(1);
+1;
