@@ -69,7 +69,7 @@ sub _check_ssh_config ($self) {
 
     if ( $setup !~ m{^\s*PermitRootLogin\b}m ) {
         WARN( <<~"EOS" );
-        OpenSSH configuration file does not explicitly state the option PermitRootLogin in sshd_config file, which will default in RHEL8 to "prohibit-password".
+        OpenSSH configuration file does not explicitly state the option PermitRootLogin in sshd_config file; this may default to "prohibit-password" after upgrading the distro.
         We will set the 'PermitRootLogin' value in $sshd_config to 'yes' before upgrading.
 
         EOS

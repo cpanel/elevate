@@ -72,7 +72,7 @@ sub _blocker_is_old_centos7 ($self) {
 
 sub _blocker_is_experimental_os ($self) {
     if ( -e '/var/cpanel/caches/Cpanel-OS.custom' ) {
-        return $self->has_blocker('Experimental OS detected. This script only supports CentOS 7 upgrades');
+        return $self->has_blocker('Experimental OS detected. This script does not support it for upgrades.');
     }
 
     return 0;

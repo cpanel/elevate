@@ -73,7 +73,7 @@ sub _absolute_symlinks ($self) {
 
 sub check ($self) {
     my %links = $self->get_abs_symlinks();
-    WARN( "Symlinks with absolute paths have been found in /:\n\t" . join( ", ", sort keys(%links) ) . "\n" . "This can cause problems during the leapp run, so\n" . 'these will be corrected to be relative symlinks before elevation.' ) if %links;
+    WARN( "Symlinks with absolute paths have been found in /:\n\t" . join( ", ", sort keys(%links) ) . "\n" . "This can cause problems during the distro upgrade, so\n" . 'these will be corrected to be relative symlinks before elevation.' ) if %links;
     return;
 }
 

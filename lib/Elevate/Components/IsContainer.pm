@@ -32,7 +32,7 @@ sub check ($self) {    # $self is a cpev object here
     if ( _is_container_envtype() ) {
         return $self->has_blocker( <<~'EOS');
         cPanel thinks that this is a container-like environment.
-        This cannot be upgraded by the native leapp tool.
+        This cannot be upgraded by this script.
         Consider contacting your hypervisor provider for alternative solutions.
         EOS
     }

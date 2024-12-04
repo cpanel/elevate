@@ -73,7 +73,7 @@ my $ssh = bless {}, 'Elevate::Components::SSH';
     my $mock_sshd_cfg = Test::MockFile->file(q[/etc/ssh/sshd_config]);
 
     my $sshd_error_message = <<~'EOS';
-    OpenSSH configuration file does not explicitly state the option PermitRootLogin in sshd_config file, which will default in RHEL8 to "prohibit-password".
+    OpenSSH configuration file does not explicitly state the option PermitRootLogin in sshd_config file; this may default to "prohibit-password" after upgrading the distro.
     We will set the 'PermitRootLogin' value in /etc/ssh/sshd_config to 'yes' before upgrading.
 
     EOS

@@ -35,7 +35,7 @@ my $mock = Test::MockModule->new('Elevate::Components::IsContainer');
     my $cpev = cpev->new();
     my $msg  = <<~'EOS';
     cPanel thinks that this is a container-like environment.
-    This cannot be upgraded by the native leapp tool.
+    This cannot be upgraded by this script.
     Consider contacting your hypervisor provider for alternative solutions.
     EOS
 
