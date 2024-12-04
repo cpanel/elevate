@@ -280,6 +280,7 @@ use Elevate::Components::RmMod                  ();
 use Elevate::Components::RpmDB                  ();
 use Elevate::Components::SSH                    ();
 use Elevate::Components::Softaculous            ();
+use Elevate::Components::Ufw                    ();
 use Elevate::Components::UnconvertedModules     ();
 use Elevate::Components::UpdateReleaseUpgrades  ();
 use Elevate::Components::UpdateSystem           ();
@@ -1020,6 +1021,10 @@ sub run_stage_3 ($self) {
 
     $self->run_once('run_final_components_pre_distro_upgrade');
 
+    # The server should not reboot between executing this
+    # and executing do-release-upgrade
+    $self->run_component_once( 'Ufw' => 'pre_distro_upgrade' );
+
     if ( !$self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
@@ -1132,8 +1137,9 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    $self->run_component_once( 'Lists', => 'post_distro_upgrade' );
-    $self->run_component_once( 'RpmDB', => 'post_distro_upgrade' );
+    $self->run_component_once( 'Ufw'   => 'post_distro_upgrade' );
+    $self->run_component_once( 'Lists' => 'post_distro_upgrade' );
+    $self->run_component_once( 'RpmDB' => 'post_distro_upgrade' );
 
     $self->run_once(
         restore_cpanel_services => sub {
