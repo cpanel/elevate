@@ -28,9 +28,9 @@ my $mock_cpev = Test::MockModule->new('cpev');
 my $cpev       = cpev->new;
 my $components = Elevate::Components->new( cpev => $cpev );
 
-my $grub2_comp = cpev->new->get_component('Grub2');
+my $grub2_comp = cpev->new->get_component('Grub2ChecksWorkarounds');
 
-my $mock_g2 = Test::MockModule->new('Elevate::Components::Grub2');
+my $mock_g2 = Test::MockModule->new('Elevate::Components::Grub2ChecksWorkarounds');
 
 my $mock_grubby  = Test::MockFile->file( '/usr/sbin/grubby', '', { mode => 0755 } );
 my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
@@ -41,66 +41,10 @@ $mock_stage_file->redefine( _read_stage_file => sub { return $stage_data } );
 $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; return 1 } );
 
 {
-    note "Checking mark_cmdline";
-
-    $stage_data = undef;
-
-    my $mock_comp = Test::MockModule->new('Elevate::Components::Grub2');
-    $mock_comp->redefine( _call_grubby    => 0 );
-    $mock_comp->redefine( _default_kernel => "doesn't matter" );
-
-    $grub2_comp->mark_cmdline();
-    my $tag = $stage_data->{bootloader_random_tag};
-    ok( 0 <= $tag && $tag < 100000, "tag value created as expected" );
-    message_seen( 'INFO' => qq[Marking default boot entry with additional parameter "elevate-$tag".] );
-    no_messages_seen();
-}
-
-{
-    note "Checking verify_cmdline";
-
-    my $mock_slurp = Test::MockModule->new('File::Slurper');
-    my $cmdline;
-    $mock_slurp->redefine( read_binary => sub { return $cmdline } );
-
-    $mock_cpev->redefine( upgrade_distro_manually => 1 );
-    $mock_cpev->redefine( do_cleanup              => sub { $stage_data = undef; return; } );
-
-    my $mock_comp = Test::MockModule->new('Elevate::Components::Grub2');
-    $mock_comp->redefine( _default_kernel               => "kernel-image" );
-    $mock_comp->redefine( _call_grubby                  => 0 );
-    $mock_comp->redefine( _remove_but_dont_stop_service => 0 );
-
-    $cmdline    = 'BOOT_IMAGE=(hd0,gpt2)/boot/vmlinuz-4.18.0-513.11.1.el8_9.x86_64 root=UUID=cc6b4037-0469-45b1-9b87-e5d2c3bb1654 ro console=tty0 console=ttyS0,115200 earlyprintk=ttyS0,115200 consoleblank=0 crashkernel=no nosplash net.ifnames=0 nomodeset rootflags=uquota';
-    $stage_data = { stage_number => 2 };
-    trap { $grub2_comp->verify_cmdline() };
-    is( $trap->exit, 69, "verify_cmdline exited with EX_UNAVAILABLE" );
-
-    message_seen( 'INFO'  => qr/^Checking for "elevate-[0-9]{1,5}" in booted kernel's command line...$/ );
-    message_seen( 'DEBUG' => "/proc/cmdline contains: $cmdline" );
-    message_seen( 'ERROR' => "Parameter not detected. Attempt to upgrade is being aborted." );
-    no_messages_seen();
-
-    notification_seen( qr/^Failed to update to/, qr/the system has control over/ );
-    no_notifications_seen();
-
-    $cmdline    = 'BOOT_IMAGE=(hd0,gpt2)/boot/vmlinuz-4.18.0-513.11.1.el8_9.x86_64 root=UUID=cc6b4037-0469-45b1-9b87-e5d2c3bb1654 ro console=tty0 console=ttyS0,115200 earlyprintk=ttyS0,115200 consoleblank=0 crashkernel=no nosplash net.ifnames=0 nomodeset rootflags=uquota elevate-9001';
-    $stage_data = { stage_number => 2, bootloader_random_tag => 9001 };
-    ok( lives { $grub2_comp->verify_cmdline() }, "verify_cmdline doesn't die" );
-
-    message_seen( 'INFO'  => qq[Checking for "elevate-9001" in booted kernel's command line...] );
-    message_seen( 'DEBUG' => "/proc/cmdline contains: $cmdline" );
-    message_seen( 'INFO'  => "Parameter detected; restoring entry to original state." );
-    no_messages_seen();
-
-    no_notifications_seen();
-}
-
-{
     note "checking _blocker_blscfg: GRUB_ENABLE_BLSCFG state check";
 
     set_os_to('ubuntu');
-    is( $components->_check_single_blocker('Grub2'), 1, 'Blocker is bypassed on Ubuntu upgrades' );
+    is( $components->_check_single_blocker('Grub2ChecksWorkarounds'), 1, 'Blocker is bypassed on Ubuntu upgrades' );
 
     set_os_to('cent');
 
@@ -110,7 +54,7 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
 
     $mock_g2->redefine( _parse_shell_variable => sub { die "something happened\n" } );
     is(
-        dies { $components->_check_single_blocker('Grub2') },
+        dies { $components->_check_single_blocker('Grub2ChecksWorkarounds') },
         "something happened\n",
         "blockers_check() handles an exception when there is a problem parsing /etc/default/grub"
     );
@@ -119,13 +63,13 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
 
     is $components->blockers(), [], 'no blockers';
 
-    is $components->_check_single_blocker('Grub2'), 0;
+    is $components->_check_single_blocker('Grub2ChecksWorkarounds'), 0;
 
     like(
         $components->blockers,
         [
             {
-                id  => q[Elevate::Components::Grub2::_blocker_blscfg],
+                id  => q[Elevate::Components::Grub2ChecksWorkarounds::_blocker_blscfg],
                 msg => qr/^Disabling the BLS boot entry format prevents the resulting system from/,
             }
         ],
@@ -139,14 +83,14 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
 
 {
     note "grub2 work around.";
-    $mock_g2->redefine( _grub2_workaround_state => Elevate::Components::Grub2::GRUB2_WORKAROUND_UNCERTAIN );
+    $mock_g2->redefine( _grub2_workaround_state => Elevate::Components::Grub2ChecksWorkarounds::GRUB2_WORKAROUND_UNCERTAIN );
 
-    my $grub2 = $components->_get_blocker_for('Grub2');
+    my $grub2 = $components->_get_blocker_for('Grub2ChecksWorkarounds');
 
     like(
         $grub2->_blocker_grub2_workaround(),
         {
-            id  => q[Elevate::Components::Grub2::_blocker_grub2_workaround],
+            id  => q[Elevate::Components::Grub2ChecksWorkarounds::_blocker_grub2_workaround],
             msg => qr/configuration of the GRUB2 bootloader/,
         },
         "uncertainty about whether GRUB2 workaround is present/needed blocks"
@@ -154,10 +98,10 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
 
     my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 
-    #$grub2 = $blockers->_get_blocker_for('Grub2');
+    #$grub2 = $blockers->_get_blocker_for('Grub2ChecksWorkarounds');
     my $stash = undef;
     $mock_g2->redefine(
-        _grub2_workaround_state => Elevate::Components::Grub2::GRUB2_WORKAROUND_OLD,
+        _grub2_workaround_state => Elevate::Components::Grub2ChecksWorkarounds::GRUB2_WORKAROUND_OLD,
 
         #update_stage_file       => sub ( $, $data ) { $stash = $data },
     );
@@ -178,12 +122,12 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
         is_installed => sub { return $grub2_installed; },
     );
 
-    my $grub2 = $components->_get_blocker_for('Grub2');
+    my $grub2 = $components->_get_blocker_for('Grub2ChecksWorkarounds');
 
     like(
         $grub2->_blocker_grub_not_installed(),
         {
-            id  => q[Elevate::Components::Grub2::_blocker_grub_not_installed],
+            id  => q[Elevate::Components::Grub2ChecksWorkarounds::_blocker_grub_not_installed],
             msg => qr/grub2-pc package is not installed/,
         },
         'Returns blocker if GRUB2 is not installed'
@@ -199,12 +143,12 @@ $mock_stage_file->redefine( _save_stage_file => sub { $stage_data = $_[0]; retur
     my $mock_cfg1 = Test::MockFile->file('/boot/grub/grub.cfg');
     my $mock_cfg2 = Test::MockFile->file('/boot/grub2/grub.cfg');
 
-    my $grub2 = $components->_get_blocker_for('Grub2');
+    my $grub2 = $components->_get_blocker_for('Grub2ChecksWorkarounds');
 
     like(
         $grub2->_blocker_grub_config_missing(),
         {
-            id  => q[Elevate::Components::Grub2::_blocker_grub_config_missing],
+            id  => q[Elevate::Components::Grub2ChecksWorkarounds::_blocker_grub_config_missing],
             msg => qr/config file is missing/,
         },
         'Returns blocker if neither config file present'

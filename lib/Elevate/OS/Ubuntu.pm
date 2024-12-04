@@ -12,6 +12,7 @@ ubuntu base class
 
 use cPstrict;
 
+use constant bootloader_config_method        => 'grub-mkconfig';
 use constant default_upgrade_to              => undef;
 use constant disable_mysql_yum_repos         => undef;
 use constant ea_alias                        => undef;

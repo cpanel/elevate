@@ -236,55 +236,56 @@ use Cpanel::Version::Compare    ();
 use Cpanel::Yum::Vars           ();
 
 # - fatpack Components
-use Elevate::Components::Base                  ();
-use Elevate::Components                        ();
-use Elevate::Components::AbsoluteSymlinks      ();
-use Elevate::Components::AutoSSL               ();
-use Elevate::Components::BootKernel            ();
-use Elevate::Components::CCS                   ();
-use Elevate::Components::CloudLinux            ();
-use Elevate::Components::cPanelPlugins         ();
-use Elevate::Components::cPanelPrep            ();
-use Elevate::Components::DatabaseUpgrade       ();
-use Elevate::Components::DiskSpace             ();
-use Elevate::Components::Distros               ();
-use Elevate::Components::DNS                   ();
-use Elevate::Components::EA4                   ();
-use Elevate::Components::ElevateScript         ();
-use Elevate::Components::ELS                   ();
-use Elevate::Components::Grub2                 ();
-use Elevate::Components::Imunify               ();
-use Elevate::Components::InfluxDB              ();
-use Elevate::Components::IsContainer           ();
-use Elevate::Components::JetBackup             ();
-use Elevate::Components::KernelCare            ();
-use Elevate::Components::Kernel                ();
-use Elevate::Components::Leapp                 ();
-use Elevate::Components::Lists                 ();
-use Elevate::Components::LiteSpeed             ();
-use Elevate::Components::MountPoints           ();
-use Elevate::Components::MySQL                 ();
-use Elevate::Components::NICs                  ();
-use Elevate::Components::NixStats              ();
-use Elevate::Components::OVH                   ();
-use Elevate::Components::PackageRestore        ();
-use Elevate::Components::PackageDupes          ();
-use Elevate::Components::Panopta               ();
-use Elevate::Components::PECL                  ();
-use Elevate::Components::PerlXS                ();
-use Elevate::Components::PostgreSQL            ();
-use Elevate::Components::R1Soft                ();
-use Elevate::Components::Repositories          ();
-use Elevate::Components::RmMod                 ();
-use Elevate::Components::RpmDB                 ();
-use Elevate::Components::SSH                   ();
-use Elevate::Components::Softaculous           ();
-use Elevate::Components::UnconvertedModules    ();
-use Elevate::Components::UpdateReleaseUpgrades ();
-use Elevate::Components::UpdateSystem          ();
-use Elevate::Components::WHM                   ();
-use Elevate::Components::WPToolkit             ();
-use Elevate::Components::Acronis               ();
+use Elevate::Components::Base                   ();
+use Elevate::Components                         ();
+use Elevate::Components::AbsoluteSymlinks       ();
+use Elevate::Components::AutoSSL                ();
+use Elevate::Components::BootKernel             ();
+use Elevate::Components::CCS                    ();
+use Elevate::Components::CloudLinux             ();
+use Elevate::Components::cPanelPlugins          ();
+use Elevate::Components::cPanelPrep             ();
+use Elevate::Components::DatabaseUpgrade        ();
+use Elevate::Components::DiskSpace              ();
+use Elevate::Components::Distros                ();
+use Elevate::Components::DNS                    ();
+use Elevate::Components::EA4                    ();
+use Elevate::Components::ElevateScript          ();
+use Elevate::Components::ELS                    ();
+use Elevate::Components::Grub2ControlTest       ();
+use Elevate::Components::Grub2ChecksWorkarounds ();
+use Elevate::Components::Imunify                ();
+use Elevate::Components::InfluxDB               ();
+use Elevate::Components::IsContainer            ();
+use Elevate::Components::JetBackup              ();
+use Elevate::Components::KernelCare             ();
+use Elevate::Components::Kernel                 ();
+use Elevate::Components::Leapp                  ();
+use Elevate::Components::Lists                  ();
+use Elevate::Components::LiteSpeed              ();
+use Elevate::Components::MountPoints            ();
+use Elevate::Components::MySQL                  ();
+use Elevate::Components::NICs                   ();
+use Elevate::Components::NixStats               ();
+use Elevate::Components::OVH                    ();
+use Elevate::Components::PackageRestore         ();
+use Elevate::Components::PackageDupes           ();
+use Elevate::Components::Panopta                ();
+use Elevate::Components::PECL                   ();
+use Elevate::Components::PerlXS                 ();
+use Elevate::Components::PostgreSQL             ();
+use Elevate::Components::R1Soft                 ();
+use Elevate::Components::Repositories           ();
+use Elevate::Components::RmMod                  ();
+use Elevate::Components::RpmDB                  ();
+use Elevate::Components::SSH                    ();
+use Elevate::Components::Softaculous            ();
+use Elevate::Components::UnconvertedModules     ();
+use Elevate::Components::UpdateReleaseUpgrades  ();
+use Elevate::Components::UpdateSystem           ();
+use Elevate::Components::WHM                    ();
+use Elevate::Components::WPToolkit              ();
+use Elevate::Components::Acronis                ();
 
 # - fatpack OS
 use Elevate::OS              ();
@@ -945,7 +946,7 @@ sub run_stage_1 ($self) {
         return ACTION_CONTINUE;
     }
 
-    $self->run_component_once( 'Grub2' => 'mark_cmdline' );
+    $self->run_component_once( 'Grub2ControlTest' => 'mark_cmdline' );
 
     return ACTION_REBOOT_NEEDED;
 }
@@ -958,7 +959,7 @@ Update the current distro packages then reboot.
 
 sub run_stage_2 ($self) {
 
-    $self->run_component_once( 'Grub2' => 'verify_cmdline' );
+    $self->run_component_once( 'Grub2ControlTest' => 'verify_cmdline' );
 
     # Best to do this before clearing the yum cache:
     $self->run_component_once( 'PackageDupes' => 'pre_distro_upgrade' );
@@ -977,11 +978,11 @@ sub run_stage_2 ($self) {
     # This disable cPanel services
     $self->run_component_once( 'cPanelPrep' => 'pre_distro_upgrade' );
 
-    $self->run_component_once( 'SSH'        => 'pre_distro_upgrade' );
-    $self->run_component_once( 'AutoSSL'    => 'pre_distro_upgrade' );
-    $self->run_component_once( 'KernelCare' => 'pre_distro_upgrade' );
-    $self->run_component_once( 'Grub2'      => 'pre_distro_upgrade' );
-    $self->run_component_once( 'NICs'       => 'pre_distro_upgrade' );
+    $self->run_component_once( 'SSH'                    => 'pre_distro_upgrade' );
+    $self->run_component_once( 'AutoSSL'                => 'pre_distro_upgrade' );
+    $self->run_component_once( 'KernelCare'             => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Grub2ChecksWorkarounds' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'NICs'                   => 'pre_distro_upgrade' );
 
     # Imunify depends on EA4 so the Imunify component needs to
     # run before EA4 is removed.  However, Imunify 360 can provide
@@ -1197,7 +1198,7 @@ sub run_stage_5 ($self) {
     my $el_backup_dir = Elevate::Constants::ELEVATE_BACKUP_DIR;
     File::Path::remove_tree($el_backup_dir) if -d $el_backup_dir;
 
-    $self->run_component_once( 'Grub2' => 'post_distro_upgrade' );
+    $self->run_component_once( 'Grub2ChecksWorkarounds' => 'post_distro_upgrade' );
 
     Elevate::Marker::success();
 
