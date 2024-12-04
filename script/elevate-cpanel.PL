@@ -554,9 +554,9 @@ sub start ($self) {
         WARN( <<~"EOS");
         Automated upgrade of the distro has been disabled.
         Please wait for the file '$touchfile' to be created.
-        At that stage, the ELevate process is paused, and you can upgrade from 7 to 8 on your own.
+        When this file is created, the ELevate process is paused and you can upgrade on your own.
 
-        Once the system has been successfully upgraded from 7 to 8, you can then remove that file
+        After the system completes the upgrade, you can remove the '$touchfile' file.
         to let the ELevate process continue and update cPanel for the new distribution.
         EOS
         Elevate::StageFile::update_stage_file( { upgrade_distro_manually => 1 } );
@@ -1044,7 +1044,28 @@ sub run_stage_3 ($self) {
         $self->ssystem_and_die( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
 
         INFO('Running do-release-upgrade');
-        $self->ssystem_and_die( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );
+        my $ret = $self->ssystem_capture_output( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );
+
+        if ( $ret->{status} != 0 ) {
+            my $stderr = join "\n", @{ $ret->{stderr} };
+
+            my $error_message = <<~"EOS";
+            The do-release-upgrade script failed with the following error message:
+
+            $stderr
+
+            You may need to investigate the logs in /var/log/dist-upgrade
+            to find the cause.
+
+            After you resolve the issue(s), run the following command to continue
+            the elevation process:
+
+            /scripts/elevate-cpanel --continue
+
+            EOS
+
+            die $error_message;
+        }
     }
 
     WARN(<<~'EOS');
@@ -1109,7 +1130,7 @@ sub run_stage_4 ($self) {
         }
 
         my $msg = <<~"END";
-        Server is currently running $current_distro $major after leapp upgrade.
+        Server is currently running $current_distro $major after distro upgrade.
         Upgrade to $pretty_distro_name did not succeed.
 
         END
