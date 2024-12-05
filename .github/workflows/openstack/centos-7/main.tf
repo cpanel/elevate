@@ -49,7 +49,7 @@ resource "openstack_compute_keypair_v2" "tf_remote_key" {
 }
 
 resource "openstack_compute_instance_v2" "elevatevm" {
-  name        = "elevate.github.cpanel.net"
+  name        = "${var.github_run_id}.${var.github_repository}.github.cpanel.net"
   image_id    = data.openstack_images_image_ids_v2.images.ids[0]
   flavor_name = var.flavor_name
   key_pair    = openstack_compute_keypair_v2.tf_remote_key.name
