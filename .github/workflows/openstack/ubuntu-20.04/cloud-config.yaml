@@ -1,5 +1,0 @@
----
-    users:
-      - name: root
-        lock_passwd: false
-    disable_root: false

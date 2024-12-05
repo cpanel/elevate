@@ -11,6 +11,14 @@ variable "application_credential_secret" {
   type = string
 }
 
+variable "github_repository" {
+  type = string
+}
+
+variable "github_run_id" {
+  type = string
+}
+
 variable "os_password" {
   type = string
 }
