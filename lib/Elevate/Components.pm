@@ -59,6 +59,7 @@ use Elevate::Components::RmMod                 ();
 use Elevate::Components::RpmDB                 ();
 use Elevate::Components::SSH                   ();
 use Elevate::Components::Softaculous           ();
+use Elevate::Components::Ufw                   ();
 use Elevate::Components::UnconvertedModules    ();
 use Elevate::Components::UpdateReleaseUpgrades ();
 use Elevate::Components::UpdateSystem          ();
@@ -126,6 +127,7 @@ our @NOOP_CHECKS = qw{
   RmMod
   RpmDB
   Softaculous
+  Ufw
   UnconvertedModules
   UpdateReleaseUpgrades
   UpdateSystem
