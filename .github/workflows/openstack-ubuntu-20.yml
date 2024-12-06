@@ -1,4 +1,4 @@
-name: "Test Run: cloudlinux-7"
+name: "Test Run: ubuntu-20.04"
 
 on:
   push:
@@ -11,12 +11,14 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-openstack-cloudlinux-7
+  group: ${{ github.workflow }}-${{ github.ref }}-openstack-ubuntu-20.04
   cancel-in-progress: true
 
 env:
   TF_VAR_application_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
   TF_VAR_application_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  TF_VAR_github_repository: ${{ github.repository }}
+  TF_VAR_github_run_id: ${{ github.run_id }}
   TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
   TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
   TF_VAR_os_auth_region: ${{ secrets.OS_AUTH_REGION }}
@@ -29,17 +31,14 @@ env:
   TF_VAR_os_project_name: ${{ secrets.OS_PROJECT_NAME }}
   TF_VAR_os_region_name: ${{ secrets.OS_REGION_NAME }}
   TF_VAR_os_username: ${{ secrets.OS_USERNAME }}
-  tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
+  tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
 
 jobs: 
-    testsuite:
-      uses: ./.github/workflows/testsuite.yml
     terraform_openstack_create:
-        needs: [testsuite]
         runs-on: self-hosted
         defaults:
           run:
-            working-directory: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
+            working-directory: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
         steps:
         - uses: actions/checkout@v4
         - name: Terraform fmt
@@ -68,8 +67,8 @@ jobs:
         - name: Upload Terraform State File as Artifact
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
-            path: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
+            name: ${{ github.run_id }}-ubuntu20-terraform.tfstate
+            path: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
 
         - name: Terraform Output File Create
           run: |
@@ -83,7 +82,7 @@ jobs:
         - name: Upload VM Output
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/${{ github.run_id }}-vm_ip
             overwrite: true
 
@@ -96,7 +95,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -149,7 +148,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -184,7 +183,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -198,7 +197,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
 
-        - name: Update CloudLinux License And Setup Server For ELevate
+        - name: Update License And Setup Server For ELevate
           uses: appleboy/ssh-action@v1.1.0
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -207,20 +206,7 @@ jobs:
             port: '22'
             timeout: 30m
             command_timeout: 30m
-            script: |
-              echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
-              /usr/sbin/rhnreg_ks --activationkey=${{ secrets.CLOUDLINUX_LICENSE_KEY }} --force
-              /usr/bin/cldetect --update-license
-              /usr/bin/cldetect --check-license
-              until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
-              /usr/bin/yum erase -y awscli
-              echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo=cloudlinux-x86_64-server --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
-              mv -v /etc/yum.repos.d/clmirror.repo /root/
-              yum-config-manager --enable cloudlinux-base
-              yum-config-manager --enable cloudlinux-updates
-              /usr/bin/yum clean all
-              /usr/bin/yum makecache
-              /usr/bin/yum -y update
+            script: | 
               REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
               cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
               cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
@@ -229,6 +215,7 @@ jobs:
               while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking apt."; sleep 1; done
               /scripts/restartsrv_mysql
               chmod -v +x /scripts/elevate-cpanel
+              until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
 
         - name: Starting Elevate
           uses: appleboy/ssh-action@v1.1.0
@@ -252,7 +239,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -279,7 +266,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -317,7 +304,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -344,7 +331,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -382,7 +369,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -409,7 +396,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -429,8 +416,8 @@ jobs:
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
-            timeout: 60m
-            command_timeout: 50m
+            timeout: 30m
+            command_timeout: 30m
             script: |
               /scripts/status_marker 3
               tail -n40 -F /var/log/elevate-cpanel.log &
@@ -446,7 +433,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -473,7 +460,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -510,7 +497,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -537,7 +524,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -574,7 +561,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -601,7 +588,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
+            name: ${{ github.run_id }}-ubuntu20-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -625,7 +612,7 @@ jobs:
             command_timeout: 1m
             script: |
               REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
-              /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/cloudlinux7-to-cloudlinux8/*.t
+              /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/ubuntu20-to-ubuntu22/*.t
               /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/*.t
 
     terraform_openstack_destroy:
@@ -633,23 +620,24 @@ jobs:
       needs: verify_upgraded_os
       defaults:
         run:
-          working-directory: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
+          working-directory: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
       steps:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
-          name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
-          path: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7/terraform"
+          name: ${{ github.run_id }}-ubuntu20-terraform.tfstate
+          path: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/terraform"
+
 
       - name: Stage Files & Show Artifact Paths
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7/terraform/
+          cd ${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/terraform/
           mv -v terraform.lock.hcl .terraform.lock.hcl
-          find ${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7/
+          find ${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/
 
       - name: Initialize Terraform & Destroy
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7/terraform/
+          cd ${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/terraform/
           rm -Rfv .terraform || true
           terraform init
           terraform destroy -no-color -auto-approve
