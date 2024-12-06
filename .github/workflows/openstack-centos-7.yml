@@ -68,7 +68,7 @@ jobs:
         - name: Upload Terraform State File as Artifact
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-terraform.tfstate
+            name: ${{ github.run_id }}-centos7-terraform.tfstate
             path: "${{ github.workspace }}/.github/workflows/openstack/centos-7"
 
         - name: Terraform Output File Create
@@ -83,7 +83,7 @@ jobs:
         - name: Upload VM Output
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/${{ github.run_id }}-vm_ip
             overwrite: true
 
@@ -96,7 +96,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -149,7 +149,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -184,7 +184,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -226,7 +226,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -253,7 +253,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -291,7 +291,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -318,7 +318,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -356,7 +356,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -383,7 +383,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -420,7 +420,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -447,7 +447,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -484,7 +484,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -511,7 +511,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -548,7 +548,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -575,7 +575,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -612,7 +612,7 @@ jobs:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
-          name: ${{ github.run_id }}-terraform.tfstate
+          name: ${{ github.run_id }}-centos7-terraform.tfstate
           path: "${{ github.workspace }}/.github/workflows/openstack/centos-7/terraform"
 
 
