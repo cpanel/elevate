@@ -11,15 +11,15 @@ variable "application_credential_secret" {
   type = string
 }
 
+variable "os_password" {
+  type = string
+}
+
 variable "github_repository" {
   type = string
 }
 
 variable "github_run_id" {
-  type = string
-}
-
-variable "os_password" {
   type = string
 }
 
@@ -49,7 +49,7 @@ variable "ssh_public_key" {
 
 variable "image_name" {
   type    = string
-  default = "11.110.0.* on CloudLinux 7"
+  default = "11.118.0.* on Ubuntu 20.04"
 }
 
 variable "cpanel_release_version" {
