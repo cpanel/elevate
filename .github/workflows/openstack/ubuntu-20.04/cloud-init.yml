@@ -1,6 +1,0 @@
-#cloud-config
-disable_root: false
-ssh_pwauth: true
-hostname: host
-fqdn: host.domain.tbd
-prefer_fqdn_over_hostname: true

@@ -208,6 +208,8 @@ jobs:
             timeout: 30m
             command_timeout: 30m
             script: |
+              /usr/local/cpanel/scripts/post_snapshot --yes
+              while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking your Update Manager."; sleep 1; done
               echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
               /usr/sbin/rhnreg_ks --activationkey=${{ secrets.CLOUDLINUX_LICENSE_KEY }} --force
               /usr/bin/cldetect --update-license
@@ -225,8 +227,6 @@ jobs:
               cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
               cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
               cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
-              /usr/local/cpanel/scripts/post_snapshot --yes
-              while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking apt."; sleep 1; done
               /scripts/restartsrv_mysql
               chmod -v +x /scripts/elevate-cpanel
 
