@@ -1,14 +1,17 @@
 name: "Test Run: cloudlinux-7"
 
 on:
-  push:
-    branches:
-      - "main"
-      - '!docs'
-    tags-ignore:
-      - "*"
-  pull_request:
   workflow_dispatch:
+    inputs:
+      message:
+        description: 'Build description CloudLinux 7'
+
+  workflow_run:
+    workflows: ["TestSuite"]
+    types:
+      - completed
+
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-openstack-cloudlinux-7
@@ -17,6 +20,8 @@ concurrency:
 env:
   TF_VAR_application_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
   TF_VAR_application_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  TF_VAR_github_repository: ${{ github.repository }}
+  TF_VAR_github_run_id: ${{ github.run_id }}
   TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
   TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
   TF_VAR_os_auth_region: ${{ secrets.OS_AUTH_REGION }}
@@ -32,10 +37,7 @@ env:
   tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
 
 jobs: 
-    testsuite:
-      uses: ./.github/workflows/testsuite.yml
     terraform_openstack_create:
-        needs: [testsuite]
         runs-on: self-hosted
         defaults:
           run:
@@ -56,6 +58,7 @@ jobs:
         - name: Terraform Plan
           id: plan
           run: |
+            env
             terraform plan -no-color
 
         - name: Terraform Apply
@@ -68,7 +71,7 @@ jobs:
         - name: Upload Terraform State File as Artifact
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-terraform.tfstate
+            name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
             path: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
 
         - name: Terraform Output File Create
@@ -83,7 +86,7 @@ jobs:
         - name: Upload VM Output
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/${{ github.run_id }}-vm_ip
             overwrite: true
 
@@ -96,7 +99,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -149,7 +152,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -184,7 +187,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -251,7 +254,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -278,7 +281,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -316,7 +319,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -343,7 +346,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -381,7 +384,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -408,7 +411,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -445,7 +448,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -472,7 +475,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -509,7 +512,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -536,7 +539,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -573,7 +576,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -600,7 +603,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-cloudlinux7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -637,7 +640,7 @@ jobs:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
-          name: ${{ github.run_id }}-terraform.tfstate
+          name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
           path: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7/terraform"
 
       - name: Stage Files & Show Artifact Paths
