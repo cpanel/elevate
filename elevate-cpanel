@@ -56,6 +56,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/RpmDB.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/SSH.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Softaculous.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Ufw.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/UnconvertedModules.pm'}     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/UpdateReleaseUpgrades.pm'}  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/UpdateSystem.pm'}           = 'script/elevate-cpanel.PL.static';
@@ -338,6 +339,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Components::RpmDB                  ();
     use Elevate::Components::SSH                    ();
     use Elevate::Components::Softaculous            ();
+    use Elevate::Components::Ufw                    ();
     use Elevate::Components::UnconvertedModules     ();
     use Elevate::Components::UpdateReleaseUpgrades  ();
     use Elevate::Components::UpdateSystem           ();
@@ -403,6 +405,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       RmMod
       RpmDB
       Softaculous
+      Ufw
       UnconvertedModules
       UpdateReleaseUpgrades
       UpdateSystem
@@ -6386,6 +6389,79 @@ EOS
 
 }    # --- END lib/Elevate/Components/Softaculous.pm
 
+{    # --- BEGIN lib/Elevate/Components/Ufw.pm
+
+    package Elevate::Components::Ufw;
+
+    use cPstrict;
+
+    use Elevate::OS        ();
+    use Elevate::StageFile ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    use constant UFW => '/usr/sbin/ufw';
+
+    sub pre_distro_upgrade ($self) {
+        return unless $self->upgrade_distro_manually();          # skip when --upgrade-distro-manually is provided
+        return unless Elevate::OS::needs_do_release_upgrade();
+
+        if ( !-x UFW ) {
+            my $ufw = UFW;
+            WARN( <<~"EOS" );
+        '$ufw' is either missing or not executable on this server. Unable to
+        ensure that port 1022 is open as a secondary ssh option for
+        do-release-upgrade.
+        EOS
+
+            return;
+        }
+
+        my $current_status = $self->ssystem_capture_output( UFW, 'status' );
+        my $is_active      = grep { $_ =~ m/^Status:\sactive$/ } @{ $current_status->{stdout} };
+        my $is_open        = grep { $_ =~ m{^1022/tcp.*ALLOW.*Anywhere} } @{ $current_status->{stdout} };
+
+        my $data = {
+            is_active => $is_active,
+            is_open   => $is_open,
+        };
+
+        Elevate::StageFile::update_stage_file( { ufw => $data } );
+
+        return if $is_active && $is_open;
+
+        $self->ssystem_and_die( UFW, 'allow', '1022/tcp' );
+
+        $is_active ? $self->ssystem_and_die( UFW, 'reload' ) : $self->ssystem_and_die( UFW, '--force', 'enable' );
+
+        return;
+    }
+
+    sub post_distro_upgrade ($self) {
+        my $ufw_data = Elevate::StageFile::read_stage_file( 'ufw', '' );
+
+        return unless ref $ufw_data && ref $ufw_data eq 'HASH';
+
+        return if $ufw_data->{is_active} && $ufw_data->{is_open};
+
+        $self->ssystem_and_die( UFW, 'delete', 'allow', '1022/tcp' );
+
+        return if $ufw_data->{is_active};
+
+        $self->ssystem_and_die( UFW, 'disable' );
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/Ufw.pm
+
 {    # --- BEGIN lib/Elevate/Components/UnconvertedModules.pm
 
     package Elevate::Components::UnconvertedModules;
@@ -10188,6 +10264,7 @@ use Elevate::Components::RmMod                  ();
 use Elevate::Components::RpmDB                  ();
 use Elevate::Components::SSH                    ();
 use Elevate::Components::Softaculous            ();
+use Elevate::Components::Ufw                    ();
 use Elevate::Components::UnconvertedModules     ();
 use Elevate::Components::UpdateReleaseUpgrades  ();
 use Elevate::Components::UpdateSystem           ();
@@ -10928,6 +11005,10 @@ sub run_stage_3 ($self) {
 
     $self->run_once('run_final_components_pre_distro_upgrade');
 
+    # The server should not reboot between executing this
+    # and executing do-release-upgrade
+    $self->run_component_once( 'Ufw' => 'pre_distro_upgrade' );
+
     if ( !$self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
@@ -11040,8 +11121,9 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    $self->run_component_once( 'Lists', => 'post_distro_upgrade' );
-    $self->run_component_once( 'RpmDB', => 'post_distro_upgrade' );
+    $self->run_component_once( 'Ufw'   => 'post_distro_upgrade' );
+    $self->run_component_once( 'Lists' => 'post_distro_upgrade' );
+    $self->run_component_once( 'RpmDB' => 'post_distro_upgrade' );
 
     $self->run_once(
         restore_cpanel_services => sub {
