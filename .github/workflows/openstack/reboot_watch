@@ -34,7 +34,7 @@ sub _check_elevate_log_for_REBOOT_STRING {
 
         # Lines that match ERROR or FATAL are an indication that the script
         # has failed or is about to fail
-        if ( $line =~ /\[(?:ERROR|FATAL)\[/ ) {
+        if ( $line =~ /\[(?:ERROR|FATAL)\]|Please fix the detected issues before|You can continue the process after fixing the errors by running|The elevation process failed/ ) {
             if ( _script_has_failed() ) {
 
                 # If it failed due to temporary mirror issues,
