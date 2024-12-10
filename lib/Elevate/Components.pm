@@ -18,53 +18,54 @@ use cPstrict;
 # enforce packing these packages
 use Elevate::Components::Base ();
 
-use Elevate::Components::AbsoluteSymlinks      ();
-use Elevate::Components::AutoSSL               ();
-use Elevate::Components::BootKernel            ();
-use Elevate::Components::CCS                   ();
-use Elevate::Components::CloudLinux            ();
-use Elevate::Components::cPanelPlugins         ();
-use Elevate::Components::cPanelPrep            ();
-use Elevate::Components::DatabaseUpgrade       ();
-use Elevate::Components::DiskSpace             ();
-use Elevate::Components::Distros               ();
-use Elevate::Components::DNS                   ();
-use Elevate::Components::EA4                   ();
-use Elevate::Components::ElevateScript         ();
-use Elevate::Components::ELS                   ();
-use Elevate::Components::Grub2                 ();
-use Elevate::Components::Imunify               ();
-use Elevate::Components::InfluxDB              ();
-use Elevate::Components::IsContainer           ();
-use Elevate::Components::JetBackup             ();
-use Elevate::Components::KernelCare            ();
-use Elevate::Components::Kernel                ();
-use Elevate::Components::Leapp                 ();
-use Elevate::Components::Lists                 ();
-use Elevate::Components::LiteSpeed             ();
-use Elevate::Components::MountPoints           ();
-use Elevate::Components::MySQL                 ();
-use Elevate::Components::NICs                  ();
-use Elevate::Components::NixStats              ();
-use Elevate::Components::OVH                   ();
-use Elevate::Components::PackageRestore        ();
-use Elevate::Components::PackageDupes          ();
-use Elevate::Components::Panopta               ();
-use Elevate::Components::PECL                  ();
-use Elevate::Components::PerlXS                ();
-use Elevate::Components::PostgreSQL            ();
-use Elevate::Components::R1Soft                ();
-use Elevate::Components::Repositories          ();
-use Elevate::Components::RmMod                 ();
-use Elevate::Components::RpmDB                 ();
-use Elevate::Components::SSH                   ();
-use Elevate::Components::Softaculous           ();
-use Elevate::Components::UnconvertedModules    ();
-use Elevate::Components::UpdateReleaseUpgrades ();
-use Elevate::Components::UpdateSystem          ();
-use Elevate::Components::WHM                   ();
-use Elevate::Components::WPToolkit             ();
-use Elevate::Components::Acronis               ();
+use Elevate::Components::AbsoluteSymlinks       ();
+use Elevate::Components::AutoSSL                ();
+use Elevate::Components::BootKernel             ();
+use Elevate::Components::CCS                    ();
+use Elevate::Components::CloudLinux             ();
+use Elevate::Components::cPanelPlugins          ();
+use Elevate::Components::cPanelPrep             ();
+use Elevate::Components::DatabaseUpgrade        ();
+use Elevate::Components::DiskSpace              ();
+use Elevate::Components::Distros                ();
+use Elevate::Components::DNS                    ();
+use Elevate::Components::EA4                    ();
+use Elevate::Components::ElevateScript          ();
+use Elevate::Components::ELS                    ();
+use Elevate::Components::Grub2ControlTest       ();
+use Elevate::Components::Grub2ChecksWorkarounds ();
+use Elevate::Components::Imunify                ();
+use Elevate::Components::InfluxDB               ();
+use Elevate::Components::IsContainer            ();
+use Elevate::Components::JetBackup              ();
+use Elevate::Components::KernelCare             ();
+use Elevate::Components::Kernel                 ();
+use Elevate::Components::Leapp                  ();
+use Elevate::Components::Lists                  ();
+use Elevate::Components::LiteSpeed              ();
+use Elevate::Components::MountPoints            ();
+use Elevate::Components::MySQL                  ();
+use Elevate::Components::NICs                   ();
+use Elevate::Components::NixStats               ();
+use Elevate::Components::OVH                    ();
+use Elevate::Components::PackageRestore         ();
+use Elevate::Components::PackageDupes           ();
+use Elevate::Components::Panopta                ();
+use Elevate::Components::PECL                   ();
+use Elevate::Components::PerlXS                 ();
+use Elevate::Components::PostgreSQL             ();
+use Elevate::Components::R1Soft                 ();
+use Elevate::Components::Repositories           ();
+use Elevate::Components::RmMod                  ();
+use Elevate::Components::RpmDB                  ();
+use Elevate::Components::SSH                    ();
+use Elevate::Components::Softaculous            ();
+use Elevate::Components::UnconvertedModules     ();
+use Elevate::Components::UpdateReleaseUpgrades  ();
+use Elevate::Components::UpdateSystem           ();
+use Elevate::Components::WHM                    ();
+use Elevate::Components::WPToolkit              ();
+use Elevate::Components::Acronis                ();
 
 use Simple::Accessor qw(
   cpev
@@ -100,7 +101,7 @@ our @CHECKS = qw{
   NICs
   EA4
   BootKernel
-  Grub2
+  Grub2ChecksWorkarounds
   OVH
   AbsoluteSymlinks
   AutoSSL
@@ -112,6 +113,7 @@ our @NOOP_CHECKS = qw{
   CCS
   DatabaseUpgrade
   ELS
+  Grub2ControlTest
   InfluxDB
   Kernel
   LiteSpeed

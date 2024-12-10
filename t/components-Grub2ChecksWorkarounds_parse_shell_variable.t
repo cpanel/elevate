@@ -25,7 +25,7 @@ my $cpev_mock = Test::MockModule->new('cpev');
 my $cpev      = bless {}, 'cpev';
 
 subtest "test behavior when the directory doesn't exist" => sub {
-    my $exception = dies { Elevate::Components::Grub2::_parse_shell_variable( '/this/path/does/not/exist', 'GRUB_ENABLE_BLSCFG' ) };
+    my $exception = dies { Elevate::Components::Grub2ChecksWorkarounds::_parse_shell_variable( '/this/path/does/not/exist', 'GRUB_ENABLE_BLSCFG' ) };
     isa_ok( $exception, 'Cpanel::Exception::ProcessFailed::Error' );
     is( eval { $exception->get('error_code') }, 72, "expected return status" );
 };
@@ -35,13 +35,13 @@ $test_file->autoflush(1);
 
 chown( scalar getpwnam('nobody'), scalar getgrnam('nobody'), $test_file );
 
-is( Elevate::Components::Grub2::_parse_shell_variable( $test_file->filename, 'GRUB_ENABLE_BLSCFG' ), undef, "_parse_shell_variable returns undef if the variable does not exist in the file" );
+is( Elevate::Components::Grub2ChecksWorkarounds::_parse_shell_variable( $test_file->filename, 'GRUB_ENABLE_BLSCFG' ), undef, "_parse_shell_variable returns undef if the variable does not exist in the file" );
 
 $test_file->print("GRUB_ENABLE_BLSCFG=true\n");
-is( Elevate::Components::Grub2::_parse_shell_variable( $test_file->filename, 'GRUB_ENABLE_BLSCFG' ), 'true', "_parse_shell_variable handles bare values" );
+is( Elevate::Components::Grub2ChecksWorkarounds::_parse_shell_variable( $test_file->filename, 'GRUB_ENABLE_BLSCFG' ), 'true', "_parse_shell_variable handles bare values" );
 
 $test_file->seek( 0, 0 );
 $test_file->print("GRUB_ENABLE_BLSCFG=\"true\"\n");
-is( Elevate::Components::Grub2::_parse_shell_variable( $test_file->filename, 'GRUB_ENABLE_BLSCFG' ), 'true', "_parse_shell_variable handles double-quoted values" );
+is( Elevate::Components::Grub2ChecksWorkarounds::_parse_shell_variable( $test_file->filename, 'GRUB_ENABLE_BLSCFG' ), 'true', "_parse_shell_variable handles double-quoted values" );
 
 done_testing;
