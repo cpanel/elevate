@@ -35,13 +35,15 @@ package cpev;
 
 =head1 DESCRIPTION
 
-Wrapper around the ELevate project which is designed to enable migrations
-between major versions of RHEL® derivatives.
+This script provides a wrapper to enable migrations from one major OS version to another.
+For RHEL® derivatives, it wraps the ELvate project, which enables migrations between major versions.
+For Ubuntu, it wraps the do-release-upgrade utility which handles major version upgrades.
 
 Currently supported upgrade paths:
 
 CentOS 7     => AlmaLinux 8
 CloudLinux 7 => CloudLinux 8
+Ubuntu 20    => Ubuntu 22
 
 =head1 SYNOPSIS
 
@@ -54,7 +56,7 @@ CloudLinux 7 => CloudLinux 8
        --log                                     Show the current elevation log.
        --status                                  Check the current elevation status.
        --clean                                   Cleanup scripts and files created by elevate-cpanel.
-       --leappbeta                               Use the special beta repo from leapp. Do this only if instructed to by cPanel.
+       --leappbeta                               Use the special beta repo from leapp (RHEL® derivatives only). Do this only if instructed to by cPanel.
        --non-interactive                         Skip the yes/no prompt before proceeding with the upgrade.
 
        --update                                  Instruct the script to replace itself on disk with a downloaded copy of the latest version.
@@ -135,7 +137,7 @@ the update process by running:
 
 =head3 Using an alternative tool to upgrade your distro
 
-By default, the elevate script runs the L<leapp process|https://almalinux.org/elevate/>
+On CentOS, the elevate script runs the L<leapp process|https://almalinux.org/elevate/>
 to upgrade you from 7 to 8. `Leapp` may not be compatible with your system.
 
 Using the `--upgrade-distro-manually` option gives you a way to do the actual distro upgrade in your own way.
