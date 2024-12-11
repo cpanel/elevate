@@ -82,7 +82,7 @@ my $distros = $cpev->get_blocker('Distros');
         $distros->check(),
         {
             id  => q[Elevate::Components::Distros::_blocker_is_experimental_os],
-            msg => 'Experimental OS detected. This script only supports CentOS 7 upgrades',
+            msg => 'Experimental operating system detected. This script does not support experimental OS upgrades.',
         },
         'Custom OS is not supported.'
     );
