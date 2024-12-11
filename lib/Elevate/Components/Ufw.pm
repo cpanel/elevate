@@ -32,7 +32,7 @@ use parent qw{Elevate::Components::Base};
 use constant UFW => '/usr/sbin/ufw';
 
 sub pre_distro_upgrade ($self) {
-    return unless $self->upgrade_distro_manually();          # skip when --upgrade-distro-manually is provided
+    return if $self->upgrade_distro_manually();    # skip when --upgrade-distro-manually is provided
     return unless Elevate::OS::needs_do_release_upgrade();
 
     if ( !-x UFW ) {
