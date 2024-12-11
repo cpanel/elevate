@@ -140,7 +140,7 @@ sub _remove_kernel_arg ( $self, $arg ) {
 
 sub verify_cmdline ($self) {
     return unless _check_command_exists();
-    if ( $self->cpev->upgrade_distro_manually() ) {
+    if ( !$self->cpev->upgrade_distro_manually() ) {
         my $arg = "elevate-" . _persistent_id;
         INFO("Checking for \"$arg\" in booted kernel's command line...");
 

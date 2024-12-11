@@ -188,7 +188,7 @@ sub post_distro_upgrade ($self) {
 sub check ($self) {
 
     return 1 unless Elevate::OS::needs_leapp();
-    return 1 unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
+    return 1 if $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
     my $ok = 1;
     $ok = 0 unless $self->_blocker_grub2_workaround;

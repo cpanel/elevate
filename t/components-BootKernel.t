@@ -34,14 +34,14 @@ my $comp = cpev->new->get_component('BootKernel');
         reboot_status => sub { die "should not be called here\n"; },
     );
 
-    $mock_cpev->redefine( upgrade_distro_manually => 0 );
+    $mock_cpev->redefine( upgrade_distro_manually => 1 );
     is( $comp->check(), 1, 'Should skip when upgrade-distro-manually is passed' );
 }
 
 {
     note 'Test BootKernel behavior';
 
-    $mock_cpev->redefine( upgrade_distro_manually => 1 );
+    $mock_cpev->redefine( upgrade_distro_manually => 0 );
 
     my $rv;
     my $bv;
