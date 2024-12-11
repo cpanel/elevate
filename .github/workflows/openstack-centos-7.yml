@@ -68,7 +68,7 @@ jobs:
         - name: Upload Terraform State File as Artifact
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-terraform.tfstate
+            name: ${{ github.run_id }}-centos7-terraform.tfstate
             path: "${{ github.workspace }}/.github/workflows/openstack/centos-7"
 
         - name: Terraform Output File Create
@@ -83,7 +83,7 @@ jobs:
         - name: Upload VM Output
           uses: actions/upload-artifact@v4.4.3
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/${{ github.run_id }}-vm_ip
             overwrite: true
 
@@ -96,7 +96,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -149,7 +149,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -175,6 +175,26 @@ jobs:
               chmod -v +x /opt/${REPODIR}/t/integration/setup
               /opt/${REPODIR}/t/integration/setup
 
+        - name: Update License And Setup Server For ELevate
+          uses: appleboy/ssh-action@v1.1.0
+          with:
+            host: ${{ steps.VM_IP.outputs.VM_IP }}
+            username: 'root'
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            port: '22'
+            timeout: 30m
+            command_timeout: 30m
+            script: |  
+              REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
+              cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
+              cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
+              cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
+              /usr/local/cpanel/scripts/post_snapshot --yes
+              while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking you Update Manager."; sleep 1; done
+              /scripts/restartsrv_mysql
+              chmod -v +x /scripts/elevate-cpanel
+              until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
+
     start_elevate:
       runs-on: self-hosted
       needs: setup_integration_checks
@@ -184,7 +204,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -208,12 +228,6 @@ jobs:
             timeout: 30m
             command_timeout: 30m
             script: |
-              REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
-              cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
-              cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
-              cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
-              chmod -v +x /scripts/elevate-cpanel
-              until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
               /scripts/elevate-cpanel --non-interactive --skip-cpanel-version-check --start &
               exit 0
 
@@ -226,7 +240,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -253,7 +267,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -291,7 +305,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -318,7 +332,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -356,7 +370,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -383,7 +397,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -420,7 +434,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -447,7 +461,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -484,7 +498,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -511,7 +525,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -548,7 +562,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -575,7 +589,7 @@ jobs:
         - name: Download VM IP
           uses: actions/download-artifact@v4.1.8
           with:
-            name: ${{ github.run_id }}-vm_ip
+            name: ${{ github.run_id }}-centos7-vm_ip
             path: ${{ github.workspace }}/
 
         - name: Get VM IP from Artifact
@@ -612,7 +626,7 @@ jobs:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
-          name: ${{ github.run_id }}-terraform.tfstate
+          name: ${{ github.run_id }}-centos7-terraform.tfstate
           path: "${{ github.workspace }}/.github/workflows/openstack/centos-7/terraform"
 
 
