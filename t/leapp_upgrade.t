@@ -314,13 +314,13 @@ note 'LEAPP upgrade log failure checks';
     $mock_leapp_upgrade_log->unlink;
 
     $mock_elevate->redefine(
-        upgrade_distro_manually => 0,
+        upgrade_distro_manually => 1,
     );
 
     is( cpev->leapp->wait_for_leapp_completion, 1, 'wait_for_leapp_completion returns early when it should NOT run leapp' );
 
     $mock_elevate->redefine(
-        upgrade_distro_manually => 1,
+        upgrade_distro_manually => 0,
     );
 
     is( cpev->leapp->wait_for_leapp_completion, 0, "wait_for_leapp_completion fails when the upgrade log is missing." );

@@ -46,7 +46,7 @@ $mock_stagefile->redefine(
     set_os_to('ubuntu');
 
     $mock_ufw->redefine(
-        upgrade_distro_manually => 0,
+        upgrade_distro_manually => 1,
     );
 
     is( $ufw->pre_distro_upgrade(), undef, 'Returns early if the user is updating the OS' );
@@ -54,7 +54,7 @@ $mock_stagefile->redefine(
     no_messages_seen();
 
     $mock_ufw->redefine(
-        upgrade_distro_manually => 1,
+        upgrade_distro_manually => 0,
     );
 
     set_os_to('cent');
