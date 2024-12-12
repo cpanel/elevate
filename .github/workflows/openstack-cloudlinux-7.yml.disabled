@@ -18,22 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  TF_VAR_application_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
-  TF_VAR_application_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
-  TF_VAR_github_repository: ${{ github.repository }}
-  TF_VAR_github_run_id: ${{ github.run_id }}
-  TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-  TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-  TF_VAR_os_auth_region: ${{ secrets.OS_AUTH_REGION }}
-  TF_VAR_os_auth_url: ${{ secrets.OS_AUTH_URL }}
-  TF_VAR_os_interface: ${{ secrets.OS_INTERFACE }}
-  TF_VAR_os_project_domain_name: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
-  TF_VAR_os_password: ${{ secrets.OS_PASSWORD }}
-  TF_VAR_os_project_id: ${{ secrets.OS_PROJECT_ID }}
-  TF_VAR_os_project_domain_id: ${{ secrets.OS_PROJECT_DOMAIN_ID }}
-  TF_VAR_os_project_name: ${{ secrets.OS_PROJECT_NAME }}
-  TF_VAR_os_region_name: ${{ secrets.OS_REGION_NAME }}
-  TF_VAR_os_username: ${{ secrets.OS_USERNAME }}
   tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
 
 jobs: 
