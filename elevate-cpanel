@@ -700,7 +700,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     sub check ($self) {
 
-        return 1 unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
+        return 1 if $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
         my $ok = 0;
         try {
@@ -2312,7 +2312,7 @@ EOS
 
     sub verify_cmdline ($self) {
         return unless _check_command_exists();
-        if ( $self->cpev->upgrade_distro_manually() ) {
+        if ( !$self->cpev->upgrade_distro_manually() ) {
             my $arg = "elevate-" . _persistent_id;
             INFO("Checking for \"$arg\" in booted kernel's command line...");
 
@@ -2536,7 +2536,7 @@ EOS
     sub check ($self) {
 
         return 1 unless Elevate::OS::needs_leapp();
-        return 1 unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
+        return 1 if $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
         my $ok = 1;
         $ok = 0 unless $self->_blocker_grub2_workaround;
@@ -3094,7 +3094,7 @@ EOS
 
     sub check ($self) {    # $self is a cpev object here
 
-        return 0 unless $self->upgrade_distro_manually;
+        return 0 if $self->upgrade_distro_manually;
 
         if ( _is_container_envtype() ) {
             return $self->has_blocker( <<~'EOS');
@@ -3416,7 +3416,7 @@ EOS
 
         return unless Elevate::OS::needs_leapp();
 
-        return unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
+        return if $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
         return if ( $self->components->num_blockers_found() > 0 );    # skip if any blockers have already been found
 
@@ -4252,7 +4252,7 @@ EOS
     sub check ($self) {
 
         return 1 unless Elevate::OS::needs_leapp();
-        return 1 unless $self->upgrade_distro_manually;
+        return 1 if $self->upgrade_distro_manually;
 
         return $self->_blocker_bad_nics_naming;
     }
@@ -6418,7 +6418,7 @@ EOS
     use constant UFW => '/usr/sbin/ufw';
 
     sub pre_distro_upgrade ($self) {
-        return unless $self->upgrade_distro_manually();          # skip when --upgrade-distro-manually is provided
+        return if $self->upgrade_distro_manually();    # skip when --upgrade-distro-manually is provided
         return unless Elevate::OS::needs_do_release_upgrade();
 
         if ( !-x UFW ) {
@@ -8724,7 +8724,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
     sub upgrade ($self) {
 
-        return unless $self->cpev->upgrade_distro_manually();
+        return if $self->cpev->upgrade_distro_manually();
 
         $self->cpev->run_once(
             setup_answer_file => sub {
@@ -8853,7 +8853,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
     sub wait_for_leapp_completion ($self) {
         return 1 unless Elevate::OS::needs_leapp();
 
-        return 1 unless $self->cpev->upgrade_distro_manually();
+        return 1 if $self->cpev->upgrade_distro_manually();
 
         my $upgrade_log = LEAPP_UPGRADE_LOG;
 
@@ -10938,7 +10938,7 @@ sub run_stage_1 ($self) {
 
     Elevate::Motd->setup();
 
-    if ( !$self->upgrade_distro_manually() ) {
+    if ( $self->upgrade_distro_manually() ) {
         Elevate::Stages::bump_stage();
         return ACTION_CONTINUE;
     }
@@ -11021,7 +11021,7 @@ sub run_stage_3 ($self) {
     # and executing do-release-upgrade
     $self->run_component_once( 'Ufw' => 'pre_distro_upgrade' );
 
-    if ( !$self->upgrade_distro_manually() ) {
+    if ( $self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
@@ -11475,7 +11475,7 @@ sub upgrade_distro_manually ($self) {
     # we need to check to see if the CLI option is passed here too in order
     # to allow users to run this script with the '--check --upgrade-distro-manually', etc. options
     my $manual_distro_upgrade = scalar grep { $self->getopt($_) || Elevate::StageFile::read_stage_file( tr/-/_/r, 0 ) } qw/upgrade-distro-manually no-leapp/;
-    return !$manual_distro_upgrade;
+    return $manual_distro_upgrade;
 }
 
 sub get_current_status ($self) {

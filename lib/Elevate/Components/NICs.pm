@@ -110,7 +110,7 @@ sub check ($self) {
 
     # This only matters for upgrades performed with the leapp utility
     return 1 unless Elevate::OS::needs_leapp();
-    return 1 unless $self->upgrade_distro_manually;
+    return 1 if $self->upgrade_distro_manually;
 
     return $self->_blocker_bad_nics_naming;
 }

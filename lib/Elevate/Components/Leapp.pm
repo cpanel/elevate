@@ -36,7 +36,7 @@ sub check ($self) {
 
     return unless Elevate::OS::needs_leapp();
 
-    return unless $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
+    return if $self->upgrade_distro_manually;    # skip when --upgrade-distro-manually is provided
 
     return if ( $self->components->num_blockers_found() > 0 );    # skip if any blockers have already been found
 

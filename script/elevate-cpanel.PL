@@ -944,7 +944,7 @@ sub run_stage_1 ($self) {
 
     Elevate::Motd->setup();
 
-    if ( !$self->upgrade_distro_manually() ) {
+    if ( $self->upgrade_distro_manually() ) {
         Elevate::Stages::bump_stage();
         return ACTION_CONTINUE;
     }
@@ -1027,7 +1027,7 @@ sub run_stage_3 ($self) {
     # and executing do-release-upgrade
     $self->run_component_once( 'Ufw' => 'pre_distro_upgrade' );
 
-    if ( !$self->upgrade_distro_manually() ) {
+    if ( $self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
     }
 
@@ -1481,7 +1481,7 @@ sub upgrade_distro_manually ($self) {
     # we need to check to see if the CLI option is passed here too in order
     # to allow users to run this script with the '--check --upgrade-distro-manually', etc. options
     my $manual_distro_upgrade = scalar grep { $self->getopt($_) || Elevate::StageFile::read_stage_file( tr/-/_/r, 0 ) } qw/upgrade-distro-manually no-leapp/;
-    return !$manual_distro_upgrade;
+    return $manual_distro_upgrade;
 }
 
 sub get_current_status ($self) {
