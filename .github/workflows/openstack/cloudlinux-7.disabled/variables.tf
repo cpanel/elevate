@@ -19,14 +19,13 @@ variable "github_run_id" {
   type = string
 }
 
-variable "os_auth_url" {
-  type = string
-  default = "https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3"
-}
-
 variable "os_region_name" {
   type = string
   default = "RegionOne"
+}
+
+variable "os_auth_url" {
+  type = string
 }
 
 variable "ssh_private_key" {
@@ -43,7 +42,7 @@ variable "ssh_public_key" {
 
 variable "image_name" {
   type    = string
-  default = "11.118.0.* on Ubuntu 20.04"
+  default = "11.110.0.* on CloudLinux 7"
 }
 
 variable "cpanel_release_version" {

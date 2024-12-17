@@ -19,20 +19,14 @@ variable "github_run_id" {
   type = string
 }
 
-variable "os_password" {
-  type = string
-}
-
-variable "os_auth_region" {
-  type = string
-}
-
 variable "os_auth_url" {
   type = string
+  default = "https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3"
 }
 
-variable "os_project_domain_name" {
+variable "os_region_name" {
   type = string
+  default = "RegionOne"
 }
 
 variable "ssh_private_key" {

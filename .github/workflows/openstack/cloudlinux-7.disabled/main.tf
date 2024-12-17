@@ -15,7 +15,7 @@ provider "openstack" {
   application_credential_id     = var.application_credential_id
   application_credential_secret = var.application_credential_secret
   auth_url                      = var.os_auth_url
-  region                        = var.os_region_name
+  region                        = var.os_auth_region
 }
 
 data "openstack_images_image_ids_v2" "images" {
