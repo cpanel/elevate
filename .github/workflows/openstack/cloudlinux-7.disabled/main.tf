@@ -14,7 +14,7 @@ provider "openstack" {
   user_name                     = var.user
   application_credential_id     = var.application_credential_id
   application_credential_secret = var.application_credential_secret
-  auth_url                      = "https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3"
+  auth_url                      = var.os_auth_url
   region                        = var.os_auth_region
 }
 
