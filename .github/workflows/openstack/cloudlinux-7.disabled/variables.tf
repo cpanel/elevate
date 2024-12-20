@@ -19,19 +19,12 @@ variable "github_run_id" {
   type = string
 }
 
-variable "os_password" {
+variable "os_region_name" {
   type = string
-}
-
-variable "os_auth_region" {
-  type = string
+  default = "RegionOne"
 }
 
 variable "os_auth_url" {
-  type = string
-}
-
-variable "os_project_domain_name" {
   type = string
 }
 
