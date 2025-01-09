@@ -1,16 +1,6 @@
 name: "Test Run: cloudlinux-7"
 
 on:
-  workflow_dispatch:
-    inputs:
-      message:
-        description: 'Build description CloudLinux 7'
-
-  workflow_run:
-    workflows: ["TestSuite"]
-    types:
-      - completed
-
   workflow_call:
 
 concurrency:
@@ -18,22 +8,22 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # secrets
   TF_VAR_application_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
   TF_VAR_application_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
-  TF_VAR_github_repository: ${{ github.repository }}
-  TF_VAR_github_run_id: ${{ github.run_id }}
   TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
   TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-  TF_VAR_os_auth_region: ${{ secrets.OS_AUTH_REGION }}
-  TF_VAR_os_auth_url: ${{ secrets.OS_AUTH_URL }}
-  TF_VAR_os_interface: ${{ secrets.OS_INTERFACE }}
-  TF_VAR_os_project_domain_name: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
-  TF_VAR_os_password: ${{ secrets.OS_PASSWORD }}
-  TF_VAR_os_project_id: ${{ secrets.OS_PROJECT_ID }}
-  TF_VAR_os_project_domain_id: ${{ secrets.OS_PROJECT_DOMAIN_ID }}
-  TF_VAR_os_project_name: ${{ secrets.OS_PROJECT_NAME }}
-  TF_VAR_os_region_name: ${{ secrets.OS_REGION_NAME }}
-  TF_VAR_os_username: ${{ secrets.OS_USERNAME }}
+
+  # vars
+  TF_VAR_os_auth_url: ${{ vars.OS_AUTH_URL }}
+  TF_VAR_os_auth_type: ${{ vars.OS_AUTH_TYPE }}
+  TF_VAR_os_identity_api_version: ${{ vars.OS_IDENTITY_API_VERSION }}
+  TF_VAR_os_interface: ${{ vars.OS_INTERFACE }}
+  TF_VAR_os_region_name: ${{ vars.OS_REGION_NAME }}
+
+  # github
+  TF_VAR_github_repository: ${{ github.repository }}
+  TF_VAR_github_run_id: ${{ github.run_id }}
   tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
 
 jobs: 
@@ -44,6 +34,18 @@ jobs:
             working-directory: "${{ github.workspace }}/.github/workflows/openstack/cloudlinux-7"
         steps:
         - uses: actions/checkout@v4
+
+        - name: Dump all GitHub variables
+          run: |
+            echo "Dumping all GitHub variables:"
+            echo "github.ref: ${{ github.ref }}"
+            echo "github.ref_name: ${{ github.ref_name }}"
+            echo "github.job: ${{ github.job }}"
+            echo "github.workflow: ${{ github.workflow }}"
+            echo "github.triggering_actor: ${{ github.triggering_actor }}"
+            echo "github.event_name: ${{ github.event_name }}"
+            echo "github.event.repository.master_branch: ${{ github.event.repository.master_branch }}"
+
         - name: Terraform fmt
           id: fmt
           run: |
@@ -566,7 +568,7 @@ jobs:
               /scripts/status_marker 5
               tail -n40 -F /var/log/elevate-cpanel.log &
               sleep 2.5
-              SKIP_PID_CHECK=1 REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
+              REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
 
     wait_for_final_reboot:
       runs-on: self-hosted
