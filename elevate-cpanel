@@ -7403,7 +7403,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
     use constant ea_alias => 'Ubuntu_22.04';
 
     use constant expected_post_upgrade_major => 22;
-    use constant is_experimental             => 1;
+    use constant is_experimental             => 0;
     use constant name                        => 'Ubuntu20';
     use constant original_os_major           => 20;
     use constant pretty_name                 => 'Ubuntu 20.04';
