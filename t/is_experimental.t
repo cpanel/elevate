@@ -23,7 +23,7 @@ use Test::Elevate;
 my %os_designation = (
     cent   => 0,
     cloud  => 0,
-    ubuntu => 1,
+    ubuntu => 0,
 );
 
 foreach my $os ( sort keys %os_designation ) {
