@@ -1,3 +1,11 @@
+##### **2025-01-15** - version 60
+
+* Fixed case RE-1160: Remove experimental status for u20->u22 upgrades
+* Fixed case RE-800: Update --help to be more Ubuntu friendly
+* Fixed case RE-945: Update strings to be language agnostic for Ubuntu
+* Fixed case RE-943: Add component to manage port 1022 for ELevations that rely on the do-release-upgrade script to perform the OS upgrade
+* Fixed case RE-670: Add Ubuntu support for checking that the system controls its own boot process.
+
 ##### **2024-12-02** - version 59
 
 * Fixed case RE-664: Add initial support for Ubuntu 20 to Ubuntu 22 upgrades
