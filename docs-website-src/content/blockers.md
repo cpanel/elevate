@@ -7,7 +7,7 @@ layout: single
 
 # Overview
 
-The ELevate script upgrades an existing cPanel & WHM RHEL 7-based server installation to a RHEL 8-based installation. This document covers the script's basic checks and blockers.
+The ELevate script upgrades an existing cPanel & WHM installation to a newer installation. This document covers the script's basic checks and blockers.
 
 ## Basic assumptions
 
@@ -161,8 +161,7 @@ You should disable these repositories and remove packages installed from them be
 We will not allow upgrades while you are using packages from unsupported repositories for the following reasons:
 
 * We cannot be sure that unsupported repositories provides packages for your upgraded distribution version.
-* Even if an unsupported repository provides packages for your upgraded distribution version, we cannot
-be sure installing them will not interfere with your upgrade process.
+* Even if an unsupported repository provides packages for your upgraded distribution version, we cannot be sure installing them will not interfere with your upgrade process.
 
 To upgrade your distribution version, you must first disable these repositories and remove their packages.
 Then, when the upgrade completes, you can reenable and reinstall, or install equivalent packages
