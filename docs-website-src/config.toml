@@ -5,7 +5,7 @@
 
 baseURL = 'https://cpanel.github.io/elevate'
 languageCode = 'en-us'
-title = 'cPanel elevate documentation'
+title = 'cPanel ELevate Documentation'
 theme = "cptheme"
 
 sectionPagesMenu = "main"
@@ -30,8 +30,8 @@ sectionPagesMenu = "main"
     weight = 1
 
   [[menu.left]]
-    name = "Before Updating"
-    url = "/#before-updating"
+    name = "Prerequisites"
+    url = "/getting-started/#prerequisites"
     weight = 2
 
   [[menu.left]]
@@ -41,12 +41,12 @@ sectionPagesMenu = "main"
 
   [[menu.left]]
     name = "Using the script"
-    url = "/#using-the-script"
+    url = "/getting-started/#using-the-script"
     weight = 4
 
   [[menu.left]]
-    name = "SumUp of upgrade process"
-    url = "/#SumUp-of-upgrade-process"
+    name = "The Upgrade Process"
+    url = "/getting-started/#SumUp-of-upgrade-process"
     weight = 5
 
   [[menu.left]]
