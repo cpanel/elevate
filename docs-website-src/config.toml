@@ -26,27 +26,27 @@ sectionPagesMenu = "main"
 ##
   [[menu.left]]
     name = "Introduction"
-    url = "/#introduction"
+    url = "/#the-cpanel-elevate-project"
     weight = 1
 
   [[menu.left]]
-    name = "Prerequisites"
-    url = "/getting-started/#prerequisites"
+    name = "Requirements"
+    url = "/getting-started/#requirements"
     weight = 2
 
   [[menu.left]]
     name = "Risks"
-    url = "/#risks"
+    url = "/getting-started/#risks"
     weight = 3
 
   [[menu.left]]
-    name = "Using the script"
-    url = "/getting-started/#using-the-script"
+    name = "Update your server"
+    url = "/getting-started/#updating-your-server"
     weight = 4
 
   [[menu.left]]
-    name = "The Upgrade Process"
-    url = "/getting-started/#SumUp-of-upgrade-process"
+    name = "The upgrade process"
+    url = "/#the-elevate-process"
     weight = 5
 
   [[menu.left]]
