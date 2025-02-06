@@ -5,7 +5,7 @@ draft: false
 layout: single
 ---
 
-# Welcome to the cPanel ELevate project!
+# Welcome to the cPanel ELevate project
 
 The ELevate project aims to upgrade a cPanel installation with minimal outages. It builds and expands on the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which was created for in-place upgrades of RedHat-based systems.
 
@@ -60,7 +60,7 @@ Upgrade the server to the new distribution and restore the removed packages.
 
 Verify the installation and clean up the server. This includes removing the `elevate-cpanel` service.
 
-To start the ELevate process and upgrade your server, read our [ELevate Your Server](/getting-started.md) documentation.
+To start the ELevate process and upgrade your server, read our [ELevate Your Server](/getting-started/) documentation.
 
 ## Need more help?
 
