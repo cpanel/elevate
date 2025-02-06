@@ -1,3 +1,7 @@
+##### **2025-02-06** - version 61
+
+* Fixed case RE-1179: Do not restore config files for dropped packages. Especially on Ubuntu
+
 ##### **2025-01-15** - version 60
 
 * Fixed case RE-1160: Remove experimental status for u20->u22 upgrades
