@@ -31,17 +31,17 @@ sectionPagesMenu = "main"
 
   [[menu.left]]
     name = "Requirements"
-    url = "/getting-started/#requirements"
+    url = "/content/getting-started/#requirements"
     weight = 2
 
   [[menu.left]]
     name = "Risks"
-    url = "/getting-started/#risks"
+    url = "/content/getting-started/#risks"
     weight = 3
 
   [[menu.left]]
     name = "Update your server"
-    url = "/getting-started/#updating-your-server"
+    url = "/content/getting-started/#updating-your-server"
     weight = 4
 
   [[menu.left]]
