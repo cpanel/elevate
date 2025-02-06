@@ -60,7 +60,7 @@ Upgrade the server to the new distribution and restore the removed packages.
 
 Verify the installation and clean up the server. This includes removing the `elevate-cpanel` service.
 
-To start the ELevate process and upgrade your server, read our [ELevate Your Server](/getting-started/) documentation.
+To start the ELevate process and upgrade your server, read our [ELevate Your Server](/content/getting-started/) documentation.
 
 ## Need more help?
 
