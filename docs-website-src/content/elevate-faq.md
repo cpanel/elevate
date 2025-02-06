@@ -4,137 +4,164 @@ draft: false
 layout: single
 ---
 
-## Troubleshoot the ELevate process
+# Troubleshoot the ELevate process
 
-This document provides some tips  and a
+This document provides answers to frequently asked questions and some common troubleshooting issues.
 
-If you need more help, you can [open a ticket](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
+If you need more help, you can <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/" target="_blank">open a ticket</a>.
 
-### Check the current status of the process
+## Frequently asked questions
 
-You can check the current status of the elevation process by running:
+### How do I check the current status of the process
+
+Run the following command to check the current status of the ELevate process:
+
 ```
 /scripts/elevate-cpanel --status
 ```
 
 ### Where are the current stage and status stored?
 
-They are stored in the JSON file `/var/cpanel/elevate` as values for the
+They are stored in the `/var/cpanel/elevate` JSON file as values for the
 `stage_number` and `status` keys.
 
-During execution `stage_number` will be set to `1` through `5`. Upon
-completion the `stage_number` will be set to `6`.
+During execution the  `stage_number` key will be set to `1` through `5`. When the process completes, the `stage_number` key is set to `6`.
 
-The possible values for `status` are:
+The possible values for `status` key are:
 
 * `running`
 * `paused`
 * `success`
 * `failed`
 
-### How to check elevate log?
+### Where is the ELevate log file?
 
-The main log from the `/scripts/elevate-cpanel` can be read by running:
+You can view the main log from the `/scripts/elevate-cpanel` script with the following command:
+
 ```
 /scripts/elevate-cpanel --log
 ```
 
-### Where to find leapp issues?
+### Where are leapp issues logged?
 
-If you need more details why the leapp process failed you can access logs at:
-```
-        /var/log/leapp/leapp-report.txt
-        /var/log/leapp/leapp-report.json
-```
+Access logs for the leapp process are located in the following files:  
 
-### How to continue the elevation process?
+* `/var/log/leapp/leapp-report.txt`
+* `/var/log/leapp/leapp-report.json`
 
-After addressing the reported issues, you can continue an existing elevation process by running:
+
+### How do I continue the ELevate process if it stops?
+
+Address any reported issues, then continue the existing process with the following command:
+
 ```
 /scripts/elevate-cpanel --continue
 ```
 
-### The elevate process is locked on stage 1
+## Troubleshooting
 
-If you notice that the elevate process is locked on `stage 1` and you are looping
-on the advice:
+### The ELevate process is locked on stage 1
+
+If the elevate process is locked on `stage 1` and the process appears to be looping, run the following command:
+
 ```
-You can consider running:
    /scripts/elevate-cpanel --start
 ```
 
-You can unlock the situation by using the `--clean` option.
+You can also unlock the process with the following commands:
+
+1. Clear the previous stage with the following command. Do **not** use this option if the process is past Stage 2.
+
 ```
-# clean the previous state (do not run when an elevation process passed stage 2 or more)
    /scripts/elevate-cpanel --clean
+````
 
-# then restart the process
+2. Restart the ELevate process:
+```
    /scripts/elevate-cpanel --start
 ```
 
-### The CCS service will not start after elevate succeeds
+### The CCS service will not start after ELevate succeeds
 
-This can sometimes occur due to a failed schema update.  When this occurs, we
-recommend that you complete the following steps:
+This error can occur if the scheme failed to update.  
 
-1. Remove the CCS package(s),
-2. Remove the home directory for the packages user,
-3. Reinstall the package,
-4. Finally, ensure that the task queue completes before continuing
+Perform the following steps to correct this error:
 
-**NOTE:** Only remove/install cpanel-z-push if it was installed prior to running
-elevate / is currently installed.  You can check if it is installed with the
-following command:
+**NOTE:** Only remove/install `cpanel-z-push` if it was installed prior to running
+elevate or it is currently installed.  Run the following command to check the status of the package:
 
+RHEL-based systems:
 ```
 rpm -q cpanel-z-push
 ```
 
-1.  Remove the package(s)
+Ubuntu-based systems:
+```
+apt list --installed | grep cpanel-z-push
+```
+
+1.  Remove the package:
+
+RHEL-based systems:
 ```
 dnf -y remove cpanel-ccs-calendarserver cpanel-z-push
 ```
 
+Ubuntu-based systems:
+```
+apt -y remove cpanel-ccs-calendarserver cpanel-z-push
+```
+
 2.  Remove the `cpanel-ccs` user's home directory
+
 ```
 rm -rf /opt/cpanel-ccs/
 ```
 
 3.  Install the package(s)
+
+RHEL-based-systems:
 ```
 dnf -y install cpanel-ccs-calendarserver cpanel-z-push
 ```
 
-4.  Clear the queueprocd task queue
+Ubuntu-based systems:
+```
+apt -y install cpanel-ccs-calendarserver cpanel-z-push
+```
+
+4.  Clear the `queueprocd` task queue
+
 ```
 /usr/local/cpanel/bin/servers_queue run
 ```
 
-5.  Verify that the cpanel-ccs service is running
+5.  Verify that the `cpanel-ccs` service is running with the following command:
+
 ```
 /scripts/restartsrv_cpanel_ccs --status
 ```
 
-The output should be similar to the following if the service is up:
+The output will resemble the following example if the service is running:
+
 ```
 cpanel-ccs (CalendarServer 9.3+fbd0e11675cc0f64a425581b5c8398cc1e09cb6a [Combined] ) is running as cpanel-ccs with PID 1865839 (systemd+/proc check method)
 ```
 
-6.  Import the CCS data
+6.  Import the CCS data.
+
 
 ### The CCS data failed to import during elevate
 
-This data is exported to `/var/cpanel/elevate_ccs_export/`.
+This data is exported to `/var/cpanel/elevate_ccs_export/` directory.
 
-Executing the following Perl one-liner as root will import the data for each user:
+Run the following command as the `root` user to import the data for `every` user:
+
 ```
 /usr/local/cpanel/3rdparty/bin/perl -MCpanel::Config::Users -e 'require "/var/cpanel/perl5/lib/CCSHooks.pm"; my @users = Cpanel::Config::Users::getcpusers(); foreach my $user (@users) { my $import_data = { user => $user, extract_dir => "/var/cpanel/elevate_ccs_export/$user", }; CCSHooks::pkgacct_restore( undef, $import_data ); }'
 ```
 
-To import a single user, use the following one-liner instead:
+To import a `single` user, use the command instead, where `CPTEST` represents the username.
 ```
 /usr/local/cpanel/3rdparty/bin/perl -e 'require "/var/cpanel/perl5/lib/CCSHooks.pm"; my $import_data = { user => "CPTEST", extract_dir => "/var/cpanel/elevate_ccs_export/CPTEST", }; CCSHooks::pkgacct_restore( undef, $import_data );'
 ```
-
-**NOTE:**  The above example uses `cptest` as the user.  Replace `cptest` with
-the appropriate username for the user that you wish to import.

@@ -22,38 +22,54 @@ This project will perform the following upgrades:
 The ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, you will end up with a broken system.
 
 cPanel's ELevate wraps the following projects:
- * RHEL-based systems: the [LEAPP Project](https://leapp.readthedocs.io/en/latest/)
- * Ubuntu-based systems: the [do-release-upgrade](https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/) script.
+ * RHEL-based systems: The <a href="https://leapp.readthedocs.io/en/latest/" target="_blank">LEAPP Project</a>.
+ * Ubuntu-based systems: The <a href="https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/" target="_blank">do-release-upgrade</a> script.
 
 For more information about the project, you can watch our [![cPanel ELevate walkthrough video](elevate-video.png)](https://www.youtube.com/watch?v=Ag9-RneFqmc).
 
-### The project's approach
+### The ELevate process
 
-The cPanel ELevate project performs the following steps when it upgrades a distribution:
+The cPanel ELevate project [checks for any blockers](https://cpanel.github.io/elevate/blockers/) before it starts the upgrade process. The process is performed in stages. The server reboots between each stage and then does a final reboot when the process is complete.
 
-1. [Check for any blockers](https://cpanel.github.io/elevate/blockers/).
-2. Update the system's distribution packages and reboot.
-3. Analyze and uninstall any software that is commonly installed on cPanel systems. This does **not** include any of the system's data. This might include the following software:
+#### Stage 1
+
+Install the `elevate-cpanel` service.
+
+#### Stage 2
+
+Update the system's distribution packages, disable any cPanel services, and set the message-of-the-day (motd) to inform users an upgrade is in process.
+
+#### Stage 3
+
+Configure the ELevate repository.
+
+Update cPanel packages, remove any conflicting packages, then back up the existing configuration.
+NOTE: The backup **not** include any of the system's data. However, it might include the configuration for the following software:
   * cPanel (`upcp`)
   * EasyApache 4
   * MySQL or MariaDB
   * Distribution Perl/PECL binary re-installs
-4. Perform the distribution upgrade.
-5. Reinstall the software detected prior to upgrade.
-6. Perform a final reboot to ensure that all services are running on the new binaries.
 
-To start the process of ELevating your server, read our [ELevate Your Server](/getting-started.md) documentation.
+The system may ask you to provide answers to some questions before it can start the upgrade process.
+
+#### Stage 4
+
+Upgrade the server to the new distribution and restore the removed packages.  
+
+#### Stage 5
+
+Verify the installation and clean up the server. This includes removing the `elevate-cpanel` service.
+
+To start the ELevate process and upgrade your server, read our [ELevate Your Server](/getting-started.md) documentation.
 
 ## Need more help?
 
-If you need more assistance, constact [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
+If you need more assistance, constact <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/" target="_blank">cPanel Technical Support</a>.
 
 ## Disclaimer
 
 We do **not** guarantee the functionality of software in this repository. You assume all risk for use of any software that you install from this repository. Installation of this software could cause significant functionality failures, even for experienced administrators.
 
-That said, cPanel Technical Support is ready to help!
-Please contact [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/) if you encounter problems.
 
 ## Copyright
 
