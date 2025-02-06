@@ -148,6 +148,14 @@ sub _backup_config_files ($self) {
 
     my $ea4_config_files = Elevate::PkgMgr::get_config_files_for_pkg_prefix('ea-*');
 
+    # Filter out any dropped packages since they will be installed
+    # post distro upgrade
+    my $stash        = Elevate::StageFile::read_stage_file();
+    my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
+    foreach my $pkg ( sort keys %$dropped_pkgs ) {
+        delete $ea4_config_files->{$pkg};
+    }
+
     Elevate::StageFile::update_stage_file( { ea4_config_files => $ea4_config_files } );
 
     return;
