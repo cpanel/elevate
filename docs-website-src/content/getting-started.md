@@ -1,3 +1,4 @@
+---
 title: "ELevate Your Server"
 date: 2022-12-07T08:53:47-05:00
 draft: false
@@ -31,7 +32,7 @@ We **strongly** recommend that you have multiple ways to access your server befo
 
 Before you ELevate your server, perform the following actions to ensure you're ready to start the process. Make certain that you review the [risks](#risks) for this process, as well.
 
-We **strongly** recommend that you write down the information needed to <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/" target="_blank">open a cPanel support request</a>. If you encounter issues during the upgrade process, this information may not be available from the system itself.
+We **strongly** recommend that you write down the information needed to [open a cPanel support request](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/). If you encounter issues during the upgrade process, this information may not be available from the system itself.
 
 ### Software verification
 
@@ -39,11 +40,14 @@ We recommend that you verify and update the software on your server before you s
 
 * Update your server's packages with your package manager. You can use one of the following commands:
   * RedHat-based servers: `yum update`
-  * Ubuntu-based servers: `apt update`
-* Ensure that you're using the latest stable version of cPanel & WHM. If you are not
+  * Ubuntu-based servers: `apt upgrade`
+* Ensure that you're using the latest stable version of cPanel & WHM that is available for your
+  current OS
+** CentOS 7 support ends at cPanel version 110.
+** Ubuntu 20.04 support ends at cPanel version 118.
 * Make certain that you're using a version of MySQL/MariaDB that is compatible with the target distribution.
 
-We also recommend that you [download the ELevate script](#download-the-elevate-cpanel-script) and [run the pre-checks](#pre-upgrade-checks). This will ensure that you don't have any [blockers](/content/blockers.md) that will prevent an upgrade.
+We also recommend that you [download the ELevate script](#download-the-elevate-cpanel-script) and [run the pre-checks](#run-pre-upgrade-checks). This will ensure that you don't have any [blockers](https://cpanel.github.io/elevate/blockers/) that will prevent an upgrade.
 
 
 ### Backup the server
@@ -54,11 +58,11 @@ While the upgrade process attempts to account for conditions that might result i
 
 If you must recover your system, you will need to reload the system from your image or snapshot.
 
-The <a href="https://docs.cpanel.net/whm/backup/" target="_blank">cPanel Backup</a> system **only** backs up individual cPanel accounts. Backups of individual cPanel accounts **only** protect data managed by cPanel. These backups **do not** contain any programs or data not managed by cPanel.  If a catastrophic failure happens during the upgrade process, you may have extensive downtime.
+The [cPanel Backup](https://docs.cpanel.net/whm/backup/) system **only** backs up individual cPanel accounts. Backups of individual cPanel accounts **only** protect data managed by cPanel. These backups **do not** contain any programs or data not managed by cPanel.  If a catastrophic failure happens during the upgrade process, you may have extensive downtime.
 
 If you must recover your system from individual accounts, you will need to wipe the existing system, install the target operating system, install cPanel on the new operating system, rebuild all system customizations, and restore the cPanel accounts from the backup.
 
-If individual cPanel account backups are your only backup option, and uptime is a critical consideration, we recommend that you use WHM's <a href="https://docs.cpanel.net/whm/transfers/transfer-tool/" target="_blank">Transfer Tool</a> to migrate to a new system instead of upgrading in-place using ELevate. This provides you with more control over the transition in the event of a failure.
+If individual cPanel account backups are your only backup option, and uptime is a critical consideration, we recommend that you use WHM's [Transfer Tool](https://docs.cpanel.net/whm/transfers/transfer-tool/) to migrate to a new system instead of upgrading in-place using ELevate. This provides you with more control over the transition in the event of a failure.
 
 If you do not know how much of your system your backup service covers, contact your backup service provider for more  information.
 
@@ -76,9 +80,9 @@ chmod 700 /scripts/elevate-cpanel
 
 ### Run pre-upgrade checks
 
-We recommend you check for [known blockers](/content/blockers.md) before you upgrade your server. The check will **not** make any changes to your system.
+We recommend you check for [known blockers](https://cpanel.github.io/elevate/blockers/) before you upgrade your server. The check will **not** make any changes to your system.
 
-Run the collowing command to verify that your system is ready to upgrade:
+Run the following command to verify that your system is ready to upgrade:
 ```bash
 # Check upgrade (dry run mode)
 /scripts/elevate-cpanel --check
@@ -86,7 +90,7 @@ Run the collowing command to verify that your system is ready to upgrade:
 
 ### Perform the upgrade
 
-After you backup your server clear any upgrade blockers, you can begin your server's upgrade. The cPanel ELevate script does **not** perform a backup before upgrading.
+After you backup your server and clear any upgrade blockers, you can begin your server's upgrade. The cPanel ELevate script does **not** perform a backup before upgrading.
 
 **NOTE** This upgrade may take over 30 minutes. Your server may be down and unreachable during this time.
 
@@ -96,7 +100,7 @@ Run the following command to start the upgrade process:
 /scripts/elevate-cpanel --start
 ```
 
-To read an overview of the ELevate process, read our [ELevate process](/_index/#the-elevate-process) documentation.
+To read an overview of the ELevate process, read our [ELevate process](https://cpanel.github.io/elevate/#the-elevate-process) documentation.
 
 #### Script command line options
 
@@ -120,9 +124,9 @@ You can also implement the following advanced options when you ELevate your serv
 
 ### Use an alternative tool to upgrade your distribution
 
-cPanel's ELevate wraps the following projects, depending on your operating system:
- * RHEL-based systems: The <a href="https://leapp.readthedocs.io/en/latest/" target="_blank">LEAPP Project</a>.
- * Ubuntu-based systems: the <a href="https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/" target="_blank">do-release-upgrade</a> script.
+The cPanel ELevate script wraps the following projects, depending on your operating system:
+ * RHEL-based systems: The [LEAPP Project](https://leapp.readthedocs.io/en/latest/)
+ * Ubuntu-based systems: the [do-release-upgrade script](https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/)
 
 You can use the `--upgrade-distro-manually` option to perform a distribution upgrade manually.
 
@@ -147,7 +151,7 @@ This section **only** applies to servers that run CentOS 7 or AlmaLinux.
 
 By default, the elevate script will set the `LEAPP_OVL_SIZE` variable to `3000` before it starts the ELevate process. However, if you set this environment variable before you call the ELevate script, the script will use the setting you provide.
 
-For more information about the `LEAPP_OVL_SIZE` variable, read the <a href="https://leapp.readthedocs.io/en/latest/el7toel8/envars.html#leapp-ovl-size" target="_blank">leapp</a> documentation.
+For more information about the `LEAPP_OVL_SIZE` variable, read the [leapp documentation](https://leapp.readthedocs.io/en/latest/el7toel8/envars.html#leapp-ovl-size)
 
 ## Risks
 
@@ -166,8 +170,8 @@ You may also experience the following issues, among others:
 * The cPanel CSS service may not start.
 * Incorrect packages for EasyApache 4 and third-party software.
 * Invalid manually installed PECL or Perl CPAN modules.
-* MySQL may no longer be upgradable. For more information about supported versions of MySQL, read our <a href="https://docs.cpanel.net/knowledge-base/general-systems-administration/supported-mysql-mariadb-versions/" target="_blank">Supported MySQL/MariaDB versions</a> documentation.
+* MySQL may no longer be upgradable. For more information about supported versions of MySQL, read our [Supported MySQL/MariaDB versions](https://docs.cpanel.net/knowledge-base/general-systems-administration/supported-mysql-mariadb-versions/) documentation.
 
 This list is not comprehensive. We **strongly** recommend you back up (and ideally create a snapshot of) your system before you attempt this process.
 
-If you need more help, you can <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/" target="_blank">open a ticket</a>.
+If you need more help, you can [open a ticket](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
