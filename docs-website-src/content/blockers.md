@@ -7,164 +7,171 @@ layout: single
 
 # Overview
 
-The ELevate script upgrades an existing cPanel & WHM RHEL 7-based server installation to a RHEL 8-based installation. This document covers the script's basic checks and blockers.
+The ELevate script upgrades existing cPanel & WHM installations to a newer installation.
 
-## Basic assumptions
+This document lists the blockers for successfully upgrading your system.
 
-We assume the following conditions any time you run the ELevate script:
+## Prerequisites
 
-* You are logged in as `root`.
-* The system is running **CentOS 7** or **CloudLinux 7** with the latest version 7.9.
+To successfully run the ELevate script, you must meet the following conditions:  
+
+* You are logged in as the `root` user.
+* The system runs CentOS 7, CloudLinux 7, or Ubuntu 20.
 * You are running cPanel version 110.
-* cPanel does not require an update.
+* cPanel does **not** require an update.
 * cPanel has a valid license.
 * If applicable, **CloudLinux** has a valid license.
 
-Additionally, the following conditions **must** be true about the `elevate-cpanel` script:
+Additionally, the following **must** be true about the `elevate-cpanel` script:
 
-* The script must be running from: `/scripts` or `/usr/local/cpanel/scripts`.
+* The script runs from the `/scripts` directory and uses `/usr/local/cpanel/scripts` when called.
 * The script must be up to date.
 
-## Discovering blockers
+## Identify blockers
 
-You can discover many of your system's blockers by downloading `elevate-cpanel` and running `/scripts/elevate-cpanel --check`.
+To identify many of your system's blockers, download the `elevate-cpanel` script and run the following command:
+
+```
+ /scripts/elevate-cpanel --check`
+```
 
 ## Major blockers
 
-The following is a list of installation or configuration states that will block your ELevate script from running. These blockers appear when the ELevate script **cannot** guarantee a successful upgrade.
+The following installation or configuration states that will block your ELevate script from running. These blockers appear when the ELevate script **cannot** guarantee a successful upgrade.
 
 ### Disk space
 
-At any given time, the upgrade process may use 5 GB or more. If you have a complex mount system, we have determined that the following areas may require more disk space for a period of time:
+The upgrade process may use 5 GB or more of disk space. If you use a complex mount system, the following areas may require more disk space.
 
-* **/boot**: 120 MB
-* **/usr/local/cpanel**: 1.5 GB
-* **/var/lib**: 5 GB
+* `/boot`: 120 MB
+* `/usr/local/cpanel`: 1.5 GB
+* `/var/lib`: 5 GB
+
 #### cPanel version
 
+To run the ELevate script successfully, your server must run a supported versdion of cPanel & WHM. You can find the list of supported versions in our <a href="https://docs.cpanel.net/knowledge-base/cpanel-product/product-versions-and-the-release-process/#releases" target="_blank">Product Versions and the Release Process</a> documentation.
+
+Make certain that your system is running the most recently updated version. You can run the `/usr/local/cpanel/scripts/upcp` script to update the server.
+
+#### The sshd config file
+
+The script will **not** run successfully if the `sshd` config file is absent or unreadable.
 
 ### Conflicting processes
 
-The following processes **will block** the ELevate script if they are running the same time:
+The following processes **will block** the ELevate script if they run at the same time:
 
 * `/usr/local/cpanel/scripts/upcp`
 * `/usr/local/cpanel/bin/backup`
 
 **NOTE**: These checks are only enforced when you execute the script in `start` mode.
 
-#### Container-like environment
+### Container-like environment
 
-We do **not** support running the system in a container-like environment.
+You can **not** run the ELevate process if your system runs in a container-like environment.
 
-### cPanel version
+### EasyApache 4 packages
 
-**cPanel & WHM must be up to date.**
-
-To run the ELevate script successfully, you will need to be on a version mentioned in the _Latest cPanel & WHM Builds (All Architectures)_ section at http://httpupdate.cpanel.net/.
-
-If you are not on a version mentioned in [Latest cPanel & WHM Builds (All Architectures)](http://httpupdate.cpanel.net/) section, run the `/usr/local/cpanel/scripts/upcp` script to update.
-
-### EA4 packages
-
-You **must** remove **EA4 packages** that are not supported on AlmaLinux 8 before upgrading. Since this might impact your cPanel users, proceed with caution.
+You **must** remove **EA4 packages** that are not supported by your targeted operating system before upgrading. As this might impact your cPanel users, proceed with caution.
 
 #### PHP versions
 
-PHP versions 5.4 through 7.1 are available from cPanel on CentOS 7, but not AlmaLinux 8.
-    * If these PHP versions are in use by any cPanel users, we **block** the elevation from proceeding.
-    * If you have installed these PHP versions, but no one is using them, we allow the elevation to proceed. However, these PHP versions will **not*** be installed after the elevation completes.
+We only support the following PHP versions:
+* AlmaLinux: PHP 7.2 and later on systems
+* Ubuntu: PHP 7.3 and later
+
+If any of your users use a PHP version earlier than these, the ELevate process will be **blocked**.
+If these versions are only installed but not in use, the system will upgrade as normal, but these PHP versions will **not** be reinstalled.
 
 #### Hardened PHP
 
-If you have installed Imunify 360, it can provide hardened PHP for versions 5.1 through 7.1 on AlmaLinux 8 as well as CentOS 7. We now detect these hardened PHP versions and allow an elevation with them to proceed.
+If you use Imunify 360, it can provide hardened PHP for versions 5.1 through 7.1 on AlmaLinux as well as CentOS 7. The upgrade process will detect these hardened PHP versions and allow the upgrade to occur.
 
 ### Filesystem mount command
 
-Since Elevate needs to reboot your system multiple times as part of the upgrade process, we ensure that the command `mount -a` succeeds before allowing the elevation to proceed.  This is because we need to be able to trust that the filesystem remains the same between each reboot.
+The ELevate process reboots your system multiple times during the upgrade process. We ensure that the `mount -a` commant succeeds starting the ELevate process.  The filesystem muat remain the same between each reboot.
 
 ### GRUB2 configuration
 
-The system **must** be able to control the boot process by changing the GRUB2 configuration.
-  * The reason for this is that the Leapp framework, which performs the upgrade of distribution-provided software, needs to be able to run a custom early boot environment (`initrd`) in order to safely upgrade the distribution.
-  * We check that the Leapp framework can run a custom early boot environment by checking whether the system's current kernel version is the same as the system-identified default boot option.
-  * We also check that there is a valid GRUB2 config.
+The system **must** be able to change the GRUB2 configuration so it can control the boot process.
 
-#### Leapp preupgrade (dry run) check
+The ELevate process **must** be able to run a custom early boot environment to upgrade the distribution. In order to make sure that we can run this environment, the process verifies that the system's current kernel version is the same as the system-identified default boot option. It also checks that a valid GRUB2 configuration exists.
 
-If you invoke the ELevate script with the `--start` option, ELevate will perform an extra check before starting your upgrade **even if** there are no issues with your GRUB2 configuration. This extra check is a "dry run" of the Leapp upgrade performed by executing `leapp preupgrade`. This check will point out any problems that Leapp would encounter during the actual upgrade.
+#### Dry run check
 
-**NOTE**: If any errors are found, you **must** address them before performing the upgrade.
+If you start the ELevate process with the `--start` option, ELevate will perform an extra check before starting your upgrade **even if** no issues exist with your GRUB2 configuration. This extra check is a "dry run" upgrade. This check will identify any problems that it might encounter during the actual upgrade.
+
+**NOTE**: If any errors are found, you **must** correct them before performing the upgrade.
 
 ### JetBackup version
 
-If you are running JetBackup, it **must** be version 5 or greater. Earlier versions are not supported.
+If you run JetBackup, it **must** be version 5 or later. Earlier versions are **not** supported.
 
 ### Multiple network interface cards using kernel names
 
-If your machine has multiple network interface cards (NICs) using kernel names (`ethX`), we offer to automatically update the name from `ethX` to `cpethX` during elevation.
-  * To find a more in-depth explanation of *why* this name change is necessary, read Freedesktop.org's <a href="https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/" target="_blank">Predictable Network Interface Names</a> documentation.
+If your machine has multiple network interface cards (NICs) using kernel names (`ethX`), the process will offer to automatically update the name from `ethX` to `cpethX` during the upgrade process.
+
+For more information about why this name change is necessary, read Freedesktop.org's <a href="https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/" target="_blank">Predictable Network Interface Names</a> documentation.
 
 ### MySQL version
 
-A MySQL upgrade **cannot be** in progress.
+A MySQL upgrade **can not** be in progress.
 
-If the local version of MySQL/MariaDB installed on the system is not supported on RHEL 8-based distributions, you **must** upgrade to a supported version. If cPanel manages the MySQL installation, we will offer to upgrade MySQL automatically to MariaDB 10.6 during elevation.
+If the version of MySQL/MariaDB installed on the system is not supported on the target distribution, you **must** upgrade to a supported version. If cPanel manages your MySQL installation, the process will offer to upgrade MySQL automatically to MariaDB during elevation.
 
 **NOTE:** In cases where an upgrade is necessary **and** the system is set up to use a remote server, a local server will be temporarily configured and enabled for the duration of the elevation, and the remote instance will be re-enabled once the elevation completes.
 
-## OVH proactive intervention monitoring
+### OVH proactive intervention monitoring
 
-If you are using a dedicated server hosted at OVH, you should **disable the `proactive monitoring` before starting** the elevation process. To indicate you have done this, you must create the touch file `/var/cpanel/acknowledge_ovh_monitoring_for_elevate`. This prevents the proactive monitoring from incorrectly detecting an issue on your server during one of the reboots and booting into rescue mode, which would interrupt the elevation upgrade.
+If you use a dedicated server hosted at <a href="https://www.ovhcloud.com/" target="_blank">OVH</a>, you should **disable** the `proactive monitoring` **before** you start the ELevate process. Create the `/var/cpanel/acknowledge_ovh_monitoring_for_elevate` touch file to indicate that you disabld monitoring. This will prevent the proactive monitoring from incorrectly detecting an issue on your server during the reboots. If you do not create this file, your server may boot into rescue mode and interrupt the upgrade.
 
-To learn more about OVH monitoring, read their <a href="https://support.us.ovhcloud.com/hc/en-us/articles/115001821044-Overview-of-OVHcloud-Monitoring-on-Dedicated-Servers" target="_blank">Overview of OVHCloud Monitoring on Dedicated Servers</a> documentation.
+For more information about about OVH monitoring, read their <a href="https://support.us.ovhcloud.com/hc/en-us/articles/115001821044-Overview-of-OVHcloud-Monitoring-on-Dedicated-Servers" target="_blank">Overview of OVHCloud Monitoring on Dedicated Servers</a> documentation.
 
 ### PostgreSQL database directory
 
-If you are using the PostgreSQL software provided by your distribution (which includes PostgreSQL as installed by cPanel), ELevate will upgrade the software packages. However, your PostgreSQL service is unlikely to start properly. The reason for this is that ELevate will **not** attempt to update the data directory being used by your PostgreSQL instance to store settings and databases. Often, PostgreSQL detects this condition and refuses to start until you have performed the update.
+If you use the PostgreSQL software provided by your distribution (including PostgreSQL as installed by cPanel), ELevate will upgrade the software packages. However, your PostgreSQL service may not start properly. ELevate does **not** attempt to update the data directory being used by your PostgreSQL instance to store settings and databases. PostgreSQL detects this condition and may refuse to start until you perform an update.
 
-To ensure that you are aware of this requirement, if it detects that one or more cPanel accounts have associated PostgreSQL databases, ELevate will block you from beginning the upgrade process until you have created a file at `/var/cpanel/acknowledge_postgresql_for_elevate`.
+If ELevate detects that one or more cPanel accounts have associated PostgreSQL databases, it will block you from beginning the upgrade process until you create the `/var/cpanel/acknowledge_postgresql_for_elevate` touch file.
 
 #### Updating the PostgreSQL data directory after elevation
 
-Once ELevate has completed, you should perform the update to the PostgreSQL data directory. Although we defer to the information in <a href="https://www.postgresql.org/docs/10/pgupgrade.html" target="_blank">the PostgreSQL documentation</a>, and although <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deploying_different_types_of_servers/using-databases#migrating-to-a-rhel-8-version-of-postgresql_using-postgresql" target="_blank">Red Hat has provided steps in their documentation</a>, we found that the following steps worked in our testing to update the PostgreSQL data directory:
+After ELevate completes the upgrade process, update your PostgreSQL data directory. Perform the following steps to update the PostgreSQL data directory:
 
 **NOTE**:
-* We **strongly recommend** that you make a backup copy of your data directory before starting, because **cPanel cannot guarantee the correctness of these steps for any arbitrary PostgreSQL installation**.
+* We **strongly recommend** that you make a backup copy of your data directory before starting. **cPanel cannot guarantee the correctness of these steps for any arbitrary PostgreSQL installation**.
 * These steps assume that your server's data directory is located at `/var/lib/pgsql/data`.
 
-1. Install the `postgresql-upgrade` package: `dnf install postgresql-upgrade`
-2. Within your PostgreSQL config file at `/var/lib/pgsql/data/postgresql.conf`, if there exists an active option `unix_socket_directories`, change that phrase to read `unix_socket_directory`. This is necessary to work around a difference between the CentOS 7, PostgreSQL 9.2, and the PostgreSQL 9.2 helpers packaged by your new operating system's `postgresql-upgrade` package.
-3. Invoke the `postgresql-setup` tool: `/usr/bin/postgresql-setup --upgrade`.
-4. In the root user's WHM, navigate to the "Configure PostgreSQL" area and click on "Install Config". This should restore the additions cPanel makes to the PostgreSQL access controls in order to allow phpPgAdmin to function.
+1. Install the `postgresql-upgrade` package:
+  * RHEL-based systems: `dnf install postgresql-upgrade`
+  * Ubuntu-based systems: `apt install postgresql-upgrade`
+2. Open the `/var/lib/pgsql/data/postgresql.conf` PostgreSQL config file  with your preferred text editor.
+3. If the `unix_socket_directories` options exists and is active, change the option  `unix_socket_directory`. This will work around differencesd between your old operating system, PostgreSQL 9.2, and the PostgreSQL 9.2 helpers packaged the system's `postgresql-upgrade` package.
+4. run the `postgresql-setup` tool with the following command:
+```
+/usr/bin/postgresql-setup --upgrade
+```
+4. Log into WHM as the `root` user, navigate to WHM's <a href="https://docs.cpanel.net/whm/database-services/configure-postgresql/" target="_blank">Configure PostgreSQL interface</a> (_WHM >> Home >> Database Services >> Configuration Postgre SQL_)  and click _Install Config_. This will restore the additions cPanel makes to the PostgreSQL access controls that allow phpPgAdmin to function.
 
-#### The sshd config file
+### YUM repositories
 
-The script will not run successfully if the `sshd` config file is absent or unreadable.
-
-#### YUM repositories
-
-These issues with the YUM repositories can cause ELevate to block your upgrade:
+The following ssues with yum repositories can cause ELevate to block your upgrade:
   * Invalid syntax or use of `\$`. That character is interpolated on RHEL 7-based systems, but not on systems that are RHEL 8-based.
-  * Any unsupported repositories that have packages installed.
-  * If YUM is in an unstable state (running `yum makecache` fails).
+  * Any unsupported repositories with packages installed.
+  * If yum is in an unstable state and running `yum makecache` fails.
 
-If any unfinished yum transactions are detected, ELevate will attempt to complete them by executing `/usr/sbin/yum-complete-transaction --cleanup-only`. If this fails, ELevate will block you from beginning the upgrade process until you manually resolve any outstanding issues or transactions.
+If any unfinished yum transactions are detected, ELevate will attempt to complete them by running the `/usr/sbin/yum-complete-transaction --cleanup-only` command. If this fails, ELevate will block the upgrade process until you manually resolve any outstanding issues or transactions.
 
-#### Unsupported Repository
+#### Unsupported repositories
 
-If you receive the following error message when you use this script,
-you have installed packages from an unsupported repository:
+If you receive the following error message when you use this script, you have installed packages from an unsupported repository:
 
-One or more enabled YUM repo[sitories] are currently unsupported and have installed packages.
-You should disable these repositories and remove packages installed from them before continuing the update.
+`One or more enabled YUM repo[sitories] are currently unsupported and have installed packages. You should disable these repositories and remove packages installed from them before continuing the update`.
 
-We will not allow upgrades while you are using packages from unsupported repositories for the following reasons:
+We do not allow upgrades while you are using packages from unsupported repositories for the following reasons:
 
-* We cannot be sure that unsupported repositories provides packages for your upgraded distribution version.
-* Even if an unsupported repository provides packages for your upgraded distribution version, we cannot
-be sure installing them will not interfere with your upgrade process.
+* We cannot guarantee that unsupported repositories provide packages for your upgraded distribution version.
+* Even if an unsupported repository provides the packages for your upgraded distribution version, we cannot certain that they will not interfere with your upgrade process.
 
-To upgrade your distribution version, you must first disable these repositories and remove their packages.
-Then, when the upgrade completes, you can reenable and reinstall, or install equivalent packages
-from other repositories. If no equivalent packages exist, you may have to find a different solution
-to provide the package's functionality.
+To upgrade your distribution version, you **must** disable these repositories and remove their packages.
+
+When the upgrade is complete, you can reenable and reinstall the repository, or install equivalent packages from other repositories. If no equivalent packages exist, you may need to find an alternative solution.
