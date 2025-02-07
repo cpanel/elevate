@@ -19,11 +19,11 @@ This project will perform the following upgrades:
 * CloudLinux 7 to CloudLinux 8
 * Ubuntu 20 to Ubuntu 22
 
-The ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, you will end up with a broken system.
+cPanel ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, you will end up with a broken system.
 
-cPanel's ELevate wraps the following projects:
- * RHEL-based systems: The <a href="https://leapp.readthedocs.io/en/latest/" target="_blank">LEAPP Project</a>.
- * Ubuntu-based systems: The <a href="https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/" target="_blank">do-release-upgrade</a> script.
+The cPanel ELevate script wraps the following projects:
+ * RHEL-based systems: The [LEAPP Project](https://leapp.readthedocs.io/en/latest/).
+ * Ubuntu-based systems: The [do-release-upgrade](https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/) script.
 
 For more information about the project, you can watch our [![cPanel ELevate walkthrough video](elevate-video.png)](https://www.youtube.com/watch?v=Ag9-RneFqmc).
 
@@ -60,11 +60,11 @@ Upgrade the server to the new distribution and restore the removed packages.
 
 Verify the installation and clean up the server. This includes removing the `elevate-cpanel` service.
 
-To start the ELevate process and upgrade your server, read our [ELevate Your Server](/content/getting-started/) documentation.
+To start the ELevate process and upgrade your server, read our [ELevate Your Server](https://cpanel.github.io/elevate/getting-started/) documentation.
 
 ## Need more help?
 
-If you need more assistance, constact <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/" target="_blank">cPanel Technical Support</a>.
+If you need more assistance, contact [cPanel Technical Support](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
 
 ## Disclaimer
 

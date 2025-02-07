@@ -1,3 +1,4 @@
+---
 title: "Troubleshoot the ELevate Process"
 date: 2022-12-07T08:53:47-05:00
 draft: false
@@ -8,7 +9,7 @@ layout: single
 
 This document provides answers to frequently asked questions and some common troubleshooting issues.
 
-If you need more help, you can <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/" target="_blank">open a ticket</a>.
+If you need more help, you can [open a ticket](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
 
 ## Frequently asked questions
 
@@ -109,7 +110,7 @@ dnf -y remove cpanel-ccs-calendarserver cpanel-z-push
 
 Ubuntu-based systems:
 ```
-apt -y remove cpanel-ccs-calendarserver cpanel-z-push
+apt -y purge cpanel-ccs-calendarserver cpanel-z-push
 ```
 
 2.  Remove the `cpanel-ccs` user's home directory
