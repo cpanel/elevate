@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>cPanel ELevate Project on cPanel ELevate Documentation</title>
+    <link>https://cpanel.github.io/elevate/</link>
+    <description>Recent content in cPanel ELevate Project on cPanel ELevate Documentation</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 07 Dec 2022 08:53:47 -0500</lastBuildDate><atom:link href="https://cpanel.github.io/elevate/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ELevate Your Server</title>
+      <link>https://cpanel.github.io/elevate/getting-started/</link>
+      <pubDate>Wed, 07 Dec 2022 08:53:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/getting-started/</guid>
+      <description>ELevate Your cPanel Server This document helps you to successfully ELevate your cPanel server to a new version.
+You can perform the following elevations:
+ CentOS 7 to AlmaLinux 8 CloudLinux 7 to CloudLinux 8 Ubuntu 20 to Ubuntu 22  Requirements Before you update your system, make certain that you&amp;rsquo;ve met the following requirements.
+ELevate requires access to an interactive shell as the root user.
+We strongly recommend that you have multiple ways to access your server before you attempt to upgrade.</description>
+    </item>
+    
+    <item>
+      <title>Troubleshoot the ELevate Process</title>
+      <link>https://cpanel.github.io/elevate/elevate-faq/</link>
+      <pubDate>Wed, 07 Dec 2022 08:53:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/elevate-faq/</guid>
+      <description>Troubleshoot the ELevate process This document provides answers to frequently asked questions and some common troubleshooting issues.
+If you need more help, you can open a ticket.
+Frequently asked questions How do I check the current status of the process Run the following command to check the current status of the ELevate process:
+/scripts/elevate-cpanel --status Where are the current stage and status stored? They are stored in the /var/cpanel/elevate JSON file as values for the stage_number and status keys.</description>
+    </item>
+    
+    <item>
+      <title>Known cPanel ELevate Blockers</title>
+      <link>https://cpanel.github.io/elevate/blockers/</link>
+      <pubDate>Wed, 23 Mar 2022 16:13:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/blockers/</guid>
+      <description>Overview The ELevate script upgrades existing cPanel &amp;amp; WHM installations to a newer installation.
+This document lists the blockers for successfully upgrading your system.
+Prerequisites To successfully run the ELevate script, you must meet the following conditions:
+ You are logged in as the root user. The system runs CentOS 7, CloudLinux 7, or Ubuntu 20. ** For CentOS 7 and CloudLinux 7, you are running cPanel version 110. ** For Ubuntu 20, you are running cPanel version 118.</description>
+    </item>
+    
+    <item>
+      <title>White Paper</title>
+      <link>https://cpanel.github.io/elevate/whitepaper/</link>
+      <pubDate>Tue, 15 Mar 2022 08:53:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/whitepaper/</guid>
+      <description>download a pdf version of this white paper
+Abstract cPanel, L.L.C. has embraced the ELevate project [1], an open-source initiative by the AlmaLinux OS Foundation (“AlmaLinux”) to help users perform upgrades between different Red Hat® Enterprise Linux® (RHEL)-derivative distributions. This white paper captures the relevant details in evaluating the ELevate process to upgrade a cPanel &amp;amp; WHM® server from a RHEL-derived distribution version 7.x to an AlmaLinux distribution version 8.x. The intended audience for this paper are the decision-makers who may be considering upgrading their cPanel &amp;amp; WHM servers to a different RHEL-based distribution.</description>
+    </item>
+    
+  </channel>
+</rss>
