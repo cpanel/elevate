@@ -19,13 +19,13 @@ This project will perform the following upgrades:
 * CloudLinux 7 to CloudLinux 8
 * Ubuntu 20 to Ubuntu 22
 
-cPanel ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, you will end up with a broken system.
+cPanel ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, your system will no longer function correctly.
 
 The cPanel ELevate script wraps the following projects:
  * RHEL-based systems: The [LEAPP Project](https://leapp.readthedocs.io/en/latest/).
  * Ubuntu-based systems: The [do-release-upgrade](https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/) script.
 
-For more information about the project, you can watch our [![cPanel ELevate walkthrough video](elevate-video.png)](https://www.youtube.com/watch?v=Ag9-RneFqmc).
+For more information about the project, you can watch the cPanel ELevate walkthrough. [![cPanel ELevate walkthrough video](elevate-video.png)](https://www.youtube.com/watch?v=Ag9-RneFqmc).
 
 ### The ELevate process
 
@@ -44,11 +44,12 @@ Update the system's distribution packages, disable any cPanel services, and set 
 Configure the ELevate repository.
 
 Update cPanel packages, remove any conflicting packages, then back up the existing configuration.
-NOTE: The backup **not** include any of the system's data. However, it might include the configuration for the following software:
+
+**NOTE:** The backup does **not** include any of the system's data. However, it might include the configuration data for the following software:
   * cPanel (`upcp`)
   * EasyApache 4
   * MySQL or MariaDB
-  * Distribution Perl/PECL binary re-installs
+  * Distribution Perl/PECL binary reinstalls
 
 The system may ask you to provide answers to some questions before it can start the upgrade process.
 

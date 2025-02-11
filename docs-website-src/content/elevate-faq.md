@@ -1,11 +1,11 @@
 ---
-title: "Troubleshoot the ELevate Process"
+title: "Troubleshooting the ELevate Process"
 date: 2022-12-07T08:53:47-05:00
 draft: false
 layout: single
 ---
 
-# Troubleshoot the ELevate process
+# Troubleshooting and frequently asked questions
 
 This document provides answers to frequently asked questions and some common troubleshooting issues.
 
@@ -13,7 +13,7 @@ If you need more help, you can [open a ticket](https://docs.cpanel.net/knowledge
 
 ## Frequently asked questions
 
-### How do I check the current status of the process
+### How do I check the current status of the process?
 
 Run the following command to check the current status of the ELevate process:
 
@@ -26,7 +26,7 @@ Run the following command to check the current status of the ELevate process:
 They are stored in the `/var/cpanel/elevate` JSON file as values for the
 `stage_number` and `status` keys.
 
-During execution the  `stage_number` key will be set to `1` through `5`. When the process completes, the `stage_number` key is set to `6`.
+During execution the  `stage_number` key is set to `1` through `5`. When the process completes, the `stage_number` key is set to `6`.
 
 The possible values for `status` key are:
 
@@ -45,7 +45,7 @@ You can view the main log from the `/scripts/elevate-cpanel` script with the fol
 
 ### Where are leapp issues logged?
 
-Access logs for the leapp process are located in the following files:  
+Logs for the leapp process are located in the following files:  
 
 * `/var/log/leapp/leapp-report.txt`
 * `/var/log/leapp/leapp-report.json`
@@ -69,7 +69,7 @@ If the elevate process is locked on `stage 1` and the process appears to be loop
    /scripts/elevate-cpanel --start
 ```
 
-You can also unlock the process with the following commands:
+You can also unlock the process with the following steps:
 
 1. Clear the previous stage with the following command. Do **not** use this option if the process is past Stage 2.
 
@@ -84,62 +84,70 @@ You can also unlock the process with the following commands:
 
 ### The CCS service will not start after ELevate succeeds
 
-This error can occur if the scheme failed to update.  
+This error can occur if the schema failed to update.  
 
 Perform the following steps to correct this error:
 
-**NOTE:** Only remove/install `cpanel-z-push` if it was installed prior to running
-elevate or it is currently installed.  Run the following command to check the status of the package:
+**NOTE:** Only remove or reinstall `cpanel-z-push` if it was installed prior to running
+elevate or it is currently installed.  
 
-RHEL-based systems:
-```
+#### Check the status of the package
+
+Run the following command to check the status of the package:
+
+  RHEL-based systems:
+  ```
 rpm -q cpanel-z-push
 ```
 
-Ubuntu-based systems:
-```
+  Ubuntu-based systems:
+  ```
 apt list --installed | grep cpanel-z-push
 ```
 
+#### Remove and reinstall the CCS service
+
+Perform the following steps to remove and reinstall the CCS service:
+
 1.  Remove the package:
 
-RHEL-based systems:
-```
+  RHEL-based systems:
+  ```
 dnf -y remove cpanel-ccs-calendarserver cpanel-z-push
 ```
 
-Ubuntu-based systems:
-```
+  Ubuntu-based systems:
+  ```
 apt -y purge cpanel-ccs-calendarserver cpanel-z-push
 ```
 
 2.  Remove the `cpanel-ccs` user's home directory
 
-```
+  ```
 rm -rf /opt/cpanel-ccs/
 ```
 
 3.  Install the package(s)
 
-RHEL-based-systems:
-```
+  RHEL-based-systems:
+  ```
 dnf -y install cpanel-ccs-calendarserver cpanel-z-push
 ```
 
-Ubuntu-based systems:
-```
+  Ubuntu-based systems:
+  ```
 apt -y install cpanel-ccs-calendarserver cpanel-z-push
 ```
 
 4.  Clear the `queueprocd` task queue
 
-```
+  ```
 /usr/local/cpanel/bin/servers_queue run
 ```
 
 5.  Verify that the `cpanel-ccs` service is running with the following command:
 
-```
+  ```
 /scripts/restartsrv_cpanel_ccs --status
 ```
 
@@ -154,15 +162,16 @@ cpanel-ccs (CalendarServer 9.3+fbd0e11675cc0f64a425581b5c8398cc1e09cb6a [Combine
 
 ### The CCS data failed to import during elevate
 
-This data is exported to `/var/cpanel/elevate_ccs_export/` directory.
+This data is exported to the `/var/cpanel/elevate_ccs_export/` directory during the ELevate process.
 
-Run the following command as the `root` user to import the data for `every` user:
+Run the following command as the `root` user to import the data for **every** user:
 
 ```
 /usr/local/cpanel/3rdparty/bin/perl -MCpanel::Config::Users -e 'require "/var/cpanel/perl5/lib/CCSHooks.pm"; my @users = Cpanel::Config::Users::getcpusers(); foreach my $user (@users) { my $import_data = { user => $user, extract_dir => "/var/cpanel/elevate_ccs_export/$user", }; CCSHooks::pkgacct_restore( undef, $import_data ); }'
 ```
 
-To import a `single` user, use the command instead, where `CPTEST` represents the username.
+To import a **single** user run the following command, where `CPTEST` represents the username:
+
 ```
 /usr/local/cpanel/3rdparty/bin/perl -e 'require "/var/cpanel/perl5/lib/CCSHooks.pm"; my $import_data = { user => "CPTEST", extract_dir => "/var/cpanel/elevate_ccs_export/CPTEST", }; CCSHooks::pkgacct_restore( undef, $import_data );'
 ```
