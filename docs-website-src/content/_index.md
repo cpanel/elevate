@@ -73,7 +73,7 @@ We do **not** guarantee the functionality of software in this repository. You as
 
 ## Copyright
 
-```c
+```
 Copyright 2024 WebPros International, LLC
 
 Redistribution and use in source and binary forms, with or without modification,
