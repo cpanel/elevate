@@ -5,24 +5,24 @@ draft: false
 layout: single
 ---
 
-# Welcome to the cPanel ELevate project
+# Welcome to the cPanel® ELevate project
 
-The ELevate project aims to upgrade a cPanel installation with minimal outages. It builds and expands on the [Alma Linux ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which was created for in-place upgrades of RedHat-based systems.
+The ELevate project aims to upgrade a cPanel installation with minimal outages. It builds and expands on the [AlmaLinux OS ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which was created for in-place upgrades of Red Hat®-based systems.
 
-[Pull requests are welcome](https://github.com/cpanel/elevate/pulls). Code contributions are subject to our [Contributor License Agreement](docs/cPanel-CLA.pdf)
+[Pull requests are welcome](https://github.com/cpanel/elevate/pulls). Code contributions are subject to our [Contributor License Agreement](docs/cPanel-CLA.pdf).
 
 ## The cPanel ELevate project
 
 This project will perform the following upgrades:
 
 * CentOS 7 to AlmaLinux 8
-* CloudLinux 7 to CloudLinux 8
-* Ubuntu 20 to Ubuntu 22
+* CloudLinux™ 7 to CloudLinux 8
+* Ubuntu® 20 to Ubuntu 22
 
 cPanel ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, your system will no longer function correctly.
 
 The cPanel ELevate script wraps the following projects:
- * RHEL-based systems: The [LEAPP Project](https://leapp.readthedocs.io/en/latest/).
+ * RHEL-based systems: The [Leapp Project](https://leapp.readthedocs.io/en/latest/).
  * Ubuntu-based systems: The [do-release-upgrade](https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/) script.
 
 For more information about the project, you can watch the cPanel ELevate walkthrough. [![cPanel ELevate walkthrough video](elevate-video.png)](https://www.youtube.com/watch?v=Ag9-RneFqmc).

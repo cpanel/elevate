@@ -7,7 +7,7 @@ layout: single
 
 # cPanel ELevate blockers
 
-The ELevate script upgrades existing cPanel & WHM installations to a newer installation.
+The ELevate script upgrades existing cPanel & WHM® installations to a newer installation.
 
 This document lists the blockers for successfully upgrading your system.
 
@@ -16,7 +16,7 @@ This document lists the blockers for successfully upgrading your system.
 To successfully run the ELevate script, you must meet the following conditions:  
 
 * You are logged in to the server as the `root` user.
-* Your system runs CentOS 7, CloudLinux 7, or Ubuntu 20.
+* Your system runs CentOS 7, CloudLinux™ 7, or Ubuntu® 20.
   * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
   * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
 * Your system **must** run the most recent minor version of its cPanel version for your operating system.
@@ -28,16 +28,16 @@ Additionally, the following **must** be true about the `elevate-cpanel` script:
 * The script must run from the `/scripts` directory and use `/usr/local/cpanel/scripts` when called.
 * The script must be up to date.
 
-We **strongly** recommend that you have multiple ways to access your server before you attempt to upgrade. This ensures you're not locked out of the server if your primary access method does not work. Ways to access your server may include the following methods:
+We **strongly** recommend that you have multiple ways to access your server before you attempt to upgrade. This ensures you're not locked out of the server if your primary access method does not work. You could access your server by many methods, including the following methods:
   * `root` SSH access to the system.
   * Direct physical access to the console.
   * IPMI remote console access.
   * A virtual console through a hypervisor.
-  * A custom system based on one of previous methods, made available by your server provider.
+  * A custom system based on one of previous methods, made available by your hosting provider.
 
 ## Identify blockers
 
-To identify many blockers, [download the `elevate-cpanel`] script and run the following command:
+To identify many blockers, [download the `elevate-cpanel`](https://cpanel.github.io/elevate/getting-started/#updating-your-server) script and run the following command:
 
 ```
  /scripts/elevate-cpanel --check`
@@ -45,7 +45,7 @@ To identify many blockers, [download the `elevate-cpanel`] script and run the fo
 
 ## Major blockers
 
-The following installation or configuration states will **block** the cPanel ELevate script. These blockers appear when the ELevate script **cannot** guarantee a successful upgrade.
+The following installation or configuration states will **block** the cPanel ELevate script. The ELevate script **cannot** guarantee a successful upgrade if these blockers are present.
 
 ### Disk space
 
@@ -81,12 +81,12 @@ You **must** remove **EA4 packages** that are not supported by your targeted ope
 #### PHP versions
 
 We only support the following PHP versions:
-* AlmaLinux 8: PHP 7.2 and later
+* AlmaLinux OS 8: PHP 7.2 and later
 * CloudLinux 8: PHP 5.1 and later
 * Ubuntu 22: PHP 8.1 and later
 
 If any of your users use a PHP version earlier than these, the ELevate process will be **blocked**.
-If these PHP nversions are only installed but not in use, the system will upgrade as normal, but the PHP versions will **not** be reinstalled.
+If these PHP versions are only installed but not in use, the system will upgrade as normal, but the PHP versions will **not** be reinstalled.
 
 #### Hardened PHP
 
@@ -106,7 +106,7 @@ The ELevate process **must** be able to run a custom early boot environment to u
 
 This **only** applies to RHEL-based systems.
 
-If you start the ELevate process with the `--start` option, ELevate will perform an extra check before it starts your upgrade **even if** no issues exist with your GRUB2 configuration. This extra check runs the `leapp preupgrade` commands and is a "dry run" of the distribution upgrade. This check will identify any problems that Leapp might encounter during the actual upgrade but does not make any changes to the system.
+If you start the ELevate process with the `--start` option, ELevate will perform an extra check before it starts your upgrade **even if** no issues exist with your GRUB2 configuration. This extra check runs the `leapp preupgrade` command and is a "dry run" of the distribution upgrade. This dry run identifies any problems that Leapp might encounter during the actual upgrade, but does not make any changes to the system.
 
 **NOTE**: If this check identifies any errors, you **must** correct them before performing the upgrade.
 
@@ -141,7 +141,7 @@ This section **only** applies to Ubuntu-based systems.
 The following issues with apt lists can cause ELevate to block your upgrade:
  * Apt is in an unstable state and running `apt-get clean` fails.
  * Apt has packages that are held back from upgrades as reported by `apt-mark showhold`. This can prevent `do-release-upgrade` from upgrading your system.
- * Any unsupported list files are in the`/etc/apt/sources.list.d` directory.
+ * Any unsupported list files are in the `/etc/apt/sources.list.d` directory.
 
 ### YUM repositories
 
