@@ -5,47 +5,59 @@ draft: false
 layout: single
 ---
 
-# ELevate Your cPanel Server
+# ELevate Your cPanel® Server
 
 This document helps you to successfully ELevate your cPanel server to a new version.
 
 You can perform the following elevations:
 
-* CentOS 7 to AlmaLinux 8
-* CloudLinux 7 to CloudLinux 8
-* Ubuntu 20 to Ubuntu 22
+* CentOS 7 to AlmaLinux OS 8
+* CloudLinux™ 7 to CloudLinux 8
+* Ubuntu® 20 to Ubuntu 22
 
-## Requirements
-
-Before you update your system, make **certain** that you've met the following requirements.
+## Prerequisites
 
 ELevate **requires** access to an interactive shell as the `root` user.
 
-We **strongly** recommend that you have multiple ways to access your server before you attempt to upgrade. This ensures you're not locked out of the server if your primary method does not work. Ways to access your server may include the following methods:
+Before you upgrade your system, make **certain** that you've met the following requirements.
+
+* You are logged in to the server as the `root` user.
+* Your system runs CentOS 7, CloudLinux 7, or Ubuntu 20.
+  * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
+  * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
+* Your system **must** run the most recent minor version of its cPanel version for your operating system.
+* cPanel **must** have a valid license.
+* If applicable, **CloudLinux** has a valid license.
+
+Additionally, the following **must** be true about the `elevate-cpanel` script:
+
+* The script must run from the `/scripts` directory and use `/usr/local/cpanel/scripts` when called.
+* The script must be up to date.
+
+We **strongly** recommend that you have multiple ways to access your server before you attempt to upgrade. This ensures you're not locked out of the server if your primary access method does not work. Ways to access your server may include the following methods:
   * `root` SSH access to the system.
   * Direct physical access to the console.
   * IPMI remote console access.
   * A virtual console through a hypervisor.
   * A custom system based on one of previous methods, made available by your server provider.
 
-## Before you update your server
+## Before you upgrade your server
 
-Before you ELevate your server, perform the following actions to ensure you're ready to start the process. Make certain that you review the [risks](#risks) for this process, as well.
+Before you ELevate your server, perform the following actions to ensure you're ready to start the process. Make certain that you review the [risks](#risks) for this process before you begin.
 
 We **strongly** recommend that you write down the information needed to [open a cPanel support request](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/). If you encounter issues during the upgrade process, this information may not be available from the system itself.
 
 ### Software verification
 
-We recommend that you verify and update the software on your server before you start the ELevate process.
+We recommend that you verify and update the software on your server **before** you start the ELevate process.
 
-* Update your server's packages with your package manager. You can use one of the following commands:
-  * RedHat-based servers: `yum update`
+* Update your server's packages with your package manager. You can use one of the following commands to update the packages:
+  * Red Hat®-based servers: `yum update`
   * Ubuntu-based servers: `apt upgrade`
-* Ensure that you're using the latest stable version of cPanel & WHM that is available for your
-  current OS
-** CentOS 7 support ends at cPanel version 110.
-** Ubuntu 20.04 support ends at cPanel version 118.
-* Make certain that you're using a version of MySQL/MariaDB that is compatible with the target distribution.
+* Ensure that you're using the latest stable version of cPanel & WHM that is available for your current OS:
+  * CentOS 7 support is only available on cPanel & WHM version 110.
+  * Ubuntu 20.04 support is only available on cPanel & WHM version 118.
+* Make certain that you're using a version of MySQL/MariaDB that is compatible with your target distribution.
 
 We also recommend that you [download the ELevate script](#download-the-elevate-cpanel-script) and [run the pre-checks](#run-pre-upgrade-checks). This will ensure that you don't have any [blockers](https://cpanel.github.io/elevate/blockers/) that will prevent an upgrade.
 
@@ -56,17 +68,17 @@ You **must** backup your server before you attempt to upgrade.
 
 While the upgrade process attempts to account for conditions that might result in a broken system, this is not a guarantee. We **strongly** recommend that you backup your system with a whole-system image or snapshot.
 
-If you must recover your system, you will need to reload the system from your image or snapshot.
+If you must recover your system, you will need to reload the system from the image or snapshot you created.
 
 The [cPanel Backup](https://docs.cpanel.net/whm/backup/) system **only** backs up individual cPanel accounts. Backups of individual cPanel accounts **only** protect data managed by cPanel. These backups **do not** contain any programs or data not managed by cPanel.  If a catastrophic failure happens during the upgrade process, you may have extensive downtime.
 
 If you must recover your system from individual accounts, you will need to wipe the existing system, install the target operating system, install cPanel on the new operating system, rebuild all system customizations, and restore the cPanel accounts from the backup.
 
-If individual cPanel account backups are your only backup option, and uptime is a critical consideration, we recommend that you use WHM's [Transfer Tool](https://docs.cpanel.net/whm/transfers/transfer-tool/) to migrate to a new system instead of upgrading in-place using ELevate. This provides you with more control over the transition in the event of a failure.
+If individual cPanel account backups are your only backup option, and uptime is a critical consideration, we recommend that you use WHM's [Transfer Tool](https://docs.cpanel.net/whm/transfers/transfer-tool/) to migrate to a new system **instead** of upgrading in place using ELevate. This provides you with more control over the transition in the event of a failure.
 
-If you do not know how much of your system your backup service covers, contact your backup service provider for more  information.
+If you do not know how much of your system your backup service covers, contact your backup service provider for more information.
 
-## Updating your server
+## Upgrade your server
 
 ### Download the elevate-cpanel script
 
@@ -80,7 +92,7 @@ chmod 700 /scripts/elevate-cpanel
 
 ### Run pre-upgrade checks
 
-We recommend you check for [known blockers](https://cpanel.github.io/elevate/blockers/) before you upgrade your server. The check will **not** make any changes to your system.
+We recommend that you check for [known blockers](https://cpanel.github.io/elevate/blockers/) before you upgrade your server. The check will **not** make any changes to your system.
 
 Run the following command to verify that your system is ready to upgrade:
 ```bash
@@ -92,7 +104,7 @@ Run the following command to verify that your system is ready to upgrade:
 
 After you backup your server and clear any upgrade blockers, you can begin your server's upgrade. The cPanel ELevate script does **not** perform a backup before upgrading.
 
-**NOTE** This upgrade may take over 30 minutes. Your server may be down and unreachable during this time.
+**NOTE**: This upgrade may take over 30 minutes. Your server may be down and unreachable during this time.
 
 Run the following command to start the upgrade process:
 
@@ -136,11 +148,11 @@ To use the `--upgrade-distro-manually` option perform the following steps:
 
 1. Run the `/scripts/elevate-cpanel --start --upgrade-distro-manually` command to start the upgrade process.
 
-The `elevate-cpanel` service will complete all the steps needed to upgrade the system until it reaches the distribution upgrade stage.
+  The `elevate-cpanel` service will complete all the steps needed to upgrade the system until it reaches the distribution upgrade stage.
 
-ELevate will create the `/waiting_for_distro_upgrade` file, which indicates that the operating system is ready for an upgrade.
+  ELevate will create the `/waiting_for_distro_upgrade` file, which indicates that the operating system is ready for an upgrade.
 
-2. Use the distribution upgrade tool to complete the upgrade process.
+2. Use your distribution upgrade tool to complete the upgrade process.
 3. When the upgrade is complete, delete the `/waiting_for_distro_upgrade` file and reboot the system into normal multi-user mode.
 
 The ELevate script will resume after the reboot and complete the upgrade.
@@ -157,7 +169,7 @@ For more information about the `LEAPP_OVL_SIZE` variable, read the [leapp docume
 
 When you upgrade your server, you may experience data loss or unexpected behavior that can render your server not functional.
 
-Upgrades can take between 30 and 90 minutes to complete. For most of this time, the server will be degraded and non-functional. While the ELevate process attempts to disable the software so external systems will not fail, small windows still exist where the unexpected failures may lead to some data loss.
+Upgrades can take between 30 and 90 minutes to complete. For most of this time, the server will be degraded and non-functional. While the ELevate process attempts to disable the software so external systems will not fail, small windows still exist where unexpected failures may lead to some data loss.
 
 Failure states may include but are not limited to the following states:
 
