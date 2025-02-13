@@ -5,15 +5,15 @@ draft: false
 layout: single
 ---
 
-# ELevate Your cPanel Server
+# ELevate Your cPanel® Server
 
 This document helps you to successfully ELevate your cPanel server to a new version.
 
 You can perform the following elevations:
 
-* CentOS 7 to AlmaLinux 8
-* CloudLinux 7 to CloudLinux 8
-* Ubuntu 20 to Ubuntu 22
+* CentOS 7 to AlmaLinux OS 8
+* CloudLinux™ 7 to CloudLinux 8
+* Ubuntu® 20 to Ubuntu 22
 
 ## Prerequisites
 
@@ -52,11 +52,11 @@ We **strongly** recommend that you write down the information needed to [open a 
 We recommend that you verify and update the software on your server **before** you start the ELevate process.
 
 * Update your server's packages with your package manager. You can use one of the following commands to update the packages:
-  * RedHat-based servers: `yum update`
+  * Red Hat®-based servers: `yum update`
   * Ubuntu-based servers: `apt upgrade`
 * Ensure that you're using the latest stable version of cPanel & WHM that is available for your current OS:
   * CentOS 7 support is only available on cPanel & WHM version 110.
-  * Ubuntu 20.04 support is only available cPanel & WHM version 118.
+  * Ubuntu 20.04 support is only available on cPanel & WHM version 118.
 * Make certain that you're using a version of MySQL/MariaDB that is compatible with your target distribution.
 
 We also recommend that you [download the ELevate script](#download-the-elevate-cpanel-script) and [run the pre-checks](#run-pre-upgrade-checks). This will ensure that you don't have any [blockers](https://cpanel.github.io/elevate/blockers/) that will prevent an upgrade.
@@ -74,7 +74,7 @@ The [cPanel Backup](https://docs.cpanel.net/whm/backup/) system **only** backs u
 
 If you must recover your system from individual accounts, you will need to wipe the existing system, install the target operating system, install cPanel on the new operating system, rebuild all system customizations, and restore the cPanel accounts from the backup.
 
-If individual cPanel account backups are your only backup option, and uptime is a critical consideration, we recommend that you use WHM's [Transfer Tool](https://docs.cpanel.net/whm/transfers/transfer-tool/) to migrate to a new system **instead** of upgrading in-place using ELevate. This provides you with more control over the transition in the event of a failure.
+If individual cPanel account backups are your only backup option, and uptime is a critical consideration, we recommend that you use WHM's [Transfer Tool](https://docs.cpanel.net/whm/transfers/transfer-tool/) to migrate to a new system **instead** of upgrading in place using ELevate. This provides you with more control over the transition in the event of a failure.
 
 If you do not know how much of your system your backup service covers, contact your backup service provider for more information.
 
