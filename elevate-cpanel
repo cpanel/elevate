@@ -4135,7 +4135,7 @@ EOS
         }
 
         my $mysqlcheck_path = Cpanel::Binaries::path('mysqlcheck');
-        my $output          = $self->ssystem_capture_output( $mysqlcheck_path, '-c', '-m', '-A', '--silent' );
+        my $output          = $self->ssystem_capture_output( $mysqlcheck_path, '--default-character-set=utf8mb4', '-c', '-m', '-A', '--silent' );
 
         if ( scalar grep { /^error/i } @{ $output->{stdout} } ) {
 
