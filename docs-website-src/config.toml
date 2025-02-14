@@ -21,35 +21,35 @@ sectionPagesMenu = "main"
     url = "https://github.com/cpanel/elevate"
     weight = 2
 
-##
-## left menu
-##
-  [[menu.left]]
-    name = "Introduction"
-    url = "/#the-cpanel-elevate-project"
-    weight = 1
+    ##
+    ## left menu
+    ##
+      [[menu.left]]
+        name = "Introduction"
+        url = "/#the-cpanel-elevate-project"
+        weight = 1
 
-  [[menu.left]]
-    name = "Requirements"
-    url = "/getting-started/#requirements"
-    weight = 2
+      [[menu.left]]
+        name = "The Upgrade Process"
+        url = "/#the-elevate-process"
+        weight = 2
 
-  [[menu.left]]
-    name = "Risks"
-    url = "/getting-started/#risks"
-    weight = 3
+      [[menu.left]]
+        name = "Requirements"
+        url = "/getting-started/#requirements"
+        weight = 3
 
-  [[menu.left]]
-    name = "Update your server"
-    url = "/getting-started/#updating-your-server"
-    weight = 4
+      [[menu.left]]
+        name = "Risks"
+        url = "/getting-started/#risks"
+        weight = 4
 
-  [[menu.left]]
-    name = "The upgrade process"
-    url = "/#the-elevate-process"
-    weight = 5
+      [[menu.left]]
+        name = "Upgrade Your Server"
+        url = "/getting-started/"
+        weight = 5
 
-  [[menu.left]]
-    name = "Copyright"
-    url = "/#copyright"
-    weight = 6
+      [[menu.left]]
+        name = "Copyright"
+        url = "/#copyright"
+        weight = 6
