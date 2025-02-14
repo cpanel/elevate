@@ -397,7 +397,7 @@ sub _blocker_mysql_database_corrupted ($self) {
 
     # Perform a medium check on all databases and only output errors
     my $mysqlcheck_path = Cpanel::Binaries::path('mysqlcheck');
-    my $output          = $self->ssystem_capture_output( $mysqlcheck_path, '-c', '-m', '-A', '--silent' );
+    my $output          = $self->ssystem_capture_output( $mysqlcheck_path, '--default-character-set=utf8mb4', '-c', '-m', '-A', '--silent' );
 
     # mysqlcheck doesn't return an error code
     # We check for lines that actually begin with "Error" (or "error")
