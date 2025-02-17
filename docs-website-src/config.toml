@@ -30,7 +30,7 @@ sectionPagesMenu = "main"
         weight = 1
 
       [[menu.left]]
-        name = "The upgrade process"
+        name = "The Upgrade Process"
         url = "/#the-elevate-process"
         weight = 2
 
@@ -45,7 +45,7 @@ sectionPagesMenu = "main"
         weight = 4
 
       [[menu.left]]
-        name = "Upgrade your server"
+        name = "Upgrade Your Server"
         url = "/getting-started/"
         weight = 5
 
