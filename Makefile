@@ -67,11 +67,13 @@ clean:
 release: build
 	$(GIT) tag -f $(RELEASE_TAG)	
 	$(GIT) tag -f v${VERSION}
-	$(GIT) push upstream
-	$(GIT) push --force upstream tag $(RELEASE_TAG)
-	$(GIT) push --force upstream tag v${VERSION}
+	$(GIT) push pub main
+	$(GIT) push --force pub tag $(RELEASE_TAG)
+	$(GIT) push --force pub tag v${VERSION}
 	$(MAKE) bump_version
-	$(GIT) push upstream main
+	$(GIT) push ent main
+	$(GIT) push --force ent tag $(RELEASE_TAG)
+	$(GIT) push --force ent tag v${VERSION}
 
 bump_version: version := $(shell dc -f version -e '1 + p')
 bump_version:
