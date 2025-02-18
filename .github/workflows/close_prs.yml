@@ -1,0 +1,24 @@
+name: Close Pull Requests from cpanel/elevate
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  close_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Source
+        env:
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          if [[ "$PR_REPO" == "cpanel/elevate" ]]; then
+            echo "PR is from cpanel/elevate. Proceeding with closure."
+          else
+            echo "PR is not from cpanel/elevate. Skipping."
+            exit 0
+          fi
+
+      - name: Close the PR
+        uses: peter-evans/close-pull@v2
+        with:
+          comment: "This repository does not accept pull requests from cpanel/elevate."
