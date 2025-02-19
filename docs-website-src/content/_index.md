@@ -5,6 +5,7 @@ draft: false
 layout: single
 ---
 
+
 # Welcome to the cPanel® ELevate project
 
 The ELevate project aims to upgrade a cPanel installation with minimal outages. It builds and expands on the [AlmaLinux OS ELevate](https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html) project, which was created for in-place upgrades of Red Hat®-based systems.
