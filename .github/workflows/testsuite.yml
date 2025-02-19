@@ -2,6 +2,7 @@ name: TestSuite
 
 on:
   push:
+    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
     branches:
       - "*"
       - '!docs'
