@@ -2,14 +2,15 @@ name: TestSuite
 
 on:
   push:
-    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
     branches:
       - "*"
       - '!docs'
     tags-ignore:
       - "*"
   pull_request:
+    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
   workflow_dispatch:
+    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-testsuite
