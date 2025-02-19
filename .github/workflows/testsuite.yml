@@ -7,12 +7,9 @@ on:
       - '!docs'
     tags-ignore:
       - "*"
-    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'  # Add this line to check if the repository is the original
 
   pull_request:
-    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
   workflow_dispatch:
-    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-testsuite
@@ -38,6 +35,7 @@ env:
 
 jobs:
   testsuite:
+    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
     env:
       PERL_USE_UNSAFE_INC: 1
       CPANEL_BIN_PATH: /usr/local/cpanel/3rdparty/bin
