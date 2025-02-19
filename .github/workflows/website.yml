@@ -6,13 +6,13 @@ name: website
 
 on:
   push:
-    if: github.repository == 'cpanel/elevate'
     branches:
     - main
   workflow_dispatch:
 
 jobs:
   build:
+    if: github.repository == 'cpanel/elevate'
     runs-on: ubuntu-latest
     steps:
     - name: checkout
