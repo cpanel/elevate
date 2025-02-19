@@ -1,4 +1,4 @@
-name: "Test Run: ubuntu-20"
+name: "Test Run: Ubuntu-20"
 
 on:
   workflow_call:
@@ -123,7 +123,16 @@ jobs:
               echo "## [INFO]: ${{ github.ref }}"
               echo "## [INFO]: ${{ github.ref_name }}"
               echo "## [INFO}: ${{ github.repository }}"
-              git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git
+              ssh-keyscan github.com >> ~/.ssh/known_hosts
+              mkdir -p ~/.ssh
+              echo "${{ secrets.ELEVATE_CHECKOUT_KEY }}" > ~/.ssh/elevate_checkout_key
+              echo -e "Host github.com\n    HostName github.com\n    User root\n    IdentityFile ~/.ssh/elevate_checkout_key\n    IdentitiesOnly yes\n    HostKeyAlgorithms +ssh-rsa\n" >> ~/.ssh/config
+              chmod -v 0600 ~/.ssh/elevate_checkout_key
+              echo "## [DEBUG SECTION] ##"
+              echo && head -c50 ~/.ssh/elevate_checkout_key && echo
+              echo && cat /root/.ssh/config && echo
+              echo "## [DEBUG]: git clone --depth=1 --branch ${{ github.ref_name }} git@github.com:${{ github.repository }}.git"
+              git clone depth=1 --branch ${{ github.ref_name }} git@github.com:${{ github.repository }}.git
               hostname && pwd && ls -la
               cd /opt/$(echo ${{ github.repository }} | cut -d / -f2)
               git status
@@ -138,10 +147,20 @@ jobs:
             port: '22'
             script: |
               cd /opt
-              echo "[DEBUG]: ${{ github.ref }}"
-              echo "[DEBUG]: ${{ github.head_ref }}"
+              echo "## [INFO]: ${{ github.ref }}"
+              echo "## [INFO]: ${{ github.head_ref }}"
               echo "## [INFO}: ${{ github.repository }}"
-              git clone --depth 1 --branch ${{ github.head_ref }} https://github.com/${{ github.repository }}.git
+              ssh-keyscan github.com >> ~/.ssh/known_hosts
+              mkdir -p ~/.ssh
+              echo "${{ secrets.ELEVATE_CHECKOUT_KEY }}" > ~/.ssh/elevate_checkout_key
+              echo -e "Host github.com\n    HostName github.com\n    User root\n    IdentityFile ~/.ssh/elevate_checkout_key\n    IdentitiesOnly yes\n    HostKeyAlgorithms +ssh-rsa\n" >> ~/.ssh/config
+              chmod -v 0600 ~/.ssh/elevate_checkout_key
+              echo "## [DEBUG SECTION] ##"
+              echo && head -c50 ~/.ssh/elevate_checkout_key && echo
+              echo && cat /root/.ssh/config && echo
+              echo "## [DEBUG]: git clone --depth=1 --branch ${{ github.head_ref }} git@github.com:${{ github.repository }}.git"
+              git clone --depth=1 --branch ${{ github.head_ref }} git@github.com:${{ github.repository }}.git
+              hostname && pwd && ls -la
               cd /opt/$(echo ${{ github.repository }} | cut -d / -f2)
               git status
 
