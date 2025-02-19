@@ -5,6 +5,7 @@ on:
     - cron:  '5 * * * *'
 jobs:
     run-pruner:
+      if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
       runs-on: [self-hosted]
       env:
         ACTIONS_STEP_DEBUG: true
