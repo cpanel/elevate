@@ -64,6 +64,9 @@ sub install ($self) {
     INFO( "Installing service $name which will upgrade the server to " . $upgrade_to );
     open( my $fh, '>', $self->file ) or die;
 
+    # When leapp upgrades from AlmaLinux 8 to AlmaLinux 9, it breaks cPanel Perl
+    # Due to this, we need to ensure that we have a functioning cPanel Perl
+    # before calling elevate-cpanel --service
     print {$fh} <<~"EOF";
         [Unit]
         Description=Upgrade process from $upgrade_from to $upgrade_to.
@@ -73,6 +76,7 @@ sub install ($self) {
         Type=simple
         # want to run it once per boot time
         RemainAfterExit=yes
+        ExecStartPre=-/usr/local/cpanel/scripts/fix-cpanel-perl >/dev/null 2>&1
         ExecStart=/usr/local/cpanel/scripts/elevate-cpanel --service
         Environment="LANG=C"
         Environment="LANGUAGE=C"

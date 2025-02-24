@@ -41,6 +41,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/LiteSpeed.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/MountPoints.pm'}            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/MySQL.pm'}                  = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/NetworkManager.pm'}         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/NICs.pm'}                   = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/NixStats.pm'}               = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/OVH.pm'}                    = 'script/elevate-cpanel.PL.static';
@@ -64,6 +65,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/WPToolkit.pm'}              = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Acronis.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS.pm'}                                = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/AlmaLinux8.pm'}                     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/RHEL.pm'}                           = 'script/elevate-cpanel.PL.static';
@@ -295,6 +297,9 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use cPstrict;
 
+    use Elevate::OS     ();
+    use Elevate::Stages ();
+
     use Elevate::Components::Base ();
 
     use Elevate::Components::AbsoluteSymlinks       ();
@@ -324,6 +329,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Components::LiteSpeed              ();
     use Elevate::Components::MountPoints            ();
     use Elevate::Components::MySQL                  ();
+    use Elevate::Components::NetworkManager         ();
     use Elevate::Components::NICs                   ();
     use Elevate::Components::NixStats               ();
     use Elevate::Components::OVH                    ();
@@ -357,6 +363,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
     use Cpanel::JSON ();
+    use File::Copy   ();
 
     our @CHECKS = qw{
 
@@ -394,6 +401,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       InfluxDB
       Kernel
       LiteSpeed
+      NetworkManager
       NixStats
       PECL
       PackageRestore
@@ -421,6 +429,13 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use constant ELEVATE_BLOCKER_FILE => '/var/cpanel/elevate-blockers';
 
+    use constant ARCHIVE_BASE_PATH => '/var/cpanel/elevate_archive';
+    use constant FILES_TO_ARCHIVE => qw{
+      /var/cpanel/elevate
+      /var/cpanel/elevate-blockers
+      /var/log/elevate-cpanel.log
+    };
+
     our $_CHECK_MODE;         # for now global so we can use the helper (move it later to the object)
 
     sub _build_blockers { return []; }
@@ -445,6 +460,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         Elevate::Components::Distros::bail_out_on_inappropriate_distro();
 
+        $self->archive_elevate_files();
+
         my $blocker_file = $self->cpev->getopt('check') || ELEVATE_BLOCKER_FILE;
 
         my $has_blockers = $self->_has_blockers( $self->cpev->getopt('start') ? 0 : 1 );
@@ -467,6 +484,29 @@ BEGIN {    # Suppress load of all of these at earliest point.
         }
 
         return $has_blockers;
+    }
+
+    sub archive_elevate_files ($self) {
+        return unless Elevate::OS::should_archive_elevate_files();
+
+        return unless -s '/var/cpanel/elevate' || -s '/var/cpanel/elevate-blockers';
+
+        my $stage = Elevate::Stages::get_stage();
+        return unless $stage > cpev::VALID_STAGES();
+
+        my $archive_base_path = ARCHIVE_BASE_PATH;
+        my $archive_path      = $archive_base_path . '/' . Elevate::OS::archive_dir();
+
+        mkdir $archive_base_path unless -d $archive_base_path;
+        mkdir $archive_path      unless -d $archive_path;
+
+        foreach my $file ( FILES_TO_ARCHIVE() ) {
+            my $backup = $file;
+            $backup =~ s{/}{_}g;
+            File::Copy::mv( $file, $archive_path . '/' . $backup ) or die "Can't archive $file: $!";
+        }
+
+        return;
     }
 
     sub _has_blockers ( $self, $check_mode = 0 ) {
@@ -2211,6 +2251,9 @@ EOS
     use constant GRUB_MKCONFIG_FRAG_DIR_PATH  => '/etc/default/grub.d';
     use constant GRUB_MKCONFIG_FRAG_FILE_PATH => GRUB_MKCONFIG_FRAG_DIR_PATH . '/zzz-elevate.cfg';
     use constant CMDLINE_PATH                 => '/proc/cmdline';
+    use constant ETC_DEFAULT_GRUB_PATH        => '/etc/default/grub';
+    use constant GRUB2_MKCONFIG               => '/usr/sbin/grub2-mkconfig';
+    use constant GRUB_CFG                     => '/boot/grub2/grub.cfg';
 
     use constant EX_UNAVAILABLE => 69;
 
@@ -2282,8 +2325,35 @@ EOS
         return;
     }
 
+    sub _autofix_etc_default_grub ($self) {
+        return unless Elevate::OS::needs_grub_enable_blscfg();
+
+        my $etc_default_grub = eval { File::Slurper::read_binary(ETC_DEFAULT_GRUB_PATH) } // '';
+
+        my @lines = split "\n", $etc_default_grub;
+        my $found = 0;
+        foreach my $line (@lines) {
+            next unless $line =~ m/^\s*GRUB_ENABLE_BLSCFG/;
+            $found = 1 if $line =~ m/true/;
+            $line  = '' unless $found;
+            last;
+        }
+
+        push @lines, 'GRUB_ENABLE_BLSCFG=true' unless $found;
+
+        @lines = grep { $_ ne '' } @lines;
+        my $content = join "\n", @lines;
+        $content .= "\n";
+        File::Slurper::write_text( ETC_DEFAULT_GRUB_PATH, $content );
+
+        $self->ssystem_and_die( GRUB2_MKCONFIG, '-o', GRUB_CFG ) unless $found;
+        return;
+    }
+
     sub mark_cmdline ($self) {
         return unless _check_command_exists();
+
+        $self->_autofix_etc_default_grub();
 
         my $arg = "elevate-" . _persistent_id;
         INFO("Marking default boot entry with additional parameter \"$arg\".");
@@ -3447,6 +3517,7 @@ EOS
 
         my $inhibitors = $self->cpev->leapp->search_report_file_for_inhibitors(
             qw(
+              check_deprecated_rpm_signature
               check_detected_devices_and_drivers
               check_installed_devel_kernels
               cl_mysql_repository_setup
@@ -4168,6 +4239,38 @@ EOS
     1;
 
 }    # --- END lib/Elevate/Components/MySQL.pm
+
+{    # --- BEGIN lib/Elevate/Components/NetworkManager.pm
+
+    package Elevate::Components::NetworkManager;
+
+    use cPstrict;
+
+    use Elevate::OS               ();
+    use Elevate::SystemctlService ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    sub pre_distro_upgrade ($self) {
+        return if $self->upgrade_distro_manually();    # skip when --upgrade-distro-manually is provided
+        return unless Elevate::OS::needs_network_manager();
+
+        my $service_name = 'NetworkManager';
+        my $service      = Elevate::SystemctlService->new( name => $service_name );
+
+        return if $service->is_enabled();
+        $service->enable();
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/NetworkManager.pm
 
 {    # --- BEGIN lib/Elevate/Components/NICs.pm
 
@@ -5192,8 +5295,10 @@ EOS
             my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
             if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
-                my $pkgmgr_options = [ '--enablerepo=epel', '--enablerepo=powertools', ];
-                my @pkgs           = sort keys %$rpms;
+                my $pkgmgr_options = ['--enablerepo=epel'];
+                push( @$pkgmgr_options, '--enablerepo=powertools' ) if Elevate::OS::needs_powertools();
+                push( @$pkgmgr_options, '--enablerepo=crb' )        if Elevate::OS::needs_crb();
+                my @pkgs = sort keys %$rpms;
                 Elevate::PkgMgr::install_with_options( $pkgmgr_options, \@pkgs );
             }
         }
@@ -5714,6 +5819,25 @@ EOS
         $self->run_once("_disable_yum_plugin_fastestmirror");
         $self->run_once("_disable_known_yum_repositories");
         $self->run_once("_fixup_epel_repo");
+        $self->run_once("_remove_excludes");
+
+        return;
+    }
+
+    sub _remove_excludes ($self) {
+        return unless Elevate::OS::needs_leapp();
+
+        INFO('Removing excludes from /etc/yum.conf');
+        my $txt   = eval { File::Slurper::read_text("/etc/yum.conf") };
+        my @lines = split "\n", $txt;
+        foreach my $line (@lines) {
+            next unless $line =~ /^\s*exclude\s*=/;
+            $line = '';
+        }
+
+        my $config = join "\n", @lines;
+        $config .= "\n";
+        File::Slurper::write_text( "/etc/yum.conf", $config );
 
         return;
     }
@@ -5906,7 +6030,8 @@ EOS
             }
         }
 
-        if ( opendir( my $dfh, '/var/lib/yum' ) ) {
+        my $lib_path = Elevate::OS::pkgmgr_lib_path();
+        if ( opendir( my $dfh, $lib_path ) ) {
             my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
             if (@transactions) {
                 WARN('There are unfinished yum transactions remaining.');
@@ -5940,11 +6065,11 @@ EOS
         }
         else {
             my $err = $!;    # Don't want to accidentally lose the error
-            ERROR(qq{Could not read directory '/var/lib/yum': $err});
+            ERROR(qq{Could not read directory $lib_path: $err});
             my $id = ref($self) . '::YumDirUnreadable';
 
             return $self->has_blocker(
-                qq{Could not read directory '/var/lib/yum': $err},
+                qq{Could not read directory $lib_path: $err},
                 info => {
                     name  => $id,
                     error => $err,
@@ -6245,6 +6370,7 @@ EOS
         }
 
         Elevate::PkgMgr::config_manager_enable('powertools') if Elevate::OS::needs_powertools();
+        Elevate::PkgMgr::config_manager_enable('crb')        if Elevate::OS::needs_crb();
 
         unlink('/usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm');
         {
@@ -6517,7 +6643,11 @@ EOS
           leapp-repository-deps
           leapp-upgrade-el7toel8
           leapp-upgrade-el7toel8-deps
+          leapp-upgrade-el8toel9
+          leapp-upgrade-el8toel9-deps
           python2-leapp
+          python3-leapp
+          snactor
         };
 
         INFO('Removing packages provided by leapp');
@@ -6530,29 +6660,30 @@ EOS
     sub _warn_about_other_modules_that_did_not_convert ($self) {
         my $installed_packages = Elevate::PkgMgr::get_installed_pkgs();
 
-        my @el7_installed_packages;
+        my @el_installed_packages;
         foreach my $pkg ( sort keys %$installed_packages ) {
-            if ( $installed_packages->{$pkg} =~ m/el7/ ) {
-                push @el7_installed_packages, "$pkg-$installed_packages->{$pkg}";
+            my $el_package_regex = Elevate::OS::el_package_regex();
+            if ( $installed_packages->{$pkg} =~ m/\Q$el_package_regex\E/ ) {
+                push @el_installed_packages, "$pkg-$installed_packages->{$pkg}";
             }
         }
 
-        my @el7_packages_minus_exemptions;
-        foreach my $pkg (@el7_installed_packages) {
+        my @el_packages_minus_exemptions;
+        foreach my $pkg (@el_installed_packages) {
             next if grep { $pkg =~ m/$_/ } EXEMPTED_PACKAGES();
-            push @el7_packages_minus_exemptions, $pkg;
+            push @el_packages_minus_exemptions, $pkg;
         }
 
-        return unless @el7_packages_minus_exemptions;
+        return unless @el_packages_minus_exemptions;
 
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
         my $msg = "The following packages should probably be removed as they will not function on $pretty_distro_name\n\n";
-        foreach my $pkg (@el7_packages_minus_exemptions) {
+        foreach my $pkg (@el_packages_minus_exemptions) {
             $msg .= "    $pkg\n";
         }
 
-        $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @el7_packages_minus_exemptions ) . "\n";
+        $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @el_packages_minus_exemptions ) . "\n";
 
         Elevate::Notify::add_final_notification($msg);
 
@@ -6990,6 +7121,7 @@ EOS
     INIT { Log::Log4perl->import(qw{:easy}); }
 
     use constant SUPPORTED_DISTROS => (
+        'AlmaLinux 8',
         'CentOS 7',
         'CloudLinux 7',
         'Ubuntu 20',
@@ -7004,6 +7136,7 @@ EOS
         my $major;
         if ( !$distro_with_version ) {
             $distro              = Cpanel::OS::distro();    ## no critic(Cpanel::CpanelOS)
+            $distro              = 'AlmaLinux'  if $distro eq 'almalinux';
             $distro              = 'CentOS'     if $distro eq 'centos';
             $distro              = 'CloudLinux' if $distro eq 'cloudlinux';
             $distro              = 'Ubuntu'     if $distro eq 'ubuntu';
@@ -7043,14 +7176,14 @@ EOS
     BEGIN {
 
         %methods = map { $_ => 0 } (
+            'archive_dir',                          # This is the dir to archive logs from successful elevations into
             'bootloader_config_method',             # This describes the canonical way to configure GRUB2
             'default_upgrade_to',                   # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
             'disable_mysql_yum_repos',              # This is a list of mysql repo files to disable
             'ea_alias',                             # This is the value for the --target-os flag used when backing up an EA4 profile
+            'el_package_regex',                     # This is the regex used to determine if old packages are still installed
             'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
             'expected_post_upgrade_major',          # The OS version we expect to upgrade to
-            'leapp_repo_prod',                      # This is the repo name for the production repo.
-            'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
             'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
             'is_experimental',                      # This is used to determine if upgrades for this OS are experimental
             'is_supported',                         # This is used to determine if the OS is supported or not
@@ -7058,17 +7191,24 @@ EOS
             'leapp_can_handle_kernelcare',          # This is used to determine if we can skip the kernelcare component or not
             'leapp_data_pkg',                       # This is used to determine which leapp data package to install
             'leapp_flag',                           # This is used to determine if we need to pass any flags to the leapp script or not
+            'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
+            'leapp_repo_prod',                      # This is the repo name for the production repo.
             'lts_supported',                        # This is the major cPanel version supported for this OS
             'name',                                 # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+            'needs_crb',                            # This is used to determine if the OS requires the crb repo
             'needs_do_release_upgrade',             # This is used to determine if the OS requires the do-release-upgrade utility to upgrade
             'needs_epel',                           # This is used to determine if the OS requires the epel repo
+            'needs_grub_enable_blscfg',             # This is a necessary config in /etc/dfault/grub in AlmaLinux 8 to ensure that it is fully managed by grub2
             'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
+            'needs_network_manager',                # This is used to determine if the NetworkManager servoce needs to be enabled prior to running leapp
             'needs_powertools',                     # This is used to determine if the OS requires the powertools repo
             'original_os_major',                    # The initial starting OS major version
             'package_manager',                      # This is the package manager that the OS uses.  i.e. RPM
+            'pkgmgr_lib_path',                      # The path to the package manager's database directory
             'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
             'remove_els',                           # This is used to indicate if we are to remove ELS for this OS
+            'should_archive_elevate_files',         # This is used to determine if existing elevate logs should be archived
             'should_check_cloudlinux_license',      # This is used to determine if we should check the cloudlinux license
             'skip_minor_version_check',             # Used to determine if we need to skip the minor version check for the OS
             'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to
@@ -7117,6 +7257,53 @@ EOS
 
 }    # --- END lib/Elevate/OS.pm
 
+{    # --- BEGIN lib/Elevate/OS/AlmaLinux8.pm
+
+    package Elevate::OS::AlmaLinux8;
+
+    use cPstrict;
+
+    # use Elevate::OS::RHEL();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::OS::RHEL); }
+
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      10.5
+      10.6
+      10.11
+      11.4
+    };
+
+    use constant archive_dir                  => 'CentOS7-to-AlmaLinux8';
+    use constant default_upgrade_to           => 'AlmaLinux';
+    use constant ea_alias                     => 'CentOS_9';
+    use constant el_package_regex             => 'el8';
+    use constant elevate_rpm_url              => 'https://repo.almalinux.org/elevate/elevate-release-latest-el8.noarch.rpm';
+    use constant expected_post_upgrade_major  => 9;
+    use constant is_experimental              => 1;
+    use constant leapp_data_pkg               => 'leapp-data-almalinux';
+    use constant lts_supported                => 126;
+    use constant name                         => 'AlmaLinux8';
+    use constant needs_crb                    => 1;
+    use constant needs_grub_enable_blscfg     => 1;
+    use constant needs_network_manager        => 1;
+    use constant original_os_major            => 8;
+    use constant pkgmgr_lib_path              => '/var/lib/dnf';
+    use constant pretty_name                  => 'AlmaLinux 8';
+    use constant should_archive_elevate_files => 1;
+    use constant upgrade_to_pretty_name       => 'AlmaLinux 9';
+
+    sub vetted_yum_repo ($self) {
+        my @repos = $self->SUPER::vetted_yum_repo();
+        push @repos, 'powertools', 'appstream';
+        return @repos;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/OS/AlmaLinux8.pm
+
 {    # --- BEGIN lib/Elevate/OS/CentOS7.pm
 
     package Elevate::OS::CentOS7;
@@ -7127,14 +7314,27 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::OS::RHEL); }
 
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      10.3
+      10.4
+      10.5
+      10.6
+      10.11
+      11.4
+    };
+
     use constant default_upgrade_to          => 'AlmaLinux';
     use constant ea_alias                    => 'CentOS_8';
+    use constant el_package_regex            => 'el7';
     use constant elevate_rpm_url             => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
     use constant expected_post_upgrade_major => 8;
     use constant leapp_data_pkg              => 'leapp-data-almalinux';
-    use constant leapp_repo_prod             => 'elevate';
+    use constant lts_supported               => 110;
     use constant name                        => 'CentOS7';
+    use constant needs_powertools            => 1;
     use constant original_os_major           => 7;
+    use constant pkgmgr_lib_path             => '/var/lib/yum';
     use constant pretty_name                 => 'CentOS 7';
     use constant remove_els                  => 1;
     use constant upgrade_to_pretty_name      => 'AlmaLinux 8';
@@ -7161,18 +7361,31 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::OS::RHEL); }
 
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      10.3
+      10.4
+      10.5
+      10.6
+      10.11
+      11.4
+    };
+
     use constant default_upgrade_to              => 'CloudLinux';
     use constant ea_alias                        => 'CloudLinux_8';
+    use constant el_package_regex                => 'el7';
     use constant elevate_rpm_url                 => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
     use constant expected_post_upgrade_major     => 8;
-    use constant leapp_repo_prod                 => 'elevate';
     use constant leapp_repo_beta                 => 'elevate-updates-testing';
     use constant leapp_can_handle_imunify        => 1;
     use constant leapp_can_handle_kernelcare     => 1;
     use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
     use constant leapp_flag                      => '--nowarn';
+    use constant lts_supported                   => 110;
     use constant name                            => 'CloudLinux7';
+    use constant needs_powertools                => 1;
     use constant original_os_major               => 7;
+    use constant pkgmgr_lib_path                 => '/var/lib/yum';
     use constant pretty_name                     => 'CloudLinux 7';
     use constant provides_mysql_governor         => 1;
     use constant should_check_cloudlinux_license => 1;
@@ -7223,7 +7436,7 @@ EOS
         qr/^mysql-tools-community(?:-(?:source|debuginfo))?$/,
         qr/^mysql-tools-preview(?:-source)?$/,
         qr/^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$/,
-        qr/^MariaDB[0-9]{3}$/,
+        qr/^MariaDB[0-9]+$/,
     );
 
     use constant vetted_yum_repo => (
@@ -7261,47 +7474,49 @@ EOS
       ),
       vetted_mysql_yum_repo_ids;
 
-    use constant supported_cpanel_mysql_versions => qw{
-      8.0
-      10.3
-      10.4
-      10.5
-      10.6
-    };
-
     use constant supported_cpanel_nameserver_types => qw{
       bind
       disabled
       powerdns
     };
 
+    use constant archive_dir                     => undef;
     use constant bootloader_config_method        => 'grubby';
     use constant default_upgrade_to              => undef;
     use constant ea_alias                        => undef;
+    use constant el_package_regex                => undef;
     use constant elevate_rpm_url                 => undef;
+    use constant expected_post_upgrade_major     => undef;
     use constant is_apt_based                    => 0;
     use constant is_experimental                 => 0;
     use constant is_supported                    => 1;
     use constant leapp_can_handle_imunify        => 0;
     use constant leapp_can_handle_kernelcare     => 0;
-    use constant leapp_data_package              => undef;
+    use constant leapp_data_pkg                  => undef;
     use constant leapp_flag                      => undef;
-    use constant lts_supported                   => 110;
+    use constant leapp_repo_beta                 => '';
+    use constant leapp_repo_prod                 => 'elevate';
+    use constant lts_supported                   => undef;
     use constant name                            => 'RHEL';
+    use constant needs_crb                       => 0;
     use constant needs_do_release_upgrade        => 0;
     use constant needs_epel                      => 1;
+    use constant needs_grub_enable_blscfg        => 0;
     use constant needs_leapp                     => 1;
-    use constant needs_powertools                => 1;
+    use constant needs_network_manager           => 0;
+    use constant needs_powertools                => 0;
     use constant package_manager                 => 'YUM';
+    use constant pkgmgr_lib_path                 => undef;
     use constant pretty_name                     => 'RHEL';
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
+    use constant should_archive_elevate_files    => 0;
     use constant should_check_cloudlinux_license => 0;
+    use constant skip_minor_version_check        => 0;
+    use constant supported_cpanel_mysql_versions => undef;
     use constant supports_jetbackup              => 1;
     use constant supports_kernelcare             => 1;
     use constant supports_postgresql             => 1;
-    use constant skip_minor_version_check        => 0;
-    use constant leapp_repo_beta                 => '';         # Unavailable by default.
     use constant upgrade_to_pretty_name          => undef;
     use constant vetted_apt_lists                => {};
 
@@ -7315,10 +7530,17 @@ EOS
 
     use cPstrict;
 
+    use constant supported_cpanel_nameserver_types => qw{
+      disabled
+      powerdns
+    };
+
+    use constant archive_dir                     => undef;
     use constant bootloader_config_method        => 'grub-mkconfig';
     use constant default_upgrade_to              => undef;
     use constant disable_mysql_yum_repos         => undef;
     use constant ea_alias                        => undef;
+    use constant el_package_regex                => undef;
     use constant elevate_rpm_url                 => undef;
     use constant is_apt_based                    => 1;
     use constant is_experimental                 => 0;
@@ -7331,16 +7553,22 @@ EOS
     use constant leapp_repo_prod                 => undef;
     use constant lts_supported                   => 118;
     use constant name                            => 'Ubuntu';
+    use constant needs_crb                       => 0;
     use constant needs_do_release_upgrade        => 1;
     use constant needs_epel                      => 0;
+    use constant needs_grub_enable_blscfg        => 0;
     use constant needs_leapp                     => 0;
+    use constant needs_network_manager           => 0;
     use constant needs_powertools                => 0;
     use constant package_manager                 => 'APT';
+    use constant pkgmgr_lib_path                 => undef;
     use constant pretty_name                     => 'Ubuntu';
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
+    use constant should_archive_elevate_files    => 0;
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 1;
+    use constant supported_cpanel_mysql_versions => undef;
     use constant supports_jetbackup              => 0;
     use constant supports_kernelcare             => 0;
     use constant supports_postgresql             => 0;
@@ -7399,15 +7627,8 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
       10.11
     };
 
-    use constant supported_cpanel_nameserver_types => qw{
-      disabled
-      powerdns
-    };
-
-    use constant default_upgrade_to => 'Ubuntu';
-
-    use constant ea_alias => 'Ubuntu_22.04';
-
+    use constant default_upgrade_to          => 'Ubuntu';
+    use constant ea_alias                    => 'Ubuntu_22.04';
     use constant expected_post_upgrade_major => 22;
     use constant is_experimental             => 0;
     use constant name                        => 'Ubuntu20';
@@ -8483,6 +8704,9 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
     }
 
     sub _imunify360_is_installed_and_provides_hardened_php () {
+
+        return 0 if Elevate::OS::name() eq 'AlmaLinux8';
+
         return 0 unless -x IMUNIFY_AGENT;
 
         my $out          = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{version --json} );
@@ -9585,6 +9809,7 @@ EOS
         [Service]
         Type=simple
         RemainAfterExit=yes
+        ExecStartPre=-/usr/local/cpanel/scripts/fix-cpanel-perl >/dev/null 2>&1
         ExecStart=/usr/local/cpanel/scripts/elevate-cpanel --service
         Environment="LANG=C"
         Environment="LANGUAGE=C"
@@ -10267,6 +10492,7 @@ use Elevate::Components::Lists                  ();
 use Elevate::Components::LiteSpeed              ();
 use Elevate::Components::MountPoints            ();
 use Elevate::Components::MySQL                  ();
+use Elevate::Components::NetworkManager         ();
 use Elevate::Components::NICs                   ();
 use Elevate::Components::NixStats               ();
 use Elevate::Components::OVH                    ();
@@ -10292,6 +10518,7 @@ use Elevate::Components::Acronis                ();
 
 # - fatpack OS
 use Elevate::OS              ();
+use Elevate::OS::AlmaLinux8  ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
@@ -10517,23 +10744,14 @@ sub start ($self) {
     return 1 unless _sanity_check();
 
     my $stage = Elevate::Stages::get_stage();
-    if ( $stage != 0 ) {
-        my $header;
-        if ( $stage > VALID_STAGES ) {
-            $header = q[The 'elevate-cpanel' script has already been executed on this server.];
-        }
-        else {
-            $header = qq[An elevation process is currently in progress: running stage $stage];
-        }
-
+    if ( $stage != 0 && $stage <= VALID_STAGES ) {
         die <<~"EOS";
-        $header
+        An elevation process is currently in progress: running stage $stage
         You can check the log by running:
             /scripts/elevate-cpanel --log
         or check the elevation status:
             /scripts/elevate-cpanel --status
         EOS
-
     }
 
     # Check for blockers before starting the migration
@@ -10849,8 +11067,8 @@ sub _run_service ($self) {
     $self->_wait_on_pause();    # handle pause when requested
 
     # sanity check
-    if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {    ## no critic(Cpanel::CpanelOS)
-        WARN( "Detected " . Cpanel::OS::pretty_distro() . " while running stage $stage: swtiching to stage 4" );
+    if ( Cpanel::OS::major() != Elevate::OS::original_os_major() && 2 <= $stage && $stage <= 3 ) {    ## no critic(Cpanel::CpanelOS)
+        WARN( "Detected " . Cpanel::OS::pretty_distro() . ' ' . Cpanel::OS::major() . " while running stage $stage: switching to stage 4" );    ## no critic(Cpanel::CpanelOS)
         $stage = 4;
         Elevate::Stages::update_stage_number($stage);
     }
@@ -11025,7 +11243,8 @@ sub run_stage_3 ($self) {
 
     # The server should not reboot between executing this
     # and executing do-release-upgrade
-    $self->run_component_once( 'Ufw' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Ufw'            => 'pre_distro_upgrade' );
+    $self->run_component_once( 'NetworkManager' => 'pre_distro_upgrade' );
 
     if ( $self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
@@ -11409,6 +11628,7 @@ sub post_distro_upgrade_update_restore ($self) {
         my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
         if ( length $txt ) {
             $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
+            $txt =~ s/\s*leapp-upgrade-el8toel9,python3-leapp,leapp,snactor//ms;
             File::Slurper::write_text( "/etc/yum.conf", $txt );
         }
     }

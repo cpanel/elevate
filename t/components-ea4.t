@@ -114,9 +114,9 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
     return;
 }
 
-sub test_missing_ea4_profile : Test(9) ($self) {
+sub test_missing_ea4_profile : Test(12) ($self) {
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         $self->{mock_saferun}->redefine(
@@ -199,9 +199,9 @@ EOS
     return;
 }
 
-sub test_get_ea4_profile_check_mode : Test(26) ($self) {
+sub test_get_ea4_profile_check_mode : Test(33) ($self) {
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         my $output = qq[void\n];
@@ -233,6 +233,7 @@ sub test_get_ea4_profile_check_mode : Test(26) ($self) {
         my $expected_target =
             $os eq 'cent'  ? 'CentOS_8'
           : $os eq 'cloud' ? 'CloudLinux_8'
+          : $os eq 'alma'  ? 'CentOS_9'
           :                  'Ubuntu_22.04';
         message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
         message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
@@ -273,7 +274,7 @@ sub backup_non_existing_profile : Test(34) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         like(
@@ -303,7 +304,7 @@ sub backup_non_existing_profile : Test(34) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile : Test(18) ($self) {
+sub test_backup_and_restore_ea4_profile : Test(23) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
@@ -316,7 +317,7 @@ sub test_backup_and_restore_ea4_profile : Test(18) ($self) {
 
     $self->_update_profile_file($profile);
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         is( $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4" );
@@ -332,11 +333,11 @@ sub test_backup_and_restore_ea4_profile : Test(18) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_dropped_packages : Test(42) ($self) {
+sub test_backup_and_restore_ea4_profile_dropped_packages : Test(56) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         my $profile = {
@@ -389,11 +390,11 @@ EOS
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(36) ($self) {
+sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(48) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         my $profile = {
@@ -454,8 +455,8 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(36) ($se
 
 }
 
-sub test_backup_and_restore_config_files : Test(30) ($self) {
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+sub test_backup_and_restore_config_files : Test(40) ($self) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         my %config_files_restored;
@@ -665,7 +666,7 @@ Please remove these packages before continuing the update.
     return;
 }
 
-sub test_blocker_incompatible_package : Test(16) ($self) {
+sub test_blocker_incompatible_package : Test(21) ($self) {
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');
@@ -690,7 +691,7 @@ sub test_blocker_incompatible_package : Test(16) ($self) {
 
     # only testing the blocking case
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();
@@ -723,7 +724,7 @@ EOS
     return;
 }
 
-sub test_blocker_behavior : Test(75) ($self) {
+sub test_blocker_behavior : Test(101) ($self) {
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');
@@ -733,7 +734,7 @@ sub test_blocker_behavior : Test(75) ($self) {
     my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
     $mock_elevate_ea4->redefine( backup => sub { return; } );
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         my $target_os = Elevate::OS::upgrade_to_pretty_name();

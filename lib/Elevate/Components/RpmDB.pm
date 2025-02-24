@@ -18,7 +18,7 @@ noop
 =head2 post_distro_upgrade
 
 1. Install EPEL repo
-2. Ensure epel and powertools repos are enabled
+2. Ensure epel, powertools, and crb repos are enabled
 3. Force Perl reinstall
 4. Update all packages
 5. Execute sysup
@@ -107,6 +107,7 @@ sub _sysup ($self) {
     }
 
     Elevate::PkgMgr::config_manager_enable('powertools') if Elevate::OS::needs_powertools();
+    Elevate::PkgMgr::config_manager_enable('crb')        if Elevate::OS::needs_crb();
 
     # Break cpanel-perl (NOTE: This only works on perl 5.36)
     unlink('/usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm');

@@ -48,7 +48,7 @@ my $cl   = $cpev->get_blocker('CloudLinux');
         },
     );
 
-    foreach my $os (qw{ cent ubuntu }) {
+    foreach my $os (qw{ cent ubuntu alma }) {
         set_os_to($os);
 
         my $name = $os eq 'cent' ? 'CentOS' : 'Ubuntu';

@@ -35,7 +35,7 @@ my $cpev = cpev->new;
 my $dns  = $cpev->get_blocker('DNS');
 
 {
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
         my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();
         $cpconf = { 'local_nameserver_type' => 'nsd' };
@@ -66,7 +66,7 @@ my $dns  = $cpev->get_blocker('DNS');
         is( $dns->check(), 0, "if they use no dns, we're ok" );
     }
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'alma' ) {
         set_os_to($os);
         $cpconf = { 'local_nameserver_type' => 'bind' };
         is( $dns->check(), 0, "if they use bind, we're ok" );

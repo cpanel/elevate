@@ -72,6 +72,25 @@ sub pre_distro_upgrade ($self) {
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
     $self->run_once("_fixup_epel_repo");
+    $self->run_once("_remove_excludes");
+
+    return;
+}
+
+sub _remove_excludes ($self) {
+    return unless Elevate::OS::needs_leapp();
+
+    INFO('Removing excludes from /etc/yum.conf');
+    my $txt   = eval { File::Slurper::read_text("/etc/yum.conf") };
+    my @lines = split "\n", $txt;
+    foreach my $line (@lines) {
+        next unless $line =~ /^\s*exclude\s*=/;
+        $line = '';
+    }
+
+    my $config = join "\n", @lines;
+    $config .= "\n";
+    File::Slurper::write_text( "/etc/yum.conf", $config );
 
     return;
 }
@@ -267,7 +286,8 @@ sub _yum_is_stable ($self) {
         }
     }
 
-    if ( opendir( my $dfh, '/var/lib/yum' ) ) {
+    my $lib_path = Elevate::OS::pkgmgr_lib_path();
+    if ( opendir( my $dfh, $lib_path ) ) {
         my @transactions = grep { m/^transaction-all\./ } readdir $dfh;
         if (@transactions) {
             WARN('There are unfinished yum transactions remaining.');
@@ -301,11 +321,11 @@ sub _yum_is_stable ($self) {
     }
     else {
         my $err = $!;    # Don't want to accidentally lose the error
-        ERROR(qq{Could not read directory '/var/lib/yum': $err});
+        ERROR(qq{Could not read directory $lib_path: $err});
         my $id = ref($self) . '::YumDirUnreadable';
 
         return $self->has_blocker(
-            qq{Could not read directory '/var/lib/yum': $err},
+            qq{Could not read directory $lib_path: $err},
             info => {
                 name  => $id,
                 error => $err,

@@ -31,67 +31,71 @@ my $comp = cpev->new->get_component('Leapp');
 {
     note 'Test blocker when --upgrade-distro-manually is passed';
 
-    set_os_to('cent');
+    foreach my $os (qw{ cent alma }) {
+        set_os_to($os);
 
-    $mock_elevate_comp->redefine(
-        num_blockers_found => sub { "do not call\n"; },
-    );
+        $mock_elevate_comp->redefine(
+            num_blockers_found => sub { "do not call\n"; },
+        );
 
-    $mock_comp->redefine(
-        is_check_mode => 1,
-    );
+        $mock_comp->redefine(
+            is_check_mode => 1,
+        );
 
-    is( $comp->check(), undef, 'Returns early if in check mode' );
+        is( $comp->check(), undef, 'Returns early if in check mode' );
 
-    $mock_comp->redefine(
-        is_check_mode => 0,
-    );
+        $mock_comp->redefine(
+            is_check_mode => 0,
+        );
+    }
 
     set_os_to('ubuntu');
     is( $comp->check(), undef, 'Returns early if the OS does not rely on leapp to upgrade' );
 
-    set_os_to('cent');
+    foreach my $os (qw{ cent alma }) {
+        set_os_to($os);
 
-    $mock_leapp->redefine(
-        install => sub { die "Do not call\n"; },
-    );
+        $mock_leapp->redefine(
+            install => sub { die "Do not call\n"; },
+        );
 
-    $mock_elevate_comp->redefine(
-        num_blockers_found => 1,
-    );
+        $mock_elevate_comp->redefine(
+            num_blockers_found => 1,
+        );
 
-    is( $comp->check(), undef, 'Returns early if there are existing blockers found' );
+        is( $comp->check(), undef, 'Returns early if there are existing blockers found' );
 
-    my $num_blockers_found = 0;
-    $mock_elevate_comp->redefine(
-        num_blockers_found => sub { return $num_blockers_found; },
-    );
+        my $num_blockers_found = 0;
+        $mock_elevate_comp->redefine(
+            num_blockers_found => sub { return $num_blockers_found; },
+        );
 
-    $mock_comp->redefine(
-        _check_for_inhibitors   => sub { $num_blockers_found++; return; },
-        _check_for_fatal_errors => 0,
-    );
+        $mock_comp->redefine(
+            _check_for_inhibitors   => sub { $num_blockers_found++; return; },
+            _check_for_fatal_errors => 0,
+        );
 
-    my $preupgrade_out;
-    $mock_leapp->redefine(
-        install    => 1,
-        preupgrade => sub { return $preupgrade_out; },
-    );
+        my $preupgrade_out;
+        $mock_leapp->redefine(
+            install    => 1,
+            preupgrade => sub { return $preupgrade_out; },
+        );
 
-    $preupgrade_out = {
-        status => 0,
-    };
+        $preupgrade_out = {
+            status => 0,
+        };
 
-    is( $comp->check(), undef, 'No blockers returns if leapp preupgrade returns clean' );
-    no_messages_seen();
+        is( $comp->check(), undef, 'No blockers returns if leapp preupgrade returns clean' );
+        no_messages_seen();
 
-    $preupgrade_out = {
-        status => 42,
-    };
+        $preupgrade_out = {
+            status => 42,
+        };
 
-    is( $comp->check(), undef, 'Returns undef' );
-    message_seen( INFO => qr/Leapp found issues which would prevent the upgrade/ );
-    no_messages_seen();
+        is( $comp->check(), undef, 'Returns undef' );
+        message_seen( INFO => qr/Leapp found issues which would prevent the upgrade/ );
+        no_messages_seen();
+    }
 }
 
 done_testing();

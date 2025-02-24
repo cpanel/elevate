@@ -58,7 +58,7 @@ my $jb   = $cpev->get_blocker('JetBackup');
 
     my $jb_mock = Test::MockModule->new('Elevate::Components::JetBackup');
 
-    for my $os ( 'cent', 'cloud' ) {
+    for my $os ( 'cent', 'cloud', 'alma' ) {
         set_os_to($os);
 
         my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();
@@ -84,7 +84,7 @@ my $jb   = $cpev->get_blocker('JetBackup');
 
     my $jb_mock = Test::MockModule->new('Elevate::Components::JetBackup');
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
 
         my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();

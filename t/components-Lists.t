@@ -34,9 +34,11 @@ my $comp = cpev->new->get_component('Lists');
 {
     note 'Lists blockers';
 
-    set_os_to('cent');
-    is( $comp->check(), 1, 'Returns early if the system does not use the apt package manager' );
-    no_messages_seen();
+    foreach my $os (qw{ cent alma }) {
+        set_os_to($os);
+        is( $comp->check(), 1, 'Returns early if the system does not use the apt package manager' );
+        no_messages_seen();
+    }
 
     set_os_to('ubuntu');
 
@@ -154,13 +156,15 @@ my $comp = cpev->new->get_component('Lists');
         'The expected list files were updated',
     );
 
-    set_os_to('cent');
+    foreach my $os (qw{ cent alma }) {
+        set_os_to($os);
 
-    $mock_comp->redefine(
-        update_list_files => sub { die "Do not call\n"; },
-    );
+        $mock_comp->redefine(
+            update_list_files => sub { die "Do not call\n"; },
+        );
 
-    is( $comp->post_distro_upgrade(), undef, 'Returns early on systems that do not rely on apt' );
+        is( $comp->post_distro_upgrade(), undef, 'Returns early on systems that do not rely on apt' );
+    }
 }
 
 done_testing();

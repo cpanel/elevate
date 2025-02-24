@@ -31,6 +31,9 @@ use constant UPDATE_GRUB_PATH             => '/usr/sbin/update-grub';           
 use constant GRUB_MKCONFIG_FRAG_DIR_PATH  => '/etc/default/grub.d';
 use constant GRUB_MKCONFIG_FRAG_FILE_PATH => GRUB_MKCONFIG_FRAG_DIR_PATH . '/zzz-elevate.cfg';
 use constant CMDLINE_PATH                 => '/proc/cmdline';
+use constant ETC_DEFAULT_GRUB_PATH        => '/etc/default/grub';
+use constant GRUB2_MKCONFIG               => '/usr/sbin/grub2-mkconfig';
+use constant GRUB_CFG                     => '/boot/grub2/grub.cfg';
 
 # In place of Unix::Sysexits:
 use constant EX_UNAVAILABLE => 69;
@@ -103,8 +106,35 @@ sub _check_command_exists {
     return;
 }
 
+sub _autofix_etc_default_grub ($self) {
+    return unless Elevate::OS::needs_grub_enable_blscfg();
+
+    my $etc_default_grub = eval { File::Slurper::read_binary(ETC_DEFAULT_GRUB_PATH) } // '';
+
+    my @lines = split "\n", $etc_default_grub;
+    my $found = 0;
+    foreach my $line (@lines) {
+        next unless $line =~ m/^\s*GRUB_ENABLE_BLSCFG/;
+        $found = 1 if $line =~ m/true/;
+        $line  = '' unless $found;
+        last;
+    }
+
+    push @lines, 'GRUB_ENABLE_BLSCFG=true' unless $found;
+
+    @lines = grep { $_ ne '' } @lines;
+    my $content = join "\n", @lines;
+    $content .= "\n";
+    File::Slurper::write_text( ETC_DEFAULT_GRUB_PATH, $content );
+
+    $self->ssystem_and_die( GRUB2_MKCONFIG, '-o', GRUB_CFG ) unless $found;
+    return;
+}
+
 sub mark_cmdline ($self) {
     return unless _check_command_exists();
+
+    $self->_autofix_etc_default_grub();
 
     my $arg = "elevate-" . _persistent_id;
     INFO("Marking default boot entry with additional parameter \"$arg\".");
