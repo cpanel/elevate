@@ -112,7 +112,7 @@ jobs:
 
         - name: Checkout Repo and Commit
           if: github.event_name != 'pull_request'
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -136,7 +136,7 @@ jobs:
 
         - name: Checking out Repo and Pull Request
           if: github.event_name == 'pull_request'
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -182,7 +182,7 @@ jobs:
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
 
         - name: Setup for Integration Checks Prior to Running Elevate
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -217,21 +217,24 @@ jobs:
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
 
         - name: Update CloudLinux License And Setup Server For ELevate
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
+          env:
+            CLOUDLINUX_LICENSE_KEY: "${{ secrets.CLOUDLINUX_LICENSE_KEY }}"
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             port: '22'
+            envs: CLOUDLINUX_LICENSE_KEY
             timeout: 30m
             command_timeout: 30m
             script: |
               /usr/local/cpanel/scripts/post_snapshot --yes
               while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking your Update Manager."; sleep 1; done
               echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
-              /usr/sbin/rhnreg_ks --activationkey=${{ secrets.CLOUDLINUX_LICENSE_KEY }} --force
-              /usr/bin/cldetect --update-license
-              /usr/bin/cldetect --check-license
+              echo "## [INFO]: /usr/sbin/rhnreg_ks --activationkey=${CLOUDLINUX_LICENSE_KEY:0:2}****" --force && /usr/sbin/rhnreg_ks --activationkey=$CLOUDLINUX_LICENSE_KEY --force
+              echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
+              echo "## [INFO]: Now running /usr/bin/cldetect --check-license" && /usr/bin/cldetect --check-license
               until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
               /usr/bin/yum erase -y awscli
               echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo=cloudlinux-x86_64-server --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
@@ -247,9 +250,16 @@ jobs:
               cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
               /scripts/restartsrv_mysql
               chmod -v +x /scripts/elevate-cpanel
+              shutdown -r "Restarting system after updates before we ELevate." +0.5&
+              exit 0
 
-        - name: Starting Elevate
-          uses: appleboy/ssh-action@v1.1.0
+        - name: Wait For VM to Come Back From Reboot Prior to Running ELevate
+          working-directory: "./.github/workflows/openstack/"
+          run: |
+            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
+ 
+        - name: Start Elevate
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -283,6 +293,7 @@ jobs:
           env:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
+
         - name: Wait For VM to Come Back From Initial Reboot
           working-directory: "./.github/workflows/openstack/"
           run: |
@@ -311,7 +322,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Reboot from Stage 1 into Stage 2
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -376,7 +387,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Stage 3 Reboot
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -441,7 +452,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Stage 4 Reboot
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -505,7 +516,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Stage 5 Reboot
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -569,7 +580,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Monitor Elevate for Final Reboot
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
@@ -633,7 +644,7 @@ jobs:
             VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
           run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
         - name: Verify End Result Integration Tests
-          uses: appleboy/ssh-action@v1.1.0
+          uses: appleboy/ssh-action@v1.2.1
           with:
             host: ${{ steps.VM_IP.outputs.VM_IP }}
             username: 'root'
