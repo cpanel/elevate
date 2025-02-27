@@ -20,7 +20,7 @@ variable "github_run_id" {
 }
 
 variable "os_region_name" {
-  type = string
+  type    = string
   default = "RegionOne"
 }
 
