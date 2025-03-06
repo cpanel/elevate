@@ -69,5 +69,26 @@ require $FindBin::Bin . '/../elevate-cpanel';
     }
 }
 
+{
+    note 'Test PkgMgr::APT::makecache filtering';
+
+    set_os_to_ubuntu_20();
+
+    my $mock_pkgmgr = Test::MockModule->new('Elevate::Roles::Run');
+    $mock_pkgmgr->redefine(
+        ssystem_capture_output => {
+            stderr => [
+                'something',
+                'WARNING: apt does not have a stable CLI interface. Use with caution in scripts.',
+                'W: https://wp-toolkit.plesk.com/cPanel/Ubuntu-20.04-x86_64/6.6.4/wp-toolkit/./InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.',
+                'something else',
+            ],
+        }
+    );
+
+    my $obj = Elevate::PkgMgr::instance();
+    is( $obj->makecache(), "something\nsomething else", "makecache() filters the stderr text which is irrelevant" );
+}
+
 done_testing();
 exit;

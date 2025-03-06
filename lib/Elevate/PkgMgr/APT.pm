@@ -228,7 +228,7 @@ sub update_allow_erasing ( $self, @additional_args ) {
 
 sub makecache ($self) {
     my $out    = $self->ssystem_capture_output( $apt_get, 'update' );
-    my @errors = grep { $_ !~ m/apt does not have a stable CLI interface/ } @{ $out->{stderr} };
+    my @errors = grep { $_ !~ m/apt does not have a stable CLI interface/ && $_ !~ m|^W: .*: \QKey is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.\E$| } @{ $out->{stderr} };
     my $stderr = join "\n", @errors;
     return $stderr;
 }
