@@ -32,25 +32,34 @@ use parent qw{Elevate::Components::Base};
 #
 # Set as a function for unit testing
 #
+# Returns a hash of package names and whether or not they should be removed
+# from the system during the pre_distro_upgrade phase
+# For some packages the uninstall/reinstall is handled elsewhere and
+# we would like to only backup and restore the config files
+#
 sub _get_packages_to_check () {
-    return qw{
-      net-snmp
-      sys-snap
-    };
+    return (
+        'net-snmp'    => 1,
+        'sys-snap'    => 1,
+        'cpanel-exim' => 0,
+    );
 }
 
 sub pre_distro_upgrade ($self) {
 
-    my @package_list = _get_packages_to_check();
+    my %package_list = _get_packages_to_check();
     my @installed_packages;
 
-    foreach my $package (@package_list) {
+    foreach my $package ( keys %package_list ) {
         if ( Cpanel::Pkgr::is_installed($package) ) {
             push @installed_packages, $package;
         }
     }
 
-    Elevate::PkgMgr::remove(@installed_packages);
+    # only remove the packages that are installed and flagged for removal
+    my @packages_to_remove = grep { $package_list{$_} } @installed_packages;
+
+    Elevate::PkgMgr::remove(@packages_to_remove);
 
     my $config_files = Elevate::PkgMgr::get_config_files( \@installed_packages );
 
@@ -70,7 +79,7 @@ sub post_distro_upgrade ($self) {
 
     foreach my $package ( keys %$package_info ) {
 
-        Elevate::PkgMgr::install($package);
+        Elevate::PkgMgr::install($package) unless Cpanel::Pkgr::is_installed($package);
 
         Elevate::PkgMgr::restore_config_files( @{ $package_info->{$package} } );
     }

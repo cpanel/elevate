@@ -27,7 +27,11 @@ my $pkg_restore = cpev->new->get_component('PackageRestore');
     note "Checking pre_distro_upgrade";
 
     my $stage_file_data;
-    my @pkgs_to_check  = qw{ foo bar baz };
+    my %pkgs_to_check = (
+        foo => 1,
+        bar => 1,
+        baz => 0,
+    );
     my %installed_pkgs = (
         foo => 1,
         bar => 0,
@@ -38,10 +42,11 @@ my $pkg_restore = cpev->new->get_component('PackageRestore');
         foo => [qw{ myfile1 myfile2 }],
         baz => [qw{ thisfile thatfile }],
     );
+    my @packages_removed;
 
     my $mock_comp = Test::MockModule->new('Elevate::Components::PackageRestore');
     $mock_comp->redefine(
-        _get_packages_to_check => sub { return @pkgs_to_check; },
+        _get_packages_to_check => sub { return %pkgs_to_check; },
     );
 
     my $mock_pkgr = Test::MockModule->new('Cpanel::Pkgr');
@@ -55,7 +60,7 @@ my $pkg_restore = cpev->new->get_component('PackageRestore');
             $pkgs_checked_for_config_files = $_[1];
             return \%config_files;
         },
-        remove => 1,
+        remove => sub { shift; push @packages_removed, @_ },
     );
 
     my $mock_upsf = Test::MockModule->new('Elevate::StageFile');
@@ -75,6 +80,12 @@ my $pkg_restore = cpev->new->get_component('PackageRestore');
         $stage_file_data,
         { 'packages_to_restore' => \%config_files },
         'Correctly detects the config files and updates the stage file'
+    );
+
+    is(
+        \@packages_removed,
+        ['foo'],
+        'Correctly removes the packages installed flagged for removal'
     );
 }
 
