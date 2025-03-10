@@ -50,7 +50,7 @@ my $comp = cpev->new->get_component('UpdateReleaseUpgrades');
 {
     note 'pre_distro_upgrade';
 
-    set_os_to('cent');
+    set_os_to('alma');
     is( $comp->pre_distro_upgrade(), undef, 'Returns early on systems that do not use do_release_upgrade to perform the distro upgrade' );
     no_messages_seen();
 

@@ -130,8 +130,10 @@ sub restore_perl_xs ( $self, $path ) {
         my $rpms = $stash->{'restore'}->{ DISTRO_PERL_XS_PATH() }->{'rpm'};
 
         if ( scalar keys %$rpms ) {    # If there are no XS modules to replace, there is no point to running the dnf install:
-            my $pkgmgr_options = [ '--enablerepo=epel', '--enablerepo=powertools', ];
-            my @pkgs           = sort keys %$rpms;
+            my $pkgmgr_options = ['--enablerepo=epel'];
+            push( @$pkgmgr_options, '--enablerepo=powertools' ) if Elevate::OS::needs_powertools();
+            push( @$pkgmgr_options, '--enablerepo=crb' )        if Elevate::OS::needs_crb();
+            my @pkgs = sort keys %$rpms;
             Elevate::PkgMgr::install_with_options( $pkgmgr_options, \@pkgs );
         }
     }

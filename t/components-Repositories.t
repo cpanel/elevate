@@ -43,7 +43,7 @@ my $mocked_yum_repos_d = Test::MockFile->dir($path_yum_repos_d);
 #mkdir $path_yum_repos_d;
 is $yum->_check_yum_repos(), undef, "no blockers when directory is empty";
 
-for my $os ( 'cent', 'cloud' ) {
+for my $os ( 'cent', 'cloud', 'alma' ) {
     set_os_to($os);
 
     ok scalar Elevate::OS::vetted_yum_repo(), 'vetted_yum_repo populated';
@@ -277,7 +277,7 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
     $mock_yum->redefine( is_check_mode => 1 );
 
     my @mocked;
-    push @mocked, Test::MockFile->dir('/var/lib/yum');
+    push @mocked, Test::MockFile->dir('/var/lib/dnf');
 
     like(
         $yum->_yum_is_stable(),
@@ -285,12 +285,12 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
             id  => q[Elevate::Components::Repositories::YumDirUnreadable],
             msg => qr/Could not read directory/,
         },
-        "/var/lib/yum is missing."
+        "/var/lib/dnf is missing."
     );
-    message_seen( 'ERROR' => q{Could not read directory '/var/lib/yum': No such file or directory} );
+    message_seen( 'ERROR' => q{Could not read directory /var/lib/dnf: No such file or directory} );
 
-    mkdir '/var/lib/yum';
-    push @mocked, Test::MockFile->file( '/var/lib/yum/transaction-all.12345', 'aa' );
+    mkdir '/var/lib/dnf';
+    push @mocked, Test::MockFile->file( '/var/lib/dnf/transaction-all.12345', 'aa' );
     is( $yum->_yum_is_stable(), 0, "There is an outstanding transaction, check mode." );
     message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
     message_seen( 'WARN', 'Unfinished yum transactions detected. Elevate will execute /usr/sbin/yum-complete-transaction --cleanup-only during upgrade' );
@@ -367,7 +367,7 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
     message_seen( 'INFO', 'Cleaning up unfinished yum transactions.' );
     no_messages_seen();
 
-    unlink '/var/lib/yum/transaction-all.12345';
+    unlink '/var/lib/dnf/transaction-all.12345';
     is( $yum->_yum_is_stable(), 0, "No outstanding yum transactions are found. we're good to go!" );
     no_messages_seen();
 }
@@ -442,6 +442,56 @@ EOS
     );
 
     no_messages_seen();
+}
+
+{
+    note 'Testing _remove_excludes';
+
+    foreach my $os (qw{ cent cloud alma }) {
+        set_os_to($os);
+
+        my $content;
+        my $actual_content;
+        my $mock_file_slurper = Test::MockModule->new('File::Slurper');
+        $mock_file_slurper->redefine(
+            read_text  => sub { return $content; },
+            write_text => sub { $actual_content = $_[1]; },
+        );
+
+        $content = <<'EOS';
+[main]
+exclude=bind-chroot dovecot* exim* filesystem nsd* p0f php* proftpd* pure-ftpd*
+tolerant=1
+plugins=1
+gpgcheck=1
+installonly_limit=3
+clean_requirements_on_remove=True
+best=True
+skip_if_unavailable=False
+minrate=50k
+ip_resolve=4
+EOS
+
+        my $expected_content = <<'EOS';
+[main]
+
+tolerant=1
+plugins=1
+gpgcheck=1
+installonly_limit=3
+clean_requirements_on_remove=True
+best=True
+skip_if_unavailable=False
+minrate=50k
+ip_resolve=4
+EOS
+
+        is( $yum->_remove_excludes(), undef,             'Returns undef' );
+        is( $actual_content,          $expected_content, 'Successfully removes the excludes line from yum.conf' );
+
+        message_seen( INFO => 'Removing excludes from /etc/yum.conf' );
+        no_messages_seen();
+    }
 }
 
 {

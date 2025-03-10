@@ -30,7 +30,7 @@ is(
     'Returns an empty href on Ubuntu systems'
 );
 
-set_os_to('cent');
+set_os_to('alma');
 $Elevate::PkgMgr::PKGUTILITY = undef;
 $installed                   = Elevate::PkgMgr::pkg_list();
 is(

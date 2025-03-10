@@ -267,6 +267,7 @@ use Elevate::Components::Lists                  ();
 use Elevate::Components::LiteSpeed              ();
 use Elevate::Components::MountPoints            ();
 use Elevate::Components::MySQL                  ();
+use Elevate::Components::NetworkManager         ();
 use Elevate::Components::NICs                   ();
 use Elevate::Components::NixStats               ();
 use Elevate::Components::OVH                    ();
@@ -292,6 +293,7 @@ use Elevate::Components::Acronis                ();
 
 # - fatpack OS
 use Elevate::OS              ();
+use Elevate::OS::AlmaLinux8  ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux7 ();
 use Elevate::OS::RHEL        ();
@@ -517,23 +519,14 @@ sub start ($self) {
     return 1 unless _sanity_check();
 
     my $stage = Elevate::Stages::get_stage();
-    if ( $stage != 0 ) {
-        my $header;
-        if ( $stage > VALID_STAGES ) {
-            $header = q[The 'elevate-cpanel' script has already been executed on this server.];
-        }
-        else {
-            $header = qq[An elevation process is currently in progress: running stage $stage];
-        }
-
+    if ( $stage != 0 && $stage <= VALID_STAGES ) {
         die <<~"EOS";
-        $header
+        An elevation process is currently in progress: running stage $stage
         You can check the log by running:
             /scripts/elevate-cpanel --log
         or check the elevation status:
             /scripts/elevate-cpanel --status
         EOS
-
     }
 
     # Check for blockers before starting the migration
@@ -849,8 +842,8 @@ sub _run_service ($self) {
     $self->_wait_on_pause();    # handle pause when requested
 
     # sanity check
-    if ( Cpanel::OS::major() == 8 && 2 <= $stage && $stage <= 3 ) {    ## no critic(Cpanel::CpanelOS)
-        WARN( "Detected " . Cpanel::OS::pretty_distro() . " while running stage $stage: swtiching to stage 4" );
+    if ( Cpanel::OS::major() != Elevate::OS::original_os_major() && 2 <= $stage && $stage <= 3 ) {    ## no critic(Cpanel::CpanelOS)
+        WARN( "Detected " . Cpanel::OS::pretty_distro() . ' ' . Cpanel::OS::major() . " while running stage $stage: switching to stage 4" );    ## no critic(Cpanel::CpanelOS)
         $stage = 4;
         Elevate::Stages::update_stage_number($stage);
     }
@@ -1025,7 +1018,8 @@ sub run_stage_3 ($self) {
 
     # The server should not reboot between executing this
     # and executing do-release-upgrade
-    $self->run_component_once( 'Ufw' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Ufw'            => 'pre_distro_upgrade' );
+    $self->run_component_once( 'NetworkManager' => 'pre_distro_upgrade' );
 
     if ( $self->upgrade_distro_manually() ) {
         return $self->_request_to_upgrade_distro_manually();
@@ -1409,6 +1403,7 @@ sub post_distro_upgrade_update_restore ($self) {
         my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
         if ( length $txt ) {
             $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
+            $txt =~ s/\s*leapp-upgrade-el8toel9,python3-leapp,leapp,snactor//ms;
             File::Slurper::write_text( "/etc/yum.conf", $txt );
         }
     }

@@ -55,7 +55,11 @@ sub _remove_leapp_packages ($self) {
       leapp-repository-deps
       leapp-upgrade-el7toel8
       leapp-upgrade-el7toel8-deps
+      leapp-upgrade-el8toel9
+      leapp-upgrade-el8toel9-deps
       python2-leapp
+      python3-leapp
+      snactor
     };
 
     INFO('Removing packages provided by leapp');
@@ -68,29 +72,30 @@ sub _remove_leapp_packages ($self) {
 sub _warn_about_other_modules_that_did_not_convert ($self) {
     my $installed_packages = Elevate::PkgMgr::get_installed_pkgs();
 
-    my @el7_installed_packages;
+    my @el_installed_packages;
     foreach my $pkg ( sort keys %$installed_packages ) {
-        if ( $installed_packages->{$pkg} =~ m/el7/ ) {
-            push @el7_installed_packages, "$pkg-$installed_packages->{$pkg}";
+        my $el_package_regex = Elevate::OS::el_package_regex();
+        if ( $installed_packages->{$pkg} =~ m/\Q$el_package_regex\E/ ) {
+            push @el_installed_packages, "$pkg-$installed_packages->{$pkg}";
         }
     }
 
-    my @el7_packages_minus_exemptions;
-    foreach my $pkg (@el7_installed_packages) {
+    my @el_packages_minus_exemptions;
+    foreach my $pkg (@el_installed_packages) {
         next if grep { $pkg =~ m/$_/ } EXEMPTED_PACKAGES();
-        push @el7_packages_minus_exemptions, $pkg;
+        push @el_packages_minus_exemptions, $pkg;
     }
 
-    return unless @el7_packages_minus_exemptions;
+    return unless @el_packages_minus_exemptions;
 
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
     my $msg = "The following packages should probably be removed as they will not function on $pretty_distro_name\n\n";
-    foreach my $pkg (@el7_packages_minus_exemptions) {
+    foreach my $pkg (@el_packages_minus_exemptions) {
         $msg .= "    $pkg\n";
     }
 
-    $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @el7_packages_minus_exemptions ) . "\n";
+    $msg .= "\nYou can remove these by running: yum -y remove " . join( ' ', @el_packages_minus_exemptions ) . "\n";
 
     Elevate::Notify::add_final_notification($msg);
 

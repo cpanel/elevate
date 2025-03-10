@@ -46,7 +46,7 @@ $mock_elevate_leapp->redefine(
 
 my $mock_elevate_file = Test::MockFile->file('/var/cpanel/elevate');
 
-for my $os ( 'cent', 'cloud' ) {
+for my $os ( 'cent', 'cloud', 'alma' ) {
     set_os_to($os);
 
     my $expect_cmd = '/usr/bin/leapp upgrade';

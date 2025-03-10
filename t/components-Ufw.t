@@ -57,7 +57,7 @@ $mock_stagefile->redefine(
         upgrade_distro_manually => 0,
     );
 
-    set_os_to('cent');
+    set_os_to('alma');
 
     is( $ufw->pre_distro_upgrade(), undef, 'Returns early if the upgrade method is NOT do-release-upgrade' );
     is( $ssystem_and_die_params,    [],    'No system commands were called' );

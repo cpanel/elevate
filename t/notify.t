@@ -40,7 +40,7 @@ $mock_notify->redefine(
 
 my $cpev = bless {}, 'cpev';
 
-for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
     set_os_to($os);
 
     my $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );

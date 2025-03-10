@@ -19,6 +19,7 @@ use Elevate::StageFile ();
 use Log::Log4perl qw(:easy);
 
 use constant SUPPORTED_DISTROS => (
+    'AlmaLinux 8',
     'CentOS 7',
     'CloudLinux 7',
     'Ubuntu 20',
@@ -33,6 +34,7 @@ sub factory {
     my $major;
     if ( !$distro_with_version ) {
         $distro              = Cpanel::OS::distro();    ## no critic(Cpanel::CpanelOS)
+        $distro              = 'AlmaLinux'  if $distro eq 'almalinux';
         $distro              = 'CentOS'     if $distro eq 'centos';
         $distro              = 'CloudLinux' if $distro eq 'cloudlinux';
         $distro              = 'Ubuntu'     if $distro eq 'ubuntu';
@@ -80,14 +82,14 @@ BEGIN {
     # The value specifies how many args the method is designed to take.
     %methods = map { $_ => 0 } (
         ### General distro specific methods.
+        'archive_dir',                          # This is the dir to archive logs from successful elevations into
         'bootloader_config_method',             # This describes the canonical way to configure GRUB2
         'default_upgrade_to',                   # This is the default OS that the current OS should upgrade to (i.e. CL7->CL8, C7->A8)
         'disable_mysql_yum_repos',              # This is a list of mysql repo files to disable
         'ea_alias',                             # This is the value for the --target-os flag used when backing up an EA4 profile
+        'el_package_regex',                     # This is the regex used to determine if old packages are still installed
         'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
         'expected_post_upgrade_major',          # The OS version we expect to upgrade to
-        'leapp_repo_prod',                      # This is the repo name for the production repo.
-        'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
         'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
         'is_experimental',                      # This is used to determine if upgrades for this OS are experimental
         'is_supported',                         # This is used to determine if the OS is supported or not
@@ -95,17 +97,24 @@ BEGIN {
         'leapp_can_handle_kernelcare',          # This is used to determine if we can skip the kernelcare component or not
         'leapp_data_pkg',                       # This is used to determine which leapp data package to install
         'leapp_flag',                           # This is used to determine if we need to pass any flags to the leapp script or not
+        'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
+        'leapp_repo_prod',                      # This is the repo name for the production repo.
         'lts_supported',                        # This is the major cPanel version supported for this OS
         'name',                                 # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
+        'needs_crb',                            # This is used to determine if the OS requires the crb repo
         'needs_do_release_upgrade',             # This is used to determine if the OS requires the do-release-upgrade utility to upgrade
         'needs_epel',                           # This is used to determine if the OS requires the epel repo
+        'needs_grub_enable_blscfg',             # This is a necessary config in /etc/dfault/grub in AlmaLinux 8 to ensure that it is fully managed by grub2
         'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
+        'needs_network_manager',                # This is used to determine if the NetworkManager servoce needs to be enabled prior to running leapp
         'needs_powertools',                     # This is used to determine if the OS requires the powertools repo
         'original_os_major',                    # The initial starting OS major version
         'package_manager',                      # This is the package manager that the OS uses.  i.e. RPM
+        'pkgmgr_lib_path',                      # The path to the package manager's database directory
         'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
         'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
         'remove_els',                           # This is used to indicate if we are to remove ELS for this OS
+        'should_archive_elevate_files',         # This is used to determine if existing elevate logs should be archived
         'should_check_cloudlinux_license',      # This is used to determine if we should check the cloudlinux license
         'skip_minor_version_check',             # Used to determine if we need to skip the minor version check for the OS
         'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to

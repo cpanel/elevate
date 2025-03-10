@@ -61,6 +61,12 @@ sub _backup_ea4_profile ($check_mode) {
 }
 
 sub _imunify360_is_installed_and_provides_hardened_php () {
+
+    # TODO: Fix this when adding support for CL8->CL9
+    # 8->9 upgrades do not yet support CloudLinux
+    # Disable this feature for now
+    return 0 if Elevate::OS::name() eq 'AlmaLinux8';
+
     return 0 unless -x IMUNIFY_AGENT;
 
     my $out          = Cpanel::SafeRun::Simple::saferunnoerror( IMUNIFY_AGENT, qw{version --json} );

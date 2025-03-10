@@ -52,6 +52,15 @@ require $FindBin::Bin . '/../elevate-cpanel';
 }
 
 {
+    set_os_to_almalinux_8();
+
+    my $obj = Elevate::PkgMgr::instance();
+    isa_ok $obj, 'Elevate::PkgMgr::YUM';
+
+    $Elevate::PkgMgr::PKGUTILITY = undef;
+}
+
+{
     note 'Test PkgMgr methods';
 
     my @skip = qw{ factory instance BEGIN PKGUTILITY };

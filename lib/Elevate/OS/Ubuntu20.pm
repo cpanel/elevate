@@ -57,15 +57,8 @@ use constant supported_cpanel_mysql_versions => qw{
   10.11
 };
 
-use constant supported_cpanel_nameserver_types => qw{
-  disabled
-  powerdns
-};
-
-use constant default_upgrade_to => 'Ubuntu';
-
-use constant ea_alias => 'Ubuntu_22.04';
-
+use constant default_upgrade_to          => 'Ubuntu';
+use constant ea_alias                    => 'Ubuntu_22.04';
 use constant expected_post_upgrade_major => 22;
 use constant is_experimental             => 0;
 use constant name                        => 'Ubuntu20';

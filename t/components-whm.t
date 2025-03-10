@@ -79,7 +79,7 @@ my $whm  = $cpev->get_component('WHM');
 {
     note "cPanel & WHM minimum LTS.";
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
         set_os_to($os);
         my $cpev = cpev->new;
         my $whm  = $cpev->get_component('WHM');
@@ -88,7 +88,9 @@ my $whm  = $cpev->get_component('WHM');
         local $Cpanel::Version::Tiny::VERSION_BUILD = '11.109.0.9999';
 
         my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
-        my $expected_upgrade_version = $os eq 'ubuntu' ? 118 : 110;
+        my $expected_upgrade_version = 110;
+        $expected_upgrade_version = 118 if $os eq 'ubuntu';
+        $expected_upgrade_version = 126 if $os eq 'alma';
         like(
             $whm->_blocker_is_newer_than_lts(),
             {
@@ -105,22 +107,26 @@ my $whm  = $cpev->get_component('WHM');
         is( $whm->_blocker_is_newer_than_lts(), 0, 'Recent LTS version passes this test.' );
     }
 
-    set_os_to('ubuntu');
-    my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
-    my $expected_upgrade_version = 118;
-    local $Cpanel::Version::Tiny::major_version = 110;
-    local $Cpanel::Version::Tiny::VERSION_BUILD = '11.110.0.1';
-    like(
-        $whm->_blocker_is_newer_than_lts(),
-        {
-            id  => q[Elevate::Components::WHM::_blocker_is_newer_than_lts],
-            msg => qr{
-                \QThis version 11.110.0.1 does not support upgrades to $expected_target_os.\E \s+
-                \QPlease ensure the cPanel version is $expected_upgrade_version.\E
-            }xms,
-        },
-        q{cPanel version must be above the known LTS.}
-    );
+    for my $os ( 'ubuntu', 'alma' ) {
+        set_os_to($os);
+
+        my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
+        my $expected_upgrade_version = 118;
+        $expected_upgrade_version = 126 if $os eq 'alma';
+        local $Cpanel::Version::Tiny::major_version = 110;
+        local $Cpanel::Version::Tiny::VERSION_BUILD = '11.110.0.1';
+        like(
+            $whm->_blocker_is_newer_than_lts(),
+            {
+                id  => q[Elevate::Components::WHM::_blocker_is_newer_than_lts],
+                msg => qr{
+                    \QThis version 11.110.0.1 does not support upgrades to $expected_target_os.\E \s+
+                    \QPlease ensure the cPanel version is $expected_upgrade_version.\E
+                }xms,
+            },
+            q{cPanel version must be above the known LTS.}
+        );
+    }
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
