@@ -29,7 +29,8 @@ use cPstrict;
 
 my $db = cpev->new->get_component('MySQL');
 
-my $mock_elevate = Test::MockFile->file('/var/cpanel/elevate');
+my $mock_elevate       = Test::MockFile->file('/var/cpanel/elevate');
+my $mock_version_cache = Test::MockFile->file('/var/cpanel/mysql_server_version_cache');
 
 {
     note "mysql upgrade in progress";
@@ -226,6 +227,11 @@ EOS
     my $is_mysql_enabled;
     my $restart_mysql;
     my @ssystem_output;
+
+    my $mock_dbutils = Test::MockModule->new('Cpanel::DbUtils');
+    $mock_dbutils->redefine(
+        find_mysqlcheck => sub { return '/usr/bin/mysqlcheck'; },
+    );
 
     my $mock_mysqlutils_mycnf = Test::MockModule->new('Cpanel::MysqlUtils::MyCnf::Basic');
     $mock_mysqlutils_mycnf->redefine(
