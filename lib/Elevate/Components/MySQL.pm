@@ -38,6 +38,7 @@ use Cpanel::DB::Map::Collection::Index ();
 use Cpanel::Exception                  ();
 use Cpanel::MysqlUtils::MyCnf::Basic   ();
 use Cpanel::MysqlUtils::Running        ();
+use Cpanel::DbUtils                    ();
 
 use Elevate::Database  ();
 use Elevate::Notify    ();
@@ -396,7 +397,7 @@ sub _blocker_mysql_database_corrupted ($self) {
     }
 
     # Perform a medium check on all databases and only output errors
-    my $mysqlcheck_path = Cpanel::Binaries::path('mysqlcheck');
+    my $mysqlcheck_path = Cpanel::DbUtils::find_mysqlcheck();
     my $output          = $self->ssystem_capture_output( $mysqlcheck_path, '--default-character-set=utf8mb4', '-c', '-m', '-A', '--silent' );
 
     # mysqlcheck doesn't return an error code

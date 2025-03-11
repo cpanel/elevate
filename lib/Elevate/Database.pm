@@ -15,13 +15,12 @@ use cPstrict;
 use Elevate::OS        ();
 use Elevate::StageFile ();
 
+use Cpanel::DbUtils              ();
 use Cpanel::MysqlUtils::Version  ();
 use Cpanel::MysqlUtils::Versions ();
 use Cpanel::Pkgr                 ();
 
 use Log::Log4perl qw(:easy);
-
-use constant MYSQL_BIN => '/usr/sbin/mysqld';
 
 sub is_database_provided_by_cloudlinux ( $use_cache = 1 ) {
 
@@ -57,7 +56,7 @@ sub get_db_info_if_provided_by_cloudlinux ( $use_cache = 1 ) {
           if length $cloudlinux_database_info;
     }
 
-    my $pkg = Cpanel::Pkgr::what_provides(MYSQL_BIN);
+    my $pkg = Cpanel::Pkgr::what_provides( Cpanel::DbUtils::find_mysqld() );
 
     my ( $db_type, $db_version ) = $pkg =~ m/^cl-(mysql|mariadb|percona)([0-9]+)-server$/i;
 
