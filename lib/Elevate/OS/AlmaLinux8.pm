@@ -37,6 +37,7 @@ use constant original_os_major            => 8;
 use constant pkgmgr_lib_path              => '/var/lib/dnf';
 use constant pretty_name                  => 'AlmaLinux 8';
 use constant should_archive_elevate_files => 1;
+use constant supports_jetbackup           => 0;
 use constant upgrade_to_pretty_name       => 'AlmaLinux 9';
 
 sub vetted_yum_repo ($self) {

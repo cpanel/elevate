@@ -3280,12 +3280,22 @@ EOS
 
     sub check ($self) {
 
+        $self->_blocker_jetbackup_is_supported();
         $self->_blocker_old_jetbackup;
 
         return;
     }
 
-    sub _blocker_jetbackup_is_supported { return undef }
+    sub _blocker_jetbackup_is_supported ($self) {
+        return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
+        return if Elevate::OS::supports_jetbackup();
+
+        my $name = Elevate::OS::pretty_name();
+        return $self->has_blocker( <<~"END" );
+    ELevate does not currently support JetBackup for upgrades of $name.
+    Support for JetBackup on $name will be added in a future version of ELevate.
+    END
+    }
 
     sub _blocker_old_jetbackup ($self) {
 
@@ -7296,6 +7306,7 @@ EOS
     use constant pkgmgr_lib_path              => '/var/lib/dnf';
     use constant pretty_name                  => 'AlmaLinux 8';
     use constant should_archive_elevate_files => 1;
+    use constant supports_jetbackup           => 0;
     use constant upgrade_to_pretty_name       => 'AlmaLinux 9';
 
     sub vetted_yum_repo ($self) {
@@ -7573,7 +7584,7 @@ EOS
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 1;
     use constant supported_cpanel_mysql_versions => undef;
-    use constant supports_jetbackup              => 0;
+    use constant supports_jetbackup              => 1;
     use constant supports_kernelcare             => 0;
     use constant supports_postgresql             => 0;
     use constant upgrade_to_pretty_name          => undef;

@@ -98,12 +98,25 @@ sub post_distro_upgrade ($self) {
 
 sub check ($self) {
 
+    $self->_blocker_jetbackup_is_supported();
     $self->_blocker_old_jetbackup;
 
     return;
 }
 
-sub _blocker_jetbackup_is_supported { return undef }
+# Support for JetBackup on AlmaLinux 8 is not yet available.
+# We will add support for JetBackup on AlmaLinux 8 in a future version of ELevate.
+# For now, we block to reduce scope for the initial release
+sub _blocker_jetbackup_is_supported ($self) {
+    return unless Cpanel::Pkgr::is_installed('jetbackup5-cpanel');
+    return if Elevate::OS::supports_jetbackup();
+
+    my $name = Elevate::OS::pretty_name();
+    return $self->has_blocker( <<~"END" );
+    ELevate does not currently support JetBackup for upgrades of $name.
+    Support for JetBackup on $name will be added in a future version of ELevate.
+    END
+}
 
 sub _blocker_old_jetbackup ($self) {
 
