@@ -68,12 +68,12 @@ release: build
 	$(GIT) tag -f $(RELEASE_TAG)	
 	$(GIT) tag -f v${VERSION}
 	$(GIT) push pub main
-	$(GIT) push --force pub tag $(RELEASE_TAG)
-	$(GIT) push --force pub tag v${VERSION}
+	$(GIT) push --force pub $(RELEASE_TAG)
+	$(GIT) push --force pub v${VERSION}
 	$(MAKE) bump_version
 	$(GIT) push ent main
-	$(GIT) push --force ent tag $(RELEASE_TAG)
-	$(GIT) push --force ent tag v${VERSION}
+	$(GIT) push --force ent $(RELEASE_TAG)
+	$(GIT) push --force ent v${VERSION}
 
 bump_version: version := $(shell dc -f version -e '1 + p')
 bump_version:
