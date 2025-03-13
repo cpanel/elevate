@@ -1,3 +1,12 @@
+##### **2025-03-13** - version 62
+
+* Fixed case RE-1389: Block elevation of AlmaLinux 8 with JetBackup installed (until we support that).
+* Fixed case RE-1383: Fix elevate to work when MariaDB 11.4 is installed.
+* Fixed case RE-1155: Add support for A8->A9 distro upgrades
+* Fixed case RE-1348: Preserve exim config files during elevate.
+* Fixed case RE-1356: Ignore warnings on Ubuntu about deprecated storage of GPG keys.
+* Fixed case RE-1262: Default MySQL/MariaDB database checks to a UTF-8 character set.
+
 ##### **2025-02-06** - version 61
 
 * Fixed case RE-1179: Do not restore config files for dropped packages. Especially on Ubuntu
