@@ -55,6 +55,10 @@ sub install ($self) {
         Elevate::PkgMgr::install( 'leapp-upgrade', $leapp_data_pkg );
     }
 
+    if ( Elevate::OS::needs_vdo() && Cpanel::Pkgr::is_installed('lvm2') && !Cpanel::Pkgr::is_installed('vdo') ) {
+        Elevate::PkgMgr::install('vdo');
+    }
+
     return;
 }
 

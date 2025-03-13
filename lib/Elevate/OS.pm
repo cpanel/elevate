@@ -108,6 +108,7 @@ BEGIN {
         'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
         'needs_network_manager',                # This is used to determine if the NetworkManager servoce needs to be enabled prior to running leapp
         'needs_powertools',                     # This is used to determine if the OS requires the powertools repo
+        'needs_vdo',                            # AL8->9 inhibits without the vdo package installed (needed to perform authoritative checks for an obscure volume format)
         'original_os_major',                    # The initial starting OS major version
         'package_manager',                      # This is the package manager that the OS uses.  i.e. RPM
         'pkgmgr_lib_path',                      # The path to the package manager's database directory
