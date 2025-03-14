@@ -7216,6 +7216,7 @@ EOS
             'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
             'needs_network_manager',                # This is used to determine if the NetworkManager servoce needs to be enabled prior to running leapp
             'needs_powertools',                     # This is used to determine if the OS requires the powertools repo
+            'needs_vdo',                            # AL8->9 inhibits without the vdo package installed (needed to perform authoritative checks for an obscure volume format)
             'original_os_major',                    # The initial starting OS major version
             'package_manager',                      # This is the package manager that the OS uses.  i.e. RPM
             'pkgmgr_lib_path',                      # The path to the package manager's database directory
@@ -7302,6 +7303,7 @@ EOS
     use constant needs_crb                    => 1;
     use constant needs_grub_enable_blscfg     => 1;
     use constant needs_network_manager        => 1;
+    use constant needs_vdo                    => 1;
     use constant original_os_major            => 8;
     use constant pkgmgr_lib_path              => '/var/lib/dnf';
     use constant pretty_name                  => 'AlmaLinux 8';
@@ -7520,6 +7522,7 @@ EOS
     use constant needs_leapp                     => 1;
     use constant needs_network_manager           => 0;
     use constant needs_powertools                => 0;
+    use constant needs_vdo                       => 0;
     use constant package_manager                 => 'YUM';
     use constant pkgmgr_lib_path                 => undef;
     use constant pretty_name                     => 'RHEL';
@@ -7575,6 +7578,7 @@ EOS
     use constant needs_leapp                     => 0;
     use constant needs_network_manager           => 0;
     use constant needs_powertools                => 0;
+    use constant needs_vdo                       => 0;
     use constant package_manager                 => 'APT';
     use constant pkgmgr_lib_path                 => undef;
     use constant pretty_name                     => 'Ubuntu';
@@ -8932,6 +8936,10 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
         unless ( Cpanel::Pkgr::is_installed('leapp-upgrade') && Cpanel::Pkgr::is_installed($leapp_data_pkg) ) {
             Elevate::PkgMgr::install( 'leapp-upgrade', $leapp_data_pkg );
+        }
+
+        if ( Elevate::OS::needs_vdo() && Elevate::Pkgr::is_installed('lvm2') && !Elevate::Pkgr::is_installed('vdo') ) {
+            Elevate::PkgMgr::install('vdo');
         }
 
         return;
