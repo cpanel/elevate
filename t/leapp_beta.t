@@ -42,8 +42,8 @@ my $cpev = bless( {}, 'cpev' );
 my $self = Elevate::Leapp->new( 'cpev' => $cpev );
 
 set_os_to_cloudlinux_7();
-is( $self->beta_if_enabled, 1,                                                                                                                           "beta_if_enabled when enabled" );
-is( \@ssystem_cmds,         [ [qw{/usr/bin/yum-config-manager --disable elevate}], [qw{/usr/bin/yum-config-manager --enable elevate-updates-testing}] ], "Expected commands are run to setup the repos." )
+is( $self->beta_if_enabled, 1,                                                                                                                                                 "beta_if_enabled when enabled" );
+is( \@ssystem_cmds,         [ [qw{/usr/bin/yum-config-manager --disable cloudlinux-elevate}], [qw{/usr/bin/yum-config-manager --enable cloudlinux-elevate-updates-testing}] ], "Expected commands are run to setup the repos." )
   or diag explain \@ssystem_cmds;
 
 $leappbeta    = 0;
