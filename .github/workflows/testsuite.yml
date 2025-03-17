@@ -113,3 +113,11 @@ jobs:
       if: >
         (github.event_name == 'pull_request' && github.base_ref == 'main') ||
         (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+  AlmaLinux-8:
+      needs: testsuite
+      uses: ./.github/workflows/openstack-almalinux-8.yml
+      secrets: inherit
+      if: >
+        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main')
