@@ -7393,7 +7393,8 @@ EOS
     use constant el_package_regex                => 'el7';
     use constant elevate_rpm_url                 => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
     use constant expected_post_upgrade_major     => 8;
-    use constant leapp_repo_beta                 => 'elevate-updates-testing';
+    use constant leapp_repo_prod                 => 'cloudlinux-elevate';
+    use constant leapp_repo_beta                 => 'cloudlinux-elevate-updates-testing';
     use constant leapp_can_handle_imunify        => 1;
     use constant leapp_can_handle_kernelcare     => 1;
     use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
@@ -8938,7 +8939,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
             Elevate::PkgMgr::install( 'leapp-upgrade', $leapp_data_pkg );
         }
 
-        if ( Elevate::OS::needs_vdo() && Elevate::Pkgr::is_installed('lvm2') && !Elevate::Pkgr::is_installed('vdo') ) {
+        if ( Elevate::OS::needs_vdo() && Cpanel::Pkgr::is_installed('lvm2') && !Cpanel::Pkgr::is_installed('vdo') ) {
             Elevate::PkgMgr::install('vdo');
         }
 
