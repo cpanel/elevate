@@ -8,7 +8,7 @@ use warnings;
 # Static constants
 use constant {
     KEY_NAME => "deletethis",
-    VM_NAME  => "$ENV{TF_VAR_github_repository}.github.cpanel.net",
+    VM_NAME  => "app-elevate-cpanel.github.cpanel.net",
 };
 
 my $openstack_path = "/usr/bin/openstack" if -x "/usr/bin/openstack";
