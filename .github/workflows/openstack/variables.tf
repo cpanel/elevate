@@ -42,12 +42,10 @@ variable "ssh_public_key" {
 
 variable "image_name" {
   type    = string
-  default = "11.110.0.* on CloudLinux 7"
 }
 
 variable "cpanel_release_version" {
   type    = string
-  default = "110"
 }
 
 variable "flavor_name" {

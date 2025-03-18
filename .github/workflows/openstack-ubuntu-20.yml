@@ -24,17 +24,16 @@ env:
   # github
   TF_VAR_github_repository: ${{ github.repository }}
   TF_VAR_github_run_id: ${{ github.run_id }}
-  tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
+  tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack"
 
 jobs: 
     terraform_openstack_create:
         runs-on: self-hosted
         defaults:
           run:
-            working-directory: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
+            working-directory: "${{ github.workspace }}/.github/workflows/openstack"
         steps:
         - uses: actions/checkout@v4
-            # Step to dump all GitHub variables
 
         - name: Dump all GitHub variables
           run: |
@@ -61,20 +60,20 @@ jobs:
         - name: Terraform Plan
           id: plan
           run: |
-            terraform plan -no-color
+            terraform plan -var="image_name=11.118.0.* on Ubuntu 20.04" -var="cpanel_release_version=110" -no-color
 
         - name: Terraform Apply
           id: apply
           run: |
             pwd
-            terraform apply -no-color -auto-approve
+            terraform apply -var="image_name=11.118.0.* on Ubuntu 20.04" -var="cpanel_release_version=110" -no-color -auto-approve
             mv -v .terraform.lock.hcl terraform.lock.hcl
 
         - name: Upload Terraform State File as Artifact
           uses: actions/upload-artifact@v4.4.3
           with:
             name: ${{ github.run_id }}-ubuntu20-terraform.tfstate
-            path: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
+            path: "${{ github.workspace }}/.github/workflows"
 
         - name: Terraform Output File Create
           run: |
@@ -645,24 +644,24 @@ jobs:
       needs: verify_upgraded_os
       defaults:
         run:
-          working-directory: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04"
+          working-directory: "${{ github.workspace }}/.github/workflows"
       steps:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
           name: ${{ github.run_id }}-ubuntu20-terraform.tfstate
-          path: "${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/terraform"
+          path: "${{ github.workspace }}/.github/workflows/openstack/terraform"
 
 
       - name: Stage Files & Show Artifact Paths
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/terraform/
+          cd ${{ github.workspace }}/.github/workflows/openstack/terraform/
           mv -v terraform.lock.hcl .terraform.lock.hcl
-          find ${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/
+          find ${{ github.workspace }}/.github/workflows/openstack/
 
       - name: Initialize Terraform & Destroy
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/ubuntu-20.04/terraform/
+          cd ${{ github.workspace }}/.github/workflows/openstack/terraform/
           rm -Rfv .terraform || true
           terraform init
-          terraform destroy -no-color -auto-approve
+          terraform destroy -var="image_name=11.118.0.* on Ubuntu 20.04" -var="cpanel_release_version=110" -no-color -auto-approve
