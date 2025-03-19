@@ -28,6 +28,7 @@ use Elevate::Components::CCS                    ();
 use Elevate::Components::CloudLinux             ();
 use Elevate::Components::cPanelPlugins          ();
 use Elevate::Components::cPanelPrep             ();
+use Elevate::Components::CryptoPolicies         ();
 use Elevate::Components::DatabaseUpgrade        ();
 use Elevate::Components::DiskSpace              ();
 use Elevate::Components::Distros                ();
@@ -106,6 +107,7 @@ our @CHECKS = qw{
   KernelCare
   NICs
   EA4
+  CryptoPolicies
   BootKernel
   Grub2ChecksWorkarounds
   OVH

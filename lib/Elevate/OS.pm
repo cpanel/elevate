@@ -90,6 +90,7 @@ BEGIN {
         'el_package_regex',                     # This is the regex used to determine if old packages are still installed
         'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
         'expected_post_upgrade_major',          # The OS version we expect to upgrade to
+        'has_crypto_policies',                  # This distro uses the crypto-policies framework.
         'has_imunify_ea_alias',                 # Whether CloudLinux provides and ea_alias to use when Imunify 360 provides hardened PHP
         'imunify_ea_alias',                     # Alias to use if Imunify 360 provides hardened PHP
         'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
@@ -110,6 +111,7 @@ BEGIN {
         'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
         'needs_network_manager',                # This is used to determine if the NetworkManager servoce needs to be enabled prior to running leapp
         'needs_powertools',                     # This is used to determine if the OS requires the powertools repo
+        'needs_sha1_enabled',                   # This distro needs to be specially configured to support packages with SHA-1 signatures
         'needs_vdo',                            # AL8->9 inhibits without the vdo package installed (needed to perform authoritative checks for an obscure volume format)
         'original_os_major',                    # The initial starting OS major version
         'package_manager',                      # This is the package manager that the OS uses.  i.e. RPM
