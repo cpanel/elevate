@@ -16,6 +16,9 @@ if their usage is self contained.
 
 use cPstrict;
 
+# In place of Unix::Sysexits:
+use constant EX_UNAVAILABLE => 69;
+
 use constant SERVICE_DIR  => '/etc/systemd/system/';
 use constant SERVICE_NAME => 'elevate-cpanel.service';
 

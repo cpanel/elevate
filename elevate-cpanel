@@ -99,6 +99,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use cPstrict;
 
+    use constant EX_UNAVAILABLE => 69;
+
     use constant SERVICE_DIR  => '/etc/systemd/system/';
     use constant SERVICE_NAME => 'elevate-cpanel.service';
 
@@ -1619,9 +1621,15 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use cPstrict;
 
+    use File::Copy    ();
+    use File::Path    ();
+    use File::Slurper ();
+
     use Cpanel::SafeRun::Simple ();
 
-    use Elevate::OS ();
+    use Elevate::Constants        ();
+    use Elevate::OS               ();
+    use Elevate::SystemctlService ();
 
     # use Elevate::Components::Base();
     our @ISA;
@@ -1633,6 +1641,11 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use constant K   => 1;
     use constant MEG => 1_024 * K;
     use constant GIG => 1_024 * MEG;
+
+    use constant FSTAB_PATH          => '/etc/fstab';
+    use constant FSTAB_BACKUP_SUFFIX => 'elevate_backup';
+
+    use constant DISABLE_SECURETMP_TOUCHFILE => '/var/cpanel/disabled/securetmp';
 
     sub check ($self) {    # $self is a cpev object here
         my $ok = _disk_space_check($self);
@@ -1650,6 +1663,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
             '/tmp'              => 5 * MEG,
             '/'                 => 5 * GIG,
         };
+
+        $need_space->{'/tmp'} = 750 * MEG if Elevate::OS::needs_do_release_upgrade() && !$self->is_securetmp_installed();
 
         my @keys = ( sort keys %$need_space );
 
@@ -1704,6 +1719,98 @@ EOS
         warn $error . "\n";
 
         return 0;    # error
+    }
+
+    sub is_securetmp_installed ($self) {
+        my $fstab = File::Slurper::read_text(FSTAB_PATH);
+        return grep { $_ =~ /^\s*\/usr\/tmpDSK/ } split "\n", $fstab;
+    }
+
+    sub pre_distro_upgrade ($self) {
+        return unless Elevate::OS::needs_do_release_upgrade();
+        return unless $self->is_securetmp_installed();
+
+        my $fstab = File::Slurper::read_text(FSTAB_PATH);
+        my @lines = split "\n", $fstab;
+        foreach my $line (@lines) {
+
+            $line = '' if $line =~ /^\s*\/usr\/tmpDSK/;
+
+            $line = '' if $line =~ m{/tmp\s+/var/tmp\s+ext4\s+defaults,bind,noauto\s+0\s+0};
+        }
+
+        my $new_fstab = join "\n", @lines;
+        $new_fstab .= "\n";
+
+        File::Copy::cp( FSTAB_PATH, FSTAB_PATH . '.' . FSTAB_BACKUP_SUFFIX );
+        File::Slurper::write_text( FSTAB_PATH, $new_fstab );
+
+        $self->create_disable_securetmp_touchfile();
+        return;
+    }
+
+    sub create_disable_securetmp_touchfile ($self) {
+        system touch => DISABLE_SECURETMP_TOUCHFILE();
+        return;
+    }
+
+    sub post_distro_upgrade ($self) {
+        return unless Elevate::OS::needs_do_release_upgrade();
+        return unless -s FSTAB_PATH . '.' . FSTAB_BACKUP_SUFFIX;
+
+        File::Copy::mv( FSTAB_PATH . '.' . FSTAB_BACKUP_SUFFIX, FSTAB_PATH );
+
+        unlink DISABLE_SECURETMP_TOUCHFILE();
+
+        File::Path::remove_tree( '/tmp', { keep_root => 1 } );
+
+        return;
+    }
+
+    sub check_tmp ($self) {
+        my $ok = $self->_disk_space_check();
+        $self->has_blocker(q[disk space issue]) unless $ok;
+
+        return if $ok;
+
+        my $stage              = Elevate::Stages::get_stage();
+        my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
+        my $msg                = <<"EOS";
+The elevation process failed during stage $stage.
+
+Specifically, the script detected that there is not enough disk space in /tmp
+to safely attempt to execute the distro upgrade tool.
+
+For this reason, the elevation process has terminated before making any
+irreversible changes.
+
+You can check the error log by running:
+
+    $0
+
+Before you can run the elevation process, you will need to increase the disk space available in the /tmp directory. Then you can start the elevation process anew:
+
+    $0 --start
+
+EOS
+
+        Elevate::Notify::send_notification( qq[Failed to update to $pretty_distro_name] => $msg );
+
+        $self->post_distro_upgrade();
+
+        $self->cpev->do_cleanup(1);
+        $self->_remove_but_dont_stop_service();
+
+        $self->ssystem_and_die( '/usr/sbin/reboot', 'now' );
+        exit Elevate::Constants::EX_UNAVAILABLE();    ## no critic(Cpanel::NoExitsFromSubroutines)
+    }
+
+    sub _remove_but_dont_stop_service ($self) {
+
+        $self->cpev->service->disable();
+        $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+
+        return;
     }
 
     1;
@@ -2235,6 +2342,7 @@ EOS
 
     use cPstrict;
 
+    use Elevate::Constants ();
     use Elevate::OS        ();
     use Elevate::StageFile ();
 
@@ -2254,8 +2362,6 @@ EOS
     use constant ETC_DEFAULT_GRUB_PATH        => '/etc/default/grub';
     use constant GRUB2_MKCONFIG               => '/usr/sbin/grub2-mkconfig';
     use constant GRUB_CFG                     => '/boot/grub2/grub.cfg';
-
-    use constant EX_UNAVAILABLE => 69;
 
     sub _call_grubby ( $self, @args ) {
 
@@ -2435,7 +2541,7 @@ EOS
                 $self->cpev->do_cleanup(1);
                 $self->_remove_but_dont_stop_service();
 
-                exit EX_UNAVAILABLE;    ## no critic(Cpanel::NoExitsFromSubroutines)
+                exit Elevate::Constants::EX_UNAVAILABLE();    ## no critic(Cpanel::NoExitsFromSubroutines)
             }
         }
 
@@ -11202,6 +11308,7 @@ sub run_stage_1 ($self) {
     }
 
     $self->run_component_once( 'Grub2ControlTest' => 'mark_cmdline' );
+    $self->run_component_once( 'DiskSpace'        => 'pre_distro_upgrade' );
 
     return ACTION_REBOOT_NEEDED;
 }
@@ -11213,6 +11320,10 @@ Update the current distro packages then reboot.
 =cut
 
 sub run_stage_2 ($self) {
+
+    # We need to check the diskspace for tmp to see what it is after
+    # reboot if we disabled securetmp in stage 2
+    $self->run_component_once( 'DiskSpace' => 'check_tmp' );
 
     $self->run_component_once( 'Grub2ControlTest' => 'verify_cmdline' );
 
@@ -11272,7 +11383,6 @@ some conflicting packages.
 =cut
 
 sub run_stage_3 ($self) {
-
     $self->run_once('run_final_components_pre_distro_upgrade');
 
     # The server should not reboot between executing this
@@ -11296,7 +11406,7 @@ sub run_stage_3 ($self) {
     }
     elsif ( Elevate::OS::needs_do_release_upgrade() ) {
         INFO('Remounting /tmp partition with exec option');
-        $self->ssystem_and_die( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
+        $self->ssystem( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
 
         INFO('Running do-release-upgrade');
         my $ret = $self->ssystem_capture_output( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );
@@ -11459,6 +11569,9 @@ sub run_stage_4 ($self) {
     );
 
     $self->run_component_once( 'CCS' => 'post_distro_upgrade' );
+
+    # Make sure this is the last thing before reboot since it affects mount points
+    $self->run_component_once( 'DiskSpace' => 'post_distro_upgrade' );
 
     return ACTION_REBOOT_NEEDED;
 }
