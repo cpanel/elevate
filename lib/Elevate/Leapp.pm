@@ -110,6 +110,7 @@ sub upgrade ($self) {
 
     my $ok = eval {
         local $ENV{LEAPP_OVL_SIZE} = Elevate::StageFile::read_stage_file('env')->{'LEAPP_OVL_SIZE'} || 3000;
+        local @ENV{qw(LANG LANGUAGE LC_ALL LC_MESSAGES LC_CTYPE)} = qw(en_US.UTF-8) x 5;
         $self->cpev->ssystem_and_die( { keep_env => 1 }, $leapp_bin, @leapp_args );
         1;
     };
