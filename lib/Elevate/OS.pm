@@ -90,6 +90,8 @@ BEGIN {
         'el_package_regex',                     # This is the regex used to determine if old packages are still installed
         'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
         'expected_post_upgrade_major',          # The OS version we expect to upgrade to
+        'has_imunify_ea_alias',                 # Whether CloudLinux provides and ea_alias to use when Imunify 360 provides hardened PHP
+        'imunify_ea_alias',                     # Alias to use if Imunify 360 provides hardened PHP
         'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
         'is_experimental',                      # This is used to determine if upgrades for this OS are experimental
         'is_supported',                         # This is used to determine if the OS is supported or not

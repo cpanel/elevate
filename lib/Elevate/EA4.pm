@@ -62,10 +62,9 @@ sub _backup_ea4_profile ($check_mode) {
 
 sub _imunify360_is_installed_and_provides_hardened_php () {
 
-    # TODO: Fix this when adding support for CL8->CL9
-    # 8->9 upgrades do not yet support CloudLinux
-    # Disable this feature for now
-    return 0 if Elevate::OS::name() eq 'AlmaLinux8';
+    # no point is checking this if the hardened php does not
+    # provide an updated alias via ea-cpanel-tools
+    return 0 unless Elevate::OS::has_imunify_ea_alias();
 
     return 0 unless -x IMUNIFY_AGENT;
 
@@ -103,7 +102,7 @@ sub _get_ea4_profile ($check_mode) {
 
     my $ea_alias = Elevate::OS::ea_alias();
 
-    $ea_alias = 'CloudLinux_8' if Elevate::EA4::_imunify360_is_installed_and_provides_hardened_php();
+    $ea_alias = Elevate::OS::imunify_ea_alias() if Elevate::EA4::_imunify360_is_installed_and_provides_hardened_php();
 
     my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
 

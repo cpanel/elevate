@@ -7198,6 +7198,8 @@ EOS
             'el_package_regex',                     # This is the regex used to determine if old packages are still installed
             'elevate_rpm_url',                      # This is the URL used to install the leapp RPM/repo
             'expected_post_upgrade_major',          # The OS version we expect to upgrade to
+            'has_imunify_ea_alias',                 # Whether CloudLinux provides and ea_alias to use when Imunify 360 provides hardened PHP
+            'imunify_ea_alias',                     # Alias to use if Imunify 360 provides hardened PHP
             'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
             'is_experimental',                      # This is used to determine if upgrades for this OS are experimental
             'is_supported',                         # This is used to determine if the OS is supported or not
@@ -7295,6 +7297,8 @@ EOS
     use constant ea_alias                     => 'CentOS_9';
     use constant el_package_regex             => 'el8';
     use constant elevate_rpm_url              => 'https://repo.almalinux.org/elevate/elevate-release-latest-el8.noarch.rpm';
+    use constant has_imunify_ea_alias         => 1;
+    use constant imunify_ea_alias             => 'CloudLinux_9';
     use constant expected_post_upgrade_major  => 9;
     use constant is_experimental              => 1;
     use constant leapp_data_pkg               => 'leapp-data-almalinux';
@@ -7346,6 +7350,8 @@ EOS
     use constant el_package_regex            => 'el7';
     use constant elevate_rpm_url             => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
     use constant expected_post_upgrade_major => 8;
+    use constant has_imunify_ea_alias        => 1;
+    use constant imunify_ea_alias            => 'CloudLinux_8';
     use constant leapp_data_pkg              => 'leapp-data-almalinux';
     use constant lts_supported               => 110;
     use constant name                        => 'CentOS7';
@@ -7505,6 +7511,8 @@ EOS
     use constant el_package_regex                => undef;
     use constant elevate_rpm_url                 => undef;
     use constant expected_post_upgrade_major     => undef;
+    use constant has_imunify_ea_alias            => 0;
+    use constant imunify_ea_alias                => undef;
     use constant is_apt_based                    => 0;
     use constant is_experimental                 => 0;
     use constant is_supported                    => 1;
@@ -7561,6 +7569,8 @@ EOS
     use constant ea_alias                        => undef;
     use constant el_package_regex                => undef;
     use constant elevate_rpm_url                 => undef;
+    use constant has_imunify_ea_alias            => 0;
+    use constant imunify_ea_alias                => undef;
     use constant is_apt_based                    => 1;
     use constant is_experimental                 => 0;
     use constant is_supported                    => 1;
@@ -8724,7 +8734,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
     sub _imunify360_is_installed_and_provides_hardened_php () {
 
-        return 0 if Elevate::OS::name() eq 'AlmaLinux8';
+        return 0 unless Elevate::OS::has_imunify_ea_alias();
 
         return 0 unless -x IMUNIFY_AGENT;
 
@@ -8758,7 +8768,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
         my $ea_alias = Elevate::OS::ea_alias();
 
-        $ea_alias = 'CloudLinux_8' if Elevate::EA4::_imunify360_is_installed_and_provides_hardened_php();
+        $ea_alias = Elevate::OS::imunify_ea_alias() if Elevate::EA4::_imunify360_is_installed_and_provides_hardened_php();
 
         my @cmd = ( '/usr/local/bin/ea_current_to_profile', "--target-os=$ea_alias" );
 
