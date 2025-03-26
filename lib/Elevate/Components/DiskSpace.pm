@@ -35,6 +35,7 @@ use Cpanel::SafeRun::Simple ();
 
 use Elevate::Constants        ();
 use Elevate::OS               ();
+use Elevate::StageFile        ();
 use Elevate::SystemctlService ();
 
 use parent qw{Elevate::Components::Base};
@@ -133,7 +134,7 @@ EOS
 }
 
 sub is_securetmp_installed ($self) {
-    my $fstab = File::Slurper::read_text(FSTAB_PATH);
+    my $fstab = File::Slurper::read_binary(FSTAB_PATH);
     return grep { $_ =~ /^\s*\/usr\/tmpDSK/ } split "\n", $fstab;
 }
 
@@ -141,7 +142,9 @@ sub pre_distro_upgrade ($self) {
     return unless Elevate::OS::needs_do_release_upgrade();
     return unless $self->is_securetmp_installed();
 
-    my $fstab = File::Slurper::read_text(FSTAB_PATH);
+    Elevate::StageFile::remove_from_stage_file('restore_fstab');
+
+    my $fstab = File::Slurper::read_binary(FSTAB_PATH);
     my @lines = split "\n", $fstab;
     foreach my $line (@lines) {
 
@@ -159,6 +162,8 @@ sub pre_distro_upgrade ($self) {
     File::Slurper::write_text( FSTAB_PATH, $new_fstab );
 
     $self->create_disable_securetmp_touchfile();
+
+    Elevate::StageFile::update_stage_file( { restore_fstab => 1 } );
     return;
 }
 
@@ -168,6 +173,7 @@ sub create_disable_securetmp_touchfile ($self) {
 }
 
 sub post_distro_upgrade ($self) {
+    return unless Elevate::StageFile::read_stage_file('restore_fstab');
     return unless Elevate::OS::needs_do_release_upgrade();
     return unless -s FSTAB_PATH . '.' . FSTAB_BACKUP_SUFFIX;
 
@@ -177,7 +183,7 @@ sub post_distro_upgrade ($self) {
 
     # Clear out /tmp so we don't mount over it and hide disk space usage
     # Don't actually remove /tmp
-    File::Path::remove_tree( '/tmp', { keep_root => 1 } );
+    eval { File::Path::remove_tree( '/tmp', { keep_root => 1 } ) };
 
     return;
 }

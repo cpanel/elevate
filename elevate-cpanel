@@ -1629,6 +1629,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use Elevate::Constants        ();
     use Elevate::OS               ();
+    use Elevate::StageFile        ();
     use Elevate::SystemctlService ();
 
     # use Elevate::Components::Base();
@@ -1722,7 +1723,7 @@ EOS
     }
 
     sub is_securetmp_installed ($self) {
-        my $fstab = File::Slurper::read_text(FSTAB_PATH);
+        my $fstab = File::Slurper::read_binary(FSTAB_PATH);
         return grep { $_ =~ /^\s*\/usr\/tmpDSK/ } split "\n", $fstab;
     }
 
@@ -1730,7 +1731,9 @@ EOS
         return unless Elevate::OS::needs_do_release_upgrade();
         return unless $self->is_securetmp_installed();
 
-        my $fstab = File::Slurper::read_text(FSTAB_PATH);
+        Elevate::StageFile::remove_from_stage_file('restore_fstab');
+
+        my $fstab = File::Slurper::read_binary(FSTAB_PATH);
         my @lines = split "\n", $fstab;
         foreach my $line (@lines) {
 
@@ -1746,6 +1749,8 @@ EOS
         File::Slurper::write_text( FSTAB_PATH, $new_fstab );
 
         $self->create_disable_securetmp_touchfile();
+
+        Elevate::StageFile::update_stage_file( { restore_fstab => 1 } );
         return;
     }
 
@@ -1755,6 +1760,7 @@ EOS
     }
 
     sub post_distro_upgrade ($self) {
+        return unless Elevate::StageFile::read_stage_file('restore_fstab');
         return unless Elevate::OS::needs_do_release_upgrade();
         return unless -s FSTAB_PATH . '.' . FSTAB_BACKUP_SUFFIX;
 
@@ -1762,7 +1768,7 @@ EOS
 
         unlink DISABLE_SECURETMP_TOUCHFILE();
 
-        File::Path::remove_tree( '/tmp', { keep_root => 1 } );
+        eval { File::Path::remove_tree( '/tmp', { keep_root => 1 } ) };
 
         return;
     }
@@ -11523,9 +11529,10 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    $self->run_component_once( 'Ufw'   => 'post_distro_upgrade' );
-    $self->run_component_once( 'Lists' => 'post_distro_upgrade' );
-    $self->run_component_once( 'RpmDB' => 'post_distro_upgrade' );
+    $self->run_component_once( 'Ufw'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'Lists'     => 'post_distro_upgrade' );
+    $self->run_component_once( 'WPToolkit' => 'post_distro_upgrade' );
+    $self->run_component_once( 'RpmDB'     => 'post_distro_upgrade' );
 
     $self->run_once(
         restore_cpanel_services => sub {
@@ -11787,7 +11794,6 @@ sub post_distro_upgrade_update_restore ($self) {
     $self->run_component_once( 'cPanelPlugins'   => 'post_distro_upgrade' );
     $self->run_component_once( 'DatabaseUpgrade' => 'post_distro_upgrade' );
     $self->run_component_once( 'PECL'            => 'post_distro_upgrade' );
-    $self->run_component_once( 'WPToolkit'       => 'post_distro_upgrade' );
     $self->run_component_once( 'InfluxDB'        => 'post_distro_upgrade' );
     $self->run_component_once( 'JetBackup'       => 'post_distro_upgrade' );
     $self->run_component_once( 'Kernel'          => 'post_distro_upgrade' );

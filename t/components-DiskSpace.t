@@ -238,10 +238,19 @@ EOS
     my $components = cpev->new()->components;
     my $ds         = $components->_get_blocker_for('DiskSpace');
 
-    my $orig_read_text = \&File::Slurper::read_text;
-    my $mock_slurper   = Test::MockModule->new('File::Slurper');
+    my $orig_read_binary = \&File::Slurper::read_binary;
+    my $mock_slurper     = Test::MockModule->new('File::Slurper');
     $mock_slurper->redefine(
-        read_text => sub { die "should not be called\n" },
+        read_binary => sub { die "should not be called\n" },
+    );
+
+    my $staged         = {};
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        remove_from_stage_file => 0,
+        update_stage_file      => sub {
+            ($staged) = @_;
+        },
     );
 
     foreach my $os (qw{ cent cloud alma }) {
@@ -283,8 +292,8 @@ EOS
 
     my $content;
     $mock_slurper->redefine(
-        read_text  => $orig_read_text,
-        write_text => sub {
+        read_binary => $orig_read_binary,
+        write_text  => sub {
             $content = $_[1];
         },
     );
@@ -293,6 +302,13 @@ EOS
     is( $from, '/etc/fstab',                'Backs up /etc/fstab' );
     is( $to,   '/etc/fstab.elevate_backup', '/etc/fstab is backed up to the expected location' );
     unlike( $content, qr{/usr/tmpDSK}, 'The securetmp line is removed from /etc/fstab' );
+    is(
+        $staged,
+        {
+            restore_fstab => 1,
+        },
+        'The expected data was staged',
+    );
 }
 
 {
@@ -306,6 +322,11 @@ EOS
         mv => sub { die "Do not call this yet\n"; },
     );
 
+    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+    $mock_stagefile->redefine(
+        read_stage_file => 1,
+    );
+
     my $mock_fstab_backup_file = Test::MockFile->file( '/etc/fstab.elevate_backup', 'contents go here' );
 
     foreach my $os (qw{ cent cloud alma }) {
@@ -316,9 +337,19 @@ EOS
 
     set_os_to('ubuntu');
 
-    $mock_fstab_backup_file->unlink;
+    $mock_stagefile->redefine(
+        read_stage_file => 0,
+    );
 
     ok( lives { $ds->post_distro_upgrade() }, 'Returns early when securetmp was not disabled' );
+
+    $mock_stagefile->redefine(
+        read_stage_file => 1,
+    );
+
+    $mock_fstab_backup_file->unlink;
+
+    ok( lives { $ds->post_distro_upgrade() }, 'Returns early when there is no backup file for "/etc/fstab" present' );
 
     $mock_fstab_backup_file->contents( <<'EOS' );
 LABEL=cloudimg-rootfs	/	ext4	discard,errors=remount-ro,usrjquota=quota.user,jqfmt=vfsv1	0	1

@@ -1158,9 +1158,10 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    $self->run_component_once( 'Ufw'   => 'post_distro_upgrade' );
-    $self->run_component_once( 'Lists' => 'post_distro_upgrade' );
-    $self->run_component_once( 'RpmDB' => 'post_distro_upgrade' );
+    $self->run_component_once( 'Ufw'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'Lists'     => 'post_distro_upgrade' );
+    $self->run_component_once( 'WPToolkit' => 'post_distro_upgrade' );
+    $self->run_component_once( 'RpmDB'     => 'post_distro_upgrade' );
 
     $self->run_once(
         restore_cpanel_services => sub {
@@ -1422,7 +1423,6 @@ sub post_distro_upgrade_update_restore ($self) {
     $self->run_component_once( 'cPanelPlugins'   => 'post_distro_upgrade' );
     $self->run_component_once( 'DatabaseUpgrade' => 'post_distro_upgrade' );
     $self->run_component_once( 'PECL'            => 'post_distro_upgrade' );
-    $self->run_component_once( 'WPToolkit'       => 'post_distro_upgrade' );
     $self->run_component_once( 'InfluxDB'        => 'post_distro_upgrade' );
     $self->run_component_once( 'JetBackup'       => 'post_distro_upgrade' );
     $self->run_component_once( 'Kernel'          => 'post_distro_upgrade' );
