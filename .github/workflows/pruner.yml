@@ -6,7 +6,7 @@ on:
 jobs:
     run-pruner:
       if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
-      runs-on: [self-hosted]
+      runs-on: [arc-runners-elevate]
       env:
         ACTIONS_STEP_DEBUG: true
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}

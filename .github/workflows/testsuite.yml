@@ -45,7 +45,7 @@ jobs:
 
     # Note: the container is not a CentOS 7 distro
     #       this is ok if we use it for unit test purpose
-    #       we are also relying on e2e test using C7 VM on self-hosted runner.
+    #       we are also relying on e2e test using C7 VM on arc-runners-elevate runner.
     container:
       image: cpanelos/perl-compiler:alma8-perl-v5.36.0
 

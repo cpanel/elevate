@@ -28,7 +28,7 @@ env:
 
 jobs: 
     terraform_openstack_create:
-        runs-on: self-hosted
+        runs-on: arc-runners-elevate
         defaults:
           run:
             working-directory: "${{ github.workspace }}/.github/workflows/openstack"
@@ -92,7 +92,7 @@ jobs:
             overwrite: true
 
     clone_elevate_repo:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: terraform_openstack_create
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -164,7 +164,7 @@ jobs:
               git status
 
     setup_integration_checks:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: clone_elevate_repo
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -219,7 +219,7 @@ jobs:
               until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
 
     start_elevate:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: setup_integration_checks
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -255,7 +255,7 @@ jobs:
               exit 0
 
     wait_for_stage_1_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: start_elevate
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -282,7 +282,7 @@ jobs:
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
     watch_for_stage_2_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: wait_for_stage_1_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -320,7 +320,7 @@ jobs:
               REBOOT_STRING="Rebooting into stage 2 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_2_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: watch_for_stage_2_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -347,7 +347,7 @@ jobs:
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
     watch_for_stage_3_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: wait_for_stage_2_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -385,7 +385,7 @@ jobs:
               REBOOT_STRING="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
     
     wait_for_stage_3_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: watch_for_stage_3_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -412,7 +412,7 @@ jobs:
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
     watch_for_stage_4_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: wait_for_stage_3_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -449,7 +449,7 @@ jobs:
               REBOOT_STRING="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_4_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: watch_for_stage_4_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -476,7 +476,7 @@ jobs:
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
     watch_for_stage_5_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: wait_for_stage_4_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -513,7 +513,7 @@ jobs:
               REBOOT_STRING="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch
 
     wait_for_stage_5_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: watch_for_stage_5_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -540,7 +540,7 @@ jobs:
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
     watch_for_final_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: wait_for_stage_5_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -577,7 +577,7 @@ jobs:
               REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
 
     wait_for_final_reboot:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: watch_for_final_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -604,7 +604,7 @@ jobs:
             ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
 
     verify_upgraded_os:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: wait_for_final_reboot
       outputs:
         VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
@@ -640,7 +640,7 @@ jobs:
               /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/*.t
 
     terraform_openstack_destroy:
-      runs-on: self-hosted
+      runs-on: arc-runners-elevate
       needs: verify_upgraded_os
       defaults:
         run:
