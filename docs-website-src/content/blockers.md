@@ -19,6 +19,8 @@ To successfully run the ELevate script, you must meet the following conditions:
 * Your system runs CentOS 7, CloudLinux™ 7, or Ubuntu® 20.
   * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
   * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
+  * AlmaLinux 8 support is only available on name cPanel & WHM tiers such a
+s RELEASE or LTS.
 * Your system **must** run the most recent minor version of its cPanel version for your operating system.
 * cPanel **must** have a valid license.
 * If applicable, **CloudLinux** has a valid license.
@@ -53,7 +55,9 @@ The upgrade process may use 5 GB or more of disk space. If you use a complex mou
 
 * `/`: 5 GB
 * `/boot`: 120 MB
-* `/tmp`: 5 MB
+* `/tmp`:
+  * 5 MB for RHEL-based systems
+  * 750 MB for Ubuntu-based systems
 * `/usr/local/cpanel`: 1.5 GB
 * `/var/lib`: 5 GB
 
@@ -84,13 +88,14 @@ We only support the following PHP versions:
 * AlmaLinux OS 8: PHP 7.2 and later
 * CloudLinux 8: PHP 5.1 and later
 * Ubuntu 22: PHP 8.1 and later
+* AlmaLinux OS 9: PHP 8.0 and later
 
 If any of your users use a PHP version earlier than these, the ELevate process will be **blocked**.
 If these PHP versions are only installed but not in use, the system will upgrade as normal, but the PHP versions will **not** be reinstalled.
 
 #### Hardened PHP
 
-[Imunify 360](https://www.imunify360.com/) provides hardened PHP for versions 5.1 and later. The upgrade process will detect these hardened PHP versions and allow the upgrade to occur.
+[Imunify 360](https://www.imunify360.com/) provides hardened PHP for earlier versions of PHP. The upgrade process will detect these hardened PHP versions and allow the upgrade to occur.
 
 ### Filesystem mount command
 
