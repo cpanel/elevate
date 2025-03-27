@@ -16,6 +16,8 @@ jobs:
         OS_IDENTITY_API_VERSION: '3'
         OS_INTERFACE: 'public'
         OS_REGION_NAME: 'RegionOne'
+      container:
+        image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
       steps:
         - uses: actions/checkout@v4
         - name: Run Openstack Pruner
