@@ -84,6 +84,10 @@ sub post_distro_upgrade ($self) {
 
     INFO("Re-installing jetbackup.");
 
+    if ( Elevate::OS::jetbackup_repo_rpm_url() ) {
+        Elevate::PkgMgr::install_pkg_via_url( Elevate::OS::jetbackup_repo_rpm_url() );
+    }
+
     my $tier     = $data->{tier};
     my @packages = $data->{packages}->@*;
 

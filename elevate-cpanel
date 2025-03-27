@@ -3380,6 +3380,10 @@ EOS
 
         INFO("Re-installing jetbackup.");
 
+        if ( Elevate::OS::jetbackup_repo_rpm_url() ) {
+            Elevate::PkgMgr::install_pkg_via_url( Elevate::OS::jetbackup_repo_rpm_url() );
+        }
+
         my $tier     = $data->{tier};
         my @packages = $data->{packages}->@*;
 
@@ -7315,6 +7319,7 @@ EOS
             'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
             'is_experimental',                      # This is used to determine if upgrades for this OS are experimental
             'is_supported',                         # This is used to determine if the OS is supported or not
+            'jetbackup_repo_rpm_url',               # This is the URL used to reinstall the jetbackup repo if required after elevation
             'leapp_can_handle_imunify',             # This is used to determine if we can skip the Imunify component or not
             'leapp_can_handle_kernelcare',          # This is used to determine if we can skip the kernelcare component or not
             'leapp_data_pkg',                       # This is used to determine which leapp data package to install
@@ -7413,6 +7418,7 @@ EOS
     use constant imunify_ea_alias             => 'CloudLinux_9';
     use constant expected_post_upgrade_major  => 9;
     use constant is_experimental              => 1;
+    use constant jetbackup_repo_rpm_url       => 'https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm';
     use constant leapp_data_pkg               => 'leapp-data-almalinux';
     use constant lts_supported                => 126;
     use constant name                         => 'AlmaLinux8';
@@ -7424,7 +7430,6 @@ EOS
     use constant pkgmgr_lib_path              => '/var/lib/dnf';
     use constant pretty_name                  => 'AlmaLinux 8';
     use constant should_archive_elevate_files => 1;
-    use constant supports_jetbackup           => 0;
     use constant upgrade_to_pretty_name       => 'AlmaLinux 9';
 
     sub vetted_yum_repo ($self) {
@@ -7628,6 +7633,7 @@ EOS
     use constant is_apt_based                    => 0;
     use constant is_experimental                 => 0;
     use constant is_supported                    => 1;
+    use constant jetbackup_repo_rpm_url          => undef;
     use constant leapp_can_handle_imunify        => 0;
     use constant leapp_can_handle_kernelcare     => 0;
     use constant leapp_data_pkg                  => undef;
@@ -7686,6 +7692,7 @@ EOS
     use constant is_apt_based                    => 1;
     use constant is_experimental                 => 0;
     use constant is_supported                    => 1;
+    use constant jetbackup_repo_rpm_url          => undef;
     use constant leapp_can_handle_imunify        => undef;
     use constant leapp_can_handle_kernelcare     => undef;
     use constant leapp_data_pkg                  => undef;
