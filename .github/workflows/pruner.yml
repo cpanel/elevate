@@ -3,6 +3,7 @@ run-name: Openstack Pruner
 on:
   schedule:
     - cron:  '5 * * * *'
+  workflow_dispatch:
 jobs:
     run-pruner:
       if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
