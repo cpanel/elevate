@@ -34,8 +34,6 @@ jobs:
         defaults:
           run:
             working-directory: "${{ github.workspace }}/.github/workflows/openstack"
-        container:
-          image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-playwright-terraform
         steps:
         - uses: actions/checkout@v4
 
