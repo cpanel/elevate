@@ -643,6 +643,8 @@ jobs:
 
     terraform_openstack_destroy:
       runs-on: arc-runners-elevate
+      container:
+        image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
       needs: verify_upgraded_os
       defaults:
         run:
