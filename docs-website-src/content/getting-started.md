@@ -14,6 +14,7 @@ You can perform the following elevations:
 * CentOS 7 to AlmaLinux OS 8
 * CloudLinux™ 7 to CloudLinux 8
 * Ubuntu® 20 to Ubuntu 22
+* AlmaLinux OS 8 to AlmaLinux OS 9
 
 ## Prerequisites
 
@@ -22,9 +23,10 @@ ELevate **requires** access to an interactive shell as the `root` user.
 Before you upgrade your system, make **certain** that you've met the following requirements.
 
 * You are logged in to the server as the `root` user.
-* Your system runs CentOS 7, CloudLinux 7, or Ubuntu 20.
+* Your system runs CentOS 7, CloudLinux 7, Ubuntu 20, or AlmaLinux OS 8.
   * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
   * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
+  * Systems that run AlmaLinux OS 8 **must** run on a named tier (LTS, STABLE, RELEASE, CURRENT, or EDGE) of cPanel & WHM
 * Your system **must** run the most recent minor version of its cPanel version for your operating system.
 * cPanel **must** have a valid license.
 * If applicable, **CloudLinux** has a valid license.
@@ -55,8 +57,9 @@ We recommend that you verify and update the software on your server **before** y
   * Red Hat®-based servers: `yum update`
   * Ubuntu-based servers: `apt upgrade`
 * Ensure that you're using the latest stable version of cPanel & WHM that is available for your current OS:
-  * CentOS 7 support is only available on cPanel & WHM version 110.
+  * CentOS 7 and CloudLinux 7 support is only available on cPanel & WHM version 110.
   * Ubuntu 20.04 support is only available on cPanel & WHM version 118.
+  * AlmaLinux 8 support is only available on name cPanel & WHM tiers such as RELEASE or LTS.
 * Make certain that you're using a version of MySQL/MariaDB that is compatible with your target distribution.
 
 We also recommend that you [download the ELevate script](#download-the-elevate-cpanel-script) and [run the pre-checks](#run-pre-upgrade-checks). This will ensure that you don't have any [blockers](https://cpanel.github.io/elevate/blockers/) that will prevent an upgrade.
