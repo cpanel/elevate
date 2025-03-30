@@ -75,7 +75,7 @@ jobs:
           uses: actions/upload-artifact@v4.4.3
           with:
             name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
-            path: "${{ github.workspace }}/.github/workflows/openstack"
+            path: ${{ env.tf_working_directory }}
 
         - name: Terraform Output File Create
           run: |
@@ -84,13 +84,13 @@ jobs:
         - name: Make vm_ip file from Terraform Output File
           id: get_vm_ip
           run: |
-            echo "$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" > ${{ github.workspace }}/${{ github.run_id }}-vm_ip
+            echo "$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" > ${{ github.run_id }}-vm_ip
 
         - name: Upload VM Output
           uses: actions/upload-artifact@v4.4.3
           with:
             name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/${{ github.run_id }}-vm_ip
+            path: ${{ env.tf_working_directory }}/${{ github.run_id }}-vm_ip
             overwrite: true
 
     clone_elevate_repo:
@@ -663,25 +663,21 @@ jobs:
       container:
         image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
       needs: verify_upgraded_os
-      defaults:
-        run:
-          working-directory: "${{ github.workspace }}/.github/workflows"
       steps:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
           name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
-          path: "${{ github.workspace }}/.github/workflows/openstack/terraform"
-
+          path: ${{ env.tf_working_directory }}
       - name: Stage Files & Show Artifact Paths
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/terraform/
+          pwd
+          find -type d
+          cd ".github/workflows/openstack"
           mv -v terraform.lock.hcl .terraform.lock.hcl
-          find ${{ github.workspace }}/.github/workflows/openstack/
-
       - name: Initialize Terraform & Destroy
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/terraform/
+          cd ".github/workflows/openstack"
           rm -Rfv .terraform || true
           terraform init
           terraform destroy -var="image_name=11.110.0.* on CloudLinux 7" -var="cpanel_release_version=110" -no-color -auto-approve

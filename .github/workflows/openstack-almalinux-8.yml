@@ -75,7 +75,7 @@ jobs:
           uses: actions/upload-artifact@v4.4.3
           with:
             name: ${{ github.run_id }}-almalinux8-terraform.tfstate
-            path: "${{ github.workspace }}/.github/workflows/openstack"
+            path: ${{ env.tf_working_directory }}
 
         - name: Terraform Output File Create
           run: |
@@ -84,13 +84,13 @@ jobs:
         - name: Make vm_ip file from Terraform Output File
           id: get_vm_ip
           run: |
-            echo "$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" > ${{ github.workspace }}/${{ github.run_id }}-vm_ip
+            echo "$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" > ${{ github.run_id }}-vm_ip
 
         - name: Upload VM Output
           uses: actions/upload-artifact@v4.4.3
           with:
             name: ${{ github.run_id }}-almalinux8-vm_ip
-            path: ${{ github.workspace }}/${{ github.run_id }}-vm_ip
+            path: ${{ env.tf_working_directory }}/${{ github.run_id }}-vm_ip
             overwrite: true
 
     clone_elevate_repo:
@@ -133,7 +133,7 @@ jobs:
               echo && head -c50 ~/.ssh/elevate_checkout_key && echo
               echo && cat /root/.ssh/config && echo
               echo "## [DEBUG]: git clone --depth=1 --branch ${{ github.ref_name }} git@github.com:${{ github.repository }}.git"
-              git clone depth=1 --branch ${{ github.ref_name }} git@github.com:${{ github.repository }}.git
+              git clone --depth=1 --branch ${{ github.ref_name }} git@github.com:${{ github.repository }}.git
               hostname && pwd && ls -la
               cd /opt/$(echo ${{ github.repository }} | cut -d / -f2)
               git status
@@ -646,26 +646,21 @@ jobs:
       container:
         image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
       needs: verify_upgraded_os
-      defaults:
-        run:
-          working-directory: "${{ github.workspace }}/.github/workflows/openstack"
       steps:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
           name: ${{ github.run_id }}-almalinux8-terraform.tfstate
-          path: "${{ github.workspace }}/.github/workflows/openstack/terraform"
-
-
+          path: ${{ env.tf_working_directory }}
       - name: Stage Files & Show Artifact Paths
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/terraform/
+          pwd
+          find -type d
+          cd ".github/workflows/openstack"
           mv -v terraform.lock.hcl .terraform.lock.hcl
-          find ${{ github.workspace }}/.github/workflows/openstack/
-
       - name: Initialize Terraform & Destroy
         run: |
-          cd ${{ github.workspace }}/.github/workflows/openstack/terraform/
+          cd ".github/workflows/openstack"
           rm -Rfv .terraform || true
           terraform init
           terraform destroy -var="image_name=11.126.0.* on AlmaLinux 8" -var="cpanel_release_version=126" -no-color -auto-approve

@@ -41,11 +41,11 @@ variable "ssh_public_key" {
 }
 
 variable "image_name" {
-  type    = string
+  type = string
 }
 
 variable "cpanel_release_version" {
-  type    = string
+  type = string
 }
 
 variable "flavor_name" {
