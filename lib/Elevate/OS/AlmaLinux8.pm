@@ -29,6 +29,7 @@ use constant has_imunify_ea_alias         => 1;
 use constant imunify_ea_alias             => 'CloudLinux_9';
 use constant expected_post_upgrade_major  => 9;
 use constant is_experimental              => 1;
+use constant jetbackup_repo_rpm_url       => 'https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm';
 use constant leapp_data_pkg               => 'leapp-data-almalinux';
 use constant lts_supported                => 126;
 use constant name                         => 'AlmaLinux8';
@@ -41,7 +42,6 @@ use constant original_os_major            => 8;
 use constant pkgmgr_lib_path              => '/var/lib/dnf';
 use constant pretty_name                  => 'AlmaLinux 8';
 use constant should_archive_elevate_files => 1;
-use constant supports_jetbackup           => 0;
 use constant upgrade_to_pretty_name       => 'AlmaLinux 9';
 
 sub vetted_yum_repo ($self) {

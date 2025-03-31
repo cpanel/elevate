@@ -96,6 +96,7 @@ BEGIN {
         'is_apt_based',                         # This is used to determine if the OS uses apt as its package manager
         'is_experimental',                      # This is used to determine if upgrades for this OS are experimental
         'is_supported',                         # This is used to determine if the OS is supported or not
+        'jetbackup_repo_rpm_url',               # This is the URL used to reinstall the jetbackup repo if required after elevation
         'leapp_can_handle_imunify',             # This is used to determine if we can skip the Imunify component or not
         'leapp_can_handle_kernelcare',          # This is used to determine if we can skip the kernelcare component or not
         'leapp_data_pkg',                       # This is used to determine which leapp data package to install
