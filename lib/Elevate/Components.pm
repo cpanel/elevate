@@ -90,6 +90,7 @@ our @CHECKS = qw{
 
   IsContainer
   ElevateScript
+  UpdateSystem
   MountPoints
   SSH
 
@@ -140,7 +141,6 @@ our @NOOP_CHECKS = qw{
   Ufw
   UnconvertedModules
   UpdateReleaseUpgrades
-  UpdateSystem
   WPToolkit
   cPanelPlugins
   cPanelPrep

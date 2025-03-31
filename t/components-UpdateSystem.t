@@ -1,6 +1,6 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
-#                                      Copyright 2024 WebPros International, LLC
+#                                      Copyright 2025 WebPros International, LLC
 #                                                           All rights reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
@@ -24,9 +24,10 @@ use Test::Elevate;
 use cPstrict;
 
 my $mock_cpanel_exclude_packages = Test::MockFile->file( '/etc/apt/preferences.d/99-cpanel-exclude-packages', '' );
+my $mock_check_cpanel_pkgs       = Test::MockFile->file('/usr/local/cpanel/scripts/check_cpanel_pkgs');
 
-my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
-my $mock_comp   = Test::MockModule->new('Elevate::Components::UpdateSystem');
+my $mock_pkgmgr    = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+my $mock_pkgr_comp = Test::MockModule->new('Elevate::Components::UpdateSystem');
 
 my $comp = cpev->new->get_component('UpdateSystem');
 
@@ -41,12 +42,22 @@ my $comp = cpev->new->get_component('UpdateSystem');
     );
 
     my @ssystem_and_die_params;
-    $mock_comp->redefine(
+    my @system_params;
+    $mock_pkgr_comp->redefine(
         ssystem_and_die => sub {
             shift;
             @ssystem_and_die_params = @_;
             return;
         },
+        _check_cpanel_pkgs => sub {
+            shift;
+            return;
+        },
+        _fix_cpanel_pkgs => sub {
+            shift;
+            @system_params = @_;
+            return;
+        }
     );
 
     foreach my $os ( 'cent', 'cloud', 'ubuntu' ) {
@@ -62,6 +73,47 @@ my $comp = cpev->new->get_component('UpdateSystem');
                 '/scripts/update-packages',
             ],
             'Expected script was called'
+        );
+    }
+}
+
+{
+    note 'check';
+
+    my @ssystem_capture_output_params;
+    $mock_pkgr_comp->redefine(
+        check => sub {
+            shift;
+            @ssystem_capture_output_params = @_;
+            return;
+        },
+    );
+
+    foreach my $os ( 'cent', 'cloud', 'ubuntu' ) {
+        is( $comp->check(), undef, 'Returns undef' );
+        is(
+            \@ssystem_capture_output_params,
+            [],
+            '/usr/local/cpanel/scripts/check_cpanel_pkgs was called'
+        );
+    }
+
+    $mock_pkgr_comp->redefine(
+        check => sub {
+            shift;
+            @ssystem_capture_output_params = qw/ 1 /;
+            return 1;
+        },
+    );
+
+    foreach my $os ( 'cent', 'cloud', 'ubuntu' ) {
+        is( $comp->check(), 1, 'Returns 1' );
+        is(
+            \@ssystem_capture_output_params,
+            [
+                '1',
+            ],
+            '/usr/local/cpanel/scripts/check_cpanel_pkgs was called and returned'
         );
     }
 }
