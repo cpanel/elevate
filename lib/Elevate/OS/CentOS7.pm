@@ -27,6 +27,7 @@ use constant ea_alias                    => 'CentOS_8';
 use constant el_package_regex            => 'el7';
 use constant elevate_rpm_url             => 'https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm';
 use constant expected_post_upgrade_major => 8;
+use constant has_crypto_policies         => 0;
 use constant has_imunify_ea_alias        => 1;
 use constant imunify_ea_alias            => 'CloudLinux_8';
 use constant leapp_data_pkg              => 'leapp-data-almalinux';

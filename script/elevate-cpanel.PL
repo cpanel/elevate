@@ -247,6 +247,7 @@ use Elevate::Components::CCS                    ();
 use Elevate::Components::CloudLinux             ();
 use Elevate::Components::cPanelPlugins          ();
 use Elevate::Components::cPanelPrep             ();
+use Elevate::Components::CryptoPolicies         ();
 use Elevate::Components::DatabaseUpgrade        ();
 use Elevate::Components::DiskSpace              ();
 use Elevate::Components::Distros                ();
@@ -1399,6 +1400,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'Panopta'               => 'pre_distro_upgrade' );
     $self->run_component_once( 'Acronis'               => 'pre_distro_upgrade' );
     $self->run_component_once( 'UpdateReleaseUpgrades' => 'pre_distro_upgrade' );
+    $self->run_component_once( 'CryptoPolicies'        => 'pre_distro_upgrade' );
     $self->run_component_once( 'RpmDB'                 => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;
@@ -1415,6 +1417,8 @@ sub post_distro_upgrade_update_restore ($self) {
             File::Slurper::write_text( "/etc/yum.conf", $txt );
         }
     }
+
+    $self->run_component_once( 'CryptoPolicies' => 'post_distro_upgrade' );
 
     # plugins can use MySQL - restore database earlier
     $self->run_component_once( 'MySQL'           => 'post_distro_upgrade' );
