@@ -18,6 +18,7 @@ Verify that the option is present after a reboot and block if it is not
 
 use cPstrict;
 
+use Elevate::Constants ();
 use Elevate::OS        ();
 use Elevate::StageFile ();
 
@@ -34,9 +35,6 @@ use constant CMDLINE_PATH                 => '/proc/cmdline';
 use constant ETC_DEFAULT_GRUB_PATH        => '/etc/default/grub';
 use constant GRUB2_MKCONFIG               => '/usr/sbin/grub2-mkconfig';
 use constant GRUB_CFG                     => '/boot/grub2/grub.cfg';
-
-# In place of Unix::Sysexits:
-use constant EX_UNAVAILABLE => 69;
 
 sub _call_grubby ( $self, @args ) {
 
@@ -220,7 +218,7 @@ EOS
             $self->cpev->do_cleanup(1);
             $self->_remove_but_dont_stop_service();
 
-            exit EX_UNAVAILABLE;    ## no critic(Cpanel::NoExitsFromSubroutines)
+            exit Elevate::Constants::EX_UNAVAILABLE();    ## no critic(Cpanel::NoExitsFromSubroutines)
         }
     }
 

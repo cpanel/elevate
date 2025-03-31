@@ -943,6 +943,7 @@ sub run_stage_1 ($self) {
     }
 
     $self->run_component_once( 'Grub2ControlTest' => 'mark_cmdline' );
+    $self->run_component_once( 'DiskSpace'        => 'pre_distro_upgrade' );
 
     return ACTION_REBOOT_NEEDED;
 }
@@ -954,6 +955,10 @@ Update the current distro packages then reboot.
 =cut
 
 sub run_stage_2 ($self) {
+
+    # We need to check the diskspace for tmp to see what it is after
+    # reboot if we disabled securetmp in stage 2
+    $self->run_component_once( 'DiskSpace' => 'check_tmp' );
 
     $self->run_component_once( 'Grub2ControlTest' => 'verify_cmdline' );
 
@@ -1013,7 +1018,6 @@ some conflicting packages.
 =cut
 
 sub run_stage_3 ($self) {
-
     $self->run_once('run_final_components_pre_distro_upgrade');
 
     # The server should not reboot between executing this
@@ -1037,7 +1041,7 @@ sub run_stage_3 ($self) {
     }
     elsif ( Elevate::OS::needs_do_release_upgrade() ) {
         INFO('Remounting /tmp partition with exec option');
-        $self->ssystem_and_die( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
+        $self->ssystem( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
 
         INFO('Running do-release-upgrade');
         my $ret = $self->ssystem_capture_output( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );
@@ -1154,9 +1158,10 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
-    $self->run_component_once( 'Ufw'   => 'post_distro_upgrade' );
-    $self->run_component_once( 'Lists' => 'post_distro_upgrade' );
-    $self->run_component_once( 'RpmDB' => 'post_distro_upgrade' );
+    $self->run_component_once( 'Ufw'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'Lists'     => 'post_distro_upgrade' );
+    $self->run_component_once( 'WPToolkit' => 'post_distro_upgrade' );
+    $self->run_component_once( 'RpmDB'     => 'post_distro_upgrade' );
 
     $self->run_once(
         restore_cpanel_services => sub {
@@ -1200,6 +1205,9 @@ sub run_stage_4 ($self) {
     );
 
     $self->run_component_once( 'CCS' => 'post_distro_upgrade' );
+
+    # Make sure this is the last thing before reboot since it affects mount points
+    $self->run_component_once( 'DiskSpace' => 'post_distro_upgrade' );
 
     return ACTION_REBOOT_NEEDED;
 }
@@ -1415,7 +1423,6 @@ sub post_distro_upgrade_update_restore ($self) {
     $self->run_component_once( 'cPanelPlugins'   => 'post_distro_upgrade' );
     $self->run_component_once( 'DatabaseUpgrade' => 'post_distro_upgrade' );
     $self->run_component_once( 'PECL'            => 'post_distro_upgrade' );
-    $self->run_component_once( 'WPToolkit'       => 'post_distro_upgrade' );
     $self->run_component_once( 'InfluxDB'        => 'post_distro_upgrade' );
     $self->run_component_once( 'JetBackup'       => 'post_distro_upgrade' );
     $self->run_component_once( 'Kernel'          => 'post_distro_upgrade' );
