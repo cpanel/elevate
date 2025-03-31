@@ -133,6 +133,12 @@ If the version of MySQL/MariaDB installed on the system is not supported on the 
 
 **NOTE:** If an upgrade is necessary **and** the system is set up to use a remote server, a local server will be temporarily configured and enabled for the duration of the ELevate process. The remote instance will be reenabled once the upgrade completes.
 
+### cPanel securetmp
+
+**NOTE:** Ubuntu-based systems only
+
+If ELevate detects that cPanel securetmp is installed, it will disable cPanel securetmp before attempting to perform the distro upgrade.  The reason for this is that the `do-release-upgrade` script that is used to upgrade the distro can potentially use a larger amount of disk space than what cPanel allocates to `/tmp` when enabling securetmp.  Once the distro has successfully been updated, ELevate will re-enable cPanel securetmp.
+
 ### OVH proactive intervention monitoring
 
 If you use a dedicated server hosted at [OVH](https://www.ovhcloud.com/), you should **disable** the proactive monitoring **before** you start the ELevate process. Create the `/var/cpanel/acknowledge_ovh_monitoring_for_elevate` touch file to indicate that you disabled monitoring. This will prevent the proactive monitoring from incorrectly detecting an issue on your server during the reboots. If you do **not** create this file, your server may boot into rescue mode and interrupt the upgrade.
