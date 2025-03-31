@@ -1,3 +1,17 @@
 #!/usr/bin/bash
 
+#                                      Copyright 2025 WebPros International, LLC
+#                                                           All rights reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited.
+
+# RE-1179 / RE-1244
+if [[ ! -f "/etc/scl/prefixes/ea-php80" ]]
+then
+	echo -e "\nFile does not exist at /etc/scl/prefixes/ea-php80; installing ea-php80 via scripts/installpkg"
+	/usr/local/cpanel/scripts/installpkg ea-php80
+else
+	echo -e "\nFile already exists at /etc/scl/prefixes/ea-php80; skipping install of ea-php80."
+fi
+
 exit 0;
