@@ -17,19 +17,27 @@ use Test2::Tools::Mock;
 
 use Test::MockModule qw/strict/;
 
+use lib $FindBin::Bin . "/../lib";
+use Elevate::OS ();
+
 use lib $FindBin::Bin . "/lib";
-use Test::Elevate;
+use Test::Elevate::OS ();
 
 my %os_designation = (
-    cent   => 0,
-    cloud  => 0,
-    ubuntu => 0,
-    alma   => 0,
+    AlmaLinux8  => 0,
+    CentOS7     => 0,
+    CloudLinux7 => 0,
+    CloudLinux8 => 1,
+    Ubuntu20    => 0,
 );
 
-foreach my $os ( sort keys %os_designation ) {
-    set_os_to($os);
-    is( Elevate::OS::is_experimental(), $os_designation{$os}, "OS has the expected experimental designation" );
+foreach my $os ( Elevate::OS::SUPPORTED_DISTROS() ) {
+    my ( $distro, $major ) = split ' ', $os;
+
+    my $as_distro = lc "set_os_to_${distro}_${major}";
+    Test::Elevate::OS->can($as_distro)->();
+
+    is( Elevate::OS::is_experimental(), $os_designation{"$distro$major"}, "OS has the expected experimental designation" );
 }
 
 done_testing();

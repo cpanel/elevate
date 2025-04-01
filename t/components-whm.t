@@ -28,6 +28,13 @@ my $whm_mock  = Test::MockModule->new('Elevate::Components::WHM');
 my $cpev = cpev->new;
 my $whm  = $cpev->get_component('WHM');
 
+my %os_hash = (
+    alma   => [8],
+    cent   => [7],
+    cloud  => [ 7, 8 ],
+    ubuntu => [20],
+);
+
 {
     note "cPanel & WHM missing blocker";
 
@@ -79,34 +86,37 @@ my $whm  = $cpev->get_component('WHM');
 {
     note "cPanel & WHM LTS version is supported for OS.";
 
-    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
-        set_os_to($os);
-        my $cpev = cpev->new;
-        my $whm  = $cpev->get_component('WHM');
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next if $version == 8;
+            set_os_to( $distro, $version );
+            my $cpev = cpev->new;
+            my $whm  = $cpev->get_component('WHM');
 
-        local $Cpanel::Version::Tiny::major_version = 100;
-        local $Cpanel::Version::Tiny::VERSION_BUILD = '11.109.0.9999';
+            local $Cpanel::Version::Tiny::major_version = 100;
+            local $Cpanel::Version::Tiny::VERSION_BUILD = '11.109.0.9999';
 
-        my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
-        my $expected_upgrade_version = 110;
-        $expected_upgrade_version = 118 if $os eq 'ubuntu';
-        like(
-            $whm->_blocker_lts_is_supported(),
-            {
-                id  => q[Elevate::Components::WHM::_blocker_lts_is_supported],
-                msg => qr{
+            my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
+            my $expected_upgrade_version = 110;
+            $expected_upgrade_version = 118 if $distro eq 'ubuntu';
+            like(
+                $whm->_blocker_lts_is_supported(),
+                {
+                    id  => q[Elevate::Components::WHM::_blocker_lts_is_supported],
+                    msg => qr{
                     \QThis version 11.109.0.9999 does not support upgrades to $expected_target_os.\E \s+
                     \QPlease ensure the cPanel version is $expected_upgrade_version.\E
                 }xms,
-            },
-            q{cPanel version must be above the known LTS.}
-        );
+                },
+                q{cPanel version must be above the known LTS.}
+            );
 
-        $Cpanel::Version::Tiny::major_version = Elevate::OS::lts_supported();
-        is( $whm->_blocker_lts_is_supported(), 0, 'Recent LTS version passes this test.' );
+            $Cpanel::Version::Tiny::major_version = Elevate::OS::lts_supported();
+            is( $whm->_blocker_lts_is_supported(), 0, 'Recent LTS version passes this test.' );
+        }
     }
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
     my $expected_upgrade_version = 118;
@@ -124,24 +134,27 @@ my $whm  = $cpev->get_component('WHM');
         q{cPanel version must be above the known LTS.}
     );
 
-    for my $os ( 'cent', 'cloud' ) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next unless $version == 7;
+            set_os_to( $distro, $version );
 
-        my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
-        my $expected_upgrade_version = 110;
-        local $Cpanel::Version::Tiny::major_version = 118;
-        local $Cpanel::Version::Tiny::VERSION_BUILD = '11.118.0.1';
-        like(
-            $whm->_blocker_lts_is_supported(),
-            {
-                id  => q[Elevate::Components::WHM::_blocker_lts_is_supported],
-                msg => qr{
+            my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
+            my $expected_upgrade_version = 110;
+            local $Cpanel::Version::Tiny::major_version = 118;
+            local $Cpanel::Version::Tiny::VERSION_BUILD = '11.118.0.1';
+            like(
+                $whm->_blocker_lts_is_supported(),
+                {
+                    id  => q[Elevate::Components::WHM::_blocker_lts_is_supported],
+                    msg => qr{
                     \QThis version 11.118.0.1 does not support upgrades to $expected_target_os.\E \s+
                     \QPlease ensure the cPanel version is $expected_upgrade_version.\E
                 }xms,
-            },
-            q{cPanel version must be the known LTS.}
-        );
+                },
+                q{cPanel version must be the known LTS.}
+            );
+        }
     }
 
 }
@@ -149,61 +162,69 @@ my $whm  = $cpev->get_component('WHM');
 {
     note 'Named tiers are supported';
 
-    foreach my $os ( 'cent', 'cloud', 'ubuntu' ) {
-        set_os_to($os);
-        is( Elevate::OS::supports_named_tiers(), 0, "Named tiers are not supported for $os" );
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next unless $version != 8;
+            set_os_to( $distro, $version );
+            is( Elevate::OS::supports_named_tiers(), 0, "Named tiers are not supported for $distro $version" );
+        }
     }
 
-    set_os_to('alma');
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next unless $version == 8;
+            set_os_to( $distro, $version );
 
-    my $mock_tiers = Test::MockModule->new('Cpanel::Update::Tiers');
-    $mock_tiers->redefine(
-        get_flattened_hash => sub {
-            return {
-                'edge'    => '11.128.0.1',
-                '11.48'   => '11.48.5.3',
-                '11.50'   => '11.50.6.2',
-                'current' => '11.104.0.11',
-                '11.70'   => '11.70.0.69',
-                '11.114'  => '11.114.0.15',
-                '11.112'  => '11.112.0.8',
-                '11.88'   => '11.88.0.17',
-                '11.98'   => '11.98.0.13',
-                'lts'     => '11.118.0.41',
-                '11.34'   => '11.34.2.8',
-                '11.102'  => '11.102.0.36',
-                '11.46'   => '11.46.4.0',
-                '11.60'   => '11.60.0.48',
-                'release' => '11.126.0.11',
-                '11.128'  => '11.128.0.1',
-                '11.42'   => '11.42.1.31',
-                '11.104'  => '11.104.0.11',
-                'stable'  => '11.124.0.32',
-                '11.126'  => '11.126.0.11'
-            };
-        },
-    );
+            my $mock_tiers = Test::MockModule->new('Cpanel::Update::Tiers');
+            $mock_tiers->redefine(
+                get_flattened_hash => sub {
+                    return {
+                        'edge'    => '11.128.0.1',
+                        '11.48'   => '11.48.5.3',
+                        '11.50'   => '11.50.6.2',
+                        'current' => '11.104.0.11',
+                        '11.70'   => '11.70.0.69',
+                        '11.114'  => '11.114.0.15',
+                        '11.112'  => '11.112.0.8',
+                        '11.88'   => '11.88.0.17',
+                        '11.98'   => '11.98.0.13',
+                        'lts'     => '11.118.0.41',
+                        '11.34'   => '11.34.2.8',
+                        '11.102'  => '11.102.0.36',
+                        '11.46'   => '11.46.4.0',
+                        '11.60'   => '11.60.0.48',
+                        'release' => '11.126.0.11',
+                        '11.128'  => '11.128.0.1',
+                        '11.42'   => '11.42.1.31',
+                        '11.104'  => '11.104.0.11',
+                        'stable'  => '11.124.0.32',
+                        '11.126'  => '11.126.0.11'
+                    };
+                },
+            );
 
-    is( $whm->_blocker_is_named_tier(118), 0, "Returns 0 when the major version matches a named tier (lts)" );
-    is( $whm->_blocker_is_named_tier(124), 0, "Returns 0 when the major version matches a named tier (stable)" );
-    is( $whm->_blocker_is_named_tier(126), 0, "Returns 0 when the major version matches a named tier (release)" );
-    is( $whm->_blocker_is_named_tier(104), 0, "Returns 0 when the major version matches a named tier (current)" );
-    is( $whm->_blocker_is_named_tier(128), 0, "Returns 0 when the major version matches a named tier (edge)" );
+            is( $whm->_blocker_is_named_tier(118), 0, "Returns 0 when the major version matches a named tier (lts)" );
+            is( $whm->_blocker_is_named_tier(124), 0, "Returns 0 when the major version matches a named tier (stable)" );
+            is( $whm->_blocker_is_named_tier(126), 0, "Returns 0 when the major version matches a named tier (release)" );
+            is( $whm->_blocker_is_named_tier(104), 0, "Returns 0 when the major version matches a named tier (current)" );
+            is( $whm->_blocker_is_named_tier(128), 0, "Returns 0 when the major version matches a named tier (edge)" );
 
-    like(
-        $whm->_blocker_is_named_tier(34),
-        {
-            id  => q[Elevate::Components::WHM::_blocker_is_named_tier],
-            msg => qr{Please ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE},
-        },
-        'Blocker returned when the major version does not match a named tier',
-    );
+            like(
+                $whm->_blocker_is_named_tier(34),
+                {
+                    id  => q[Elevate::Components::WHM::_blocker_is_named_tier],
+                    msg => qr{Please ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE},
+                },
+                'Blocker returned when the major version does not match a named tier',
+            );
+        }
+    }
 }
 
 {
     note "cPanel & WHM license";
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
 
     my ( $mock_license, $mock_localip, $mock_publicip ) = map { Test::MockModule->new($_) } qw(
       Cpanel::License
@@ -338,16 +359,18 @@ my $whm  = $cpev->get_component('WHM');
 {
     note 'supports_named_tiers or lts_supported is required';
 
-    foreach my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $supports_named_tiers = Elevate::OS::supports_named_tiers();
-        if ($supports_named_tiers) {
-            ok $supports_named_tiers, "$os supports named tiers";
-        }
-        else {
-            my $lts_supported = Elevate::OS::lts_supported();
-            like( $lts_supported, qr/^[0-9]+$/, "$os supports $lts_supported" );
+            my $supports_named_tiers = Elevate::OS::supports_named_tiers();
+            if ($supports_named_tiers) {
+                ok $supports_named_tiers, "$distro $version supports named tiers";
+            }
+            else {
+                my $lts_supported = Elevate::OS::lts_supported();
+                like( $lts_supported, qr/^[0-9]+$/, "$distro $version supports $lts_supported" );
+            }
         }
     }
 }
@@ -422,68 +445,74 @@ my $whm  = $cpev->get_component('WHM');
         load => sub { die "do not call this yet\n"; },
     );
 
-    foreach my $os (qw{ alma ubuntu }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next if $version == 7;
+            set_os_to( $distro, $version );
 
-        ok(
-            lives { $whm->post_distro_upgrade(); },
-            "Returns early on $os",
-        );
+            ok(
+                lives { $whm->post_distro_upgrade(); },
+                "Returns early on $distro $version",
+            );
+        }
     }
 
-    foreach my $os (qw{ cent cloud }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next unless $version == 7;
+            set_os_to( $distro, $version );
 
-        my $cp_tier = 'STABLE';
-        $mock_update_config->redefine(
-            load => sub {
-                return {
-                    CPANEL      => $cp_tier,
+            my $cp_tier = 'STABLE';
+            $mock_update_config->redefine(
+                load => sub {
+                    return {
+                        CPANEL      => $cp_tier,
+                        RPMUP       => 'daily',
+                        SARULESUP   => 'daily',
+                        STAGING_DIR => '/usr/local/cpanel',
+                        UPDATES     => 'daily',
+                    };
+                },
+                save => sub { die "do not call this yet\n"; },
+            );
+
+            ok(
+                lives { $whm->post_distro_upgrade(); },
+                "Returns early when CPANEL is set to something other than 11.110"
+            );
+
+            $cp_tier = '11.110';
+
+            my $conf = {};
+            $mock_update_config->redefine(
+                save => sub { $conf = $_[0]; },
+            );
+
+            my $msg;
+            my $mock_notify = Test::MockModule->new('Elevate::Notify');
+            $mock_notify->redefine(
+                add_final_notification => sub { ($msg) = @_; },
+            );
+
+            $whm->post_distro_upgrade();
+            is(
+                $conf,
+                {
+                    CPANEL      => 'RELEASE',
                     RPMUP       => 'daily',
                     SARULESUP   => 'daily',
                     STAGING_DIR => '/usr/local/cpanel',
                     UPDATES     => 'daily',
-                };
-            },
-            save => sub { die "do not call this yet\n"; },
-        );
+                },
+                'Conf has the expected values when CPANEL is set to 11.110',
+            );
 
-        ok(
-            lives { $whm->post_distro_upgrade(); },
-            "Returns early when CPANEL is set to something other than 11.110"
-        );
-
-        $cp_tier = '11.110';
-
-        my $conf = {};
-        $mock_update_config->redefine(
-            save => sub { $conf = $_[0]; },
-        );
-
-        my $msg;
-        my $mock_notify = Test::MockModule->new('Elevate::Notify');
-        $mock_notify->redefine(
-            add_final_notification => sub { ($msg) = @_; },
-        );
-
-        $whm->post_distro_upgrade();
-        is(
-            $conf,
-            {
-                CPANEL      => 'RELEASE',
-                RPMUP       => 'daily',
-                SARULESUP   => 'daily',
-                STAGING_DIR => '/usr/local/cpanel',
-                UPDATES     => 'daily',
-            },
-            'Conf has the expected values when CPANEL is set to 11.110',
-        );
-
-        like(
-            $msg,
-            qr/ELevate has updated the system's update tier to 'RELEASE'/,
-            'The expected final notification is added',
-        );
+            like(
+                $msg,
+                qr/ELevate has updated the system's update tier to 'RELEASE'/,
+                'The expected final notification is added',
+            );
+        }
     }
 }
 

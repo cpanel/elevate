@@ -44,7 +44,7 @@ $mock_stagefile->redefine(
 {
     note 'Test is_database_provided_by_cloudlinux() behavior';
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
 
     is(
         Elevate::Database::is_database_provided_by_cloudlinux(),
@@ -73,7 +73,7 @@ $mock_stagefile->redefine(
 
     is( $stash, [ { cloudlinux_database_installed => 0, } ], 'The expected data is stashed' );
 
-    set_os_to('cloud');
+    set_os_to( 'cloud', 7 );
 
     local *Elevate::Database::get_db_info_if_provided_by_cloudlinux = sub { return ( 1, 1 ); };
 
@@ -216,7 +216,7 @@ $mock_stagefile->redefine(
         ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
     }
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     @should_pass = qw(8.0 10.6 10.11);
     @should_fail = qw(10.3 10.4 10.5);
 
@@ -228,7 +228,7 @@ $mock_stagefile->redefine(
         ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
     }
 
-    set_os_to('alma');
+    set_os_to( 'alma', 8 );
     @should_pass = qw(8.0 10.5 10.6 10.11 11.4);
     @should_fail = qw(5.7 10.3 10.4);
 

@@ -46,13 +46,20 @@ $mock_elevate_leapp->redefine(
 
 my $mock_elevate_file = Test::MockFile->file('/var/cpanel/elevate');
 
-for my $os ( 'cent', 'cloud', 'alma' ) {
-    set_os_to($os);
+my %os_hash = (
+    alma  => [8],
+    cent  => [7],
+    cloud => [ 7, 8 ],
+);
+foreach my $distro ( keys %os_hash ) {
+    foreach my $version ( @{ $os_hash{$distro} } ) {
+        set_os_to( $distro, $version );
 
-    my $expect_cmd = '/usr/bin/leapp upgrade';
-    $expect_cmd .= ' --nowarn' if $os eq 'cloud';
-    ok( cpev->leapp->upgrade(), 'leapp upgrade succeeds' );
-    is( $ssystem_cmd, $expect_cmd );
+        my $expect_cmd = '/usr/bin/leapp upgrade';
+        $expect_cmd .= ' --nowarn' if $distro eq 'cloud';
+        ok( cpev->leapp->upgrade(), 'leapp upgrade succeeds' );
+        is( $ssystem_cmd, $expect_cmd );
+    }
 }
 
 $mock_elevate->redefine(
@@ -336,7 +343,7 @@ note 'LEAPP upgrade log failure checks';
     $mock_leapp_upgrade_log->contents("blah\nblah\nblah Starting stage After of phase FirstBoot blah\ndjdjd\n");
     is( cpev->leapp->wait_for_leapp_completion, 1, "wait_for_leapp_completion succeeds if magic string shows up." );
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     $mock_leapp_cont_file->unlink;
     is( cpev->leapp->wait_for_leapp_completion, 1, "wait_for_leapp_completion is skipped if the OS is ubuntu" );
 }

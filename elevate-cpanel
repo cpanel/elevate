@@ -68,7 +68,9 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/OS.pm'}                                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/AlmaLinux8.pm'}                     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CentOS7.pm'}                        = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/CloudLinux.pm'}                     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/CloudLinux7.pm'}                    = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/CloudLinux8.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/RHEL.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/Ubuntu.pm'}                         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/Ubuntu20.pm'}                       = 'script/elevate-cpanel.PL.static';
@@ -7620,6 +7622,7 @@ EOS
         'AlmaLinux 8',
         'CentOS 7',
         'CloudLinux 7',
+        'CloudLinux 8',
         'Ubuntu 20',
     );
 
@@ -7862,6 +7865,7 @@ EOS
     use constant pretty_name                 => 'CentOS 7';
     use constant remove_els                  => 1;
     use constant set_update_tier_to_release  => 1;
+    use constant skip_minor_version_check    => 0;
     use constant upgrade_to_pretty_name      => 'AlmaLinux 8';
 
     sub vetted_yum_repo ($self) {
@@ -7876,9 +7880,9 @@ EOS
 
 }    # --- END lib/Elevate/OS/CentOS7.pm
 
-{    # --- BEGIN lib/Elevate/OS/CloudLinux7.pm
+{    # --- BEGIN lib/Elevate/OS/CloudLinux.pm
 
-    package Elevate::OS::CloudLinux7;
+    package Elevate::OS::CloudLinux;
 
     use cPstrict;
 
@@ -7886,39 +7890,17 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::OS::RHEL); }
 
-    use constant supported_cpanel_mysql_versions => qw{
-      8.0
-      10.3
-      10.4
-      10.5
-      10.6
-      10.11
-      11.4
-    };
-
     use constant default_upgrade_to              => 'CloudLinux';
-    use constant ea_alias                        => 'CloudLinux_8';
-    use constant el_package_regex                => 'el7';
-    use constant elevate_rpm_url                 => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
-    use constant expected_post_upgrade_major     => 8;
-    use constant has_crypto_policies             => 0;
     use constant leapp_repo_prod                 => 'cloudlinux-elevate';
     use constant leapp_repo_beta                 => 'cloudlinux-elevate-updates-testing';
     use constant leapp_can_handle_imunify        => 1;
     use constant leapp_can_handle_kernelcare     => 1;
     use constant leapp_data_pkg                  => 'leapp-data-cloudlinux';
     use constant leapp_flag                      => '--nowarn';
-    use constant lts_supported                   => 110;
-    use constant name                            => 'CloudLinux7';
-    use constant needs_powertools                => 1;
-    use constant original_os_major               => 7;
-    use constant pkgmgr_lib_path                 => '/var/lib/yum';
-    use constant pretty_name                     => 'CloudLinux 7';
+    use constant name                            => 'CloudLinux';
+    use constant pretty_name                     => 'CloudLinux';
     use constant provides_mysql_governor         => 1;
-    use constant set_update_tier_to_release      => 1;
     use constant should_check_cloudlinux_license => 1;
-    use constant upgrade_to_pretty_name          => 'CloudLinux 8';
-    use constant yum_conf_needs_plugins          => 1;
 
     sub vetted_yum_repo ($self) {
         my @vetted_cloudlinux_yum_repo = (
@@ -7930,6 +7912,7 @@ EOS
             qr/^cl-mysql(?:-meta)?/,
             'mysqclient', 'mysql-debuginfo',
             'cl7h',
+            qr/^repo\.cloudlinux\.com_/,
         );
 
         my @repos = $self->SUPER::vetted_yum_repo();
@@ -7939,7 +7922,106 @@ EOS
 
     1;
 
+}    # --- END lib/Elevate/OS/CloudLinux.pm
+
+{    # --- BEGIN lib/Elevate/OS/CloudLinux7.pm
+
+    package Elevate::OS::CloudLinux7;
+
+    use cPstrict;
+
+    # use Elevate::OS::CloudLinux();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::OS::CloudLinux); }
+
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      10.3
+      10.4
+      10.5
+      10.6
+      10.11
+      11.4
+    };
+
+    use constant ea_alias                    => 'CloudLinux_8';
+    use constant el_package_regex            => 'el7';
+    use constant elevate_rpm_url             => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm';
+    use constant expected_post_upgrade_major => 8;
+    use constant has_crypto_policies         => 0;
+    use constant lts_supported               => 110;
+    use constant name                        => 'CloudLinux7';
+    use constant needs_powertools            => 1;
+    use constant original_os_major           => 7;
+    use constant pkgmgr_lib_path             => '/var/lib/yum';
+    use constant pretty_name                 => 'CloudLinux 7';
+    use constant set_update_tier_to_release  => 1;
+    use constant skip_minor_version_check    => 0;
+    use constant upgrade_to_pretty_name      => 'CloudLinux 8';
+    use constant yum_conf_needs_plugins      => 1;
+
+    1;
+
 }    # --- END lib/Elevate/OS/CloudLinux7.pm
+
+{    # --- BEGIN lib/Elevate/OS/CloudLinux8.pm
+
+    package Elevate::OS::CloudLinux8;
+
+    use cPstrict;
+
+    # use Elevate::OS::CloudLinux();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::OS::CloudLinux); }
+
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      8.4
+      10.5
+      10.6
+      10.11
+      11.4
+    };
+
+    use constant archive_dir                  => 'CloudLinux7-to-CloudLinux8';
+    use constant ea_alias                     => 'CloudLinux_9';
+    use constant el_package_regex             => 'el8';
+    use constant elevate_rpm_url              => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el8.noarch.rpm';
+    use constant expected_post_upgrade_major  => 9;
+    use constant is_experimental              => 1;
+    use constant jetbackup_repo_rpm_url       => 'https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm';
+    use constant name                         => 'CloudLinux8';
+    use constant needs_crb                    => 1;
+    use constant needs_grub_enable_blscfg     => 1;
+    use constant needs_network_manager        => 1;
+    use constant needs_sha1_enabled           => 1;
+    use constant needs_type_in_ifcfg          => 1;
+    use constant needs_vdo                    => 1;
+    use constant original_os_major            => 8;
+    use constant pkgmgr_lib_path              => '/var/lib/dnf';
+    use constant pretty_name                  => 'CloudLinux 8';
+    use constant should_archive_elevate_files => 1;
+    use constant supports_named_tiers         => 1;
+    use constant upgrade_to_pretty_name       => 'CloudLinux 9';
+
+    sub vetted_yum_repo ($self) {
+        my @repos = $self->SUPER::vetted_yum_repo();
+        push @repos, $self->vetted_mysql_yum_repo_ids();
+        push @repos, 'powertools', 'appstream';
+        return @repos;
+    }
+
+    sub vetted_mysql_yum_repo_ids ($self) {
+
+        return (
+            qr/^mysql-[0-9]\.[0-9]-lts-community$/,
+            qr/^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$/,
+        );
+    }
+
+    1;
+
+}    # --- END lib/Elevate/OS/CloudLinux8.pm
 
 {    # --- BEGIN lib/Elevate/OS/RHEL.pm
 
@@ -8043,6 +8125,7 @@ EOS
     use constant needs_sha1_enabled              => 0;
     use constant needs_type_in_ifcfg             => 0;
     use constant needs_vdo                       => 0;
+    use constant original_os_major               => undef;
     use constant package_manager                 => 'YUM';
     use constant pkgmgr_lib_path                 => undef;
     use constant pretty_name                     => 'RHEL';
@@ -8051,7 +8134,7 @@ EOS
     use constant set_update_tier_to_release      => 0;
     use constant should_archive_elevate_files    => 0;
     use constant should_check_cloudlinux_license => 0;
-    use constant skip_minor_version_check        => 0;
+    use constant skip_minor_version_check        => 1;
     use constant supported_cpanel_mysql_versions => undef;
     use constant supports_jetbackup              => 1;
     use constant supports_kernelcare             => 1;
@@ -8083,6 +8166,7 @@ EOS
     use constant ea_alias                        => undef;
     use constant el_package_regex                => undef;
     use constant elevate_rpm_url                 => undef;
+    use constant expected_post_upgrade_major     => undef;
     use constant has_crypto_policies             => 0;
     use constant has_imunify_ea_alias            => 0;
     use constant imunify_ea_alias                => undef;
@@ -8108,6 +8192,7 @@ EOS
     use constant needs_sha1_enabled              => 0;
     use constant needs_type_in_ifcfg             => 0;
     use constant needs_vdo                       => 0;
+    use constant original_os_major               => undef;
     use constant package_manager                 => 'APT';
     use constant pkgmgr_lib_path                 => undef;
     use constant pretty_name                     => 'Ubuntu';
@@ -11085,7 +11170,9 @@ use Elevate::Components::Acronis                ();
 use Elevate::OS              ();
 use Elevate::OS::AlmaLinux8  ();
 use Elevate::OS::CentOS7     ();
+use Elevate::OS::CloudLinux  ();
 use Elevate::OS::CloudLinux7 ();
+use Elevate::OS::CloudLinux8 ();
 use Elevate::OS::RHEL        ();
 use Elevate::OS::Ubuntu      ();
 use Elevate::OS::Ubuntu20    ();

@@ -27,6 +27,11 @@ my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
 
 my $comp = cpev->new->get_component('cPanelPlugins');
 
+my %os_hash = (
+    alma => [8],
+    cent => [7],
+);
+
 {
     note 'pre_distro_upgrade';
 
@@ -34,62 +39,64 @@ my $comp = cpev->new->get_component('cPanelPlugins');
         pkg_list => sub { die "do not call\n"; },
     );
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     is( $comp->pre_distro_upgrade, undef, 'Returns early on ubuntu systems' );
 
-    foreach my $os (qw{ cent alma }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $cpanel_plugin_pkgs = [];
-        $mock_pkgmgr->redefine(
-            pkg_list => sub {
-                return {
-                    'foo' => [
-                        {
-                            package => 'no',
-                        },
-                    ],
-                    'bar' => [
-                        {
-                            package => 'soup',
-                        },
-                    ],
-                    'cpanel-plugin-thing' => $cpanel_plugin_pkgs,
-                  },
-                  ;
-            },
-        );
-
-        my $stage_info = {};
-        $mock_stagefile->redefine(
-            update_stage_file => sub { ($stage_info) = @_; },
-        );
-
-        is( $comp->pre_distro_upgrade, undef, 'Returns undef' );
-        is( $stage_info,               {},    'Stage file is not updated when there are no installed cPanel plugins' );
-
-        $cpanel_plugin_pkgs = [
-            {
-                package => 'bob',
-            },
-            {
-                package => 'uncle',
-            },
-        ];
-
-        is( $comp->pre_distro_upgrade, undef, 'Returns undef' );
-        is(
-            $stage_info,
-            {
-                restore => {
-                    yum => [
-                        'bob',
-                        'uncle',
-                    ],
+            my $cpanel_plugin_pkgs = [];
+            $mock_pkgmgr->redefine(
+                pkg_list => sub {
+                    return {
+                        'foo' => [
+                            {
+                                package => 'no',
+                            },
+                        ],
+                        'bar' => [
+                            {
+                                package => 'soup',
+                            },
+                        ],
+                        'cpanel-plugin-thing' => $cpanel_plugin_pkgs,
+                      },
+                      ;
                 },
-            },
-            'The expected packages are listed in the stage file',
-        );
+            );
+
+            my $stage_info = {};
+            $mock_stagefile->redefine(
+                update_stage_file => sub { ($stage_info) = @_; },
+            );
+
+            is( $comp->pre_distro_upgrade, undef, 'Returns undef' );
+            is( $stage_info,               {},    'Stage file is not updated when there are no installed cPanel plugins' );
+
+            $cpanel_plugin_pkgs = [
+                {
+                    package => 'bob',
+                },
+                {
+                    package => 'uncle',
+                },
+            ];
+
+            is( $comp->pre_distro_upgrade, undef, 'Returns undef' );
+            is(
+                $stage_info,
+                {
+                    restore => {
+                        yum => [
+                            'bob',
+                            'uncle',
+                        ],
+                    },
+                },
+                'The expected packages are listed in the stage file',
+            );
+        }
     }
 }
 
@@ -100,44 +107,46 @@ my $comp = cpev->new->get_component('cPanelPlugins');
         read_stage_file => sub { die "do not call\n"; },
     );
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     is( $comp->post_distro_upgrade, undef, 'Returns early on ubuntu systems' );
 
-    foreach my $os (qw{ cent alma }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $stage_data = {};
-        $mock_stagefile->redefine(
-            read_stage_file => sub { return $stage_data; },
-        );
+            my $stage_data = {};
+            $mock_stagefile->redefine(
+                read_stage_file => sub { return $stage_data; },
+            );
 
-        is( $comp->post_distro_upgrade, undef, 'Returns early when there is nothing to reinstall' );
-        no_messages_seen();
+            is( $comp->post_distro_upgrade, undef, 'Returns early when there is nothing to reinstall' );
+            no_messages_seen();
 
-        $stage_data = {
-            restore => {
-                yum => [
+            $stage_data = {
+                restore => {
+                    yum => [
+                        'bob',
+                        'uncle',
+                    ],
+                },
+            };
+
+            my @reinstall_args;
+            $mock_pkgmgr->redefine(
+                reinstall => sub { shift; @reinstall_args = @_; },
+            );
+
+            is( $comp->post_distro_upgrade, undef, 'Return undef' );
+            message_seen( INFO => 'Restoring cPanel yum-based-plugins' );
+            is(
+                \@reinstall_args,
+                [
                     'bob',
                     'uncle',
                 ],
-            },
-        };
-
-        my @reinstall_args;
-        $mock_pkgmgr->redefine(
-            reinstall => sub { shift; @reinstall_args = @_; },
-        );
-
-        is( $comp->post_distro_upgrade, undef, 'Return undef' );
-        message_seen( INFO => 'Restoring cPanel yum-based-plugins' );
-        is(
-            \@reinstall_args,
-            [
-                'bob',
-                'uncle',
-            ],
-            'Reinstalls the correctly staged packages',
-        );
+                'Reinstalls the correctly staged packages',
+            );
+        }
     }
 }
 

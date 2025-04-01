@@ -15,8 +15,17 @@ use Test::MockModule;
 use Elevate::OS        ();
 use Elevate::StageFile ();
 
-our @ISA       = qw(Exporter);
-our @EXPORT    = qw(set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to_ubuntu_20 set_os_to_almalinux_8 set_os_to);
+our @ISA = qw(Exporter);
+
+our @EXPORT = qw(
+  set_os_to_almalinux_8
+  set_os_to_centos_7
+  set_os_to_cloudlinux_7
+  set_os_to_cloudlinux_8
+  set_os_to_ubuntu_20
+  set_os_to
+);
+
 our @EXPORT_OK = @EXPORT;
 
 my $mock_os;
@@ -104,13 +113,33 @@ sub set_os_to_almalinux_8 {
     return;
 }
 
-sub set_os_to ($os) {
-    return set_os_to_centos_7     if $os =~ m/^cent/i;
-    return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i;
-    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i;
-    return set_os_to_almalinux_8  if $os =~ m/^alma/i;
+sub set_os_to_cloudlinux_8 {
+    unmock_os();
 
-    die "Unknown os:  $os\n";
+    note 'Mock Elevate::OS singleton to think this server is CloudLinux 8';
+
+    my $real_read_stage_file = \&Elevate::StageFile::read_stage_file;
+    my $mock_stagefile       = Test::MockModule->new('Elevate::StageFile')->redefine(
+        read_stage_file => sub { return 'CloudLinux8'; },
+    );
+
+    Elevate::OS::name();
+
+    $mock_stagefile->redefine(
+        read_stage_file => $real_read_stage_file,
+    );
+
+    return;
+}
+
+sub set_os_to ( $os, $version ) {
+    return set_os_to_centos_7     if $os =~ m/^cent/i   && $version == 7;
+    return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i  && $version == 7;
+    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i && $version == 20;
+    return set_os_to_almalinux_8  if $os =~ m/^alma/i   && $version == 8;
+    return set_os_to_cloudlinux_8 if $os =~ m/^cloud/i  && $version == 8;
+
+    die "Unknown os:  $os $version\n";
 }
 
 sub unmock_os {

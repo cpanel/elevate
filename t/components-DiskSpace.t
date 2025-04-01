@@ -40,137 +40,145 @@ $mock_saferun->redefine(
     }
 );
 
+my %os_hash = (
+    cent  => [7],
+    cloud => [ 7, 8 ],
+    alma  => [8],
+);
+
 for my $securetmp_installed ( 0 .. 1 ) {
-    foreach my $os (qw{ cent cloud alma }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $mock_diskspace = Test::MockModule->new('Elevate::Components::DiskSpace');
-        $mock_diskspace->redefine(
-            is_securetmp_installed => $securetmp_installed,
-        );
+            my $mock_diskspace = Test::MockModule->new('Elevate::Components::DiskSpace');
+            $mock_diskspace->redefine(
+                is_securetmp_installed => $securetmp_installed,
+            );
 
-        like(
-            dies { check_blocker() },
-            qr{Cannot parse df output},
-            "_disk_space_check"
-        );
+            like(
+                dies { check_blocker() },
+                qr{Cannot parse df output},
+                "_disk_space_check"
+            );
 
-        $saferun_output = <<EOS;
+            $saferun_output = <<EOS;
 Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/vda1       83874796 74579968   9294828  89% /
 EOS
 
-        like(
-            dies { check_blocker() },
-            qr{expected 5 lines ; got 1 lines},
-            "_disk_space_check"
-        );
-
-        $saferun_output = <<EOS;
-Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/loop6        714624       92    677364   1% /tmp
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-EOS
-
-        is( check_blocker(), 1, "_disk_space_check ok" );
-
-        my $boot = 201 * MEG;
-
-        $saferun_output = <<"EOS";
-Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   $boot    56% /
-/dev/loop6        714624       92    677364   1% /tmp
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-EOS
-
-        is( check_blocker(), 1, "_disk_space_check ok - /boot 201 M" );
-
-        $boot = 199 * MEG;
-
-        $saferun_output = <<"EOS";
-Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   $boot    56% /
-/dev/loop6        714624       92    677364   1% /tmp
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-EOS
-
-        like(
-            warnings { $check = check_blocker() },
-            [qr{/boot needs 200 M => available 199 M}],
-            q[Got expected warnings]
-        );
-
-        is $check, 0, "_disk_space_check failure - /boot 119 M";
-
-        my $usr_local_cpanel = 2 * GIG;
-
-        $saferun_output = <<"EOS";
-Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/loop6        714624       92    677364   1% /tmp
-/dev/vda1       20134592 11245932   $usr_local_cpanel  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-EOS
-
-        is( check_blocker(), 1, "_disk_space_check ok - /usr/local/cpanel 2 G" );
-
-        $usr_local_cpanel = 1.4 * GIG;
-
-        $saferun_output = <<"EOS";
-Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-/dev/loop6        714624       92    677364   1% /tmp
-/dev/vda1       20134592 11245932   $usr_local_cpanel  56% /
-/dev/vda1       20134592 11245932   8872276  56% /
-EOS
-
-        like(
-            warnings { $check = check_blocker() },
-            [qr{/usr/local/cpanel needs 1.50 G => available 1.40 G}],
-            q[Got expected warnings]
-        );
-
-        is $check, 0, "_disk_space_check failure - /usr/local/cpanel 1.4 G";
-
-        {
-            note "disk space blocker.";
-
-            my $mock_ds = Test::MockModule->new('Elevate::Components::DiskSpace');
-            $mock_ds->redefine( _disk_space_check => 0 );
-
-            my $components = cpev->new()->components;
-            is $components->_check_single_blocker('DiskSpace'), 0;
-
-            is(
-                $components->blockers,
-                [
-                    {
-                        id  => q[Elevate::Components::DiskSpace::check],
-                        msg => "disk space issue",
-                    }
-                ],
-                q{Block if disk space issues.}
+            like(
+                dies { check_blocker() },
+                qr{expected 5 lines ; got 1 lines},
+                "_disk_space_check"
             );
 
-            $mock_ds->redefine( _disk_space_check => 1 );
-            ok( check_blocker(), 'System is up to date' );
-        }
+            $saferun_output = <<EOS;
+Filesystem     1K-blocks     Used Available Use% Mounted on
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+EOS
 
-        undef $saferun_output;
-        undef $check;
-        undef $mock_diskspace;
+            is( check_blocker(), 1, "_disk_space_check ok" );
+
+            my $boot = 201 * MEG;
+
+            $saferun_output = <<"EOS";
+Filesystem     1K-blocks     Used Available Use% Mounted on
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   $boot    56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+EOS
+
+            is( check_blocker(), 1, "_disk_space_check ok - /boot 201 M" );
+
+            $boot = 199 * MEG;
+
+            $saferun_output = <<"EOS";
+Filesystem     1K-blocks     Used Available Use% Mounted on
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   $boot    56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+EOS
+
+            like(
+                warnings { $check = check_blocker() },
+                [qr{/boot needs 200 M => available 199 M}],
+                q[Got expected warnings]
+            );
+
+            is $check, 0, "_disk_space_check failure - /boot 119 M";
+
+            my $usr_local_cpanel = 2 * GIG;
+
+            $saferun_output = <<"EOS";
+Filesystem     1K-blocks     Used Available Use% Mounted on
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   $usr_local_cpanel  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+EOS
+
+            is( check_blocker(), 1, "_disk_space_check ok - /usr/local/cpanel 2 G" );
+
+            $usr_local_cpanel = 1.4 * GIG;
+
+            $saferun_output = <<"EOS";
+Filesystem     1K-blocks     Used Available Use% Mounted on
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+/dev/loop6        714624       92    677364   1% /tmp
+/dev/vda1       20134592 11245932   $usr_local_cpanel  56% /
+/dev/vda1       20134592 11245932   8872276  56% /
+EOS
+
+            like(
+                warnings { $check = check_blocker() },
+                [qr{/usr/local/cpanel needs 1.50 G => available 1.40 G}],
+                q[Got expected warnings]
+            );
+
+            is $check, 0, "_disk_space_check failure - /usr/local/cpanel 1.4 G";
+
+            {
+                note "disk space blocker.";
+
+                my $mock_ds = Test::MockModule->new('Elevate::Components::DiskSpace');
+                $mock_ds->redefine( _disk_space_check => 0 );
+
+                my $components = cpev->new()->components;
+                is $components->_check_single_blocker('DiskSpace'), 0;
+
+                is(
+                    $components->blockers,
+                    [
+                        {
+                            id  => q[Elevate::Components::DiskSpace::check],
+                            msg => "disk space issue",
+                        }
+                    ],
+                    q{Block if disk space issues.}
+                );
+
+                $mock_ds->redefine( _disk_space_check => 1 );
+                ok( check_blocker(), 'System is up to date' );
+            }
+
+            undef $saferun_output;
+            undef $check;
+            undef $mock_diskspace;
+        }
     }
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $mock_diskspace = Test::MockModule->new('Elevate::Components::DiskSpace');
     $mock_diskspace->redefine(
@@ -253,13 +261,15 @@ EOS
         },
     );
 
-    foreach my $os (qw{ cent cloud alma }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        ok( lives { $ds->pre_distro_upgrade() }, 'Returns early on systems that do not use do-release-upgrade' );
+            ok( lives { $ds->pre_distro_upgrade() }, 'Returns early on systems that do not use do-release-upgrade' );
+        }
     }
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $mock_diskspace = Test::MockModule->new('Elevate::Components::DiskSpace');
     $mock_diskspace->redefine(
@@ -329,13 +339,15 @@ EOS
 
     my $mock_fstab_backup_file = Test::MockFile->file( '/etc/fstab.elevate_backup', 'contents go here' );
 
-    foreach my $os (qw{ cent cloud alma }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        ok( lives { $ds->post_distro_upgrade() }, 'Returns early on systems that do not use do-release-upgrade' );
+            ok( lives { $ds->post_distro_upgrade() }, 'Returns early on systems that do not use do-release-upgrade' );
+        }
     }
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     $mock_stagefile->redefine(
         read_stage_file => 0,
@@ -391,7 +403,7 @@ EOS
 {
     note 'Test check_tmp()';
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $components = cpev->new()->components;
     my $ds         = $components->_get_blocker_for('DiskSpace');

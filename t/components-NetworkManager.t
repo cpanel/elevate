@@ -43,29 +43,43 @@ my $nm = cpev->new->get_component('NetworkManager');
         upgrade_distro_manually => 0,
     );
 
-    foreach my $os (qw{ cent cloud ubuntu }) {
-        set_os_to($os);
+    my %os_hash = (
+        alma   => [8],
+        cent   => [7],
+        cloud  => [ 7, 8 ],
+        ubuntu => [20],
+    );
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next if $version == 8;
+            set_os_to( $distro, $version );
 
-        is( $nm->pre_distro_upgrade(), undef, 'Returns early when network manager does not need to be enabled prior to the distro upgrade' );
+            is( $nm->pre_distro_upgrade(), undef, 'Returns early when network manager does not need to be enabled prior to the distro upgrade' );
+        }
     }
 
-    set_os_to('alma');
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            next unless $version == 8;
+            set_os_to( $distro, $version );
 
-    my $called_enabled = 0;
-    $mock_systemctl->redefine(
-        is_enabled => 1,
-        enable     => sub { $called_enabled++; },
-    );
+            my $called_enabled = 0;
+            $mock_systemctl->redefine(
+                is_enabled => 1,
+                enable     => sub { $called_enabled++; },
+            );
 
-    is( $nm->pre_distro_upgrade(), undef, 'Return undef when the network manager service is already enabled' );
-    is( $called_enabled,           0,     'Does not attempt to enable network manager if the service is already enabled' );
+            is( $nm->pre_distro_upgrade(), undef, 'Return undef when the network manager service is already enabled' );
+            is( $called_enabled,           0,     'Does not attempt to enable network manager if the service is already enabled' );
 
-    $mock_systemctl->redefine(
-        is_enabled => 0,
-    );
+            $mock_systemctl->redefine(
+                is_enabled => 0,
+            );
 
-    is( $nm->pre_distro_upgrade(), undef, 'Return undef when it enables the network manager service' );
-    is( $called_enabled,           1,     'Enables the network manager service if it is not already enabled' );
+            is( $nm->pre_distro_upgrade(), undef, 'Return undef when it enables the network manager service' );
+            is( $called_enabled,           1,     'Enables the network manager service if it is not already enabled' );
+        }
+    }
 }
 
 done_testing();

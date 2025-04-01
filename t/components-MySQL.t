@@ -51,7 +51,7 @@ my $mock_version_cache = Test::MockFile->file('/var/cpanel/mysql_server_version_
 {
     note 'cPanel MySQL behavior';
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
 
     clear_messages_seen();
 
@@ -150,30 +150,32 @@ my $mock_version_cache = Test::MockFile->file('/var/cpanel/mysql_server_version_
 
 {
     note 'Test CloudLinux MySQL blocker';
-    set_os_to('cloud');
+    foreach my $version ( 7, 8 ) {
+        set_os_to( 'cloud', $version );
 
-    my $db_version = 106;
+        my $db_version = 106;
 
-    my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
-    $mock_stagefile->redefine(
-        read_stage_file => sub {
-            return {
-                db_type    => 'foo',
-                db_version => $db_version,
-            };
-        },
-    );
+        my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+        $mock_stagefile->redefine(
+            read_stage_file => sub {
+                return {
+                    db_type    => 'foo',
+                    db_version => $db_version,
+                };
+            },
+        );
 
-    is( $db->_blocker_old_cloudlinux_mysql(), 0, '10.6 is supported by CL' );
+        is( $db->_blocker_old_cloudlinux_mysql(), 0, '10.6 is supported by CL' );
 
-    $db_version = 51;
-    is(
-        $db->_blocker_old_cloudlinux_mysql(),
-        {
-            id  => q[Elevate::Components::MySQL::_blocker_old_cloudlinux_mysql],
-            msg => <<~'EOS',
+        my $upgrade_os_version = $version + 1;
+        $db_version = 51;
+        is(
+            $db->_blocker_old_cloudlinux_mysql(),
+            {
+                id  => q[Elevate::Components::MySQL::_blocker_old_cloudlinux_mysql],
+                msg => <<~"EOS",
 You are using foo 5.1 server.
-This version is not available for CloudLinux 8.
+This version is not available for CloudLinux $upgrade_os_version.
 You first need to update your database server software to version 5.5 or later.
 
 Please review the following documentation for instructions
@@ -181,11 +183,12 @@ on how to update to a newer version with MySQL Governor:
 
     https://docs.cloudlinux.com/shared/cloudlinux_os_components/#upgrading-database-server
 
-Once the upgrade is finished, you can then retry to ELevate to CloudLinux 8.
+Once the upgrade is finished, you can then retry to ELevate to CloudLinux $upgrade_os_version.
 EOS
-        },
-        '5.1 is a blocker for CL',
-    );
+            },
+            '5.1 is a blocker for CL',
+        );
+    }
 }
 
 {

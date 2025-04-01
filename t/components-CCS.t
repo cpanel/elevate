@@ -21,7 +21,7 @@ use Test::Elevate;
 
 use cPstrict;
 
-set_os_to('cent');
+set_os_to( 'cent', 7 );
 
 my $ccs = bless {}, 'Elevate::Components::CCS';
 
