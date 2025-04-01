@@ -36,9 +36,9 @@ sub check ($self) {
 sub _check_cpanel_pkgs ($self) {
     my $out = $self->ssystem_capture_output( '/usr/local/cpanel/scripts/check_cpanel_pkgs', '--list-only' );
 
-    if ( $out->{'status'} != 0 ) {
-        my $altered = join "\n", @{ $out->{stdout} };
+    my $altered = join "\n", @{ $out->{stdout} };
 
+    if ( $altered =~ /Problems were detected with cPanel-provided files which are controlled by packages/ ) {
         WARN( <<~"EOS" );
         /usr/local/cpanel/scripts/check_cpanel_pkgs reported that your system
         has altered packages.
@@ -50,10 +50,10 @@ sub _check_cpanel_pkgs ($self) {
         Example: /usr/local/cpanel/scripts/check_cpanel_pkgs --fix
 
         EOS
-    }
 
-    # invert to account for system exit codes
-    return $out->{status} ? 0 : 1;
+        return 0;
+    }
+    return 1;
 }
 
 sub pre_distro_upgrade ($self) {
@@ -62,7 +62,7 @@ sub pre_distro_upgrade ($self) {
     my $ok = $self->_check_cpanel_pkgs();
     $self->_fix_cpanel_pkgs() if !$ok;
 
-    $self->ssystem_and_die(qw{/scripts/update-packages});
+    $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/update-packages});
 
     # Remove this file so that nothing gets held back here since we need
     # to make sure that everything can update before we attempt to upgrade
@@ -87,9 +87,9 @@ sub _fix_cpanel_pkgs ($self) {
         '--list-only'
     );
 
-    if ( $out->{status} != 0 ) {
-        my $altered = join "\n", @{ $out->{stdout} };
+    my $altered = join "\n", @{ $out->{stdout} };
 
+    if ( $altered =~ /Problems were detected with cPanel-provided files which are controlled by packages/ ) {
         LOGDIE( <<~"EOS" );
         /usr/local/cpanel/scripts/check_cpanel_pkgs was unable to repair the packages on this system:
 
@@ -104,9 +104,10 @@ sub _fix_cpanel_pkgs ($self) {
         $0 --continue
         EOS
 
+        return 0;
     }
 
-    return;
+    return 1;
 }
 
 1;

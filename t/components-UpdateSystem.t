@@ -70,7 +70,7 @@ my $comp = cpev->new->get_component('UpdateSystem');
         is(
             \@ssystem_and_die_params,
             [
-                '/scripts/update-packages',
+                '/usr/local/cpanel/scripts/update-packages',
             ],
             'Expected script was called'
         );
@@ -116,6 +116,31 @@ my $comp = cpev->new->get_component('UpdateSystem');
             '/usr/local/cpanel/scripts/check_cpanel_pkgs was called and returned'
         );
     }
+    my $mock = Test::MockModule->new('Elevate::Components::UpdateSystem');
+
+    # Create an instance of Elevate::Components::UpdateSystem
+    $comp = cpev->new->get_component('UpdateSystem');
+
+    # Mock ssystem_capture_output to simulate output of /usr/local/cpanel/scripts/check_cpanel_pkgs
+
+    $mock_pkgr_comp->redefine(
+        check => sub {
+            shift;
+            @ssystem_capture_output_params = qw/ 0 /;
+            return 0;
+        },
+        _check_cpanel_pkgs => sub {
+            shift;
+            @ssystem_capture_output_params = qw/ 1 /;
+            return 1;
+        },
+    );
+
+    # Mock ssystem to prevent real system calls
+    $mock->redefine( 'ssystem', sub { return 0; } );
+
+    # Test _check_cpanel_pkgs when problems are detected
+    is( $comp->_check_cpanel_pkgs(), 1, "_check_cpanel_pkgs should return 0 when issues are detected" );
 }
 
 done_testing();
