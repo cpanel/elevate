@@ -22,6 +22,7 @@ use constant SUPPORTED_DISTROS => (
     'AlmaLinux 8',
     'CentOS 7',
     'CloudLinux 7',
+    'CloudLinux 8',
     'Ubuntu 20',
 );
 
