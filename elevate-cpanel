@@ -7548,7 +7548,6 @@ EOS
     use constant has_imunify_ea_alias         => 1;
     use constant imunify_ea_alias             => 'CloudLinux_9';
     use constant expected_post_upgrade_major  => 9;
-    use constant is_experimental              => 1;
     use constant jetbackup_repo_rpm_url       => 'https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm';
     use constant leapp_data_pkg               => 'leapp-data-almalinux';
     use constant lts_supported                => 126;
