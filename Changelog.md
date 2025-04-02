@@ -1,3 +1,14 @@
+##### **2025-04-02** - version 63
+
+* Alma 8->9 is no longer Experimental.
+* Fixed case RE-1391: Support elevation of AlmaLinux 8 with JetBackup installed.
+* Fixed case RE-1388: Support systems with SHA1-signed packages.
+* Fixed case RE-1395: Change ordering of components so that the WPToolkit component runs sooner during the post distro upgrade stage.
+* Fixed case RE-1395: Add component to disable securetmp during u20->u22 upgrades
+* Fixed case RE-1371: Add support for Imunify 360's hardened PHP during A8->A9 upgrades
+* Fixed case RE-1386: Work around encoding bug in Leapp.
+* Fixed case RE-1387: Install VDO tools to satisfy a Leapp dependency on EL8-based systems.
+
 ## ELevate Change Log
 
 ##### **2025-03-13** - version 62
