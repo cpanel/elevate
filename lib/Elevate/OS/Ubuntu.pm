@@ -62,5 +62,6 @@ use constant supports_kernelcare             => 0;
 use constant supports_postgresql             => 0;
 use constant upgrade_to_pretty_name          => undef;
 use constant vetted_yum_repo                 => undef;
+use constant vetted_mysql_yum_repo_ids       => undef;
 
 1;
