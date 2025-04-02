@@ -70,10 +70,10 @@ release: build
 	$(GIT) push pub main
 	$(GIT) push --force pub $(RELEASE_TAG)
 	$(GIT) push --force pub v${VERSION}
-	$(MAKE) bump_version
-	$(GIT) push ent main
 	$(GIT) push --force ent $(RELEASE_TAG)
 	$(GIT) push --force ent v${VERSION}
+	$(GIT) push ent main
+	$(MAKE) bump_version
 
 bump_version: version := $(shell dc -f version -e '1 + p')
 bump_version:
