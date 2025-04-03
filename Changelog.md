@@ -1,3 +1,7 @@
+##### **2025-04-03** - version 64
+
+* Fixed case RE-1450: Pass '--target 8.9' to leapp upgrade for c7->a8 upgrades to address instability with upgrades to 8.10
+
 ##### **2025-04-02** - version 63
 
 * Alma 8->9 is no longer Experimental.
