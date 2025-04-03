@@ -10845,7 +10845,7 @@ use Elevate::SystemctlService ();
 use Elevate::Usage            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 64;
+use constant VERSION => 65;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant VALID_STAGES => 5;
