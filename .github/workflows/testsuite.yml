@@ -47,7 +47,7 @@ jobs:
     #       this is ok if we use it for unit test purpose
     #       we are also relying on e2e test using C7 VM on arc-runners-elevate runner.
     container:
-      image: cpanelos/perl-compiler:alma8-perl-v5.36.0
+      image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-testsuite
 
     steps:
       - name: Dump all GitHub variables
@@ -74,13 +74,6 @@ jobs:
 
       - name: cpanel-setup
         run: /bin/bash t/cpanel-setup
-
-      - name: Install Extra Perl dependencies
-        uses: perl-actions/install-with-cpm@v1
-        with:
-          sudo: false
-          cpanfile: "t/cpanfile"
-          args: "--with-all"
 
       - name: which prove
         run: ls -l $(which prove)
