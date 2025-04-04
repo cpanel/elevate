@@ -116,6 +116,7 @@ use constant skip_minor_version_check        => 0;
 use constant supported_cpanel_mysql_versions => undef;
 use constant supports_jetbackup              => 1;
 use constant supports_kernelcare             => 1;
+use constant supports_named_tiers            => 0;
 use constant supports_postgresql             => 1;
 use constant upgrade_to_pretty_name          => undef;
 use constant vetted_apt_lists                => {};

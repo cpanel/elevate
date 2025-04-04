@@ -400,7 +400,7 @@ yath -v t/Elevate-OS_detect_changes.t
 +---------------+------------+-------+---------------+
 | key           | distro     | major | lts_supported |
 +---------------+------------+-------+---------------+
-| lts_supported | AlmaLinux  | 8     | 126           |
+| lts_supported | AlmaLinux  | 8     | undef         |
 | lts_supported | CentOS     | 7     | 110           |
 | lts_supported | CloudLinux | 7     | 110           |
 | lts_supported | Ubuntu     | 20    | 118           |
@@ -773,6 +773,22 @@ yath -v t/Elevate-OS_detect_changes.t
 | supports_kernelcare | CloudLinux | 7     | 1                   |
 | supports_kernelcare | Ubuntu     | 20    | 0                   |
 +---------------------+------------+-------+---------------------+
+```
+---
+
+
+## supports_named_tiers
+
+---
+```
++----------------------+------------+-------+----------------------+
+| key                  | distro     | major | supports_named_tiers |
++----------------------+------------+-------+----------------------+
+| supports_named_tiers | AlmaLinux  | 8     | 1                    |
+| supports_named_tiers | CentOS     | 7     | 0                    |
+| supports_named_tiers | CloudLinux | 7     | 0                    |
+| supports_named_tiers | Ubuntu     | 20    | 0                    |
++----------------------+------------+-------+----------------------+
 ```
 ---
 
