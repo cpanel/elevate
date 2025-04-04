@@ -58,8 +58,10 @@ foreach my $os ( Elevate::OS::SUPPORTED_DISTROS() ) {
 
         $rows_per_method{$method}->[$ix] //= [ $method, $distro, $major ];
 
-        my $data = Elevate::OS::instance->$method();
-        $data = [ sort $data->@* ] if ref $data eq 'ARRAY';
+        my @os_data = Elevate::OS::instance->$method();
+        my $data    = scalar @os_data == 1 ? $os_data[0] : \@os_data;
+
+        $data = [ sort $data->@* ] if ref $data && ref $data eq 'ARRAY';
         push $rows_per_method{$method}->[$ix]->@*, pp($data);    # PPI NO PARSE -- false positive it s coming from Elevate::OS
 
     }

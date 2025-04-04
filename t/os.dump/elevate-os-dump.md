@@ -82,14 +82,41 @@ yath -v t/Elevate-OS_detect_changes.t
 
 ---
 ```
-+-------------------------+------------+-------+-------------------------+
-| key                     | distro     | major | disable_mysql_yum_repos |
-+-------------------------+------------+-------+-------------------------+
-| disable_mysql_yum_repos | AlmaLinux  | 8     | 7                       |
-| disable_mysql_yum_repos | CentOS     | 7     | 7                       |
-| disable_mysql_yum_repos | CloudLinux | 7     | 7                       |
-| disable_mysql_yum_repos | Ubuntu     | 20    | undef                   |
-+-------------------------+------------+-------+-------------------------+
++-------------------------+------------+-------+-----------------------------+
+| key                     | distro     | major | disable_mysql_yum_repos     |
++-------------------------+------------+-------+-----------------------------+
+| disable_mysql_yum_repos | AlmaLinux  | 8     | [\n                         |
+|                         |            |       |   "MariaDB102.repo",\n      |
+|                         |            |       |   "MariaDB103.repo",\n      |
+|                         |            |       |   "MariaDB105.repo",\n      |
+|                         |            |       |   "MariaDB106.repo",\n      |
+|                         |            |       |   "Mysql57.repo",\n         |
+|                         |            |       |   "Mysql80.repo",\n         |
+|                         |            |       |   "mysql-community.repo",\n |
+|                         |            |       | ]                           |
+|                         |            |       |                             |
+| disable_mysql_yum_repos | CentOS     | 7     | [\n                         |
+|                         |            |       |   "MariaDB102.repo",\n      |
+|                         |            |       |   "MariaDB103.repo",\n      |
+|                         |            |       |   "MariaDB105.repo",\n      |
+|                         |            |       |   "MariaDB106.repo",\n      |
+|                         |            |       |   "Mysql57.repo",\n         |
+|                         |            |       |   "Mysql80.repo",\n         |
+|                         |            |       |   "mysql-community.repo",\n |
+|                         |            |       | ]                           |
+|                         |            |       |                             |
+| disable_mysql_yum_repos | CloudLinux | 7     | [\n                         |
+|                         |            |       |   "MariaDB102.repo",\n      |
+|                         |            |       |   "MariaDB103.repo",\n      |
+|                         |            |       |   "MariaDB105.repo",\n      |
+|                         |            |       |   "MariaDB106.repo",\n      |
+|                         |            |       |   "Mysql57.repo",\n         |
+|                         |            |       |   "Mysql80.repo",\n         |
+|                         |            |       |   "mysql-community.repo",\n |
+|                         |            |       | ]                           |
+|                         |            |       |                             |
+| disable_mysql_yum_repos | Ubuntu     | 20    | undef                       |
++-------------------------+------------+-------+-----------------------------+
 ```
 ---
 
@@ -690,14 +717,14 @@ yath -v t/Elevate-OS_detect_changes.t
 
 ---
 ```
-+---------------------------------+------------+-------+---------------------------------+
-| key                             | distro     | major | supported_cpanel_mysql_versions |
-+---------------------------------+------------+-------+---------------------------------+
-| supported_cpanel_mysql_versions | AlmaLinux  | 8     | 5                               |
-| supported_cpanel_mysql_versions | CentOS     | 7     | 7                               |
-| supported_cpanel_mysql_versions | CloudLinux | 7     | 7                               |
-| supported_cpanel_mysql_versions | Ubuntu     | 20    | 3                               |
-+---------------------------------+------------+-------+---------------------------------+
++---------------------------------+------------+-------+----------------------------------------------+
+| key                             | distro     | major | supported_cpanel_mysql_versions              |
++---------------------------------+------------+-------+----------------------------------------------+
+| supported_cpanel_mysql_versions | AlmaLinux  | 8     | [10.11, 10.5, 10.6, 11.4, "8.0"]             |
+| supported_cpanel_mysql_versions | CentOS     | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
+| supported_cpanel_mysql_versions | CloudLinux | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
+| supported_cpanel_mysql_versions | Ubuntu     | 20    | [10.11, 10.6, "8.0"]                         |
++---------------------------------+------------+-------+----------------------------------------------+
 ```
 ---
 
@@ -709,10 +736,10 @@ yath -v t/Elevate-OS_detect_changes.t
 +-----------------------------------+------------+-------+-----------------------------------+
 | key                               | distro     | major | supported_cpanel_nameserver_types |
 +-----------------------------------+------------+-------+-----------------------------------+
-| supported_cpanel_nameserver_types | AlmaLinux  | 8     | 3                                 |
-| supported_cpanel_nameserver_types | CentOS     | 7     | 3                                 |
-| supported_cpanel_nameserver_types | CloudLinux | 7     | 3                                 |
-| supported_cpanel_nameserver_types | Ubuntu     | 20    | 2                                 |
+| supported_cpanel_nameserver_types | AlmaLinux  | 8     | ["bind", "disabled", "powerdns"]  |
+| supported_cpanel_nameserver_types | CentOS     | 7     | ["bind", "disabled", "powerdns"]  |
+| supported_cpanel_nameserver_types | CloudLinux | 7     | ["bind", "disabled", "powerdns"]  |
+| supported_cpanel_nameserver_types | Ubuntu     | 20    | ["disabled", "powerdns"]          |
 +-----------------------------------+------------+-------+-----------------------------------+
 ```
 ---
@@ -822,14 +849,38 @@ yath -v t/Elevate-OS_detect_changes.t
 
 ---
 ```
-+---------------------------+------------+-------+---------------------------+
-| key                       | distro     | major | vetted_mysql_yum_repo_ids |
-+---------------------------+------------+-------+---------------------------+
-| vetted_mysql_yum_repo_ids | AlmaLinux  | 8     | 6                         |
-| vetted_mysql_yum_repo_ids | CentOS     | 7     | 6                         |
-| vetted_mysql_yum_repo_ids | CloudLinux | 7     | 6                         |
-| vetted_mysql_yum_repo_ids | Ubuntu     | 20    | undef                     |
-+---------------------------+------------+-------+---------------------------+
++---------------------------+------------+-------+------------------------------------------------------------------------------+
+| key                       | distro     | major | vetted_mysql_yum_repo_ids                                                    |
++---------------------------+------------+-------+------------------------------------------------------------------------------+
+| vetted_mysql_yum_repo_ids | AlmaLinux  | 8     | [\n                                                                          |
+|                           |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                               |
+|                           |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n |
+|                           |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n        |
+|                           |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n             |
+|                           |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                             |
+|                           |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n           |
+|                           |            |       | ]                                                                            |
+|                           |            |       |                                                                              |
+| vetted_mysql_yum_repo_ids | CentOS     | 7     | [\n                                                                          |
+|                           |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                               |
+|                           |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n |
+|                           |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n        |
+|                           |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n             |
+|                           |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                             |
+|                           |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n           |
+|                           |            |       | ]                                                                            |
+|                           |            |       |                                                                              |
+| vetted_mysql_yum_repo_ids | CloudLinux | 7     | [\n                                                                          |
+|                           |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                               |
+|                           |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n |
+|                           |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n        |
+|                           |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n             |
+|                           |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                             |
+|                           |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n           |
+|                           |            |       | ]                                                                            |
+|                           |            |       |                                                                              |
+| vetted_mysql_yum_repo_ids | Ubuntu     | 20    | undef                                                                        |
++---------------------------+------------+-------+------------------------------------------------------------------------------+
 ```
 ---
 
@@ -838,14 +889,143 @@ yath -v t/Elevate-OS_detect_changes.t
 
 ---
 ```
-+-----------------+------------+-------+-----------------+
-| key             | distro     | major | vetted_yum_repo |
-+-----------------+------------+-------+-----------------+
-| vetted_yum_repo | AlmaLinux  | 8     | 39              |
-| vetted_yum_repo | CentOS     | 7     | 38              |
-| vetted_yum_repo | CloudLinux | 7     | 46              |
-| vetted_yum_repo | Ubuntu     | 20    | undef           |
-+-----------------+------------+-------+-----------------+
++-----------------+------------+-------+------------------------------------------------------------------------------------+
+| key             | distro     | major | vetted_yum_repo                                                                    |
++-----------------+------------+-------+------------------------------------------------------------------------------------+
+| vetted_yum_repo | AlmaLinux  | 8     | [\n                                                                                |
+|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
+|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                 |
+|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
+|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
+|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
+|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
+|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
+|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
+|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
+|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   "appstream",\n                                                                   |
+|                 |            |       |   "base",\n                                                                        |
+|                 |            |       |   "c7-media",\n                                                                    |
+|                 |            |       |   "centosplus",\n                                                                  |
+|                 |            |       |   "cp-dev-tools",\n                                                                |
+|                 |            |       |   "cpanel-addons-production-feed",\n                                               |
+|                 |            |       |   "cpanel-plugins",\n                                                              |
+|                 |            |       |   "cr",\n                                                                          |
+|                 |            |       |   "ct-preset",\n                                                                   |
+|                 |            |       |   "digitalocean-agent",\n                                                          |
+|                 |            |       |   "droplet-agent",\n                                                               |
+|                 |            |       |   "extras",\n                                                                      |
+|                 |            |       |   "fasttrack",\n                                                                   |
+|                 |            |       |   "hgdedi",\n                                                                      |
+|                 |            |       |   "imunify360",\n                                                                  |
+|                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
+|                 |            |       |   "influxdb",\n                                                                    |
+|                 |            |       |   "jetapps",\n                                                                     |
+|                 |            |       |   "kernelcare",\n                                                                  |
+|                 |            |       |   "powertools",\n                                                                  |
+|                 |            |       |   "r1soft",\n                                                                      |
+|                 |            |       |   "updates",\n                                                                     |
+|                 |            |       | ]                                                                                  |
+|                 |            |       |                                                                                    |
+| vetted_yum_repo | CentOS     | 7     | [\n                                                                                |
+|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
+|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                 |
+|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
+|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
+|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
+|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
+|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
+|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
+|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
+|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   qr/(?^u:centos7[-]*els(-rollout-[0-9]+|))/,\n                                    |
+|                 |            |       |   "base",\n                                                                        |
+|                 |            |       |   "c7-media",\n                                                                    |
+|                 |            |       |   "centosplus",\n                                                                  |
+|                 |            |       |   "cp-dev-tools",\n                                                                |
+|                 |            |       |   "cpanel-addons-production-feed",\n                                               |
+|                 |            |       |   "cpanel-plugins",\n                                                              |
+|                 |            |       |   "cr",\n                                                                          |
+|                 |            |       |   "ct-preset",\n                                                                   |
+|                 |            |       |   "digitalocean-agent",\n                                                          |
+|                 |            |       |   "droplet-agent",\n                                                               |
+|                 |            |       |   "extras",\n                                                                      |
+|                 |            |       |   "fasttrack",\n                                                                   |
+|                 |            |       |   "hgdedi",\n                                                                      |
+|                 |            |       |   "imunify360",\n                                                                  |
+|                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
+|                 |            |       |   "influxdb",\n                                                                    |
+|                 |            |       |   "jetapps",\n                                                                     |
+|                 |            |       |   "kernelcare",\n                                                                  |
+|                 |            |       |   "r1soft",\n                                                                      |
+|                 |            |       |   "updates",\n                                                                     |
+|                 |            |       | ]                                                                                  |
+|                 |            |       |                                                                                    |
+| vetted_yum_repo | CloudLinux | 7     | [\n                                                                                |
+|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                 |
+|                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n |
+|                 |            |       |   qr/(?^u:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                        |
+|                 |            |       |   qr/(?^u:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                                |
+|                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                    |
+|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
+|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                 |
+|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
+|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
+|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
+|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
+|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
+|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
+|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
+|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   "base",\n                                                                        |
+|                 |            |       |   "c7-media",\n                                                                    |
+|                 |            |       |   "centosplus",\n                                                                  |
+|                 |            |       |   "cl-ea4",\n                                                                      |
+|                 |            |       |   "cl7h",\n                                                                        |
+|                 |            |       |   "cp-dev-tools",\n                                                                |
+|                 |            |       |   "cpanel-addons-production-feed",\n                                               |
+|                 |            |       |   "cpanel-plugins",\n                                                              |
+|                 |            |       |   "cr",\n                                                                          |
+|                 |            |       |   "ct-preset",\n                                                                   |
+|                 |            |       |   "digitalocean-agent",\n                                                          |
+|                 |            |       |   "droplet-agent",\n                                                               |
+|                 |            |       |   "extras",\n                                                                      |
+|                 |            |       |   "fasttrack",\n                                                                   |
+|                 |            |       |   "hgdedi",\n                                                                      |
+|                 |            |       |   "imunify360",\n                                                                  |
+|                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
+|                 |            |       |   "influxdb",\n                                                                    |
+|                 |            |       |   "jetapps",\n                                                                     |
+|                 |            |       |   "kernelcare",\n                                                                  |
+|                 |            |       |   "mysqclient",\n                                                                  |
+|                 |            |       |   "mysql-debuginfo",\n                                                             |
+|                 |            |       |   "r1soft",\n                                                                      |
+|                 |            |       |   "updates",\n                                                                     |
+|                 |            |       | ]                                                                                  |
+|                 |            |       |                                                                                    |
+| vetted_yum_repo | Ubuntu     | 20    | undef                                                                              |
++-----------------+------------+-------+------------------------------------------------------------------------------------+
 ```
 ---
 
