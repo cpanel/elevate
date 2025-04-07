@@ -89,6 +89,13 @@ sub _get_config_file_suffix ($self) {
     return '.pre_elevate';
 }
 
+sub remove_no_dependencies ( $self, $pkg ) {
+
+    $self->ssystem_and_die( $dpkg, "--ignore-depends=$pkg", '-P', $pkg );
+
+    return;
+}
+
 =head1 remove_no_dependencies_and_justdb
 
 The RPM version of this just removes the packages from the rpmdb. It otherwise

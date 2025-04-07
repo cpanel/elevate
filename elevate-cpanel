@@ -8217,6 +8217,13 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
         return '.pre_elevate';
     }
 
+    sub remove_no_dependencies ( $self, $pkg ) {
+
+        $self->ssystem_and_die( $dpkg, "--ignore-depends=$pkg", '-P', $pkg );
+
+        return;
+    }
+
     sub remove_no_dependencies_and_justdb ( $self, $pkg ) {
         return;
     }
