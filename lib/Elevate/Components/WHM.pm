@@ -54,10 +54,19 @@ sub check ($self) {
 
     $ok = 0 unless $self->_blocker_is_missing_cpanel_whm;
     $ok = 0 unless $self->_blocker_is_invalid_cpanel_whm;
-    $ok = 0 unless $self->_blocker_is_newer_than_lts;
     $ok = 0 unless $self->_blocker_cpanel_needs_license;
-    $ok = 0 unless $self->_blocker_cpanel_needs_update;
     $ok = 0 unless $self->_blocker_is_sandbox;
+
+    if ( Elevate::OS::supports_named_tiers() ) {
+        my $major = $Cpanel::Version::Tiny::major_version;
+        $ok = 0 unless $self->_blocker_is_named_tier($major);
+        $ok = 0 unless $self->_blocker_cpanel_needs_update($major);
+    }
+    else {
+        $ok = 0 unless $self->_blocker_lts_is_supported;
+        $ok = 0 unless $self->_blocker_cpanel_needs_update( Elevate::OS::lts_supported() );
+    }
+
     $ok = 0 unless $self->_blocker_is_upcp_running;
     $ok = 0 unless $self->_blocker_is_cpanel_backup_running;
 
@@ -80,7 +89,7 @@ sub _blocker_is_invalid_cpanel_whm ($self) {
     return 0;
 }
 
-sub _blocker_is_newer_than_lts ($self) {
+sub _blocker_lts_is_supported ($self) {
 
     # Account for dev builds / testing
     my $major = $Cpanel::Version::Tiny::major_version;
@@ -132,16 +141,42 @@ sub _blocker_cpanel_needs_license ($self) {
     EOS
 }
 
-sub _blocker_cpanel_needs_update ($self) {
+sub _blocker_is_named_tier ( $self, $major ) {
+    my $tiers_obj      = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
+    my $flattened_hash = $tiers_obj->get_flattened_hash();
+    foreach my $named_tier (qw{ lts stable release current edge }) {
+        my $version = $flattened_hash->{$named_tier};
+
+        my $named_major;
+        if ( $version =~ m/^[0-9]+\.([0-9]+)\.[0-9]\.[0-9]+$/ ) {
+            $named_major = $1;
+        }
+
+        next unless $named_major;
+
+        # Account for dev builds / testing
+        return 0 if ( $major == $named_major || $major == ( $named_major - 1 ) );
+    }
+
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
+    return $self->has_blocker(
+        sprintf(
+            "This version %s does not support upgrades to %s. Please ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE.",
+            $Cpanel::Version::Tiny::VERSION_BUILD,
+            $pretty_distro_name,
+        )
+    );
+}
+
+sub _blocker_cpanel_needs_update ( $self, $major ) {
     if ( !$self->getopt('skip-cpanel-version-check') ) {
-        my $lts_supported    = Elevate::OS::lts_supported();
         my $tiers_obj        = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
-        my $expected_version = $tiers_obj->get_flattened_hash()->{"11.$lts_supported"};
+        my $expected_version = $tiers_obj->get_flattened_hash()->{"11.$major"};
         if ( !Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $expected_version ) ) {
-            return $self->has_blocker( <<~"EOS" );
-            This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.
-            Please upgrade cPanel to $expected_version.
-            EOS
+            my $msg = "This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.\n";
+            $msg .= length $expected_version ? "Please upgrade cPanel to $expected_version.\n" : "Additionally, we were unable to determine the expected version for this build.\n";
+
+            return $self->has_blocker($msg);
         }
     }
     else {

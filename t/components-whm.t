@@ -77,9 +77,9 @@ my $whm  = $cpev->get_component('WHM');
 }
 
 {
-    note "cPanel & WHM minimum LTS.";
+    note "cPanel & WHM LTS version is supported for OS.";
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
+    for my $os ( 'cent', 'cloud', 'ubuntu' ) {
         set_os_to($os);
         my $cpev = cpev->new;
         my $whm  = $cpev->get_component('WHM');
@@ -90,11 +90,10 @@ my $whm  = $cpev->get_component('WHM');
         my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
         my $expected_upgrade_version = 110;
         $expected_upgrade_version = 118 if $os eq 'ubuntu';
-        $expected_upgrade_version = 126 if $os eq 'alma';
         like(
-            $whm->_blocker_is_newer_than_lts(),
+            $whm->_blocker_lts_is_supported(),
             {
-                id  => q[Elevate::Components::WHM::_blocker_is_newer_than_lts],
+                id  => q[Elevate::Components::WHM::_blocker_lts_is_supported],
                 msg => qr{
                     \QThis version 11.109.0.9999 does not support upgrades to $expected_target_os.\E \s+
                     \QPlease ensure the cPanel version is $expected_upgrade_version.\E
@@ -104,29 +103,26 @@ my $whm  = $cpev->get_component('WHM');
         );
 
         $Cpanel::Version::Tiny::major_version = Elevate::OS::lts_supported();
-        is( $whm->_blocker_is_newer_than_lts(), 0, 'Recent LTS version passes this test.' );
+        is( $whm->_blocker_lts_is_supported(), 0, 'Recent LTS version passes this test.' );
     }
 
-    for my $os ( 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    set_os_to('ubuntu');
 
-        my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
-        my $expected_upgrade_version = 118;
-        $expected_upgrade_version = 126 if $os eq 'alma';
-        local $Cpanel::Version::Tiny::major_version = 110;
-        local $Cpanel::Version::Tiny::VERSION_BUILD = '11.110.0.1';
-        like(
-            $whm->_blocker_is_newer_than_lts(),
-            {
-                id  => q[Elevate::Components::WHM::_blocker_is_newer_than_lts],
-                msg => qr{
-                    \QThis version 11.110.0.1 does not support upgrades to $expected_target_os.\E \s+
-                    \QPlease ensure the cPanel version is $expected_upgrade_version.\E
-                }xms,
-            },
-            q{cPanel version must be above the known LTS.}
-        );
-    }
+    my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
+    my $expected_upgrade_version = 118;
+    local $Cpanel::Version::Tiny::major_version = 110;
+    local $Cpanel::Version::Tiny::VERSION_BUILD = '11.110.0.1';
+    like(
+        $whm->_blocker_lts_is_supported(),
+        {
+            id  => q[Elevate::Components::WHM::_blocker_lts_is_supported],
+            msg => qr{
+                \QThis version 11.110.0.1 does not support upgrades to $expected_target_os.\E \s+
+                \QPlease ensure the cPanel version is $expected_upgrade_version.\E
+            }xms,
+        },
+        q{cPanel version must be above the known LTS.}
+    );
 
     for my $os ( 'cent', 'cloud' ) {
         set_os_to($os);
@@ -136,18 +132,72 @@ my $whm  = $cpev->get_component('WHM');
         local $Cpanel::Version::Tiny::major_version = 118;
         local $Cpanel::Version::Tiny::VERSION_BUILD = '11.118.0.1';
         like(
-            $whm->_blocker_is_newer_than_lts(),
+            $whm->_blocker_lts_is_supported(),
             {
-                id  => q[Elevate::Components::WHM::_blocker_is_newer_than_lts],
+                id  => q[Elevate::Components::WHM::_blocker_lts_is_supported],
                 msg => qr{
                     \QThis version 11.118.0.1 does not support upgrades to $expected_target_os.\E \s+
                     \QPlease ensure the cPanel version is $expected_upgrade_version.\E
                 }xms,
             },
-            q{cPanel version must be above the known LTS.}
+            q{cPanel version must be the known LTS.}
         );
     }
 
+}
+
+{
+    note 'Named tiers are supported';
+
+    foreach my $os ( 'cent', 'cloud', 'ubuntu' ) {
+        set_os_to($os);
+        is( Elevate::OS::supports_named_tiers(), 0, "Named tiers are not supported for $os" );
+    }
+
+    set_os_to('alma');
+
+    my $mock_tiers = Test::MockModule->new('Cpanel::Update::Tiers');
+    $mock_tiers->redefine(
+        get_flattened_hash => sub {
+            return {
+                'edge'    => '11.128.0.1',
+                '11.48'   => '11.48.5.3',
+                '11.50'   => '11.50.6.2',
+                'current' => '11.104.0.11',
+                '11.70'   => '11.70.0.69',
+                '11.114'  => '11.114.0.15',
+                '11.112'  => '11.112.0.8',
+                '11.88'   => '11.88.0.17',
+                '11.98'   => '11.98.0.13',
+                'lts'     => '11.118.0.41',
+                '11.34'   => '11.34.2.8',
+                '11.102'  => '11.102.0.36',
+                '11.46'   => '11.46.4.0',
+                '11.60'   => '11.60.0.48',
+                'release' => '11.126.0.11',
+                '11.128'  => '11.128.0.1',
+                '11.42'   => '11.42.1.31',
+                '11.104'  => '11.104.0.11',
+                'stable'  => '11.124.0.32',
+                '11.126'  => '11.126.0.11'
+            };
+        },
+    );
+
+    is( $whm->_blocker_is_named_tier(118), 0, "Returns 0 when the major version matches a named tier (lts)" );
+    is( $whm->_blocker_is_named_tier(124), 0, "Returns 0 when the major version matches a named tier (stable)" );
+    is( $whm->_blocker_is_named_tier(126), 0, "Returns 0 when the major version matches a named tier (release)" );
+    is( $whm->_blocker_is_named_tier(104), 0, "Returns 0 when the major version matches a named tier (current)" );
+    is( $whm->_blocker_is_named_tier(128), 0, "Returns 0 when the major version matches a named tier (edge)" );
+
+    like(
+        $whm->_blocker_is_named_tier(34),
+        {
+            id  => q[Elevate::Components::WHM::_blocker_is_named_tier],
+            msg => qr{Please ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE},
+        },
+        'Blocker returned when the major version does not match a named tier',
+    );
 }
 
 {
@@ -238,7 +288,7 @@ my $whm  = $cpev->get_component('WHM');
     ok $whm->getopt('skip-cpanel-version-check'),  'getopt on blocker';
 
     local $Cpanel::Version::Tiny::VERSION_BUILD = '11.102.0.5';
-    is( $whm->_blocker_cpanel_needs_update(), 0, "blockers_check() passes with skip-cpanel-version-check specified." );
+    is( $whm->_blocker_cpanel_needs_update(110), 0, "blockers_check() passes with skip-cpanel-version-check specified." );
     message_seen(
         'WARN',
         qr{The --skip-cpanel-version-check option was specified! This option is provided for testing purposes only! cPanel may not be able to support the resulting conversion. Please consider whether this is what you want.}
@@ -248,7 +298,7 @@ my $whm  = $cpev->get_component('WHM');
     ok !$whm->getopt('skip-cpanel-version-check'), 'getopt on blocker';
     $Cpanel::Version::Tiny::VERSION_BUILD = '11.102.0.5';
     like(
-        $whm->_blocker_cpanel_needs_update(),
+        $whm->_blocker_cpanel_needs_update(110),
         {
             id  => q[Elevate::Components::WHM::_blocker_cpanel_needs_update],
             msg => qr{
@@ -263,7 +313,7 @@ my $whm  = $cpev->get_component('WHM');
     clear_messages_seen();
 
     $Cpanel::Version::Tiny::VERSION_BUILD = $latest_lts_version;
-    is( $whm->_blocker_cpanel_needs_update(), 0, "No blocker if cPanel is up to date" );
+    is( $whm->_blocker_cpanel_needs_update(110), 0, "No blocker if cPanel is up to date" );
     no_messages_seen();
 }
 
@@ -283,6 +333,23 @@ my $whm  = $cpev->get_component('WHM');
 
     $f->unlink;
     is( $whm->_blocker_is_sandbox(), 0, "if not dev_sandbox, we're ok" );
+}
+
+{
+    note 'supports_named_tiers or lts_supported is required';
+
+    foreach my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
+        set_os_to($os);
+
+        my $supports_named_tiers = Elevate::OS::supports_named_tiers();
+        if ($supports_named_tiers) {
+            ok $supports_named_tiers, "$os supports named tiers";
+        }
+        else {
+            my $lts_supported = Elevate::OS::lts_supported();
+            like( $lts_supported, qr/^[0-9]+$/, "$os supports $lts_supported" );
+        }
+    }
 }
 
 {

@@ -127,6 +127,7 @@ BEGIN {
         'supported_cpanel_nameserver_types',    # Returns array of supported nameserver types
         'supports_jetbackup',                   # This is used to determine if jetbackup is currently supported
         'supports_kernelcare',                  # This is used to determine if kernelcare is currently supported for this upgrade
+        'supports_named_tiers',                 # This is used to determine if the OS is eligible to upgrade on any named tier (RELEASE, STABLE, etc)
         'supports_postgresql',                  # This is used to determine if postgresql is supported for this upgrade
         'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
         'vetted_apt_lists',                     # This is a list of known apt lists that we do not block on
