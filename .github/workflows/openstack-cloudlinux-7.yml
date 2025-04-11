@@ -27,657 +27,410 @@ env:
   tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack"
 
 jobs: 
-    terraform_openstack_create:
-        runs-on: arc-runners-elevate
-        container:
-          image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
-        defaults:
-          run:
-            working-directory: "${{ github.workspace }}/.github/workflows/openstack"
-        steps:
-        - uses: actions/checkout@v4
+  terraform_openstack_create:
+    runs-on: arc-runners-elevate
+    container:
+      image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
+    defaults:
+      run:
+        working-directory: "${{ github.workspace }}/.github/workflows/openstack"
+    outputs:
+      VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
+      REPODIR: ${{ steps.expose_repodir.outputs.REPODIR }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Terraform Init & Apply
+      run: |
+        terraform init
+        terraform apply -var="image_name=11.110.0.* on CloudLinux 7" -var="cpanel_release_version=110" -no-color -auto-approve
+        terraform output -json > ${{ github.run_id }}-tf.out.json
+        mv -v .terraform.lock.hcl terraform.lock.hcl        
+    - name: Upload Terraform Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
+        path:  ${{ env.tf_working_directory }}/terraform*
+        retention-days: 1  # override 90-day default
+    - name: Get VM IP from Terraform Output
+      id: get_vm_ip
+      run: |
+        echo "VM_IP=$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" >> "$GITHUB_OUTPUT"
+    - name: Expose REPODIR as a Variable
+      id: expose_repodir
+      run: |
+        REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
+        echo "REPODIR=$REPODIR" >> "$GITHUB_OUTPUT"
 
-        - name: Dump all GitHub variables
-          run: |
-            echo "Dumping all GitHub variables:"
-            echo "github.ref: ${{ github.ref }}"
-            echo "github.ref_name: ${{ github.ref_name }}"
-            echo "github.job: ${{ github.job }}"
-            echo "github.workflow: ${{ github.workflow }}"
-            echo "github.triggering_actor: ${{ github.triggering_actor }}"
-            echo "github.event_name: ${{ github.event_name }}"
-            echo "github.event.repository.master_branch: ${{ github.event.repository.master_branch }}"
-
-        - name: Terraform fmt
-          id: fmt
-          run: |
-            terraform fmt -check
-          continue-on-error: true
-
-        - name: Terraform Init
-          id: init
-          run: |
-            terraform init
-
-        - name: Terraform Plan
-          id: plan
-          run: |
-            terraform plan -var="image_name=11.110.0.* on CloudLinux 7" -var="cpanel_release_version=110" -no-color
-
-        - name: Terraform Apply
-          id: apply
-          run: |
-            pwd
-            terraform apply -var="image_name=11.110.0.* on CloudLinux 7" -var="cpanel_release_version=110" -no-color -auto-approve
-            mv -v .terraform.lock.hcl terraform.lock.hcl
-
-        - name: Upload Terraform State File as Artifact
-          uses: actions/upload-artifact@v4.4.3
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
-            path: ${{ env.tf_working_directory }}
-
-        - name: Terraform Output File Create
-          run: |
-            terraform output -json > ${{ github.run_id }}-tf.out.json
-
-        - name: Make vm_ip file from Terraform Output File
-          id: get_vm_ip
-          run: |
-            echo "$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" > ${{ github.run_id }}-vm_ip
-
-        - name: Upload VM Output
-          uses: actions/upload-artifact@v4.4.3
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ env.tf_working_directory }}/${{ github.run_id }}-vm_ip
-            overwrite: true
-
-    clone_elevate_repo:
-      runs-on: arc-runners-elevate
-      needs: terraform_openstack_create
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Checkout Repo and Commit
-          if: github.event_name != 'pull_request'
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            script: |
-              cd /opt
-              echo "## [INFO]: ${{ github.ref }}"
-              echo "## [INFO]: ${{ github.ref_name }}"
-              echo "## [INFO}: ${{ github.repository }}"
-              ssh-keyscan github.com >> ~/.ssh/known_hosts
-              mkdir -p ~/.ssh
-              echo "${{ secrets.ELEVATE_CHECKOUT_KEY }}" > ~/.ssh/elevate_checkout_key
-              echo -e "Host github.com\n    HostName github.com\n    User root\n    IdentityFile ~/.ssh/elevate_checkout_key\n    IdentitiesOnly yes\n    HostKeyAlgorithms +ssh-rsa\n" >> ~/.ssh/config
-              chmod -v 0600 ~/.ssh/elevate_checkout_key
-              echo "## [DEBUG]: git clone --depth=1 --branch ${{ github.ref_name }} git@github.com:${{ github.repository }}.git"
-              git clone depth=1 --branch ${{ github.ref_name }} git@github.com:${{ github.repository }}.git
-              hostname && pwd && ls -la
-              cd /opt/$(echo ${{ github.repository }} | cut -d / -f2)
-              git status
-
-        - name: Checking out Repo and Pull Request
-          if: github.event_name == 'pull_request'
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            script: |
-              cd /opt
-              echo "## [INFO]: ${{ github.ref }}"
-              echo "## [INFO]: ${{ github.head_ref }}"
-              echo "## [INFO}: ${{ github.repository }}"
-              ssh-keyscan github.com >> ~/.ssh/known_hosts
-              mkdir -p ~/.ssh
-              echo "${{ secrets.ELEVATE_CHECKOUT_KEY }}" > ~/.ssh/elevate_checkout_key
-              echo -e "Host github.com\n    HostName github.com\n    User root\n    IdentityFile ~/.ssh/elevate_checkout_key\n    IdentitiesOnly yes\n    HostKeyAlgorithms +ssh-rsa\n" >> ~/.ssh/config
-              chmod -v 0600 ~/.ssh/elevate_checkout_key
-              echo "## [DEBUG]: git clone --depth=1 --branch ${{ github.head_ref }} git@github.com:${{ github.repository }}.git"
-              git clone --depth=1 --branch ${{ github.head_ref }} git@github.com:${{ github.repository }}.git
-              hostname && pwd && ls -la
-              cd /opt/$(echo ${{ github.repository }} | cut -d / -f2)
-              git status
-
-    setup_integration_checks:
-      runs-on: arc-runners-elevate
-      needs: clone_elevate_repo
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-
-        - name: Setup for Integration Checks Prior to Running Elevate
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            script: |
-              REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
-              chmod -v +x /opt/${REPODIR}/t/integration/setup
-              /opt/${REPODIR}/t/integration/setup
-
-    start_elevate:
-      runs-on: arc-runners-elevate
-      needs: setup_integration_checks
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-
-        - name: Update CloudLinux License And Setup Server For ELevate
-          uses: appleboy/ssh-action@v1.2.1
-          env:
-            CLOUDLINUX_LICENSE_KEY: "${{ secrets.CLOUDLINUX_LICENSE_KEY }}"
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            envs: CLOUDLINUX_LICENSE_KEY
-            timeout: 30m
-            command_timeout: 30m
-            script: |
-              /usr/local/cpanel/scripts/post_snapshot --yes
-              while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking your Update Manager."; sleep 1; done
-              echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
-              echo "## [INFO]: /usr/sbin/rhnreg_ks --activationkey=${CLOUDLINUX_LICENSE_KEY:0:2}****" --force && /usr/sbin/rhnreg_ks --activationkey=$CLOUDLINUX_LICENSE_KEY --force
-              echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
-              echo "## [INFO]: Now running /usr/bin/cldetect --check-license" && /usr/bin/cldetect --check-license
-              until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
-              /usr/bin/yum erase -y awscli
-              echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo=cloudlinux-x86_64-server --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
-              mv -v /etc/yum.repos.d/clmirror.repo /root/
-              yum-config-manager --enable cloudlinux-base
-              yum-config-manager --enable cloudlinux-updates
-              /usr/bin/yum clean all
-              /usr/bin/yum makecache
-              /usr/bin/yum -y update
-              REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
-              cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
-              cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
-              cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
-              /scripts/restartsrv_mysql
-              chmod -v +x /scripts/elevate-cpanel
-              shutdown -r "Restarting system after updates before we ELevate." +0.5&
-              exit 0
-
-        - name: Wait For VM to Come Back From Reboot Prior to Running ELevate
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
- 
-        - name: Start Elevate
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 30m
-            command_timeout: 30m
-            script: |
-              /scripts/elevate-cpanel --non-interactive --skip-cpanel-version-check --start &
-              exit 0
-
-    wait_for_stage_1_reboot:
-      runs-on: arc-runners-elevate
-      needs: start_elevate
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-
-        - name: Wait For VM to Come Back From Initial Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
-
-    watch_for_stage_2_reboot:
-      runs-on: arc-runners-elevate
-      needs: wait_for_stage_1_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Monitor Elevate for Reboot from Stage 1 into Stage 2
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 60m
-            command_timeout: 30m
-            debug: true
-            script: |
-              /scripts/status_marker 1
-              tail -n40 -F /var/log/elevate-cpanel.log &
-              sleep .5
-              REBOOT_STRING="Rebooting into stage 2 of 5" RETVAL=1 /scripts/reboot_watch
-
-    wait_for_stage_2_reboot:
-      runs-on: arc-runners-elevate
-      needs: watch_for_stage_2_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Wait For VM to Come Back From Stage 2 Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
-
-    watch_for_stage_3_reboot:
-      runs-on: arc-runners-elevate
-      needs: wait_for_stage_2_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Monitor Elevate for Stage 3 Reboot
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 60m
-            command_timeout: 30m
-            debug: true
-            script: |
-              /scripts/status_marker 2
-              tail -n40 -F /var/log/elevate-cpanel.log &
-              sleep .5
-              REBOOT_STRING="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
-    
-    wait_for_stage_3_reboot:
-      runs-on: arc-runners-elevate
-      needs: watch_for_stage_3_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Wait For VM to Come Back From Stage 3 Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
-
-    watch_for_stage_4_reboot:
-      runs-on: arc-runners-elevate
-      needs: wait_for_stage_3_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Monitor Elevate for Stage 4 Reboot
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 60m
-            command_timeout: 50m
-            script: |
-              /scripts/status_marker 3
-              tail -n40 -F /var/log/elevate-cpanel.log &
-              sleep .5
-              REBOOT_STRING="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch
-
-    wait_for_stage_4_reboot:
-      runs-on: arc-runners-elevate
-      needs: watch_for_stage_4_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Wait For VM to Come Back From Stage 4 Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
-
-    watch_for_stage_5_reboot:
-      runs-on: arc-runners-elevate
-      needs: wait_for_stage_4_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Monitor Elevate for Stage 5 Reboot
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 45m
-            command_timeout: 35m
-            script: |
-              /scripts/status_marker 4
-              tail -n40 -F /var/log/elevate-cpanel.log &
-              sleep .5
-              REBOOT_STRING="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch
-
-    wait_for_stage_5_reboot:
-      runs-on: arc-runners-elevate
-      needs: watch_for_stage_5_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Wait For VM to Come Back From Stage 5 Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
-
-    watch_for_final_reboot:
-      runs-on: arc-runners-elevate
-      needs: wait_for_stage_5_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Monitor Elevate for Final Reboot
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 45m
-            command_timeout: 35m
-            script: |
-              /scripts/status_marker 5
-              tail -n40 -F /var/log/elevate-cpanel.log &
-              sleep 2.5
-              REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
-
-    wait_for_final_reboot:
-      runs-on: arc-runners-elevate
-      needs: watch_for_final_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Wait For VM to Come Back From Final Reboot
-          working-directory: "./.github/workflows/openstack/"
-          run: |
-            ./ssh_retry ${{ steps.VM_IP.outputs.VM_IP }}
-
-    verify_upgraded_os:
-      runs-on: arc-runners-elevate
-      needs: wait_for_final_reboot
-      outputs:
-        VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-      steps:
-        - name: Download VM IP
-          uses: actions/download-artifact@v4.1.8
-          with:
-            name: ${{ github.run_id }}-cloudlinux7-vm_ip
-            path: ${{ github.workspace }}/
-
-        - name: Get VM IP from Artifact
-          id: VM_IP
-          run: |
-            echo "VM_IP=$(cat ${{ github.run_id }}-vm_ip)" >> "$GITHUB_OUTPUT"
-            cat ${{ github.run_id }}-vm_ip > VM_IP
-
-        - name: Export VM_IP to env
-          env:
-            VM_IP: ${{ steps.VM_IP.outputs.VM_IP }}
-          run: echo "VM_IP is ${{ steps.VM_IP.outputs.VM_IP }}"
-        - name: Verify End Result Integration Tests
-          uses: appleboy/ssh-action@v1.2.1
-          with:
-            host: ${{ steps.VM_IP.outputs.VM_IP }}
-            username: 'root'
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: '22'
-            timeout: 5m
-            command_timeout: 1m
-            script: |
-              REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
-              /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/cloudlinux7-to-cloudlinux8/*.t
-              /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/*.t
-
-    terraform_openstack_destroy:
-      runs-on: arc-runners-elevate
-      container:
-        image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
-      needs: verify_upgraded_os
-      steps:
-      - name: Download Terraform State
-        uses: actions/download-artifact@v4.1.8
+  clone_elevate_repo:
+    runs-on: arc-runners-elevate
+    needs: terraform_openstack_create
+    env:
+      VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
+      REPODIR: ${{ needs.terraform_openstack_create.outputs.REPODIR }}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+      REPODIR: ${{ env.REPODIR }}
+    steps:
+      - name: Checkout Repo
+        uses: appleboy/ssh-action@v1.1.0
         with:
-          name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
-          path: ${{ env.tf_working_directory }}
-      - name: Stage Files & Show Artifact Paths
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          script: |
+            cd /opt
+            BRANCH_NAME=${{ github.ref_name }}
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              BRANCH_NAME=${{ github.head_ref }}
+            fi
+
+            echo "## [INFO]: Checking out branch $BRANCH_NAME"
+            echo "## [INFO]: Repository: ${{ github.repository }}"
+
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            mkdir -p ~/.ssh
+            echo "${{ secrets.ELEVATE_CHECKOUT_KEY }}" > ~/.ssh/elevate_checkout_key
+            chmod 0600 ~/.ssh/elevate_checkout_key
+
+            cat <<EOL > ~/.ssh/config
+            Host github.com
+              HostName github.com
+              User root
+              IdentityFile ~/.ssh/elevate_checkout_key
+              IdentitiesOnly yes
+              HostKeyAlgorithms +ssh-rsa
+            EOL
+
+            echo "## [DEBUG]: git clone --depth=1 --branch $BRANCH_NAME git@github.com:${{ github.repository }}.git"
+            git clone --depth=1 --branch $BRANCH_NAME git@github.com:${{ github.repository }}.git
+
+            cd /opt/$(basename "${{ github.repository }}")
+            git status
+
+  setup_integration_checks:
+    runs-on: arc-runners-elevate
+    needs: clone_elevate_repo
+    env:
+      CLOUDLINUX_LICENSE_KEY: ${{ secrets.CLOUDLINUX_LICENSE_KEY }}
+      VM_IP: ${{ needs.clone_elevate_repo.outputs.VM_IP }}
+      REPODIR: ${{ needs.clone_elevate_repo.outputs.REPODIR }}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+      REPODIR: ${{ env.REPODIR }}
+    steps:
+      - name: Setup for Integration Checks Prior to Running Elevate
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          envs: REPODIR
+          script: |
+            chmod -v +x /opt/${{ env.REPODIR}}/t/integration/setup
+            /opt/${{ env.REPODIR }}/t/integration/setup
+
+      - name: Update License And Setup Server For ELevate
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 30m
+          command_timeout: 30m
+          envs: REPODIR,CLOUDLINUX_LICENSE_KEY
+          script: |  
+            /usr/local/cpanel/scripts/post_snapshot --yes
+            while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking your Update Manager."; sleep 1; done
+            echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
+            echo "## [INFO]: /usr/sbin/rhnreg_ks --activationkey=${CLOUDLINUX_LICENSE_KEY:0:2}****" --force && /usr/sbin/rhnreg_ks --activationkey=$CLOUDLINUX_LICENSE_KEY --force
+            echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
+            echo "## [INFO]: Now running /usr/bin/cldetect --check-license" && /usr/bin/cldetect --check-license
+            until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
+            /usr/bin/yum erase -y awscli
+            echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo=cloudlinux-x86_64-server --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
+            mv -v /etc/yum.repos.d/clmirror.repo /root/
+            yum-config-manager --enable cloudlinux-base
+            yum-config-manager --enable cloudlinux-updates
+            /usr/bin/yum clean all
+            /usr/bin/yum makecache
+            /usr/bin/yum -y update
+            REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
+            cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
+            cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
+            cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
+            /scripts/restartsrv_mysql
+            chmod -v +x /scripts/elevate-cpanel
+            shutdown -r +1 "Restarting system after updates before we ELevate." &
+            sleep 30
+            exit 0
+
+      - name: Wait For VM to Come Back From Reboot Prior to Running ELevate
+        working-directory: "./.github/workflows/openstack/"
         run: |
-          pwd
-          find -type d
-          cd ".github/workflows/openstack"
-          mv -v terraform.lock.hcl .terraform.lock.hcl
-      - name: Initialize Terraform & Destroy
+          sleep 60
+          ./ssh_retry ${{ env.VM_IP }}
+ 
+  start_elevate:
+    runs-on: arc-runners-elevate
+    needs: setup_integration_checks
+    env:
+      VM_IP: ${{ needs.setup_integration_checks.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Starting Elevate
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 30m
+          command_timeout: 30m
+          script: |
+            /scripts/elevate-cpanel --non-interactive --skip-cpanel-version-check --start &
+            exit 0
+
+  wait_for_stage_1_reboot:
+    runs-on: arc-runners-elevate
+    needs: start_elevate
+    env:
+      VM_IP: ${{ needs.start_elevate.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Wait For VM to Come Back From Initial Reboot
+        working-directory: "./.github/workflows/openstack/"
         run: |
-          cd ".github/workflows/openstack"
-          rm -Rfv .terraform || true
-          terraform init
-          terraform destroy -var="image_name=11.110.0.* on CloudLinux 7" -var="cpanel_release_version=110" -no-color -auto-approve
+          ./ssh_retry ${{ env.VM_IP }}
+
+  watch_for_stage_2_reboot:
+    runs-on: arc-runners-elevate
+    needs: wait_for_stage_1_reboot
+    env:
+      VM_IP: ${{ needs.wait_for_stage_1_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Monitor Elevate for Reboot from Stage 1 into Stage 2
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 60m
+          command_timeout: 30m
+          debug: true
+          script: |
+            /scripts/status_marker 1
+            tail -n40 -F /var/log/elevate-cpanel.log &
+            sleep .5
+            REBOOT_STRING="Rebooting into stage 2 of 5" RETVAL=1 /scripts/reboot_watch
+
+  wait_for_stage_2_reboot:
+    runs-on: arc-runners-elevate
+    needs: watch_for_stage_2_reboot
+    env:
+      VM_IP: ${{ needs.watch_for_stage_2_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Wait For VM to Come Back From Stage 2 Reboot
+        working-directory: "./.github/workflows/openstack/"
+        run: |
+          ./ssh_retry ${{ env.VM_IP }}
+
+  watch_for_stage_3_reboot:
+    runs-on: arc-runners-elevate
+    needs: wait_for_stage_2_reboot
+    env:
+      VM_IP: ${{ needs.wait_for_stage_2_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Monitor Elevate for Stage 3 Reboot
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 60m
+          command_timeout: 30m
+          debug: true
+          script: |
+            /scripts/status_marker 2
+            tail -n40 -F /var/log/elevate-cpanel.log &
+            sleep .5
+            REBOOT_STRING="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
+    
+  wait_for_stage_3_reboot:
+    runs-on: arc-runners-elevate
+    needs: watch_for_stage_3_reboot
+    env:
+      VM_IP: ${{ needs.watch_for_stage_3_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Wait For VM to Come Back From Stage 3 Reboot
+        working-directory: "./.github/workflows/openstack/"
+        run: |
+          ./ssh_retry ${{ env.VM_IP }}
+
+  watch_for_stage_4_reboot:
+    runs-on: arc-runners-elevate
+    needs: wait_for_stage_3_reboot
+    env:
+      VM_IP: ${{ needs.wait_for_stage_3_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Monitor Elevate for Stage 4 Reboot
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 30m
+          command_timeout: 30m
+          script: |
+            /scripts/status_marker 3
+            tail -n40 -F /var/log/elevate-cpanel.log &
+            sleep .5
+            REBOOT_STRING="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch
+
+  wait_for_stage_4_reboot:
+    runs-on: arc-runners-elevate
+    needs: watch_for_stage_4_reboot
+    env:
+      VM_IP: ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Wait For VM to Come Back From Stage 4 Reboot
+        working-directory: "./.github/workflows/openstack/"
+        run: |
+          ./ssh_retry ${{ env.VM_IP  }}
+          
+  watch_for_stage_5_reboot:
+    runs-on: arc-runners-elevate
+    needs: wait_for_stage_4_reboot
+    env:
+      VM_IP: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Monitor Elevate for Stage 5 Reboot
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 45m
+          command_timeout: 35m
+          script: |
+            /scripts/status_marker 4
+            tail -n40 -F /var/log/elevate-cpanel.log &
+            sleep .5
+            REBOOT_STRING="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch
+
+  wait_for_stage_5_reboot:
+    runs-on: arc-runners-elevate
+    needs: watch_for_stage_5_reboot
+    env:
+      VM_IP: ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Wait For VM to Come Back From Stage 5 Reboot
+        working-directory: "./.github/workflows/openstack/"
+        run: |
+          ./ssh_retry ${{ env.VM_IP }}
+
+  watch_for_final_reboot:
+    runs-on: arc-runners-elevate
+    needs: wait_for_stage_5_reboot
+    env:
+      VM_IP: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Monitor Elevate for Final Reboot
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 45m
+          command_timeout: 35m
+          script: |
+            /scripts/status_marker 5
+            tail -n40 -F /var/log/elevate-cpanel.log &
+            sleep .5
+            REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
+
+  wait_for_final_reboot:
+    runs-on: arc-runners-elevate
+    needs: watch_for_final_reboot
+    env:
+      VM_IP: ${{ needs.watch_for_final_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Wait For VM to Come Back From Final Reboot
+        working-directory: "./.github/workflows/openstack/"
+        run: |
+          ./ssh_retry ${{ env.VM_IP }}
+          
+  verify_upgraded_os:
+    runs-on: arc-runners-elevate
+    needs: wait_for_final_reboot
+    env:
+      VM_IP: ${{ needs.wait_for_final_reboot.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Verify End Result Integration Tests
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: '22'
+          timeout: 5m
+          command_timeout: 1m
+          script: |
+            REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
+            /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/cloudlinux7-to-cloudlinux8/
+            /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/
+
+  terraform_openstack_destroy:
+    runs-on: arc-runners-elevate
+    container:
+      image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
+    needs: verify_upgraded_os
+    steps:
+    - name: Download Terraform State
+      uses: actions/download-artifact@v4.1.8
+      with:
+        name: ${{ github.run_id }}-cloudlinux7-terraform.tfstate
+        path: ${{ env.tf_working_directory }}
+    - name: Stage Files & Show Artifact Paths
+      run: |
+        pwd
+        find -type d
+        cd ".github/workflows/openstack"
+        mv -v terraform.lock.hcl .terraform.lock.hcl
+    - name: Initialize Terraform & Destroy
+      run: |
+        cd ".github/workflows/openstack"
+        rm -Rfv .terraform || true
+        terraform init
+        terraform destroy -var="image_name=11.110.0.* on CloudLinux 7" -var="cpanel_release_version=110" -no-color -auto-approve
