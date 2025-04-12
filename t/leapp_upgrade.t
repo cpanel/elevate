@@ -50,8 +50,7 @@ for my $os ( 'cent', 'cloud', 'alma' ) {
     set_os_to($os);
 
     my $expect_cmd = '/usr/bin/leapp upgrade';
-    $expect_cmd .= ' --nowarn'     if $os eq 'cloud';
-    $expect_cmd .= ' --target 8.9' if $os eq 'cent';
+    $expect_cmd .= ' --nowarn' if $os eq 'cloud';
     ok( cpev->leapp->upgrade(), 'leapp upgrade succeeds' );
     is( $ssystem_cmd, $expect_cmd );
 }

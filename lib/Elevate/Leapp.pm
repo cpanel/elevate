@@ -106,12 +106,6 @@ sub upgrade ($self) {
     my @leapp_args = ('upgrade');
     push( @leapp_args, $leapp_flag ) if $leapp_flag;
 
-    # RE-1450: Temporarily target an older version of AlmaLinux during
-    # the leapp upgrade for c7->a8 upgrades due to an upstream issue
-    if ( Elevate::OS::name() eq 'CentOS7' ) {
-        push( @leapp_args, '--target', '8.9' );
-    }
-
     INFO("Running leapp upgrade");
 
     my $ok = eval {
