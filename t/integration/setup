@@ -14,4 +14,8 @@ else
 	echo -e "\nFile already exists at /etc/scl/prefixes/ea-php80; skipping install of ea-php80."
 fi
 
+# RE-1416 / RE-1461
+echo -e "\nInstalling ea-nginx via scripts/installpkg"
+/usr/local/cpanel/scripts/installpkg ea-nginx
+
 exit 0;
