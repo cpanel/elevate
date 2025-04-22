@@ -133,6 +133,7 @@ BEGIN {
         'vetted_apt_lists',                     # This is a list of known apt lists that we do not block on
         'vetted_mysql_yum_repo_ids',            # This is a list of known mysql yum repo ids
         'vetted_yum_repo',                      # This is a list of known yum repos that we do not block on
+        'yum_conf_needs_plugins',               # The yum configuration needs plugins=1 set in order for yum to work correctly
     );
 }
 

@@ -120,5 +120,6 @@ use constant supports_named_tiers            => 0;
 use constant supports_postgresql             => 1;
 use constant upgrade_to_pretty_name          => undef;
 use constant vetted_apt_lists                => {};
+use constant yum_conf_needs_plugins          => 0;
 
 1;

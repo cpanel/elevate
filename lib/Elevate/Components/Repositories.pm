@@ -147,11 +147,84 @@ sub check ($self) {
 
     return $ok if Elevate::OS::is_apt_based();
 
+    $ok = 0 if $self->_blocker_yum_conf_missing_plugins();
     $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
     $ok = 0 if $self->_blocker_invalid_yum_repos;
     $ok = 0 if $self->_yum_is_stable();
 
     return $ok;
+}
+
+sub _blocker_yum_conf_missing_plugins ($self) {
+    return unless Elevate::OS::yum_conf_needs_plugins();
+
+    my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
+
+    return if grep { $_ =~ m/^\s*plugins\s*=\s*1\s*$/ } split "\n", $txt;
+
+    my $msg = <<~'EOS';
+    The file '/etc/yum.conf' is missing the line
+
+    plugins=1
+
+    from the [main] section.  Plugins are required in order for yum to
+    function properly on CloudLinux systems.
+    EOS
+
+    # WARN and move on if we are in check mode
+    if ( $self->is_check_mode() ) {
+        WARN($msg);
+        return;
+    }
+
+    # We are in start mode
+    $msg .= "\n";
+    $msg .= "ELevate will attempt to autofix this issue before starting.\n";
+    WARN($msg);
+
+    return if $self->_autofix_yum_conf();
+
+    return $self->has_blocker( <<~'EOS' );
+    ELevate was unable to autofix '/etc/yum.conf'.  Check the contents of this
+    file and ensure that the line
+
+    plugins=1
+
+    exists in the [main] section of this file
+    EOS
+}
+
+sub _autofix_yum_conf ($self) {
+    my $txt   = eval { File::Slurper::read_text("/etc/yum.conf") };
+    my @lines = split "\n", $txt;
+
+    my $fixed = 0;
+
+    # First, check for plugins being explicitely disabled or invalid
+    foreach my $line (@lines) {
+        next unless $line =~ m/^\s*plugins/;
+        $line = 'plugins=1';
+        $fixed++;
+        last;
+    }
+
+    # plugins line is missing entirely, just add it
+    if ( !$fixed ) {
+        foreach my $line (@lines) {
+            next unless $line =~ m/^\[main\]$/;
+            $line = "[main]\nplugins=1";
+            $fixed++;
+            last;
+        }
+    }
+
+    if ($fixed) {
+        my $config = join "\n", @lines;
+        $config .= "\n";
+        File::Slurper::write_text( "/etc/yum.conf", $config );
+    }
+
+    return $fixed;
 }
 
 sub _blocker_packages_installed_without_associated_repo ($self) {

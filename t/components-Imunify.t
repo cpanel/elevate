@@ -128,7 +128,7 @@ sub check_blocker_content ($blocker) {
         'The expected blocker is returned'
     );
 
-    message_seen( WARN => qr/The Imunify license is reporting that it is not currently valid/ );
+    message_seen( ERROR => qr/The Imunify license is reporting that it is not currently valid/ );
 
     return;
 }

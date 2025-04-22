@@ -257,7 +257,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         die $blocker if $self->components->abort_on_first_blocker();
 
         if ( !$others{'quiet'} ) {
-            WARN( <<~"EOS");
+            ERROR( <<~"EOS");
         *** Elevation Blocker detected: ***
         $msg
         EOS
@@ -6152,11 +6152,80 @@ EOS
 
         return $ok if Elevate::OS::is_apt_based();
 
+        $ok = 0 if $self->_blocker_yum_conf_missing_plugins();
         $ok = 0 if $self->_blocker_packages_installed_without_associated_repo;
         $ok = 0 if $self->_blocker_invalid_yum_repos;
         $ok = 0 if $self->_yum_is_stable();
 
         return $ok;
+    }
+
+    sub _blocker_yum_conf_missing_plugins ($self) {
+        return unless Elevate::OS::yum_conf_needs_plugins();
+
+        my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
+
+        return if grep { $_ =~ m/^\s*plugins\s*=\s*1\s*$/ } split "\n", $txt;
+
+        my $msg = <<~'EOS';
+    The file '/etc/yum.conf' is missing the line
+
+    plugins=1
+
+    from the [main] section.  Plugins are required in order for yum to
+    function properly on CloudLinux systems.
+    EOS
+
+        if ( $self->is_check_mode() ) {
+            WARN($msg);
+            return;
+        }
+
+        $msg .= "\n";
+        $msg .= "ELevate will attempt to autofix this issue before starting.\n";
+        WARN($msg);
+
+        return if $self->_autofix_yum_conf();
+
+        return $self->has_blocker( <<~'EOS' );
+    ELevate was unable to autofix '/etc/yum.conf'.  Check the contents of this
+    file and ensure that the line
+
+    plugins=1
+
+    exists in the [main] section of this file
+    EOS
+    }
+
+    sub _autofix_yum_conf ($self) {
+        my $txt   = eval { File::Slurper::read_text("/etc/yum.conf") };
+        my @lines = split "\n", $txt;
+
+        my $fixed = 0;
+
+        foreach my $line (@lines) {
+            next unless $line =~ m/^\s*plugins/;
+            $line = 'plugins=1';
+            $fixed++;
+            last;
+        }
+
+        if ( !$fixed ) {
+            foreach my $line (@lines) {
+                next unless $line =~ m/^\[main\]$/;
+                $line = "[main]\nplugins=1";
+                $fixed++;
+                last;
+            }
+        }
+
+        if ($fixed) {
+            my $config = join "\n", @lines;
+            $config .= "\n";
+            File::Slurper::write_text( "/etc/yum.conf", $config );
+        }
+
+        return $fixed;
     }
 
     sub _blocker_packages_installed_without_associated_repo ($self) {
@@ -7583,6 +7652,7 @@ EOS
             'vetted_apt_lists',                     # This is a list of known apt lists that we do not block on
             'vetted_mysql_yum_repo_ids',            # This is a list of known mysql yum repo ids
             'vetted_yum_repo',                      # This is a list of known yum repos that we do not block on
+            'yum_conf_needs_plugins',               # The yum configuration needs plugins=1 set in order for yum to work correctly
         );
     }
 
@@ -7762,6 +7832,7 @@ EOS
     use constant provides_mysql_governor         => 1;
     use constant should_check_cloudlinux_license => 1;
     use constant upgrade_to_pretty_name          => 'CloudLinux 8';
+    use constant yum_conf_needs_plugins          => 1;
 
     sub vetted_yum_repo ($self) {
         my @vetted_cloudlinux_yum_repo = (
@@ -7898,6 +7969,7 @@ EOS
     use constant supports_postgresql             => 1;
     use constant upgrade_to_pretty_name          => undef;
     use constant vetted_apt_lists                => {};
+    use constant yum_conf_needs_plugins          => 0;
 
     1;
 
@@ -7961,6 +8033,7 @@ EOS
     use constant upgrade_to_pretty_name          => undef;
     use constant vetted_yum_repo                 => undef;
     use constant vetted_mysql_yum_repo_ids       => undef;
+    use constant yum_conf_needs_plugins          => 0;
 
     1;
 
