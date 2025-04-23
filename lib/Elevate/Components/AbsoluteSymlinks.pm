@@ -73,6 +73,7 @@ sub _absolute_symlinks ($self) {
 
 sub check ($self) {
     my %links = $self->get_abs_symlinks();
+    return unless %links;
 
     my $ln_string = join ", ", sort keys %links;
     WARN( <<~"EOS" );
