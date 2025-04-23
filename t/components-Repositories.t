@@ -307,8 +307,8 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
         },
         "There is an outstanding transaction, start mode. And yum-complete-transaction is missing."
     );
-    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
-    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    message_seen( 'WARN',  'There are unfinished yum transactions remaining.' );
+    message_seen( 'ERROR', qr/Elevation Blocker detected/ );
     no_messages_seen();
 
     # Make it exist but not be executable
@@ -323,8 +323,8 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
         },
         "There is an outstanding transaction, start mode. And yum-complete-transaction not executable."
     );
-    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
-    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    message_seen( 'WARN',  'There are unfinished yum transactions remaining.' );
+    message_seen( 'ERROR', qr/Elevation Blocker detected/ );
     no_messages_seen();
 
     # Make it executable, but  fail when run
@@ -340,9 +340,9 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
         },
         "There is an outstanding transaction, start mode. And yum-complete-transaction fails."
     );
-    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
-    message_seen( 'INFO', 'Cleaning up unfinished yum transactions.' );
-    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    message_seen( 'WARN',  'There are unfinished yum transactions remaining.' );
+    message_seen( 'INFO',  'Cleaning up unfinished yum transactions.' );
+    message_seen( 'ERROR', qr/Elevation Blocker detected/ );
     no_messages_seen();
 
     $ssystem_status{ Elevate::Components::Repositories::YUM_COMPLETE_TRANSACTION_BIN() } = 0;
@@ -355,9 +355,9 @@ is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.re
         },
         "There is an outstanding transaction, start mode. And the fix rpm script failed"
     );
-    message_seen( 'WARN', 'There are unfinished yum transactions remaining.' );
-    message_seen( 'INFO', 'Cleaning up unfinished yum transactions.' );
-    message_seen( 'WARN', qr/Elevation Blocker detected/ );
+    message_seen( 'WARN',  'There are unfinished yum transactions remaining.' );
+    message_seen( 'INFO',  'Cleaning up unfinished yum transactions.' );
+    message_seen( 'ERROR', qr/Elevation Blocker detected/ );
     no_messages_seen();
 
     $ssystem_status{ Elevate::Components::Repositories::FIX_RPM_SCRIPT() } = 0;
@@ -431,7 +431,7 @@ EOS
         'Packages installed without an associated repo',
     );
 
-    message_seen( 'WARN', qr/There are packages installed that do not have associated repositories/ );
+    message_seen( 'ERROR', qr/There are packages installed that do not have associated repositories/ );
 
     @stdout_lines = ();
 
@@ -495,6 +495,109 @@ EOS
 }
 
 {
+    note 'Testing _blocker_yum_conf_missing_plugins';
+
+    my $mock_file_slurper = Test::MockModule->new('File::Slurper');
+    $mock_file_slurper->redefine(
+        read_text => sub { die "do not call this yet\n"; },
+    );
+
+    foreach my $os (qw{ cent ubuntu alma }) {
+        set_os_to($os);
+        is( $yum->_blocker_yum_conf_missing_plugins(), undef, "Check is a noop for $os" );
+    }
+
+    set_os_to('cloud');
+
+    $mock_file_slurper->redefine(
+        read_text => sub {
+            return get_yum_conf_contents();
+        },
+    );
+
+    is( $yum->_blocker_yum_conf_missing_plugins(), undef, 'No warnings given when yum.conf contains plugins=1' );
+    no_messages_seen();
+
+    $mock_file_slurper->redefine(
+        read_text => sub {
+            my $contents   = get_yum_conf_contents();
+            my @lines      = grep { $_ !~ m/^plugins/ } split "\n", $contents;
+            my $no_plugins = join "\n", @lines;
+            $no_plugins .= "\n";
+            return $no_plugins;
+        },
+    );
+
+    $mock_yum->redefine(
+        is_check_mode => 1,
+    );
+
+    is( $yum->_blocker_yum_conf_missing_plugins(), undef, 'Warning given in check mode when plugins line is missing from yum.conf' );
+    message_seen( WARN => qr/Plugins are required in order for yum to/ );
+    no_messages_seen();
+
+    $mock_yum->redefine(
+        is_check_mode => 0,
+    );
+
+    my $fixed_contents;
+    $mock_file_slurper->redefine(
+        write_text => sub {
+            $fixed_contents = $_[1];
+            return;
+        },
+    );
+
+    is( $yum->_blocker_yum_conf_missing_plugins(), undef, 'Warning given in start mode when plugins line is missing from yum.conf' );
+    message_seen( WARN => qr/ELevate will attempt to autofix this issue before starting/ );
+    no_messages_seen();
+    like( $fixed_contents, qr/plugins=1/, '_autofix_yum_conf was able to add plugins=1 to yum.conf' );
+
+    $fixed_contents = '';
+    $mock_file_slurper->redefine(
+        read_text => sub {
+            my $contents = get_yum_conf_contents();
+            my @lines    = map {
+                my $line = $_;
+                $line = 'plugins=oops' if $_ =~ m/^plugins/;
+                $line;
+            } split "\n", $contents;
+            my $no_plugins = join "\n", @lines;
+            $no_plugins .= "\n";
+            return $no_plugins;
+        },
+    );
+
+    is( $yum->_blocker_yum_conf_missing_plugins(), undef, 'Warning given in start mode when plugins is not enabled in yum.conf' );
+    message_seen( WARN => qr/ELevate will attempt to autofix this issue before starting/ );
+    no_messages_seen();
+    like( $fixed_contents, qr/plugins=1/, '_autofix_yum_conf was able to modify plugins value to 1 in yum.conf' );
+
+    $fixed_contents = '';
+    $mock_file_slurper->redefine(
+        read_text => sub {
+            my $contents   = get_yum_conf_contents();
+            my @lines      = grep { $_ !~ m/^plugins/ && $_ !~ m/^\[main\]/ } split "\n", $contents;
+            my $no_plugins = join "\n", @lines;
+            $no_plugins .= "\n";
+            return $no_plugins;
+        },
+    );
+
+    like(
+        $yum->_blocker_yum_conf_missing_plugins(),
+        {
+            id  => 'Elevate::Components::Repositories::_blocker_yum_conf_missing_plugins',
+            msg => qr{ELevate was unable to autofix '/etc/yum.conf'},
+        },
+        'Blocker given in start mode when _autofix_yum_conf fails to fix yum.conf'
+    );
+    message_seen( WARN  => qr/ELevate will attempt to autofix this issue before starting/ );
+    message_seen( ERROR => qr{ELevate was unable to autofix '/etc/yum.conf'} );
+    no_messages_seen();
+}
+
+{
     note 'Testing Ubuntu';
 
     set_os_to('ubuntu');
@@ -504,6 +607,42 @@ EOS
         undef,
         'The Repository pre_distro_upgrade changes are skipped for apt based systems'
     );
+}
+
+sub get_yum_conf_contents {
+    my $contents = <<'EOF';
+[main]
+exclude=courier* dovecot* exim* filesystem httpd* mod_ssl* mydns* nsd* p0f php* proftpd* pure-ftpd* spamassassin*
+tolerant=1
+errorlevel=1
+cachedir=/var/cache/yum/$basearch/$releasever
+keepcache=0
+debuglevel=2
+logfile=/var/log/yum.log
+exactarch=1
+obsoletes=1
+gpgcheck=1
+plugins=1
+installonly_limit=5
+bugtracker_url=http://bugs.centos.org/set_project.php?project_id=23&ref=http://bugs.centos.org/bug_report_page.php?category=yum
+distroverpkg=centos-release
+fastestmirror=1
+
+
+#  This is the default, if you make this bigger yum won't see if the metadata
+# is newer on the remote and so you'll "gain" the bandwidth of not having to
+# download the new metadata and "pay" for it by yum not having correct
+# information.
+#  It is esp. important, to have correct metadata, for distributions like
+# Fedora which don't keep old packages around. If you don't like this checking
+# interupting your command line usage, it's much better to have something
+# manually check the metadata once an hour (yum-updatesd will do this).
+# metadata_expire=90m
+
+# PUT YOUR REPOS HERE OR IN separate files named file.repo
+# in /etc/yum.repos.d
+EOF
+    return $contents;
 }
 
 done_testing();

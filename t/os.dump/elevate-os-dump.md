@@ -1045,3 +1045,19 @@ yath -v t/Elevate-OS_detect_changes.t
 ```
 ---
 
+
+## yum_conf_needs_plugins
+
+---
+```
++------------------------+------------+-------+------------------------+
+| key                    | distro     | major | yum_conf_needs_plugins |
++------------------------+------------+-------+------------------------+
+| yum_conf_needs_plugins | AlmaLinux  | 8     | 0                      |
+| yum_conf_needs_plugins | CentOS     | 7     | 0                      |
+| yum_conf_needs_plugins | CloudLinux | 7     | 1                      |
+| yum_conf_needs_plugins | Ubuntu     | 20    | 0                      |
++------------------------+------------+-------+------------------------+
+```
+---
+

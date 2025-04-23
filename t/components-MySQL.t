@@ -126,7 +126,7 @@ my $mock_version_cache = Test::MockFile->file('/var/cpanel/mysql_server_version_
         qr/automatically upgrade .*to NewDB $upgrade_version/s
     );
     message_seen(
-        'WARN',
+        'ERROR',
         qr/The system cannot be elevated to $os_pretty_name until OldDB has been upgraded./
     );
 

@@ -647,7 +647,7 @@ sub test_blocker_ea4_profile : Test(18) ($self) {
     ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
     $self->_ea_info_check('AlmaLinux 8');
 
-    message_seen( 'WARN' => qr[Elevation Blocker detected] );
+    message_seen( 'ERROR' => qr[Elevation Blocker detected] );
 
     like $blocker, object {
         prop blessed => 'cpev::Blocker';
@@ -710,7 +710,7 @@ sub test_blocker_incompatible_package : Test(21) ($self) {
         );
 
         $self->_ea_info_check($expected_target_os);
-        message_seen( WARN => <<"EOS");
+        message_seen( ERROR => <<"EOS");
 *** Elevation Blocker detected: ***
 One or more EasyApache 4 package(s) are not compatible with $expected_target_os.
 Please remove these packages before continuing the update.
@@ -780,7 +780,7 @@ sub test_blocker_behavior : Test(101) ($self) {
         ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
         $self->_ea_info_check($target_os);
 
-        message_seen( 'WARN' => qr[Elevation Blocker detected] );
+        message_seen( 'ERROR' => qr[Elevation Blocker detected] );
 
         like $blocker, object {
             prop blessed => 'cpev::Blocker';
@@ -809,7 +809,7 @@ Please remove these packages before continuing the update.
         ok $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
         $self->_ea_info_check($target_os);
 
-        message_seen( 'WARN' => qr[Elevation Blocker detected] );
+        message_seen( 'ERROR' => qr[Elevation Blocker detected] );
 
         like $blocker, object {
             prop blessed => 'cpev::Blocker';

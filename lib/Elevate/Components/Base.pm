@@ -124,7 +124,7 @@ sub has_blocker ( $self, $msg, %others ) {
     die $blocker if $self->components->abort_on_first_blocker();
 
     if ( !$others{'quiet'} ) {
-        WARN( <<~"EOS");
+        ERROR( <<~"EOS");
         *** Elevation Blocker detected: ***
         $msg
         EOS
