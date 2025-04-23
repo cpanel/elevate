@@ -1,3 +1,9 @@
+##### **2025-04-23** - version 65
+
+* Fixed case RE-1397: Add support for named tiers and have a8->a9 upgrades use it
+* Fixed case RE-1416: Fixed elevation on Ubuntu with Nginx installed.
+* Revert "Pass '--target 8.9' to leapp upgrade for c7->a8 upgrades" Upstream has corrected this.
+
 ##### **2025-04-03** - version 64
 
 * Fixed case RE-1450: Pass '--target 8.9' to leapp upgrade for c7->a8 upgrades to address instability with upgrades to 8.10
