@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 my $STAGE          = $ARGV[0];
-my $RELEASE_INFO   = `cat /etc/redhat-release`;
+my $RELEASE_INFO   = `awk -F'"' '/PRETTY_NAME/ {print \$2}' /etc/os-release`;
 my $CPANEL_VERSION = `cat /usr/local/cpanel/version`;
 
 use strict;

@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "*"
-      - '!docs'
+      - "!docs"
     tags-ignore:
       - "*"
 
@@ -63,9 +63,9 @@ jobs:
 
       - name: Setup PATH
         run: |
-            echo $CPANEL_BIN_PATH >> $GITHUB_PATH;
-            $CPANEL_PERL -MConfig -E 'say $Config{sitebin}'   >> $GITHUB_PATH
-            $CPANEL_PERL -MConfig -E 'say $Config{vendorbin}' >> $GITHUB_PATH
+          echo $CPANEL_BIN_PATH >> $GITHUB_PATH;
+          $CPANEL_PERL -MConfig -E 'say $Config{sitebin}'   >> $GITHUB_PATH
+          $CPANEL_PERL -MConfig -E 'say $Config{vendorbin}' >> $GITHUB_PATH
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -84,33 +84,33 @@ jobs:
         run: prove -lv -It/lib t/*.t
 
   CentOS-7:
-      needs: testsuite
-      uses: ./.github/workflows/openstack-centos-7.yml
-      secrets: inherit
-      if: >
-        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: testsuite
+    uses: ./.github/workflows/openstack-centos-7.yml
+    secrets: inherit
+    if: >
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   CloudLinux-7:
-      needs: testsuite
-      uses: ./.github/workflows/openstack-cloudlinux-7.yml
-      secrets: inherit
-      if: >
-        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: testsuite
+    uses: ./.github/workflows/openstack-cloudlinux-7.yml
+    secrets: inherit
+    if: >
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   Ubuntu-20:
-      needs: testsuite
-      uses: ./.github/workflows/openstack-ubuntu-20.yml
-      secrets: inherit
-      if: >
-        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: testsuite
+    uses: ./.github/workflows/openstack-ubuntu-20.yml
+    secrets: inherit
+    if: >
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   AlmaLinux-8:
-      needs: testsuite
-      uses: ./.github/workflows/openstack-almalinux-8.yml
-      secrets: inherit
-      if: >
-        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: testsuite
+    uses: ./.github/workflows/openstack-almalinux-8.yml
+    secrets: inherit
+    if: >
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')

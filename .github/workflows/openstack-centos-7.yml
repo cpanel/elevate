@@ -26,7 +26,7 @@ env:
   TF_VAR_github_run_id: ${{ github.run_id }}
   tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack"
 
-jobs: 
+jobs:
   terraform_openstack_create:
     runs-on: arc-runners-elevate
     container:
@@ -38,28 +38,28 @@ jobs:
       VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
       REPODIR: ${{ steps.expose_repodir.outputs.REPODIR }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Terraform Init & Apply
-      run: |
-        terraform init
-        terraform apply -var="image_name=11.110.0.* on CentOS 7" -var="cpanel_release_version=110" -no-color -auto-approve
-        terraform output -json > ${{ github.run_id }}-tf.out.json
-        mv -v .terraform.lock.hcl terraform.lock.hcl
-    - name: Upload Terraform Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ github.run_id }}-centos7-terraform.tfstate
-        path:  ${{ env.tf_working_directory }}/terraform*
-        retention-days: 1  # override 90-day default
-    - name: Get VM IP from Terraform Output
-      id: get_vm_ip
-      run: |
-        echo "VM_IP=$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" >> "$GITHUB_OUTPUT"
-    - name: Expose REPODIR as a Variable
-      id: expose_repodir
-      run: |
-        REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
-        echo "REPODIR=$REPODIR" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+      - name: Terraform Init & Apply
+        run: |
+          terraform init
+          terraform apply -var="image_name=11.110.0.* on CentOS 7" -var="cpanel_release_version=110" -no-color -auto-approve
+          terraform output -json > ${{ github.run_id }}-tf.out.json
+          mv -v .terraform.lock.hcl terraform.lock.hcl
+      - name: Upload Terraform Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}-centos7-terraform.tfstate
+          path: ${{ env.tf_working_directory }}/terraform*
+          retention-days: 1 # override 90-day default
+      - name: Get VM IP from Terraform Output
+        id: get_vm_ip
+        run: |
+          echo "VM_IP=$(jq -r '.address.value' ${{ github.run_id }}-tf.out.json)" >> "$GITHUB_OUTPUT"
+      - name: Expose REPODIR as a Variable
+        id: expose_repodir
+        run: |
+          REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
+          echo "REPODIR=$REPODIR" >> "$GITHUB_OUTPUT"
 
   clone_elevate_repo:
     runs-on: arc-runners-elevate
@@ -75,9 +75,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           script: |
             cd /opt
             BRANCH_NAME=${{ github.ref_name }}
@@ -122,9 +122,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           envs: REPODIR
           script: |
             chmod -v +x /opt/${{ env.REPODIR}}/t/integration/setup
@@ -134,13 +134,13 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 30m
           command_timeout: 30m
           envs: REPODIR
-          script: |  
+          script: |
             cp -pv /opt/$REPODIR/elevate-cpanel /scripts/elevate-cpanel
             cp -pv /opt/$REPODIR/.github/workflows/openstack/status_marker /scripts/status_marker
             cp -pv /opt/$REPODIR/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
@@ -162,9 +162,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 30m
           command_timeout: 30m
           script: |
@@ -196,9 +196,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 60m
           command_timeout: 30m
           debug: true
@@ -233,9 +233,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 60m
           command_timeout: 30m
           debug: true
@@ -244,7 +244,7 @@ jobs:
             tail -n40 -F /var/log/elevate-cpanel.log &
             sleep .5
             REBOOT_STRING="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
-  
+
   wait_for_stage_3_reboot:
     runs-on: arc-runners-elevate
     needs: watch_for_stage_3_reboot
@@ -270,9 +270,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 30m
           command_timeout: 30m
           script: |
@@ -306,9 +306,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 45m
           command_timeout: 35m
           script: |
@@ -342,9 +342,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 45m
           command_timeout: 35m
           script: |
@@ -378,9 +378,9 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ env.VM_IP }}
-          username: 'root'
+          username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: '22'
+          port: "22"
           timeout: 5m
           command_timeout: 1m
           script: |
@@ -394,20 +394,20 @@ jobs:
       image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
     needs: verify_upgraded_os
     steps:
-    - name: Download Terraform State
-      uses: actions/download-artifact@v4.1.8
-      with:
-        name: ${{ github.run_id }}-centos7-terraform.tfstate
-        path: ${{ env.tf_working_directory }}
-    - name: Stage Files & Show Artifact Paths
-      run: |
-        pwd
-        find -type d
-        cd ".github/workflows/openstack"
-        mv -v terraform.lock.hcl .terraform.lock.hcl
-    - name: Initialize Terraform & Destroy
-      run: |
-        cd ".github/workflows/openstack"
-        rm -Rfv .terraform || true
-        terraform init
-        terraform destroy -var="image_name=11.110.0.* on CentOS 7" -var="cpanel_release_version=110" -no-color -auto-approve
+      - name: Download Terraform State
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: ${{ github.run_id }}-centos7-terraform.tfstate
+          path: ${{ env.tf_working_directory }}
+      - name: Stage Files & Show Artifact Paths
+        run: |
+          pwd
+          find -type d
+          cd ".github/workflows/openstack"
+          mv -v terraform.lock.hcl .terraform.lock.hcl
+      - name: Initialize Terraform & Destroy
+        run: |
+          cd ".github/workflows/openstack"
+          rm -Rfv .terraform || true
+          terraform init
+          terraform destroy -var="image_name=11.110.0.* on CentOS 7" -var="cpanel_release_version=110" -no-color -auto-approve

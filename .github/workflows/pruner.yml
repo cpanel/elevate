@@ -2,24 +2,24 @@ name: Openstack Pruner
 run-name: Openstack Pruner
 on:
   schedule:
-    - cron:  '5 * * * *'
+    - cron: "5 * * * *"
   workflow_dispatch:
 jobs:
-    run-pruner:
-      if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
-      runs-on: [arc-runners-elevate]
-      env:
-        ACTIONS_STEP_DEBUG: true
-        OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
-        OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
-        OS_AUTH_TYPE: 'v3applicationcredential'
-        OS_AUTH_URL: 'https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3'
-        OS_IDENTITY_API_VERSION: '3'
-        OS_INTERFACE: 'public'
-        OS_REGION_NAME: 'RegionOne'
-      container:
-        image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
-      steps:
-        - uses: actions/checkout@v4
-        - name: Run Openstack Pruner
-          run:  ./.github/workflows/openstack/prune_openstack
+  run-pruner:
+    if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
+    runs-on: [arc-runners-elevate]
+    env:
+      ACTIONS_STEP_DEBUG: true
+      OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+      OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+      OS_AUTH_TYPE: "v3applicationcredential"
+      OS_AUTH_URL: "https://keystone.hou-01.cloud.prod.cpanel.net:5000/v3"
+      OS_IDENTITY_API_VERSION: "3"
+      OS_INTERFACE: "public"
+      OS_REGION_NAME: "RegionOne"
+    container:
+      image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Openstack Pruner
+        run: ./.github/workflows/openstack/prune_openstack

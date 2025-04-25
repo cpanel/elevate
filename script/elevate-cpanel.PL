@@ -1175,7 +1175,6 @@ sub run_stage_4 ($self) {
     );
 
     $self->run_component_once( 'Imunify' => 'post_distro_upgrade' );
-    $self->run_component_once( 'EA4'     => 'post_distro_upgrade' );
 
     $self->run_once(
         upcp => sub {
@@ -1193,6 +1192,8 @@ sub run_stage_4 ($self) {
             return;
         }
     );
+
+    $self->run_component_once( 'EA4' => 'post_distro_upgrade' );
 
     $self->post_distro_upgrade_update_restore();
 
