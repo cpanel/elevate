@@ -65,6 +65,7 @@ use constant vetted_yum_repo => (
     qr/^panopta(?:\.repo)?$/,
     qr/^fortimonitor(?:\.repo)?$/,
     qr/^wp-toolkit-(?:cpanel|thirdparties)$/,
+    'platform360-cpanel',
   ),
   vetted_mysql_yum_repo_ids;
 

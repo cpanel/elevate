@@ -945,6 +945,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   "influxdb",\n                                                                    |
 |                 |            |       |   "jetapps",\n                                                                     |
 |                 |            |       |   "kernelcare",\n                                                                  |
+|                 |            |       |   "platform360-cpanel",\n                                                          |
 |                 |            |       |   "powertools",\n                                                                  |
 |                 |            |       |   "r1soft",\n                                                                      |
 |                 |            |       |   "updates",\n                                                                     |
@@ -987,6 +988,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   "influxdb",\n                                                                    |
 |                 |            |       |   "jetapps",\n                                                                     |
 |                 |            |       |   "kernelcare",\n                                                                  |
+|                 |            |       |   "platform360-cpanel",\n                                                          |
 |                 |            |       |   "r1soft",\n                                                                      |
 |                 |            |       |   "updates",\n                                                                     |
 |                 |            |       | ]                                                                                  |
@@ -1036,6 +1038,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   "kernelcare",\n                                                                  |
 |                 |            |       |   "mysqclient",\n                                                                  |
 |                 |            |       |   "mysql-debuginfo",\n                                                             |
+|                 |            |       |   "platform360-cpanel",\n                                                          |
 |                 |            |       |   "r1soft",\n                                                                      |
 |                 |            |       |   "updates",\n                                                                     |
 |                 |            |       | ]                                                                                  |
