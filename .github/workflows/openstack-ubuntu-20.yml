@@ -149,6 +149,18 @@ jobs:
             /scripts/restartsrv_mysql
             chmod -v +x /scripts/elevate-cpanel
             until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
+            DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt -o 'Acquire::ForceIPv4=true' --yes clean
+            DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt -o 'Acquire::ForceIPv4=true' --yes update
+            DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt -o 'Acquire::ForceIPv4=true' --yes upgrade
+            shutdown -r +1 "Restarting system after updates before we ELevate." &
+            sleep 30
+            exit 0
+
+      - name: Wait For VM to Come Back From Reboot Prior to Running ELevate
+        working-directory: "./.github/workflows/openstack/"
+        run: |
+          sleep 60
+          ./ssh_retry ${{ env.VM_IP }}
 
   start_elevate:
     runs-on: arc-runners-elevate
