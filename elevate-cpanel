@@ -3621,6 +3621,9 @@ EOS
         local $ENV{KCARE_KEEP_REGISTRATION} = '1';
         Elevate::PkgMgr::remove_pkgs_from_repos('kernelcare');
 
+        INFO("Work around issue with occasional missing package signing keys.");
+        $self->ssystem_and_die(qw{ /usr/bin/rpm --import https://repo.cloudlinux.com/kernelcare/RPM-GPG-KEY-KernelCare });
+
         Elevate::StageFile::update_stage_file( { 'reinstall' => { 'kernelcare' => 1 } } );
 
         return 1;

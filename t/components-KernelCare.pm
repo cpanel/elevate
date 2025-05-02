@@ -23,6 +23,7 @@ use Test::Elevate;
 
 use cPstrict;
 
+my $rpm           = '/usr/bin/rpm';
 my $kcarectl      = '/usr/bin/kcarectl';
 my $mock_kcarectl = Test::MockFile->file( $kcarectl, '' );
 
@@ -59,6 +60,8 @@ my $comp = cpev->new->get_component('KernelCare');
     note 'pre_distro_upgrade';
 
     set_os_to('cent');
+    my $mock_rpm = Test::MockFile->file( $rpm, '' );
+    $mock_rpm->chmod(0755);
     $mock_kcarectl->chmod(0755);
 
     my @repos;
