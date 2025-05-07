@@ -54,6 +54,7 @@ use constant vetted_yum_repo => (
     'imunify360',
     'imunify360-ea-php-hardened',
     qr/^imunify360-rollout-[0-9]+$/,
+    'influxdata',
     'influxdb',
     'jetapps',
     qr/^jetapps-(?:stable|beta|edge)$/,
