@@ -942,6 +942,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   "hgdedi",\n                                                                      |
 |                 |            |       |   "imunify360",\n                                                                  |
 |                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
+|                 |            |       |   "influxdata",\n                                                                  |
 |                 |            |       |   "influxdb",\n                                                                    |
 |                 |            |       |   "jetapps",\n                                                                     |
 |                 |            |       |   "kernelcare",\n                                                                  |
@@ -985,6 +986,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   "hgdedi",\n                                                                      |
 |                 |            |       |   "imunify360",\n                                                                  |
 |                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
+|                 |            |       |   "influxdata",\n                                                                  |
 |                 |            |       |   "influxdb",\n                                                                    |
 |                 |            |       |   "jetapps",\n                                                                     |
 |                 |            |       |   "kernelcare",\n                                                                  |
@@ -1033,6 +1035,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   "hgdedi",\n                                                                      |
 |                 |            |       |   "imunify360",\n                                                                  |
 |                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
+|                 |            |       |   "influxdata",\n                                                                  |
 |                 |            |       |   "influxdb",\n                                                                    |
 |                 |            |       |   "jetapps",\n                                                                     |
 |                 |            |       |   "kernelcare",\n                                                                  |
