@@ -28,7 +28,8 @@ env:
 
 jobs:
   terraform_openstack_create:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     container:
       image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
     defaults:
@@ -39,9 +40,32 @@ jobs:
       REPODIR: ${{ steps.expose_repodir.outputs.REPODIR }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Packages Needed by GitHub Network Check
+        run: |
+          apk add --no-cache curl
+
       - name: Terraform Init & Apply
         run: |
-          terraform init
+          for i in {1..36}; do curl -I https://objects.githubusercontent.com && break || echo "Attempt $i failed. Retrying in 5s..."; sleep 5; done
+          MAX_ATTEMPTS=5
+          SLEEP_SECONDS=5
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $attempt of $MAX_ATTEMPTS: terraform init"
+            if terraform init; then
+              echo "✅ terraform init succeeded on attempt $attempt"
+              break
+            else
+              echo "❌ terraform init failed on attempt $attempt"
+              if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+                echo "→ sleeping ${SLEEP_SECONDS}s before retry"
+                sleep $SLEEP_SECONDS
+              else
+                echo "🚨 terraform init failed after $MAX_ATTEMPTS attempts"
+                exit 1
+              fi
+            fi
+          done
           terraform apply -var="image_name=11.118.0.* on Ubuntu 20.04" -var="cpanel_release_version=110" -no-color -auto-approve
           terraform output -json > ${{ github.run_id }}-tf.out.json
           mv -v .terraform.lock.hcl terraform.lock.hcl
@@ -62,7 +86,8 @@ jobs:
           echo "REPODIR=$REPODIR" >> "$GITHUB_OUTPUT"
 
   clone_elevate_repo:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: terraform_openstack_create
     env:
       VM_IP: ${{ needs.terraform_openstack_create.outputs.VM_IP }}
@@ -109,7 +134,8 @@ jobs:
             git status
 
   setup_integration_checks:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: clone_elevate_repo
     env:
       VM_IP: ${{ needs.clone_elevate_repo.outputs.VM_IP }}
@@ -118,6 +144,11 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
       REPODIR: ${{ env.REPODIR }}
     steps:
+      - name: Install Packages Needed by Scripts.
+        run: |
+          sudo apt-get update
+          sudo apt install -y netcat-openbsd
+
       - name: Setup for Integration Checks Prior to Running Elevate
         uses: appleboy/ssh-action@v1.1.0
         with:
@@ -152,55 +183,37 @@ jobs:
             DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt -o 'Acquire::ForceIPv4=true' --yes clean
             DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt -o 'Acquire::ForceIPv4=true' --yes update
             DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt -o 'Acquire::ForceIPv4=true' --yes upgrade
-            shutdown -r +1 "Restarting system after updates before we ELevate." &
-            sleep 30
+            shutdown -r +0 -t 15 "Restarting system after updates before we Elevate." &
             exit 0
 
-      - name: Wait For VM to Come Back From Reboot Prior to Running ELevate
-        working-directory: "./.github/workflows/openstack/"
-        run: |
-          sleep 60
-          ./ssh_retry ${{ env.VM_IP }}
-
-  start_elevate:
-    runs-on: arc-runners-elevate
+  wait_for_preflight_reboot:
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: setup_integration_checks
     env:
       VM_IP: ${{ needs.setup_integration_checks.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
-      - name: Starting Elevate
-        uses: appleboy/ssh-action@v1.1.0
-        with:
-          host: ${{ env.VM_IP }}
-          username: "root"
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: "22"
-          timeout: 30m
-          command_timeout: 30m
-          script: |
-            /scripts/elevate-cpanel --non-interactive --skip-cpanel-version-check --start &
-            exit 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  wait_for_stage_1_reboot:
-    runs-on: arc-runners-elevate
-    needs: start_elevate
-    env:
-      VM_IP: ${{ needs.start_elevate.outputs.VM_IP}}
-    outputs:
-      VM_IP: ${{ env.VM_IP }}
-    steps:
+      - name: Install Packages Needed by Scripts.
+        run: |
+          sudo apt-get update
+          sudo apt install -y netcat-openbsd
+
       - name: Wait For VM to Come Back From Initial Reboot
-        working-directory: "./.github/workflows/openstack/"
+        working-directory: ".github/workflows/openstack/"
         run: |
           ./ssh_retry ${{ env.VM_IP }}
 
-  watch_for_stage_2_reboot:
-    runs-on: arc-runners-elevate
-    needs: wait_for_stage_1_reboot
+  start_elevate:
+    runs-on:
+      group: org/cpanel-arc-elevate
+    needs: wait_for_preflight_reboot
     env:
-      VM_IP: ${{ needs.wait_for_stage_1_reboot.outputs.VM_IP}}
+      VM_IP: ${{ needs.wait_for_preflight_reboot.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
@@ -212,29 +225,38 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: "22"
           timeout: 60m
-          command_timeout: 30m
+          command_timeout: 35m
           debug: true
           script: |
             /scripts/status_marker 1
-            tail -n40 -F /var/log/elevate-cpanel.log &
-            sleep .5
-            REBOOT_STRING="Rebooting into stage 2 of 5" RETVAL=1 /scripts/reboot_watch
+            nohup /scripts/elevate-cpanel --non-interactive --skip-cpanel-version-check --start &
+            exit 0
 
   wait_for_stage_2_reboot:
-    runs-on: arc-runners-elevate
-    needs: watch_for_stage_2_reboot
+    runs-on:
+      group: org/cpanel-arc-elevate
+    needs: start_elevate
     env:
-      VM_IP: ${{ needs.watch_for_stage_2_reboot.outputs.VM_IP}}
+      VM_IP: ${{ needs.start_elevate.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
-      - name: Wait For VM to Come Back From Stage 2 Reboot
-        working-directory: "./.github/workflows/openstack/"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Packages Needed by Scripts.
         run: |
-          ./ssh_retry ${{ env.VM_IP  }}
+          sudo apt-get update
+          sudo apt install -y netcat-openbsd
+
+      - name: Wait For VM to Come Back From Stage 2 Reboot
+        working-directory: ".github/workflows/openstack/"
+        run: |
+          ./ssh_retry ${{ env.VM_IP }}
 
   watch_for_stage_3_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: wait_for_stage_2_reboot
     env:
       VM_IP: ${{ needs.wait_for_stage_2_reboot.outputs.VM_IP}}
@@ -258,20 +280,30 @@ jobs:
             REBOOT_STRING="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
 
   wait_for_stage_3_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: watch_for_stage_3_reboot
     env:
       VM_IP: ${{ needs.watch_for_stage_3_reboot.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Packages Needed by Scripts.
+        run: |
+          sudo apt-get update
+          sudo apt install -y netcat-openbsd
+
       - name: Wait For VM to Come Back From Stage 3 Reboot
-        working-directory: "./.github/workflows/openstack/"
+        working-directory: ".github/workflows/openstack/"
         run: |
           ./ssh_retry ${{ env.VM_IP }}
 
   watch_for_stage_4_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: wait_for_stage_3_reboot
     env:
       VM_IP: ${{ needs.wait_for_stage_3_reboot.outputs.VM_IP}}
@@ -294,20 +326,30 @@ jobs:
             REBOOT_STRING="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch
 
   wait_for_stage_4_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: watch_for_stage_4_reboot
     env:
       VM_IP: ${{ needs.watch_for_stage_4_reboot.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Packages Needed by Scripts.
+        run: |
+          sudo apt-get update
+          sudo apt install -y netcat-openbsd
+
       - name: Wait For VM to Come Back From Stage 4 Reboot
-        working-directory: "./.github/workflows/openstack/"
+        working-directory: ".github/workflows/openstack/"
         run: |
           ./ssh_retry ${{ env.VM_IP  }}
 
   watch_for_stage_5_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: wait_for_stage_4_reboot
     env:
       VM_IP: ${{ needs.wait_for_stage_4_reboot.outputs.VM_IP}}
@@ -330,20 +372,30 @@ jobs:
             REBOOT_STRING="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch
 
   wait_for_stage_5_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: watch_for_stage_5_reboot
     env:
       VM_IP: ${{ needs.watch_for_stage_5_reboot.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Packages Needed by Scripts.
+        run: |
+          sudo apt-get update
+          sudo apt install -y netcat-openbsd
+
       - name: Wait For VM to Come Back From Stage 5 Reboot
-        working-directory: "./.github/workflows/openstack/"
+        working-directory: ".github/workflows/openstack/"
         run: |
           ./ssh_retry ${{ env.VM_IP  }}
 
   watch_for_final_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: wait_for_stage_5_reboot
     env:
       VM_IP: ${{ needs.wait_for_stage_5_reboot.outputs.VM_IP}}
@@ -366,20 +418,30 @@ jobs:
             REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
 
   wait_for_final_reboot:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: watch_for_final_reboot
     env:
       VM_IP: ${{ needs.watch_for_final_reboot.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Packages Needed by Scripts.
+        run: |
+          sudo apt-get update
+          sudo apt install -y netcat-openbsd
+
       - name: Wait For VM to Come Back From Final Reboot
-        working-directory: "./.github/workflows/openstack/"
+        working-directory: ".github/workflows/openstack/"
         run: |
           ./ssh_retry ${{ env.VM_IP  }}
 
   verify_upgraded_os:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     needs: wait_for_final_reboot
     env:
       VM_IP: ${{ needs.wait_for_final_reboot.outputs.VM_IP}}
@@ -401,11 +463,15 @@ jobs:
             /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/
 
   terraform_openstack_destroy:
-    runs-on: arc-runners-elevate
+    runs-on:
+      group: org/cpanel-arc-elevate
     container:
       image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
     needs: verify_upgraded_os
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8
         with:
@@ -421,5 +487,23 @@ jobs:
         run: |
           cd ".github/workflows/openstack"
           rm -Rfv .terraform || true
-          terraform init
+          for i in {1..36}; do curl -I https://objects.githubusercontent.com && break || echo "Attempt $i failed. Retrying in 5s..."; sleep 5; done
+          MAX_ATTEMPTS=5
+          SLEEP_SECONDS=5
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $attempt of $MAX_ATTEMPTS: terraform init"
+            if terraform init; then
+              echo "✅ terraform init succeeded on attempt $attempt"
+              break
+            else
+              echo "❌ terraform init failed on attempt $attempt"
+              if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+                echo "→ sleeping ${SLEEP_SECONDS}s before retry"
+                sleep $SLEEP_SECONDS
+              else
+                echo "🚨 terraform init failed after $MAX_ATTEMPTS attempts"
+                exit 1
+              fi
+            fi
+          done
           terraform destroy -var="image_name=11.118.0.* on Ubuntu 20.04" -var="cpanel_release_version=110" -no-color -auto-approve
