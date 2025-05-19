@@ -48,7 +48,7 @@ sub _ensure_mount_dash_a_succeeds ($self) {
         $self->components->abort_on_first_blocker(1);
 
         my $bin = MOUNT_BIN();
-        return $self->has_blocker( <<~"EOS");
+        return $self->has_blocker(<<~"EOS");
         The following command failed to execute successfully on your server:
 
         $bin -a

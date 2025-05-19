@@ -129,7 +129,7 @@ sub _merge_grub_directories_if_needed ($self) {
 
     my $log_file = Elevate::Constants::LOG_FILE;
 
-    Elevate::Notify::add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
+    Elevate::Notify::add_final_notification(<<~EOS) if ( $skipped_copy > 0 || $failed_copy > 0 );
         After converting "$grub_dir" from a directory to a symlink to
         "$grub2_dir", the upgrade process chose not to copy $skipped_copy
         entries from the old directory due to name conflicts, and it failed to
@@ -202,7 +202,7 @@ sub _blocker_grub2_workaround ($self) {
     my $state = _grub2_workaround_state();
     if ( $state == GRUB2_WORKAROUND_OLD ) {
         my ( $deb, $rhel ) = ( $GRUB2_PREFIX_DEBIAN, $GRUB2_PREFIX_RHEL );
-        WARN( <<~EOS );
+        WARN(<<~EOS);
         $deb/grub.cfg is currently a symlink to $rhel/grub.cfg. Your provider
         may have added this to support booting your server using their own
         instance of the GRUB2 bootloader, one which looks for its
@@ -216,7 +216,7 @@ sub _blocker_grub2_workaround ($self) {
     }
     elsif ( $state == GRUB2_WORKAROUND_UNCERTAIN ) {
 
-        return $self->has_blocker( <<~EOS );
+        return $self->has_blocker(<<~EOS);
         The configuration of the GRUB2 bootloader does not match the
         expectations of this script. For more information, see the output of
         the script when run at the console:
@@ -236,7 +236,7 @@ sub _blocker_blscfg ($self) {
 
     my $grub_enable_blscfg = _parse_shell_variable( Elevate::Constants::DEFAULT_GRUB_FILE, 'GRUB_ENABLE_BLSCFG' );
 
-    return $self->has_blocker( <<~EOS ) if defined $grub_enable_blscfg && $grub_enable_blscfg ne 'true';
+    return $self->has_blocker(<<~EOS) if defined $grub_enable_blscfg && $grub_enable_blscfg ne 'true';
     Disabling the BLS boot entry format prevents the resulting system from
     adding kernel updates to any boot loader configuration, because the old
     utility responsible for maintaining native GRUB2 boot loader entries was
@@ -262,7 +262,7 @@ sub _blocker_grub_not_installed ($self) {
 
     return 0 if Cpanel::Pkgr::is_installed('grub2-pc');
 
-    return $self->has_blocker( <<~EOS );
+    return $self->has_blocker(<<~EOS);
     The grub2-pc package is not installed. The GRUB2 boot loader is
     required to upgrade via leapp.
 
@@ -276,7 +276,7 @@ sub _blocker_grub_config_missing ($self) {
     if (   ( !-f '/boot/grub2/grub.cfg' || !-s '/boot/grub2/grub.cfg' )
         && ( !-f '/boot/grub/grub.cfg' || !-s '/boot/grub/grub.cfg' ) ) {
 
-        return $self->has_blocker( <<~EOS );
+        return $self->has_blocker(<<~EOS);
         The GRUB2 config file is missing.
 
         If you need assistance, open a ticket with cPanel Support, as outlined here

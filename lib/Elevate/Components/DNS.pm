@@ -53,7 +53,7 @@ sub _blocker_nameserver_not_supported ( $self, $nameserver = '' ) {
 
     my $pretty_distro_name    = Elevate::OS::upgrade_to_pretty_name();
     my $supported_nameservers = join( "\n", @supported_nameserver_types );
-    return $self->has_blocker( <<~"EOS");
+    return $self->has_blocker(<<~"EOS");
     $pretty_distro_name only supports the following nameservers:
 
     $supported_nameservers

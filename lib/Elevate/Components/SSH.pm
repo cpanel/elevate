@@ -68,7 +68,7 @@ sub _check_ssh_config ($self) {
     }
 
     if ( $setup !~ m{^\s*PermitRootLogin\b}m ) {
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
         The OpenSSH configuration file does not explicitly state the PermitRootLogin
         option in the sshd_config file. This option may default to "prohibit-password"
         after the upgrade is complete. We will set the 'PermitRootLogin' value in

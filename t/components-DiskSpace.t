@@ -211,7 +211,7 @@ EOS
     my $ds         = $components->_get_blocker_for('DiskSpace');
 
     my $fstab = Test::MockFile->file('/etc/fstab');
-    $fstab->contents( <<'EOS' );
+    $fstab->contents(<<'EOS');
 LABEL=cloudimg-rootfs	/	ext4	discard,errors=remount-ro,usrjquota=quota.user,jqfmt=vfsv1	0	1
 LABEL=UEFI	/boot/efi	vfat	umask=0077	0 1
 /usr/tmpDSK             /tmp                    ext4    defaults,noauto        0 0
@@ -221,7 +221,7 @@ EOS
 
     is( $ds->is_securetmp_installed(), 1, 'Correctly detects when securetmp is installed' );
 
-    $fstab->contents( <<'EOS' );
+    $fstab->contents(<<'EOS');
 LABEL=cloudimg-rootfs	/	ext4	discard,errors=remount-ro,usrjquota=quota.user,jqfmt=vfsv1	0	1
 LABEL=UEFI	/boot/efi	vfat	umask=0077	0 1
 
@@ -274,7 +274,7 @@ EOS
     );
 
     my $fstab = Test::MockFile->file('/etc/fstab');
-    $fstab->contents( <<'EOS' );
+    $fstab->contents(<<'EOS');
 LABEL=cloudimg-rootfs	/	ext4	discard,errors=remount-ro,usrjquota=quota.user,jqfmt=vfsv1	0	1
 LABEL=UEFI	/boot/efi	vfat	umask=0077	0 1
 /usr/tmpDSK             /tmp                    ext4    defaults,noauto        0 0
@@ -351,7 +351,7 @@ EOS
 
     ok( lives { $ds->post_distro_upgrade() }, 'Returns early when there is no backup file for "/etc/fstab" present' );
 
-    $mock_fstab_backup_file->contents( <<'EOS' );
+    $mock_fstab_backup_file->contents(<<'EOS');
 LABEL=cloudimg-rootfs	/	ext4	discard,errors=remount-ro,usrjquota=quota.user,jqfmt=vfsv1	0	1
 LABEL=UEFI	/boot/efi	vfat	umask=0077	0 1
 /usr/tmpDSK             /tmp                    ext4    defaults,noauto        0 0

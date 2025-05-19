@@ -36,7 +36,7 @@ sub check ($self) {
 sub _check_autossl_provider ($self) {
 
     if ( $self->is_using_sectigo() ) {
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
         Elevating with Sectigo as the provider for AutoSSL is not supported.
         If you proceed with this upgrade, we will switch your system
         to use the Let's Encrypt™ provider.

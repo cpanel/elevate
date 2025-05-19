@@ -75,7 +75,7 @@ like(
     '_do_leapp_upgrade failed'
 );
 
-$mock_leap_report_json->contents( <<'EOS' );
+$mock_leap_report_json->contents(<<'EOS');
 {
   "leapp_run_id": "68c0e693-964a-4fac-acfa-9a90d2f86780",
   "entries": [

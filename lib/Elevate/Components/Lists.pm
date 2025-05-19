@@ -90,7 +90,7 @@ sub _blocker_apt_has_held_packages ($self) {
     if ( $out->{status} != 0 ) {
 
         my $stderr = join( "\n", @{ $out->{stderr} } );
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
         '/usr/bin/apt-mark showhold' failed to return cleanly:
 
         $stderr
@@ -109,7 +109,7 @@ sub _blocker_apt_has_held_packages ($self) {
 
         my $held_pkgs = join( "\n", @held_packages );
         my $pkgs      = join( ' ',  @held_packages );
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
         The following packages are currently held back and could prevent the
         upgrade from succeeding:
 
@@ -141,7 +141,7 @@ sub _blocker_invalid_apt_lists ($self) {
     if (@unvetted_list_files) {
 
         my $list_files = join( "\n", @unvetted_list_files );
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
         The following unsupported list files were found in $list_dir:
 
         $list_files

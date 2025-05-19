@@ -44,7 +44,7 @@ sub _check_cloudlinux_license ($self) {
 
         $self->components->abort_on_first_blocker(1);
 
-        return $self->has_blocker( <<~'EOS');
+        return $self->has_blocker(<<~'EOS');
         The CloudLinux license is reporting that it is not currently valid.  A
         valid CloudLinux license is required to ELevate from CloudLinux 7 to
         CloudLinux 8.

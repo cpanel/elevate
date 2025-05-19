@@ -79,7 +79,7 @@ sub pre_distro_upgrade ($self) {
         my $upgrade_file = RELEASE_UPGRADES_FILE;
         my $backup_file  = $upgrade_file . '.pre_elevate';
 
-        INFO( <<~"EOS" );
+        INFO(<<~"EOS");
         Expected line was not found in the config file.  Backing up the config
         file to $backup_file and replacing the contents with the necessary
         config to ensure that the elevate script can upgrade the server.

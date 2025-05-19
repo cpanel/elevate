@@ -40,7 +40,7 @@ sub get_config_files ( $self, $pkgs ) {
         if ( $out->{status} != 0 ) {
 
             # warn and move on if rpm -qc fails
-            WARN( <<~"EOS");
+            WARN(<<~"EOS");
             Failed to retrieve config files for $pkg.  If you have custom config files for this pkg,
             then you will need to manually evaluate the configs and potentially move the rpmsave file back
             into place.

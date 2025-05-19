@@ -441,7 +441,7 @@ sub move_pgsql_directory ($self) {
     # Remove the backup path if it exists as a directory
     File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
 
-    INFO( <<~"EOS" );
+    INFO(<<~"EOS");
     Temporarily moving the PostgreSQL data dir located at $pg_dir to $pg_backup_dir
     due to issues with the CCS upgrade process. This script will attempt to move the directory
     back to $pg_dir after CCS is upgraded.

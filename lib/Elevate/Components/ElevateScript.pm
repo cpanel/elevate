@@ -47,7 +47,7 @@ sub _blocker_wrong_location ($self) {
       if $running_from eq '/scripts/elevate-cpanel'
       || $running_from eq '/usr/local/cpanel/scripts/elevate-cpanel';
 
-    return $self->has_blocker( <<~'EOS');
+    return $self->has_blocker(<<~'EOS');
         The script is not installed to the correct directory.
         Please install it to /scripts/elevate-cpanel and run it again.
         EOS
@@ -66,7 +66,7 @@ sub _is_up_to_date ($self) {    # $self is a cpev object here
         return;
     }
 
-    return $self->has_blocker( <<~"EOS");
+    return $self->has_blocker(<<~"EOS");
     $message
 
     Pass the --skip-elevate-version-check flag to skip this check.

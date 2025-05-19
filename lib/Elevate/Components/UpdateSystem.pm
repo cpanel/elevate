@@ -39,7 +39,7 @@ sub _check_cpanel_pkgs ($self) {
     my $altered = join "\n", @{ $out->{stdout} };
 
     if ( $altered =~ /Problems were detected with cPanel-provided files which are controlled by packages/ ) {
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
         /usr/local/cpanel/scripts/check_cpanel_pkgs reported that your system
         has altered packages.
 
@@ -90,7 +90,7 @@ sub _fix_cpanel_pkgs ($self) {
     my $altered = join "\n", @{ $out->{stdout} };
 
     if ( $altered =~ /Problems were detected with cPanel-provided files which are controlled by packages/ ) {
-        LOGDIE( <<~"EOS" );
+        LOGDIE(<<~"EOS");
         /usr/local/cpanel/scripts/check_cpanel_pkgs was unable to repair the packages on this system:
 
         $altered

@@ -76,7 +76,7 @@ sub check ($self) {
     return unless %links;
 
     my $ln_string = join ", ", sort keys %links;
-    WARN( <<~"EOS" );
+    WARN(<<~"EOS");
     Symlinks with absolute paths were found in /:
         $ln_string
     This can cause problems during the upgrade, and

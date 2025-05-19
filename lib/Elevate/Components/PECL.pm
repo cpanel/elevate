@@ -54,7 +54,7 @@ sub _backup_pecl_packages ($self) {
     my $result = eval { Cpanel::JSON::Load($out); } // {};
 
     unless ( $result->{metadata}{result} ) {
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
         Unable to determine the installed PHP versions.
         Assuming that backing up PECL packages is not relevant as such.
 
