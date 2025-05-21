@@ -194,14 +194,14 @@ sub check ($self) {    # do_check - main  entry point
     $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
     if ($has_blockers) {
-        WARN( <<~'EOS' );
+        WARN(<<~'EOS');
         Please fix the detected issues before performing the elevation process.
         Read More: https://cpanel.github.io/elevate/blockers/
         EOS
     }
     else {
         my $cmd = q[/scripts/elevate-cpanel --start];
-        INFO( <<~"EOS" );
+        INFO(<<~"EOS");
         There are no known blockers to start the elevation process.
         You can consider running:
             $cmd

@@ -174,7 +174,7 @@ sub php_get_vhost_versions () {
 
     unless ( $result->{metadata}{result} ) {
 
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
         The php_get_vhost_versions API call failed. Unable to determine current
         PHP usage by domain.
 

@@ -419,7 +419,7 @@ sub run ( $pkg, @args ) {
     my $stage = Elevate::Stages::get_stage();
 
     if ( $stage == 0 ) {
-        print_box_no_log( <<~EOS );
+        print_box_no_log(<<~EOS);
         Please re-run this script with
 
             --help  to know more about this script
@@ -547,7 +547,7 @@ sub start ($self) {
 
     if ( $self->getopt('upgrade-distro-manually') || $self->getopt('no-leapp') ) {
         my $touchfile = PAUSE_ELEVATE_TOUCHFILE;
-        WARN( <<~"EOS");
+        WARN(<<~"EOS");
         Automated upgrade of the distro has been disabled.
         Please wait for the file '$touchfile' to be created.
         When this file is created, the ELevate process is paused and you can upgrade on your own.
@@ -866,7 +866,7 @@ sub _wait_on_pause ($self) {
 
     Elevate::StageFile::update_stage_file( { status => q[paused] } );
 
-    WARN( <<~"EOS" );
+    WARN(<<~"EOS");
     The elevation process is currently paused by $pause_file
     Please read the file for more details.
     EOS

@@ -119,13 +119,13 @@ sub _blocker_bad_nics_naming ($self) {
     return $self->has_blocker( q[Missing ] . SBIN_IP . ' binary' ) unless -x SBIN_IP;
     my @eths = Elevate::NICs::get_nics();
     if ( @eths >= 2 ) {
-        WARN( <<~'EOS' );
+        WARN(<<~'EOS');
         Your machine has multiple network interface cards (NICs) using
         kernel-names (ethX).
         EOS
 
         if ( $self->is_check_mode() ) {
-            INFO( <<~'EOS' );
+            INFO(<<~'EOS');
             Since the upgrade process cannot guarantee their stability after
             upgrade, we will need to rename these interfaces before upgrading.
             EOS
@@ -135,7 +135,7 @@ sub _blocker_bad_nics_naming ($self) {
         return if $self->_nics_have_missing_ifcfg_files(@eths);
 
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
         Prior to elevating this system to $pretty_distro_name, we will
         automatically rename these interfaces.
 
@@ -151,7 +151,7 @@ sub _blocker_bad_nics_naming ($self) {
                     'Do you consent to renaming your NICs to use non kernel-names [Y/n]: ',
                 )
             ) {
-                return $self->has_blocker( <<~"EOS" );
+                return $self->has_blocker(<<~"EOS");
                 The system cannot be elevated to $pretty_distro_name until the
                 NICs using kernel-names (ethX) have been updated with new names.
 
@@ -190,7 +190,7 @@ sub _nics_have_missing_ifcfg_files ( $self, @nics ) {
 
     if (@nics_missing_nic_path) {
         my $missing_nics = join "\n", @nics_missing_nic_path;
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
         This script is unable to rename the following network interface cards
         due to a missing ifcfg file:
 

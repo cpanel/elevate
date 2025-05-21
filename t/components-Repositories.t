@@ -96,13 +96,13 @@ $mock_pkgmgr->redefine(
 $mock_unknown_repo->contents('# whatever');
 is $yum->_check_yum_repos(), {}, "no repo set";
 
-$mock_unknown_repo->contents( <<EOS );
+$mock_unknown_repo->contents(<<EOS);
 [MyRepo]
 enabled=0
 EOS
 is $yum->_check_yum_repos(), { $unvetted => 1 }, "Using an unknown disabled repo";
 
-$mock_unknown_repo->contents( <<EOS );
+$mock_unknown_repo->contents(<<EOS);
 [MyRepo]
 enabled=0
 
@@ -118,7 +118,7 @@ is(
 note "Testing invalid syntax in repo";
 
 $mock_unknown_repo->unlink;
-$mock_vetted_repo->contents( <<'EOS' );
+$mock_vetted_repo->contents(<<'EOS');
 [MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c$releasever-$basearch
@@ -127,7 +127,7 @@ EOS
 
 is $yum->_check_yum_repos(), {}, q[vetted repo with valid syntax using $ in url];
 
-$mock_vetted_repo->contents( <<'EOS' );
+$mock_vetted_repo->contents(<<'EOS');
 [MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c\$releasever-$basearch
@@ -136,7 +136,7 @@ EOS
 
 is $yum->_check_yum_repos(), { $invalid_syntax => 1 }, q[vetted repo with invalid syntax using a \$ in url];
 
-$mock_vetted_repo->contents( <<'EOS' );
+$mock_vetted_repo->contents(<<'EOS');
 [MariaDB102]
 name = MariaDB102
 #baseurl = http://yum.mariadb.org/10.2/c\$releasever-$basearch
@@ -146,7 +146,7 @@ enabled=1
 EOS
 is $yum->_check_yum_repos(), {}, q[vetted repo with invalid syntax in a comment is ignored];
 
-$mock_vetted_repo->contents( <<'EOS' );
+$mock_vetted_repo->contents(<<'EOS');
 [MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c$releasever-$basearch # and not \$var
@@ -154,7 +154,7 @@ enabled=1
 EOS
 is $yum->_check_yum_repos(), {}, q[vetted repo with invalid syntax in a comment is ignored];
 
-$mock_vetted_repo->contents( <<'EOS' );
+$mock_vetted_repo->contents(<<'EOS');
 [MariaDB102]
 name = MariaDB102
 baseurl = http://yum.mariadb.org/10.2/c\$releasever-\$basearch
@@ -189,7 +189,7 @@ is $yum->_check_yum_repos() => { $unvetted => 1, $rpms_from_unvetted => 1, $inva
 undef $mock_unknown_repo;
 
 my $mock_base_repo = Test::MockFile->file("$path_yum_repos_d/CentOS-Base.repo");
-$mock_base_repo->contents( <<'EOS' );
+$mock_base_repo->contents(<<'EOS');
 [base]
 name=CentOS-$releasever - Base
 baseurl=https://vault.centos.org/7.9.2009/os/$basearch
@@ -197,7 +197,7 @@ gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 EOS
 
-$mock_vetted_repo->contents( <<'EOS' );
+$mock_vetted_repo->contents(<<'EOS');
 [MariaDB102]
 name=MariaDB102
 baseurl=http://yum.mariadb.org/10.2/c$releasever-$basearch
@@ -207,7 +207,7 @@ EOS
 is $yum->_check_yum_repos(), {}, q[No duplicate IDs found];
 
 my $mock_duplicate_repo = Test::MockFile->file("$path_yum_repos_d/MariaDB106.repo");
-$mock_duplicate_repo->contents( <<'EOS' );
+$mock_duplicate_repo->contents(<<'EOS');
 [MariaDB102]
 name=MariaDB102
 baseurl=http://yum.mariadb.org/10.2/c$releasever-$basearch

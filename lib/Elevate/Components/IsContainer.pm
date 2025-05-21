@@ -30,7 +30,7 @@ sub check ($self) {    # $self is a cpev object here
     return 0 if $self->upgrade_distro_manually;
 
     if ( _is_container_envtype() ) {
-        return $self->has_blocker( <<~'EOS');
+        return $self->has_blocker(<<~'EOS');
         cPanel thinks that this is a container-like environment.
         This script cannot upgrade container environments.
         Consider contacting your hypervisor provider for alternative solutions.

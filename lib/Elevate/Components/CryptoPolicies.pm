@@ -47,7 +47,7 @@ sub check ($self) {
 
     return unless Elevate::OS::has_crypto_policies() && Elevate::OS::needs_sha1_enabled();
 
-    return $self->has_blocker( <<~"EOS" ) unless Cpanel::Pkgr::is_installed('crypto-policies') && Cpanel::Pkgr::is_installed('crypto-policies-scripts');
+    return $self->has_blocker(<<~"EOS") unless Cpanel::Pkgr::is_installed('crypto-policies') && Cpanel::Pkgr::is_installed('crypto-policies-scripts');
     ELevate expects to see the crypto-policies and crypto-policies-scripts packages
     installed, but one or both are missing. This should not be possible, so this
     suggests a severely broken system, but you can try installing these packages
@@ -57,7 +57,7 @@ sub check ($self) {
 
     EOS
 
-    return $self->has_blocker( <<~"EOS" ) unless -x UPDATE_CRYPTO_POLICIES_PATH();
+    return $self->has_blocker(<<~"EOS") unless -x UPDATE_CRYPTO_POLICIES_PATH();
     There appear to be some file permission issues with the system's
     cryptographic policies framework. You can try re-installing the packages to see
     if this fixes the issue:
@@ -74,7 +74,7 @@ sub check ($self) {
 
     return if $current_policy =~ m/^(?:(?:DEFAULT(:SHA1)?)|LEGACY)$/;
 
-    return $self->has_blocker( <<~"EOS" );
+    return $self->has_blocker(<<~"EOS");
     The system's cryptographic policy is set to a value ($current_policy)
     which is not compatible with ELevate. We recommend that you set the
     cryptographic policy to the default for your distribution:

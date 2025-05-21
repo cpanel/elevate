@@ -65,7 +65,7 @@ sub check ($self) {
     if ( Cpanel::Pkgr::is_installed('postgresql') ) {
 
         my $name = Elevate::OS::default_upgrade_to();
-        $self->has_blocker( <<~"END" );
+        $self->has_blocker(<<~"END");
         ELevate does not currently support PostgreSQL for upgrades to $name.
         END
 
@@ -200,7 +200,7 @@ sub _backup_postgresql_datadir ($self) {
         $self->_give_up_on_postgresql();
     }
     else {
-        Elevate::Notify::add_final_notification( <<~"EOS" );
+        Elevate::Notify::add_final_notification(<<~"EOS");
         ELevate backed up your system PostgreSQL data directory to $pgsql_datadir_backup_path
         prior to any modification or attempt to upgrade, in case the upgrade needs to be performed
         manually, or if old settings need to be referenced.
@@ -310,7 +310,7 @@ sub _perform_postgresql_upgrade ($self) {
 
     if ( $outcome == 0 ) {
         INFO("The PostgreSQL upgrade process was successful.");
-        Elevate::Notify::add_final_notification( <<~EOS );
+        Elevate::Notify::add_final_notification(<<~EOS);
         ELevate successfully ran the upgrade procedure on the system instance of
         PostgreSQL. If no problems are reported with configuring the upgraded instance
         to work with cPanel, you should proceed with applying any relevant
@@ -362,7 +362,7 @@ sub _run_whostmgr_postgres_update_config ($self) {
     my ( $success, $msg ) = Whostmgr::Postgres::update_config();
     if ( !$success ) {
         ERROR("The system failed to update the PostgreSQL configuration: $msg");
-        Elevate::Notify::add_final_notification( <<~EOS );
+        Elevate::Notify::add_final_notification(<<~EOS);
         ELevate could not configure the upgraded system PostgreSQL instance to work
         with cPanel. See the log for additional information. Once the issue has been
         addressed, perform this step manually using the "Postgres Config Install" area
@@ -394,7 +394,7 @@ Invoke when all subsequent steps of the PostgreSQL upgrade should be skipped due
 sub _give_up_on_postgresql ($self) {
     ERROR('Skipping attempt to upgrade the system instance of PostgreSQL.');
     Elevate::StageFile::update_stage_file( { postgresql_give_up => 1 } );
-    Elevate::Notify::add_final_notification( <<~EOS );
+    Elevate::Notify::add_final_notification(<<~EOS);
     The process of upgrading the system instance of PostgreSQL failed. The
     PostgreSQL service has been disabled in the Service Manager in WHM:
 

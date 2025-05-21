@@ -133,7 +133,7 @@ sub _blocker_cpanel_needs_license ($self) {
         EOS
     }
 
-    return $self->has_blocker( <<~EOS );
+    return $self->has_blocker(<<~EOS);
     cPanel does not detect a valid license for itself on the system at this
     time. This could cause problems during the update.
 
@@ -205,7 +205,7 @@ sub _blocker_is_upcp_running ($self) {
 
         $self->components->abort_on_first_blocker(1);
 
-        return $self->has_blocker( <<~"EOS");
+        return $self->has_blocker(<<~"EOS");
         cPanel Update (upcp) is currently running. Please wait for the upcp (PID $upcp_pid) to complete, then try again.
         You can use the command 'ps --pid $upcp_pid' to check if the process is running.
         EOS
@@ -223,7 +223,7 @@ sub _blocker_is_cpanel_backup_running ($self) {
 
         # Cpanel::Backup::Sync::handle_already_running will log the PID and log file location for the backup
         # so there is no need for us to do that in the blocker message
-        return $self->has_blocker( <<~'EOS');
+        return $self->has_blocker(<<~'EOS');
         A cPanel backup is currently running. Please wait for the cPanel backup to complete, then try again.
         EOS
     }

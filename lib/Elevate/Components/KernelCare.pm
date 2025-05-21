@@ -102,7 +102,7 @@ sub check ($self) {
     return if Elevate::OS::supports_kernelcare();
 
     my $name = Elevate::OS::default_upgrade_to();
-    return $self->has_blocker( <<~"EOS" );
+    return $self->has_blocker(<<~"EOS");
     ELevate does not currently support KernelCare for upgrades of $name.
     Support for KernelCare on $name will be added in a future version of ELevate.
     EOS

@@ -89,14 +89,14 @@ my $ssh = bless {}, 'Elevate::Components::SSH';
     is $ssh->_check_ssh_config() => 0, "sshd_config with empty content";
     message_seen( 'WARN', $sshd_error_message );
 
-    $mock_sshd_cfg->contents( <<~EOS );
+    $mock_sshd_cfg->contents(<<~EOS);
     Fruit=cherry
     Veggy=carrot
     EOS
     is $ssh->_check_ssh_config() => 0, "sshd_config without PermitRootLogin option";
     message_seen( 'WARN', $sshd_error_message );
 
-    $mock_sshd_cfg->contents( <<~EOS );
+    $mock_sshd_cfg->contents(<<~EOS);
     Key=value
     PermitRootLogin=yes
     EOS

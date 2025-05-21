@@ -37,7 +37,7 @@ sub pre_distro_upgrade ($self) {
 
     if ( !-x UFW ) {
         my $ufw = UFW;
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
         '$ufw' is either missing or not executable on this server. Unable to
         ensure that port 1022 is open as a secondary ssh option for
         do-release-upgrade.

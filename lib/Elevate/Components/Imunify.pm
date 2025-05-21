@@ -334,7 +334,7 @@ sub _check_imunify_license ($self) {
     if ( !ref $license_data->{license} || !$license_data->{license}->{status} ) {
 
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
-        return $self->has_blocker( <<~"EOS");
+        return $self->has_blocker(<<~"EOS");
         The Imunify license is reporting that it is not currently valid.  Since
         Imunify is installed on this system, a valid Imunify license is required
         to ELevate to $pretty_distro_name.

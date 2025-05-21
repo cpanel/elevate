@@ -31,13 +31,13 @@ subtest "check_and_fix_grub kernel using net.ifnames=0" => sub {
     my $cpev = cpev->new;
     my $g2   = cpev->get_component('Grub2ChecksWorkarounds');
 
-    $cmdline->contents( <<~'EOS' );
+    $cmdline->contents(<<~'EOS');
     BOOT_IMAGE=(hd0,msdos1)/boot/vmlinuz-4.18.0-425.10.1.el8_7.x86_64 root=UUID=6cd50e51-cfc6-40b9-9ec5-f32fa2e4ff02 ro console=tty0 console=ttyS0,115200 earlyprintk=ttyS0,115200 consoleblank=0 crashkernel=no nosplash nomodeset rootflags=uquota net.ifnames=0
     EOS
 
     ok !$g2->post_distro_upgrade(), "grub file is missing";
 
-    $grub_cfg->contents( <<~'EOS' );
+    $grub_cfg->contents(<<~'EOS');
     GRUB_TIMEOUT=5
     GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
     GRUB_DEFAULT=saved
@@ -91,7 +91,7 @@ subtest "check_and_fix_grub kernel without net.ifnames=0" => sub {
 
     $cmdline->unlink;
 
-    $grub_cfg->contents( <<~'EOS' );
+    $grub_cfg->contents(<<~'EOS');
     GRUB_TIMEOUT=5
     GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
     GRUB_DEFAULT=saved

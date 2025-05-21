@@ -184,7 +184,7 @@ sub _blocker_yum_conf_missing_plugins ($self) {
 
     return if $self->_autofix_yum_conf();
 
-    return $self->has_blocker( <<~'EOS' );
+    return $self->has_blocker(<<~'EOS');
     ELevate was unable to autofix '/etc/yum.conf'.  Check the contents of this
     file and ensure that the line
 
@@ -239,7 +239,7 @@ sub _blocker_packages_installed_without_associated_repo ($self) {
     return unless scalar @unexpected_extra_packages;
 
     my $pkg_string = join "\n", @unexpected_extra_packages;
-    return $self->has_blocker( <<~EOS );
+    return $self->has_blocker(<<~EOS);
     There are packages installed that do not have associated repositories:
 
     $pkg_string
@@ -384,7 +384,7 @@ sub _yum_is_stable ($self) {
                     }
                 }
                 else {
-                    return $self->has_blocker( <<~EOS );
+                    return $self->has_blocker(<<~EOS);
                     $yum_ct_bin is missing. You must install the yum-utils package
                     if you wish to clear the unfinished yum transactions.
                     EOS

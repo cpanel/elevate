@@ -116,7 +116,7 @@ sub _blocker_jetbackup_is_supported ($self) {
     return if Elevate::OS::supports_jetbackup();
 
     my $name = Elevate::OS::pretty_name();
-    return $self->has_blocker( <<~"END" );
+    return $self->has_blocker(<<~"END");
     ELevate does not currently support JetBackup for upgrades of $name.
     Support for JetBackup on $name will be added in a future version of ELevate.
     END
@@ -128,7 +128,7 @@ sub _blocker_old_jetbackup ($self) {
 
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
-    return $self->has_blocker( <<~"END" );
+    return $self->has_blocker(<<~"END");
     $pretty_distro_name does not support JetBackup prior to version 5.
     Please upgrade JetBackup before elevate.
     END

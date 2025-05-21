@@ -120,7 +120,7 @@ sub _reinstall_mysql_packages {
         Elevate::Database::upgrade_database_server();
     }
     catch {
-        LOGDIE( <<~"EOS" );
+        LOGDIE(<<~"EOS");
         Unable to install $upgrade_dbtype_name $upgrade_version.  To attempt to
         install the database server manually, execute:
 
@@ -176,7 +176,7 @@ sub _reinstall_mysql_packages {
 
     # If the database server is still unable to start, die as this
     # component likely failed with an unexpected/unknown error
-    LOGDIE( <<~'EOS' );
+    LOGDIE(<<~'EOS');
     The database server was unable to start after the attempted restoration.
 
     Check the elevate log located at '/var/log/elevate-cpanel.log' for further
@@ -276,7 +276,7 @@ sub _blocker_old_cloudlinux_mysql ($self) {
     # 102 becomes 10.2
     $db_version =~ s/([0-9])$/\.$1/;
 
-    return $self->has_blocker( <<~"EOS");
+    return $self->has_blocker(<<~"EOS");
     You are using $db_type $db_version server.
     This version is not available for $pretty_distro_name.
     You first need to update your database server software to version 5.5 or later.
@@ -308,14 +308,14 @@ sub _blocker_old_cpanel_mysql ($self) {
     my $upgrade_version     = Elevate::Database::get_default_upgrade_version();
     my $upgrade_dbtype_name = Elevate::Database::get_database_type_name_from_version($upgrade_version);
 
-    WARN( <<~"EOS" );
+    WARN(<<~"EOS");
     You have $db_type $db_version installed.
     This version is not available for $pretty_distro_name.
 
     EOS
 
     if ( $self->is_check_mode() ) {
-        INFO( <<~"EOS" );
+        INFO(<<~"EOS");
         You can manually upgrade your installation of $db_type using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
@@ -326,7 +326,7 @@ sub _blocker_old_cpanel_mysql ($self) {
         return 0;
     }
 
-    WARN( <<~"EOS" );
+    WARN(<<~"EOS");
     Prior to elevating this system to $pretty_distro_name,
     we will automatically upgrade your installation of $db_type
     to $upgrade_dbtype_name $upgrade_version.
@@ -343,7 +343,7 @@ sub _blocker_old_cpanel_mysql ($self) {
                 "Do you consent to upgrading to $upgrade_dbtype_name $upgrade_version [Y/n]: ",
             )
         ) {
-            return $self->has_blocker( <<~"EOS" );
+            return $self->has_blocker(<<~"EOS");
             The system cannot be elevated to $pretty_distro_name until $db_type has been upgraded. To upgrade manually:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
@@ -388,7 +388,7 @@ sub _blocker_mysql_database_corrupted ($self) {
         unless ( Cpanel::MysqlUtils::Running::is_mysql_running()
             && grep { /mysql (?:re)?started successfully/ } @{ $output->{stdout} } ) {
 
-            return $self->has_blocker( <<~"EOS" );
+            return $self->has_blocker(<<~"EOS");
             Unable to to start the database server to check database integrity.  
             Additional information can be found in the error log located at /var/log/mysqld.log
             To attempt to start the database server, execute: /scripts/restartsrv_mysql
@@ -406,7 +406,7 @@ sub _blocker_mysql_database_corrupted ($self) {
     if ( scalar grep { /^error/i } @{ $output->{stdout} } ) {
 
         my $issues_found = join( "\n", @{ $output->{stdout} } );
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
             We have found the following problems with your database(s):
             $issues_found
             You should repair any corrupted databases before elevating the system.

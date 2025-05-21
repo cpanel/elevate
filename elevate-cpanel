@@ -257,7 +257,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         die $blocker if $self->components->abort_on_first_blocker();
 
         if ( !$others{'quiet'} ) {
-            ERROR( <<~"EOS");
+            ERROR(<<~"EOS");
         *** Elevation Blocker detected: ***
         $msg
         EOS
@@ -474,14 +474,14 @@ BEGIN {    # Suppress load of all of these at earliest point.
         $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
 
         if ($has_blockers) {
-            WARN( <<~'EOS' );
+            WARN(<<~'EOS');
         Please fix the detected issues before performing the elevation process.
         Read More: https://cpanel.github.io/elevate/blockers/
         EOS
         }
         else {
             my $cmd = q[/scripts/elevate-cpanel --start];
-            INFO( <<~"EOS" );
+            INFO(<<~"EOS");
         There are no known blockers to start the elevation process.
         You can consider running:
             $cmd
@@ -648,7 +648,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
         return unless %links;
 
         my $ln_string = join ", ", sort keys %links;
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
     Symlinks with absolute paths were found in /:
         $ln_string
     This can cause problems during the upgrade, and
@@ -685,7 +685,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     sub _check_autossl_provider ($self) {
 
         if ( $self->is_using_sectigo() ) {
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
         Elevating with Sectigo as the provider for AutoSSL is not supported.
         If you proceed with this upgrade, we will switch your system
         to use the Let's Encrypt™ provider.
@@ -753,7 +753,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
             my ( $running_version, $boot_version ) = Cpanel::Kernel::Status::reboot_status()->@{ 'running_version', 'boot_version' };
             $ok = $running_version eq $boot_version;
 
-            $self->has_blocker( <<~EOS ) if !$ok;
+            $self->has_blocker(<<~EOS) if !$ok;
         The running kernel version ($running_version) does not match that of
         the default boot entry ($boot_version). This could be due to the kernel
         being changed by an update, meaning that a reboot should resolve this.
@@ -1175,7 +1175,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
         File::Path::remove_tree($pg_backup_dir) if -e $pg_backup_dir && -d $pg_backup_dir;
 
-        INFO( <<~"EOS" );
+        INFO(<<~"EOS");
     Temporarily moving the PostgreSQL data dir located at $pg_dir to $pg_backup_dir
     due to issues with the CCS upgrade process. This script will attempt to move the directory
     back to $pg_dir after CCS is upgraded.
@@ -1248,7 +1248,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
             $self->components->abort_on_first_blocker(1);
 
-            return $self->has_blocker( <<~'EOS');
+            return $self->has_blocker(<<~'EOS');
         The CloudLinux license is reporting that it is not currently valid.  A
         valid CloudLinux license is required to ELevate from CloudLinux 7 to
         CloudLinux 8.
@@ -1457,7 +1457,7 @@ EOF
 
         return unless Elevate::OS::has_crypto_policies() && Elevate::OS::needs_sha1_enabled();
 
-        return $self->has_blocker( <<~"EOS" ) unless Cpanel::Pkgr::is_installed('crypto-policies') && Cpanel::Pkgr::is_installed('crypto-policies-scripts');
+        return $self->has_blocker(<<~"EOS") unless Cpanel::Pkgr::is_installed('crypto-policies') && Cpanel::Pkgr::is_installed('crypto-policies-scripts');
     ELevate expects to see the crypto-policies and crypto-policies-scripts packages
     installed, but one or both are missing. This should not be possible, so this
     suggests a severely broken system, but you can try installing these packages
@@ -1467,7 +1467,7 @@ EOF
 
     EOS
 
-        return $self->has_blocker( <<~"EOS" ) unless -x UPDATE_CRYPTO_POLICIES_PATH();
+        return $self->has_blocker(<<~"EOS") unless -x UPDATE_CRYPTO_POLICIES_PATH();
     There appear to be some file permission issues with the system's
     cryptographic policies framework. You can try re-installing the packages to see
     if this fixes the issue:
@@ -1480,7 +1480,7 @@ EOF
 
         return if $current_policy =~ m/^(?:(?:DEFAULT(:SHA1)?)|LEGACY)$/;
 
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
     The system's cryptographic policy is set to a value ($current_policy)
     which is not compatible with ELevate. We recommend that you set the
     cryptographic policy to the default for your distribution:
@@ -2068,7 +2068,7 @@ EOS
 
         my $pretty_distro_name    = Elevate::OS::upgrade_to_pretty_name();
         my $supported_nameservers = join( "\n", @supported_nameserver_types );
-        return $self->has_blocker( <<~"EOS");
+        return $self->has_blocker(<<~"EOS");
     $pretty_distro_name only supports the following nameservers:
 
     $supported_nameservers
@@ -2263,7 +2263,7 @@ EOS
             my $api_string = join( ' ', @api_cmd );
             unless ( $result->{metadata}{result} ) {
 
-                WARN( <<~"EOS" );
+                WARN(<<~"EOS");
             Unable to set $vhost back to its desired PHP version.  This site may
             be using the incorrect version of PHP.  To set it back to its
             original PHP version, execute the following command:
@@ -2303,7 +2303,7 @@ EOS
 
         my $list = join( "\n", map { "- $_" } @incompatible_packages );
 
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
     One or more EasyApache 4 package(s) are not compatible with $pretty_distro_name.
     Please remove these packages before continuing the update.
     $list
@@ -2398,7 +2398,7 @@ EOS
           if $running_from eq '/scripts/elevate-cpanel'
           || $running_from eq '/usr/local/cpanel/scripts/elevate-cpanel';
 
-        return $self->has_blocker( <<~'EOS');
+        return $self->has_blocker(<<~'EOS');
         The script is not installed to the correct directory.
         Please install it to /scripts/elevate-cpanel and run it again.
         EOS
@@ -2417,7 +2417,7 @@ EOS
             return;
         }
 
-        return $self->has_blocker( <<~"EOS");
+        return $self->has_blocker(<<~"EOS");
     $message
 
     Pass the --skip-elevate-version-check flag to skip this check.
@@ -2802,7 +2802,7 @@ EOS
 
         my $log_file = Elevate::Constants::LOG_FILE;
 
-        Elevate::Notify::add_final_notification( <<~EOS ) if ( $skipped_copy > 0 || $failed_copy > 0 );
+        Elevate::Notify::add_final_notification(<<~EOS) if ( $skipped_copy > 0 || $failed_copy > 0 );
         After converting "$grub_dir" from a directory to a symlink to
         "$grub2_dir", the upgrade process chose not to copy $skipped_copy
         entries from the old directory due to name conflicts, and it failed to
@@ -2868,7 +2868,7 @@ EOS
         my $state = _grub2_workaround_state();
         if ( $state == GRUB2_WORKAROUND_OLD ) {
             my ( $deb, $rhel ) = ( $GRUB2_PREFIX_DEBIAN, $GRUB2_PREFIX_RHEL );
-            WARN( <<~EOS );
+            WARN(<<~EOS);
         $deb/grub.cfg is currently a symlink to $rhel/grub.cfg. Your provider
         may have added this to support booting your server using their own
         instance of the GRUB2 bootloader, one which looks for its
@@ -2882,7 +2882,7 @@ EOS
         }
         elsif ( $state == GRUB2_WORKAROUND_UNCERTAIN ) {
 
-            return $self->has_blocker( <<~EOS );
+            return $self->has_blocker(<<~EOS);
         The configuration of the GRUB2 bootloader does not match the
         expectations of this script. For more information, see the output of
         the script when run at the console:
@@ -2902,7 +2902,7 @@ EOS
 
         my $grub_enable_blscfg = _parse_shell_variable( Elevate::Constants::DEFAULT_GRUB_FILE, 'GRUB_ENABLE_BLSCFG' );
 
-        return $self->has_blocker( <<~EOS ) if defined $grub_enable_blscfg && $grub_enable_blscfg ne 'true';
+        return $self->has_blocker(<<~EOS) if defined $grub_enable_blscfg && $grub_enable_blscfg ne 'true';
     Disabling the BLS boot entry format prevents the resulting system from
     adding kernel updates to any boot loader configuration, because the old
     utility responsible for maintaining native GRUB2 boot loader entries was
@@ -2928,7 +2928,7 @@ EOS
 
         return 0 if Cpanel::Pkgr::is_installed('grub2-pc');
 
-        return $self->has_blocker( <<~EOS );
+        return $self->has_blocker(<<~EOS);
     The grub2-pc package is not installed. The GRUB2 boot loader is
     required to upgrade via leapp.
 
@@ -2942,7 +2942,7 @@ EOS
         if (   ( !-f '/boot/grub2/grub.cfg' || !-s '/boot/grub2/grub.cfg' )
             && ( !-f '/boot/grub/grub.cfg' || !-s '/boot/grub/grub.cfg' ) ) {
 
-            return $self->has_blocker( <<~EOS );
+            return $self->has_blocker(<<~EOS);
         The GRUB2 config file is missing.
 
         If you need assistance, open a ticket with cPanel Support, as outlined here
@@ -3337,7 +3337,7 @@ EOS
         if ( !ref $license_data->{license} || !$license_data->{license}->{status} ) {
 
             my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
-            return $self->has_blocker( <<~"EOS");
+            return $self->has_blocker(<<~"EOS");
         The Imunify license is reporting that it is not currently valid.  Since
         Imunify is installed on this system, a valid Imunify license is required
         to ELevate to $pretty_distro_name.
@@ -3415,7 +3415,7 @@ EOS
         return 0 if $self->upgrade_distro_manually;
 
         if ( _is_container_envtype() ) {
-            return $self->has_blocker( <<~'EOS');
+            return $self->has_blocker(<<~'EOS');
         cPanel thinks that this is a container-like environment.
         This script cannot upgrade container environments.
         Consider contacting your hypervisor provider for alternative solutions.
@@ -3537,7 +3537,7 @@ EOS
         return if Elevate::OS::supports_jetbackup();
 
         my $name = Elevate::OS::pretty_name();
-        return $self->has_blocker( <<~"END" );
+        return $self->has_blocker(<<~"END");
     ELevate does not currently support JetBackup for upgrades of $name.
     Support for JetBackup on $name will be added in a future version of ELevate.
     END
@@ -3549,7 +3549,7 @@ EOS
 
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
 
-        return $self->has_blocker( <<~"END" );
+        return $self->has_blocker(<<~"END");
     $pretty_distro_name does not support JetBackup prior to version 5.
     Please upgrade JetBackup before elevate.
     END
@@ -3660,7 +3660,7 @@ EOS
         return if Elevate::OS::supports_kernelcare();
 
         my $name = Elevate::OS::default_upgrade_to();
-        return $self->has_blocker( <<~"EOS" );
+        return $self->has_blocker(<<~"EOS");
     ELevate does not currently support KernelCare for upgrades of $name.
     Support for KernelCare on $name will be added in a future version of ELevate.
     EOS
@@ -3891,7 +3891,7 @@ EOS
         if ( $out->{status} != 0 ) {
 
             my $stderr = join( "\n", @{ $out->{stderr} } );
-            return $self->has_blocker( <<~"EOS" );
+            return $self->has_blocker(<<~"EOS");
         '/usr/bin/apt-mark showhold' failed to return cleanly:
 
         $stderr
@@ -3910,7 +3910,7 @@ EOS
 
             my $held_pkgs = join( "\n", @held_packages );
             my $pkgs      = join( ' ',  @held_packages );
-            return $self->has_blocker( <<~"EOS" );
+            return $self->has_blocker(<<~"EOS");
         The following packages are currently held back and could prevent the
         upgrade from succeeding:
 
@@ -3942,7 +3942,7 @@ EOS
         if (@unvetted_list_files) {
 
             my $list_files = join( "\n", @unvetted_list_files );
-            return $self->has_blocker( <<~"EOS" );
+            return $self->has_blocker(<<~"EOS");
         The following unsupported list files were found in $list_dir:
 
         $list_files
@@ -4089,7 +4089,7 @@ EOS
             $self->components->abort_on_first_blocker(1);
 
             my $bin = MOUNT_BIN();
-            return $self->has_blocker( <<~"EOS");
+            return $self->has_blocker(<<~"EOS");
         The following command failed to execute successfully on your server:
 
         $bin -a
@@ -4212,7 +4212,7 @@ EOS
             Elevate::Database::upgrade_database_server();
         }
         catch {
-            LOGDIE( <<~"EOS" );
+            LOGDIE(<<~"EOS");
         Unable to install $upgrade_dbtype_name $upgrade_version.  To attempt to
         install the database server manually, execute:
 
@@ -4258,7 +4258,7 @@ EOS
         DEBUG($restart_out);
         return if grep { $_ =~ m{mysql (?:re)?started successfully} } @restart_lines;
 
-        LOGDIE( <<~'EOS' );
+        LOGDIE(<<~'EOS');
     The database server was unable to start after the attempted restoration.
 
     Check the elevate log located at '/var/log/elevate-cpanel.log' for further
@@ -4353,7 +4353,7 @@ EOS
 
         $db_version =~ s/([0-9])$/\.$1/;
 
-        return $self->has_blocker( <<~"EOS");
+        return $self->has_blocker(<<~"EOS");
     You are using $db_type $db_version server.
     This version is not available for $pretty_distro_name.
     You first need to update your database server software to version 5.5 or later.
@@ -4382,14 +4382,14 @@ EOS
         my $upgrade_version     = Elevate::Database::get_default_upgrade_version();
         my $upgrade_dbtype_name = Elevate::Database::get_database_type_name_from_version($upgrade_version);
 
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
     You have $db_type $db_version installed.
     This version is not available for $pretty_distro_name.
 
     EOS
 
         if ( $self->is_check_mode() ) {
-            INFO( <<~"EOS" );
+            INFO(<<~"EOS");
         You can manually upgrade your installation of $db_type using the following command:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
@@ -4400,7 +4400,7 @@ EOS
             return 0;
         }
 
-        WARN( <<~"EOS" );
+        WARN(<<~"EOS");
     Prior to elevating this system to $pretty_distro_name,
     we will automatically upgrade your installation of $db_type
     to $upgrade_dbtype_name $upgrade_version.
@@ -4417,7 +4417,7 @@ EOS
                     "Do you consent to upgrading to $upgrade_dbtype_name $upgrade_version [Y/n]: ",
                 )
             ) {
-                return $self->has_blocker( <<~"EOS" );
+                return $self->has_blocker(<<~"EOS");
             The system cannot be elevated to $pretty_distro_name until $db_type has been upgraded. To upgrade manually:
 
             /usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$upgrade_version
@@ -4457,7 +4457,7 @@ EOS
             unless ( Cpanel::MysqlUtils::Running::is_mysql_running()
                 && grep { /mysql (?:re)?started successfully/ } @{ $output->{stdout} } ) {
 
-                return $self->has_blocker( <<~"EOS" );
+                return $self->has_blocker(<<~"EOS");
             Unable to to start the database server to check database integrity.  
             Additional information can be found in the error log located at /var/log/mysqld.log
             To attempt to start the database server, execute: /scripts/restartsrv_mysql
@@ -4471,7 +4471,7 @@ EOS
         if ( scalar grep { /^error/i } @{ $output->{stdout} } ) {
 
             my $issues_found = join( "\n", @{ $output->{stdout} } );
-            return $self->has_blocker( <<~"EOS" );
+            return $self->has_blocker(<<~"EOS");
             We have found the following problems with your database(s):
             $issues_found
             You should repair any corrupted databases before elevating the system.
@@ -4630,13 +4630,13 @@ EOS
         return $self->has_blocker( q[Missing ] . SBIN_IP . ' binary' ) unless -x SBIN_IP;
         my @eths = Elevate::NICs::get_nics();
         if ( @eths >= 2 ) {
-            WARN( <<~'EOS' );
+            WARN(<<~'EOS');
         Your machine has multiple network interface cards (NICs) using
         kernel-names (ethX).
         EOS
 
             if ( $self->is_check_mode() ) {
-                INFO( <<~'EOS' );
+                INFO(<<~'EOS');
             Since the upgrade process cannot guarantee their stability after
             upgrade, we will need to rename these interfaces before upgrading.
             EOS
@@ -4646,7 +4646,7 @@ EOS
             return if $self->_nics_have_missing_ifcfg_files(@eths);
 
             my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
         Prior to elevating this system to $pretty_distro_name, we will
         automatically rename these interfaces.
 
@@ -4662,7 +4662,7 @@ EOS
                         'Do you consent to renaming your NICs to use non kernel-names [Y/n]: ',
                     )
                 ) {
-                    return $self->has_blocker( <<~"EOS" );
+                    return $self->has_blocker(<<~"EOS");
                 The system cannot be elevated to $pretty_distro_name until the
                 NICs using kernel-names (ethX) have been updated with new names.
 
@@ -4701,7 +4701,7 @@ EOS
 
         if (@nics_missing_nic_path) {
             my $missing_nics = join "\n", @nics_missing_nic_path;
-            return $self->has_blocker( <<~"EOS" );
+            return $self->has_blocker(<<~"EOS");
         This script is unable to rename the following network interface cards
         due to a missing ifcfg file:
 
@@ -5331,7 +5331,7 @@ EOS
         my $result = eval { Cpanel::JSON::Load($out); } // {};
 
         unless ( $result->{metadata}{result} ) {
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
         Unable to determine the installed PHP versions.
         Assuming that backing up PECL packages is not relevant as such.
 
@@ -5640,7 +5640,7 @@ EOS
         if ( Cpanel::Pkgr::is_installed('postgresql') ) {
 
             my $name = Elevate::OS::default_upgrade_to();
-            $self->has_blocker( <<~"END" );
+            $self->has_blocker(<<~"END");
         ELevate does not currently support PostgreSQL for upgrades to $name.
         END
 
@@ -5741,7 +5741,7 @@ EOS
             $self->_give_up_on_postgresql();
         }
         else {
-            Elevate::Notify::add_final_notification( <<~"EOS" );
+            Elevate::Notify::add_final_notification(<<~"EOS");
         ELevate backed up your system PostgreSQL data directory to $pgsql_datadir_backup_path
         prior to any modification or attempt to upgrade, in case the upgrade needs to be performed
         manually, or if old settings need to be referenced.
@@ -5823,7 +5823,7 @@ EOS
 
         if ( $outcome == 0 ) {
             INFO("The PostgreSQL upgrade process was successful.");
-            Elevate::Notify::add_final_notification( <<~EOS );
+            Elevate::Notify::add_final_notification(<<~EOS);
         ELevate successfully ran the upgrade procedure on the system instance of
         PostgreSQL. If no problems are reported with configuring the upgraded instance
         to work with cPanel, you should proceed with applying any relevant
@@ -5858,7 +5858,7 @@ EOS
         my ( $success, $msg ) = Whostmgr::Postgres::update_config();
         if ( !$success ) {
             ERROR("The system failed to update the PostgreSQL configuration: $msg");
-            Elevate::Notify::add_final_notification( <<~EOS );
+            Elevate::Notify::add_final_notification(<<~EOS);
         ELevate could not configure the upgraded system PostgreSQL instance to work
         with cPanel. See the log for additional information. Once the issue has been
         addressed, perform this step manually using the "Postgres Config Install" area
@@ -5878,7 +5878,7 @@ EOS
     sub _give_up_on_postgresql ($self) {
         ERROR('Skipping attempt to upgrade the system instance of PostgreSQL.');
         Elevate::StageFile::update_stage_file( { postgresql_give_up => 1 } );
-        Elevate::Notify::add_final_notification( <<~EOS );
+        Elevate::Notify::add_final_notification(<<~EOS);
     The process of upgrading the system instance of PostgreSQL failed. The
     PostgreSQL service has been disabled in the Service Manager in WHM:
 
@@ -6191,7 +6191,7 @@ EOS
 
         return if $self->_autofix_yum_conf();
 
-        return $self->has_blocker( <<~'EOS' );
+        return $self->has_blocker(<<~'EOS');
     ELevate was unable to autofix '/etc/yum.conf'.  Check the contents of this
     file and ensure that the line
 
@@ -6244,7 +6244,7 @@ EOS
         return unless scalar @unexpected_extra_packages;
 
         my $pkg_string = join "\n", @unexpected_extra_packages;
-        return $self->has_blocker( <<~EOS );
+        return $self->has_blocker(<<~EOS);
     There are packages installed that do not have associated repositories:
 
     $pkg_string
@@ -6387,7 +6387,7 @@ EOS
                         }
                     }
                     else {
-                        return $self->has_blocker( <<~EOS );
+                        return $self->has_blocker(<<~EOS);
                     $yum_ct_bin is missing. You must install the yum-utils package
                     if you wish to clear the unfinished yum transactions.
                     EOS
@@ -6771,7 +6771,7 @@ EOS
         }
 
         if ( $setup !~ m{^\s*PermitRootLogin\b}m ) {
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
         The OpenSSH configuration file does not explicitly state the PermitRootLogin
         option in the sshd_config file. This option may default to "prohibit-password"
         after the upgrade is complete. We will set the 'PermitRootLogin' value in
@@ -6887,7 +6887,7 @@ EOS
 
         if ( !-x UFW ) {
             my $ufw = UFW;
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
         '$ufw' is either missing or not executable on this server. Unable to
         ensure that port 1022 is open as a secondary ssh option for
         do-release-upgrade.
@@ -7090,7 +7090,7 @@ EOS
             my $upgrade_file = RELEASE_UPGRADES_FILE;
             my $backup_file  = $upgrade_file . '.pre_elevate';
 
-            INFO( <<~"EOS" );
+            INFO(<<~"EOS");
         Expected line was not found in the config file.  Backing up the config
         file to $backup_file and replacing the contents with the necessary
         config to ensure that the elevate script can upgrade the server.
@@ -7139,7 +7139,7 @@ EOS
         my $altered = join "\n", @{ $out->{stdout} };
 
         if ( $altered =~ /Problems were detected with cPanel-provided files which are controlled by packages/ ) {
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
         /usr/local/cpanel/scripts/check_cpanel_pkgs reported that your system
         has altered packages.
 
@@ -7185,7 +7185,7 @@ EOS
         my $altered = join "\n", @{ $out->{stdout} };
 
         if ( $altered =~ /Problems were detected with cPanel-provided files which are controlled by packages/ ) {
-            LOGDIE( <<~"EOS" );
+            LOGDIE(<<~"EOS");
         /usr/local/cpanel/scripts/check_cpanel_pkgs was unable to repair the packages on this system:
 
         $altered
@@ -7320,7 +7320,7 @@ EOS
         EOS
         }
 
-        return $self->has_blocker( <<~EOS );
+        return $self->has_blocker(<<~EOS);
     cPanel does not detect a valid license for itself on the system at this
     time. This could cause problems during the update.
 
@@ -7391,7 +7391,7 @@ EOS
 
             $self->components->abort_on_first_blocker(1);
 
-            return $self->has_blocker( <<~"EOS");
+            return $self->has_blocker(<<~"EOS");
         cPanel Update (upcp) is currently running. Please wait for the upcp (PID $upcp_pid) to complete, then try again.
         You can use the command 'ps --pid $upcp_pid' to check if the process is running.
         EOS
@@ -7407,7 +7407,7 @@ EOS
 
             $self->components->abort_on_first_blocker(1);
 
-            return $self->has_blocker( <<~'EOS');
+            return $self->has_blocker(<<~'EOS');
         A cPanel backup is currently running. Please wait for the cPanel backup to complete, then try again.
         EOS
         }
@@ -8301,7 +8301,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
             if ( $out->{status} != 0 ) {
 
-                WARN( <<~"EOS");
+                WARN(<<~"EOS");
             Failed to retrieve config files for $pkg.  If you have custom config files for this pkg,
             then you will need to manually evaluate the configs and potentially move the rpmsave file back
             into place.
@@ -8698,7 +8698,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
             if ( $out->{status} != 0 ) {
 
-                WARN( <<~"EOS");
+                WARN(<<~"EOS");
             Failed to retrieve config files for $pkg.  If you have custom config files for this pkg,
             then you will need to manually evaluate the configs and potentially move the rpmsave file back
             into place.
@@ -9281,7 +9281,7 @@ deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ .
 
         unless ( $result->{metadata}{result} ) {
 
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
         The php_get_vhost_versions API call failed. Unable to determine current
         PHP usage by domain.
 
@@ -11122,7 +11122,7 @@ sub run ( $pkg, @args ) {
     my $stage = Elevate::Stages::get_stage();
 
     if ( $stage == 0 ) {
-        print_box_no_log( <<~EOS );
+        print_box_no_log(<<~EOS);
         Please re-run this script with
 
             --help  to know more about this script
@@ -11250,7 +11250,7 @@ sub start ($self) {
 
     if ( $self->getopt('upgrade-distro-manually') || $self->getopt('no-leapp') ) {
         my $touchfile = PAUSE_ELEVATE_TOUCHFILE;
-        WARN( <<~"EOS");
+        WARN(<<~"EOS");
         Automated upgrade of the distro has been disabled.
         Please wait for the file '$touchfile' to be created.
         When this file is created, the ELevate process is paused and you can upgrade on your own.
@@ -11569,7 +11569,7 @@ sub _wait_on_pause ($self) {
 
     Elevate::StageFile::update_stage_file( { status => q[paused] } );
 
-    WARN( <<~"EOS" );
+    WARN(<<~"EOS");
     The elevation process is currently paused by $pause_file
     Please read the file for more details.
     EOS

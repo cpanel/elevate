@@ -215,7 +215,7 @@ sub _ensure_sites_use_correct_php_version ($self) {
         my $api_string = join( ' ', @api_cmd );
         unless ( $result->{metadata}{result} ) {
 
-            WARN( <<~"EOS" );
+            WARN(<<~"EOS");
             Unable to set $vhost back to its desired PHP version.  This site may
             be using the incorrect version of PHP.  To set it back to its
             original PHP version, execute the following command:
@@ -261,7 +261,7 @@ sub _blocker_ea4_profile ($self) {
 
     my $list = join( "\n", map { "- $_" } @incompatible_packages );
 
-    return $self->has_blocker( <<~"EOS" );
+    return $self->has_blocker(<<~"EOS");
     One or more EasyApache 4 package(s) are not compatible with $pretty_distro_name.
     Please remove these packages before continuing the update.
     $list
