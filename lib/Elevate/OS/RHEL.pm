@@ -106,6 +106,7 @@ use constant needs_leapp                     => 1;
 use constant needs_network_manager           => 0;
 use constant needs_powertools                => 0;
 use constant needs_sha1_enabled              => 0;
+use constant needs_type_in_ifcfg             => 0;
 use constant needs_vdo                       => 0;
 use constant package_manager                 => 'YUM';
 use constant pkgmgr_lib_path                 => undef;

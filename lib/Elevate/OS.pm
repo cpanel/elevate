@@ -113,6 +113,7 @@ BEGIN {
         'needs_network_manager',                # This is used to determine if the NetworkManager servoce needs to be enabled prior to running leapp
         'needs_powertools',                     # This is used to determine if the OS requires the powertools repo
         'needs_sha1_enabled',                   # This distro needs to be specially configured to support packages with SHA-1 signatures
+        'needs_type_in_ifcfg',                  # This is used to determine if the OS requires the TYPE key in its ifcfg files (converts from network-scripts to NetworkManager)
         'needs_vdo',                            # AL8->9 inhibits without the vdo package installed (needed to perform authoritative checks for an obscure volume format)
         'original_os_major',                    # The initial starting OS major version
         'package_manager',                      # This is the package manager that the OS uses.  i.e. RPM

@@ -35,6 +35,7 @@ use constant needs_crb                    => 1;
 use constant needs_grub_enable_blscfg     => 1;
 use constant needs_network_manager        => 1;
 use constant needs_sha1_enabled           => 1;
+use constant needs_type_in_ifcfg          => 1;
 use constant needs_vdo                    => 1;
 use constant original_os_major            => 8;
 use constant pkgmgr_lib_path              => '/var/lib/dnf';
