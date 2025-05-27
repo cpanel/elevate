@@ -230,4 +230,83 @@ my $nics = cpev->new->get_component('NICs');
     );
 }
 
+{
+    note 'Testing _blocker_ifcfg_files';
+
+    my $mock_nics          = Test::MockModule->new('Elevate::NICs');
+    my $mock_nic_component = Test::MockModule->new('Elevate::Components::NICs');
+    my $mock_file_slurper  = Test::MockModule->new('File::Slurper');
+
+    foreach my $os (qw{ cent ubuntu }) {
+        set_os_to($os);
+
+        $mock_nics->redefine(
+            get_nics => sub { die "DO NOT CALL THIS\n"; },
+        );
+
+        ok( lives { $nics->_blocker_ifcfg_files() }, "This check is a noop for $os" );
+    }
+
+    set_os_to('alma');
+
+    $mock_nics->redefine(
+        get_nics => sub { return ('eth0'); },
+    );
+
+    $mock_nic_component->redefine(
+        _nics_have_missing_ifcfg_files => 1,
+    );
+
+    $mock_file_slurper->redefine(
+        read_binary => sub { die "DO NOT CALL THIS\n"; },
+    );
+
+    ok( lives { $nics->_blocker_ifcfg_files() }, 'Returns early if the ifcfg file is missing' );
+
+    $mock_nic_component->redefine(
+        _nics_have_missing_ifcfg_files => 0,
+    );
+
+    my $mock_contents;
+    $mock_file_slurper->redefine(
+        read_binary => sub { return $mock_contents; },
+    );
+
+    $mock_contents = <<~'EOS';
+    BOOTPROTO=dhcp
+    DEVICE=ens3
+    DHCLIENT_SET_DEFAULT_ROUTE=no
+    HWADDR=fa:16:3e:48:13:b7
+    IPV6INIT=yes
+    IPV6_AUTOCONF=yes
+    MTU=1500
+    ONBOOT=yes
+    TYPE=Ethernet
+    USERCTL=no
+    EOS
+
+    is( $nics->_blocker_ifcfg_files(), undef, 'No blocker when the TYPE parameter is defined' );
+
+    $mock_contents = <<~'EOS';
+    BOOTPROTO=dhcp
+    DEVICE=ens3
+    DHCLIENT_SET_DEFAULT_ROUTE=no
+    HWADDR=fa:16:3e:48:13:b7
+    IPV6INIT=yes
+    IPV6_AUTOCONF=yes
+    MTU=1500
+    ONBOOT=yes
+    USERCTL=no
+    EOS
+
+    like(
+        $nics->_blocker_ifcfg_files(),
+        {
+            id  => 'Elevate::Components::NICs::_blocker_ifcfg_files',
+            msg => qr/The following network-scripts files are missing the TYPE key/,
+        },
+        'No blocker when the TYPE parameter is defined',
+    );
+}
+
 done_testing();

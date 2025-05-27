@@ -553,6 +553,22 @@ yath -v t/Elevate-OS_detect_changes.t
 ---
 
 
+## needs_type_in_ifcfg
+
+---
+```
++---------------------+------------+-------+---------------------+
+| key                 | distro     | major | needs_type_in_ifcfg |
++---------------------+------------+-------+---------------------+
+| needs_type_in_ifcfg | AlmaLinux  | 8     | 1                   |
+| needs_type_in_ifcfg | CentOS     | 7     | 0                   |
+| needs_type_in_ifcfg | CloudLinux | 7     | 0                   |
+| needs_type_in_ifcfg | Ubuntu     | 20    | 0                   |
++---------------------+------------+-------+---------------------+
+```
+---
+
+
 ## needs_vdo
 
 ---

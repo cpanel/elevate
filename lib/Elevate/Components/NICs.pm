@@ -8,6 +8,9 @@ Elevate::Components::NICs
 
 =head2 check
 
+Determine if the ifcfg-* files have the TYPE key present and block if it
+is missing for A8->A9 conversions
+
 Determine if the server has multiple NIC devices using the kernel (ethX)
 namespace
 
@@ -112,7 +115,54 @@ sub check ($self) {
     return 1 unless Elevate::OS::needs_leapp();
     return 1 if $self->upgrade_distro_manually;
 
-    return $self->_blocker_bad_nics_naming;
+    $self->_blocker_ifcfg_files();
+    $self->_blocker_bad_nics_naming();
+    return;
+}
+
+sub _blocker_ifcfg_files ($self) {
+    return unless Elevate::OS::needs_type_in_ifcfg();
+
+    my @nics = Elevate::NICs::get_nics();
+
+    # just block if this happens
+    return if $self->_nics_have_missing_ifcfg_files(@nics);
+
+    my @bad_ifcfg_files;
+    foreach my $nic (@nics) {
+        my $nic_path = ETH_FILE_PREFIX . $nic;
+
+        my $found = 0;
+        my $txt   = File::Slurper::read_binary($nic_path);
+        my @lines = split "\n", $txt;
+        foreach my $line (@lines) {
+            if ( $line =~ m/^\s*TYPE\s*=/ ) {
+                $found = 1;
+                last;
+            }
+        }
+
+        push @bad_ifcfg_files, $nic_path unless $found;
+    }
+
+    if (@bad_ifcfg_files) {
+        my $ifcfg_files = join "\n", @bad_ifcfg_files;
+        return $self->has_blocker(<<~"EOS");
+        The following network-scripts files are missing the TYPE key:
+
+        $ifcfg_files
+
+        Since we will be converting from using network-scripts to using NetworkManager
+        as part of the OS distro upgrade, the TYPE key needs to be explicitly defined
+        within each ifcfg-* file.
+
+        You may want to consider reaching out to cPanel Support for assistance:
+
+        https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/
+        EOS
+    }
+
+    return;
 }
 
 sub _blocker_bad_nics_naming ($self) {
