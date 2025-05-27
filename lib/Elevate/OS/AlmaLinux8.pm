@@ -14,6 +14,7 @@ use parent 'Elevate::OS::RHEL';
 
 use constant supported_cpanel_mysql_versions => qw{
   8.0
+  8.4
   10.5
   10.6
   10.11
@@ -46,8 +47,21 @@ use constant upgrade_to_pretty_name       => 'AlmaLinux 9';
 
 sub vetted_yum_repo ($self) {
     my @repos = $self->SUPER::vetted_yum_repo();
+    push @repos, $self->vetted_mysql_yum_repo_ids();
     push @repos, 'powertools', 'appstream';
     return @repos;
+}
+
+sub vetted_mysql_yum_repo_ids ($self) {
+
+    # No use doing this since we have to call this sub directly via
+    # Elevate::OS::vetted_yum_repo() anyway
+    # my @repos = $self->SUPER::vetted_mysql_yum_repo_ids();
+
+    return (
+        qr/^mysql-[0-9]\.[0-9]-lts-community$/,
+        qr/^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$/,
+    );
 }
 
 1;

@@ -736,7 +736,7 @@ yath -v t/Elevate-OS_detect_changes.t
 +---------------------------------+------------+-------+----------------------------------------------+
 | key                             | distro     | major | supported_cpanel_mysql_versions              |
 +---------------------------------+------------+-------+----------------------------------------------+
-| supported_cpanel_mysql_versions | AlmaLinux  | 8     | [10.11, 10.5, 10.6, 11.4, "8.0"]             |
+| supported_cpanel_mysql_versions | AlmaLinux  | 8     | [10.11, 10.5, 10.6, 11.4, "8.0", 8.4]        |
 | supported_cpanel_mysql_versions | CentOS     | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
 | supported_cpanel_mysql_versions | CloudLinux | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
 | supported_cpanel_mysql_versions | Ubuntu     | 20    | [10.11, 10.6, "8.0"]                         |
@@ -885,12 +885,8 @@ yath -v t/Elevate-OS_detect_changes.t
 | key                       | distro     | major | vetted_mysql_yum_repo_ids                                                    |
 +---------------------------+------------+-------+------------------------------------------------------------------------------+
 | vetted_mysql_yum_repo_ids | AlmaLinux  | 8     | [\n                                                                          |
-|                           |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                               |
-|                           |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n |
-|                           |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n        |
-|                           |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n             |
-|                           |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                             |
-|                           |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n           |
+|                           |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n          |
+|                           |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                            |
 |                           |            |       | ]                                                                            |
 |                           |            |       |                                                                              |
 | vetted_mysql_yum_repo_ids | CentOS     | 7     | [\n                                                                          |
@@ -934,6 +930,8 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
 |                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
 |                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                |
+|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                  |
 |                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
 |                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
 |                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
