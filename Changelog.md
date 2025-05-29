@@ -1,3 +1,14 @@
+##### **2025-05-28** - version 66
+
+* Fixed case RE-1531: Add support for MySQL 8.4 for a8->a9 distro upgrades
+* Fixed case RE-1535: Add blocker for when ifcfg files are missing the TYPE parameter on upgrades from A8->A9
+* Fixed case RE-1500: Ensure that the correct package signing keys are installed if KernelCare is detected.
+* Fixed case RE-1511: Add support for the platform360-cpanel repo
+* Fixed case RE-1461: Move EA4 post_distro_upgrade step to after first upcp.
+* Fixed case RE-1501: Only emit warning about absolute symlinks if there are absolute symlinks
+* Fixed case RE-1442: Ensure plugins=1 is set in yum.conf before starting CloudLinux upgrades
+* Fixed case RE-1442: Have Blockers emit an error to the logs instead of a warning
+
 ##### **2025-04-23** - version 65
 
 * Fixed case RE-1397: Add support for named tiers and have a8->a9 upgrades use it
