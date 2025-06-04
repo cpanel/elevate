@@ -6,12 +6,33 @@ my $HOST    = $ARGV[0];
 my $PORT    = $ARGV[1] // 22;
 my $RETVAL  = 1;
 my $RETRIES = 0;
-my $RETRY   = $ARGV[2] // 1200; # Bumping this to 20 minutes per cloudlinux Stage 4 averaging right at 15 mins
+my $RETRY   = $ARGV[2] // 1800;    # Bumping this to 30 minutes per cloudlinux Stage 4 averaging right at 15 mins ( up to 30 mins in slow times )
 
-return unless defined $HOST;
+my $NC_PATH = '/usr/bin/nc';
+
+# Check if netcat is installed
+unless ( -x $NC_PATH ) {
+    my $pkg_suggestion = "Please install netcat manually.";
+    if ( -x "/sbin/apk" || -x "/bin/apk" ) {
+        $pkg_suggestion = "Try: apk add netcat-openbsd";
+    }
+    elsif ( -x "/usr/bin/apt" || -x "/bin/apt" ) {
+        $pkg_suggestion = "Try: apt update && apt install -y netcat";
+    }
+    elsif ( -x "/usr/bin/yum" || -x "/bin/yum" ) {
+        $pkg_suggestion = "Try: yum install -y nc";
+    }
+    print STDERR "Please install netcat as it's missing and ssh_retry rquires it.  HINT: $pkg_suggestion.";
+    exit 1;
+}
+
+if ( !defined $HOST ) {
+    print STDERR "No Host was defined.  exiting.\n";
+    exit 1;
+}
 
 while ( $RETVAL != 0 ) {
-    my $cmd    = qq{ /usr/bin/nc -z -w 1 $HOST $PORT };
+    my $cmd    = qq{ $NC_PATH -z -w 1 $HOST $PORT };
     my $output = `$cmd`;
     my $time   = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
 
@@ -25,7 +46,7 @@ while ( $RETVAL != 0 ) {
     $RETRIES++;
 
     if ( $RETVAL != 0 ) {
-        print "## [$time] [INFO]: Retrying SSH Connect: Attempt ${RETRIES} ...\n";
+        print "## [$time] [INFO]: Retrying SSH Connect: Attempt ${RETRIES} to SSH on Host $HOST...\n";
     }
 
     if ( $RETRIES >= $RETRY ) {
