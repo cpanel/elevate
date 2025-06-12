@@ -54,6 +54,7 @@ use constant pkgmgr_lib_path                 => undef;
 use constant pretty_name                     => 'Ubuntu';
 use constant provides_mysql_governor         => 0;
 use constant remove_els                      => 0;
+use constant set_update_tier_to_release      => 0;
 use constant should_archive_elevate_files    => 0;
 use constant should_check_cloudlinux_license => 0;
 use constant skip_minor_version_check        => 1;

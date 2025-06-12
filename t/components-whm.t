@@ -414,4 +414,77 @@ my $whm  = $cpev->get_component('WHM');
     $whm->components->abort_on_first_blocker(0);
 }
 
+{
+    note 'Test post_distro_upgrade';
+
+    my $mock_update_config = Test::MockModule->new('Cpanel::Update::Config');
+    $mock_update_config->redefine(
+        load => sub { die "do not call this yet\n"; },
+    );
+
+    foreach my $os (qw{ alma ubuntu }) {
+        set_os_to($os);
+
+        ok(
+            lives { $whm->post_distro_upgrade(); },
+            "Returns early on $os",
+        );
+    }
+
+    foreach my $os (qw{ cent cloud }) {
+        set_os_to($os);
+
+        my $cp_tier = 'STABLE';
+        $mock_update_config->redefine(
+            load => sub {
+                return {
+                    CPANEL      => $cp_tier,
+                    RPMUP       => 'daily',
+                    SARULESUP   => 'daily',
+                    STAGING_DIR => '/usr/local/cpanel',
+                    UPDATES     => 'daily',
+                };
+            },
+            save => sub { die "do not call this yet\n"; },
+        );
+
+        ok(
+            lives { $whm->post_distro_upgrade(); },
+            "Returns early when CPANEL is set to something other than 11.110"
+        );
+
+        $cp_tier = '11.110';
+
+        my $conf = {};
+        $mock_update_config->redefine(
+            save => sub { $conf = $_[0]; },
+        );
+
+        my $msg;
+        my $mock_notify = Test::MockModule->new('Elevate::Notify');
+        $mock_notify->redefine(
+            add_final_notification => sub { ($msg) = @_; },
+        );
+
+        $whm->post_distro_upgrade();
+        is(
+            $conf,
+            {
+                CPANEL      => 'RELEASE',
+                RPMUP       => 'daily',
+                SARULESUP   => 'daily',
+                STAGING_DIR => '/usr/local/cpanel',
+                UPDATES     => 'daily',
+            },
+            'Conf has the expected values when CPANEL is set to 11.110',
+        );
+
+        like(
+            $msg,
+            qr/ELevate has updated the system's update tier to 'RELEASE'/,
+            'The expected final notification is added',
+        );
+    }
+}
+
 done_testing();

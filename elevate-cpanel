@@ -7266,10 +7266,11 @@ EOS
     use Elevate::OS        ();
 
     use Cpanel::Backup::Sync    ();
-    use Cpanel::Version::Tiny   ();
-    use Cpanel::Update::Tiers   ();
     use Cpanel::License         ();
     use Cpanel::Unix::PID::Tiny ();
+    use Cpanel::Update::Config  ();
+    use Cpanel::Update::Tiers   ();
+    use Cpanel::Version::Tiny   ();
 
     # use Elevate::Components::Base();
     our @ISA;
@@ -7459,6 +7460,25 @@ EOS
         }
 
         return 0;
+    }
+
+    sub post_distro_upgrade ($self) {
+        return unless Elevate::OS::set_update_tier_to_release();
+
+        my $current = Cpanel::Update::Config::load();
+
+        return unless $current->{CPANEL} eq '11.110';
+
+        my $conf = {
+            %$current,
+            CPANEL => 'RELEASE',
+        };
+
+        Cpanel::Update::Config::save($conf);
+
+        Elevate::Notify::add_final_notification("\nELevate has updated the system's update tier to 'RELEASE'\n\nThis can be changed via Home / Server Configuration / Update Preferences\n");
+
+        return;
     }
 
     1;
@@ -7690,6 +7710,7 @@ EOS
             'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
             'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
             'remove_els',                           # This is used to indicate if we are to remove ELS for this OS
+            'set_update_tier_to_release',           # This is used to determine if we should set the update tier to release
             'should_archive_elevate_files',         # This is used to determine if existing elevate logs should be archived
             'should_check_cloudlinux_license',      # This is used to determine if we should check the cloudlinux license
             'skip_minor_version_check',             # Used to determine if we need to skip the minor version check for the OS
@@ -7839,6 +7860,7 @@ EOS
     use constant pkgmgr_lib_path             => '/var/lib/yum';
     use constant pretty_name                 => 'CentOS 7';
     use constant remove_els                  => 1;
+    use constant set_update_tier_to_release  => 1;
     use constant upgrade_to_pretty_name      => 'AlmaLinux 8';
 
     sub vetted_yum_repo ($self) {
@@ -7892,6 +7914,7 @@ EOS
     use constant pkgmgr_lib_path                 => '/var/lib/yum';
     use constant pretty_name                     => 'CloudLinux 7';
     use constant provides_mysql_governor         => 1;
+    use constant set_update_tier_to_release      => 1;
     use constant should_check_cloudlinux_license => 1;
     use constant upgrade_to_pretty_name          => 'CloudLinux 8';
     use constant yum_conf_needs_plugins          => 1;
@@ -8024,6 +8047,7 @@ EOS
     use constant pretty_name                     => 'RHEL';
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
+    use constant set_update_tier_to_release      => 0;
     use constant should_archive_elevate_files    => 0;
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 0;
@@ -8088,6 +8112,7 @@ EOS
     use constant pretty_name                     => 'Ubuntu';
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
+    use constant set_update_tier_to_release      => 0;
     use constant should_archive_elevate_files    => 0;
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 1;
@@ -12002,6 +12027,8 @@ sub run_stage_5 ($self) {
 
     INFO("Updating all packages before final reboot");
     Elevate::PkgMgr::update_allow_erasing();
+
+    $self->run_component_once( 'WHM' => 'post_distro_upgrade' );
 
     Elevate::Motd->cleanup();
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();

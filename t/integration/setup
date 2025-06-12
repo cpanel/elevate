@@ -18,4 +18,9 @@ fi
 echo -e "\nInstalling ea-nginx via scripts/installpkg"
 /usr/local/cpanel/scripts/installpkg ea-nginx
 
+# RE-1568
+if [[ -f /etc/redhat-release ]] && grep -q "^CentOS.*release 7" /etc/redhat-release; then
+    sed -i 's/CPANEL=.*/CPANEL=11.110/' /etc/cpupdate.conf
+fi
+
 exit 0;

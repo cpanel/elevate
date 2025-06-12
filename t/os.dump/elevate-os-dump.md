@@ -681,6 +681,22 @@ yath -v t/Elevate-OS_detect_changes.t
 ---
 
 
+## set_update_tier_to_release
+
+---
+```
++----------------------------+------------+-------+----------------------------+
+| key                        | distro     | major | set_update_tier_to_release |
++----------------------------+------------+-------+----------------------------+
+| set_update_tier_to_release | AlmaLinux  | 8     | 0                          |
+| set_update_tier_to_release | CentOS     | 7     | 1                          |
+| set_update_tier_to_release | CloudLinux | 7     | 1                          |
+| set_update_tier_to_release | Ubuntu     | 20    | 0                          |
++----------------------------+------------+-------+----------------------------+
+```
+---
+
+
 ## should_archive_elevate_files
 
 ---

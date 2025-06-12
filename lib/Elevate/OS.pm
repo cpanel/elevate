@@ -121,6 +121,7 @@ BEGIN {
         'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
         'provides_mysql_governor',              # This is used to determine if the OS provides the governor-mysql package
         'remove_els',                           # This is used to indicate if we are to remove ELS for this OS
+        'set_update_tier_to_release',           # This is used to determine if we should set the update tier to release
         'should_archive_elevate_files',         # This is used to determine if existing elevate logs should be archived
         'should_check_cloudlinux_license',      # This is used to determine if we should check the cloudlinux license
         'skip_minor_version_check',             # Used to determine if we need to skip the minor version check for the OS
