@@ -1,3 +1,8 @@
+##### **2025-06-16** - version 67
+
+* Fixed case RE-1555: Ensure that Perl 5.42 get rebuild on the first upcp
+* Fixed case RE-1568: Set update tier to release on C7->A8 upgrades
+
 ##### **2025-05-28** - version 66
 
 * Fixed case RE-1531: Add support for MySQL 8.4 for a8->a9 distro upgrades
