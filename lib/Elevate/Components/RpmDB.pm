@@ -109,8 +109,9 @@ sub _sysup ($self) {
     Elevate::PkgMgr::config_manager_enable('powertools') if Elevate::OS::needs_powertools();
     Elevate::PkgMgr::config_manager_enable('crb')        if Elevate::OS::needs_crb();
 
-    # Break cpanel-perl (NOTE: This only works on perl 5.36)
+    # Break cpanel-perl (NOTE: This needs to be updated each time we update Perl)
     unlink('/usr/local/cpanel/3rdparty/perl/536/cpanel-lib/X/Tiny.pm');
+    unlink('/usr/local/cpanel/3rdparty/perl/542/cpanel-lib/X/Tiny.pm');
     {
         local $ENV{'CPANEL_BASE_INSTALL'} = 1;    # Don't fix more than perl itself.
         $self->ssystem(qw{/usr/local/cpanel/scripts/fix-cpanel-perl});
