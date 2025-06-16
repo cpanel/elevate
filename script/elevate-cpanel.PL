@@ -1240,6 +1240,8 @@ sub run_stage_5 ($self) {
     INFO("Updating all packages before final reboot");
     Elevate::PkgMgr::update_allow_erasing();
 
+    $self->run_component_once( 'WHM' => 'post_distro_upgrade' );
+
     Elevate::Motd->cleanup();
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
     print_box("Great SUCCESS! Your upgrade to $pretty_distro_name is complete.");

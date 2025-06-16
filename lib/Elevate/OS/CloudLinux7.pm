@@ -41,6 +41,7 @@ use constant original_os_major               => 7;
 use constant pkgmgr_lib_path                 => '/var/lib/yum';
 use constant pretty_name                     => 'CloudLinux 7';
 use constant provides_mysql_governor         => 1;
+use constant set_update_tier_to_release      => 1;
 use constant should_check_cloudlinux_license => 1;
 use constant upgrade_to_pretty_name          => 'CloudLinux 8';
 use constant yum_conf_needs_plugins          => 1;

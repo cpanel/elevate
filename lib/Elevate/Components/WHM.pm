@@ -24,7 +24,7 @@ noop
 
 =head2 post_distro_upgrade
 
-noop
+Set update tier to release for qualifying servers
 
 =cut
 
@@ -35,10 +35,11 @@ use Elevate::Notify    ();
 use Elevate::OS        ();
 
 use Cpanel::Backup::Sync    ();
-use Cpanel::Version::Tiny   ();
-use Cpanel::Update::Tiers   ();
 use Cpanel::License         ();
 use Cpanel::Unix::PID::Tiny ();
+use Cpanel::Update::Config  ();
+use Cpanel::Update::Tiers   ();
+use Cpanel::Version::Tiny   ();
 
 use parent qw{Elevate::Components::Base};
 
@@ -229,6 +230,26 @@ sub _blocker_is_cpanel_backup_running ($self) {
     }
 
     return 0;
+}
+
+sub post_distro_upgrade ($self) {
+    return unless Elevate::OS::set_update_tier_to_release();
+
+    my $current = Cpanel::Update::Config::load();
+
+    # Only do this if we set it to 11.110 via the autofixer
+    return unless $current->{CPANEL} eq '11.110';
+
+    my $conf = {
+        %$current,
+        CPANEL => 'RELEASE',
+    };
+
+    Cpanel::Update::Config::save($conf);
+
+    Elevate::Notify::add_final_notification("\nELevate has updated the system's update tier to 'RELEASE'\n\nThis can be changed via Home / Server Configuration / Update Preferences\n");
+
+    return;
 }
 
 1;
