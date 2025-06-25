@@ -1,3 +1,7 @@
+##### **2025-06-25** - version 68
+
+* Fixed case RE-1309: Add experimental support for CL8->CL9 distro upgrades.
+
 ##### **2025-06-16** - version 67
 
 * Fixed case RE-1555: Ensure that Perl 5.42 get rebuild on the first upcp
