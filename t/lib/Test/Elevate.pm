@@ -11,8 +11,27 @@ use cPstrict;
 use Test::More;
 use Test::Deep;
 
-our @ISA       = qw(Exporter);
-our @EXPORT    = qw(message_seen message_seen_lines clear_messages_seen no_messages_seen no_message_seen notification_seen clear_notifications_seen no_notifications_seen no_notification_seen set_os_to_centos_7 set_os_to_cloudlinux_7 set_os_to_ubuntu_20 set_os_to_almalinux_8 set_os_to unmock_os);
+our @ISA = qw(Exporter);
+
+our @EXPORT = qw(
+  clear_messages_seen
+  clear_notifications_seen
+  message_seen
+  message_seen_lines
+  no_message_seen
+  no_messages_seen
+  no_notification_seen
+  no_notifications_seen
+  notification_seen
+  set_os_to_almalinux_8
+  set_os_to_centos_7
+  set_os_to_cloudlinux_7
+  set_os_to_cloudlinux_8
+  set_os_to_ubuntu_20
+  set_os_to
+  unmock_os
+);
+
 our @EXPORT_OK = @EXPORT;
 
 use Log::Log4perl;
@@ -214,13 +233,20 @@ sub set_os_to_almalinux_8 {
     return;
 }
 
-sub set_os_to ($os) {
-    return set_os_to_centos_7     if $os =~ m/^cent/i;
-    return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i;
-    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i;
-    return set_os_to_almalinux_8  if $os =~ m/^alma/i;
+sub set_os_to_cloudlinux_8 {
+    note 'Mock Elevate::OS singleton to think this server is CloudLinux 8';
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::CloudLinux8';
+    return;
+}
 
-    die "Unknown os:  $os\n";
+sub set_os_to ( $os, $version ) {
+    return set_os_to_centos_7     if $os =~ m/^cent/i   && $version == 7;
+    return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i  && $version == 7;
+    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i && $version == 20;
+    return set_os_to_almalinux_8  if $os =~ m/^alma/i   && $version == 8;
+    return set_os_to_cloudlinux_8 if $os =~ m/^cloud/i  && $version == 8;
+
+    die "Unknown os:  $os $version\n";
 }
 
 sub unmock_os {

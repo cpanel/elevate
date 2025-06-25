@@ -39,6 +39,7 @@ use constant pkgmgr_lib_path             => '/var/lib/yum';
 use constant pretty_name                 => 'CentOS 7';
 use constant remove_els                  => 1;
 use constant set_update_tier_to_release  => 1;
+use constant skip_minor_version_check    => 0;
 use constant upgrade_to_pretty_name      => 'AlmaLinux 8';
 
 sub vetted_yum_repo ($self) {

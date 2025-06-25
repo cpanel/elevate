@@ -48,59 +48,69 @@ my $cl   = $cpev->get_blocker('CloudLinux');
         },
     );
 
-    foreach my $os (qw{ cent ubuntu alma }) {
-        set_os_to($os);
+    my %os_hash = (
+        cent   => [7],
+        ubuntu => [20],
+        alma   => [8],
+    );
+    foreach my $os ( sort keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$os} } ) {
+            set_os_to( $os, $version );
 
-        my $name = $os eq 'cent' ? 'CentOS' : 'Ubuntu';
-        is $cl->_check_cloudlinux_license(), 0, "The blocker check is skipped and returns 0 when the OS is $name";
+            is $cl->_check_cloudlinux_license(), 0, "The blocker check is skipped and returns 0 when the OS is $os $version";
+        }
     }
 
-    set_os_to('cloud');
+    foreach my $version ( 7, 8 ) {
+        set_os_to( 'cloud', 8 );
 
-    $system_status = 1;
+        $system_status = 1;
 
-    my $blocker = dies { $cl->_check_cloudlinux_license() };
+        my $blocker = dies { $cl->_check_cloudlinux_license() };
 
-    is ref $blocker, 'cpev::Blocker', 'A blocker object is returned when a blocker is found';
-    is(
-        \@cmds,
-        [
+        is ref $blocker, 'cpev::Blocker', 'A blocker object is returned when a blocker is found';
+        is(
+            \@cmds,
             [
-                '/usr/bin/cldetect',
-                '--check-license',
+                [
+                    '/usr/bin/cldetect',
+                    '--check-license',
+                ],
+                [
+                    '/usr/sbin/rhn_check',
+                ],
             ],
-            [
-                '/usr/sbin/rhn_check',
-            ],
-        ],
-        'The expected system commands are called'
-    );
+            'The expected system commands are called'
+        );
 
-    check_blocker_content($blocker);
+        check_blocker_content($blocker);
 
-    $system_status         = 0;
-    $capture_output_status = 1;
+        $system_status         = 0;
+        $capture_output_status = 1;
 
-    $blocker = dies { $cl->_check_cloudlinux_license() };
+        $blocker = dies { $cl->_check_cloudlinux_license() };
 
-    check_blocker_content($blocker);
+        check_blocker_content($blocker);
 
-    $capture_output_status = 0;
-    @stdout                = (
-        'CL license is not ok',
-    );
+        $capture_output_status = 0;
+        @stdout                = (
+            'CL license is not ok',
+        );
 
-    $blocker = dies { $cl->_check_cloudlinux_license() };
+        $blocker = dies { $cl->_check_cloudlinux_license() };
 
-    check_blocker_content($blocker);
+        check_blocker_content($blocker);
 
-    @stdout = (
-        'ok',
-    );
+        @stdout = (
+            'ok',
+        );
 
-    is $cl->_check_cloudlinux_license(), 0, 'No blockers are found when CL has a valid license';
+        is $cl->_check_cloudlinux_license(), 0, 'No blockers are found when CL has a valid license';
 
-    no_messages_seen();
+        no_messages_seen();
+
+        @cmds = ();
+    }
 }
 
 sub check_blocker_content ($blocker) {

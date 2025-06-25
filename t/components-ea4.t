@@ -114,26 +114,29 @@ sub test_backup_and_restore_not_using_ea4 : Test(7) ($self) {
     return;
 }
 
-sub test_missing_ea4_profile : Test(12) ($self) {
+sub test_missing_ea4_profile : Test(15) ($self) {
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        $self->{mock_saferun}->redefine(
-            saferunnoerror => sub {
-                note "saferunnoerror: no output";
-                return;
-            },
-        );
+            $self->{mock_saferun}->redefine(
+                saferunnoerror => sub {
+                    note "saferunnoerror: no output";
+                    return;
+                },
+            );
 
-        my $ea4 = cpev->new->get_component('EA4');
-        like(
-            dies { $ea4->_backup_ea4_profile() },
-            qr/Unable to backup EA4 profile/,
-            "Unable to backup EA4 profile - no profile file"
-        );
+            my $ea4 = cpev->new->get_component('EA4');
+            like(
+                dies { $ea4->_backup_ea4_profile() },
+                qr/Unable to backup EA4 profile/,
+                "Unable to backup EA4 profile - no profile file"
+            );
 
-        _message_run_ea_current_to_profile($os);
+            _message_run_ea_current_to_profile();
+        }
     }
 
     return;
@@ -141,7 +144,7 @@ sub test_missing_ea4_profile : Test(12) ($self) {
 
 sub test_get_ea4_profile : Test(10) ($self) {
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
 
     my $profile = PROFILE_FILE;
     my $output  = qq[$profile\n];
@@ -158,7 +161,7 @@ sub test_get_ea4_profile : Test(10) ($self) {
     my $ea4 = cpev->new->get_component('EA4');
 
     is( Elevate::EA4::_get_ea4_profile(0), PROFILE_FILE, "_get_ea4_profile" );
-    _message_run_ea_current_to_profile( 'cent', 1 );
+    _message_run_ea_current_to_profile(1);
 
     $output = <<'EOS';
 The following packages are not available on AlmaLinux_8 and have been removed from the profile
@@ -194,62 +197,81 @@ EOS
 
     is( Elevate::EA4::_get_ea4_profile(0), $f, "_get_ea4_profile with noise..." );
 
-    _message_run_ea_current_to_profile( 'cent', $f );
+    _message_run_ea_current_to_profile($f);
 
     return;
 }
 
-sub test_get_ea4_profile_check_mode : Test(33) ($self) {
+sub test_get_ea4_profile_check_mode : Test(45) ($self) {
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $output = qq[void\n];
+            my $output = qq[void\n];
 
-        my $cpev = cpev->new( _is_check_mode => 1 );
-        ok -d Elevate::EA4::tmp_dir(), "tmp_dir works";
+            my $cpev = cpev->new( _is_check_mode => 1 );
+            ok -d Elevate::EA4::tmp_dir(), "tmp_dir works";
 
-        my $mock_b = Test::MockModule->new('Elevate::Components')    #
-          ->redefine( is_check_mode => 1 );
+            my $mock_b = Test::MockModule->new('Elevate::Components')    #
+              ->redefine( is_check_mode => 1 );
 
-        ok( Elevate::Components->is_check_mode(), 'Elevate::Components->is_check_mode()' );
+            ok( Elevate::Components->is_check_mode(), 'Elevate::Components->is_check_mode()' );
 
-        my $expected_profile = Elevate::EA4::tmp_dir() . '/ea_profile.json';
-        {
-            open( my $fh, '>', $expected_profile ) or die;
-            print {$fh} "...\n";
-        }
+            my $expected_profile = Elevate::EA4::tmp_dir() . '/ea_profile.json';
+            {
+                open( my $fh, '>', $expected_profile ) or die;
+                print {$fh} "...\n";
+            }
 
-        $self->{mock_saferun}->redefine(
-            saferunnoerror => sub {
-                note "saferunnoerror: ", $output;
-                return $output;
-            },
-        );
-
-        my $ea4 = $cpev->get_component('EA4');
-        is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
-
-        my $expected_target =
-            $os eq 'cent'  ? 'CentOS_8'
-          : $os eq 'cloud' ? 'CloudLinux_8'
-          : $os eq 'alma'  ? 'CentOS_9'
-          :                  'Ubuntu_22.04';
-        message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
-        message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
-
-        # The expected target is CloudLinux_8 when Imunify 360 provides
-        # hardened PHP
-        if ( $os eq 'cent' ) {
-            my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
-            $mock_elevate_ea4->redefine(
-                _imunify360_is_installed_and_provides_hardened_php => 1,
+            $self->{mock_saferun}->redefine(
+                saferunnoerror => sub {
+                    note "saferunnoerror: ", $output;
+                    return $output;
+                },
             );
 
+            my $ea4 = $cpev->get_component('EA4');
             is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
 
-            message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=CloudLinux_8 --output=$expected_profile" );
+            my $expected_target;
+            if ( $distro eq 'cent' && $version == 7 ) {
+                $expected_target = 'CentOS_8';
+            }
+            elsif ( $distro eq 'cloud' && $version == 7 ) {
+                $expected_target = 'CloudLinux_8';
+            }
+            elsif ( $distro eq 'cloud' && $version == 8 ) {
+                $expected_target = 'CloudLinux_9';
+            }
+            elsif ( $distro eq 'alma' && $version == 8 ) {
+                $expected_target = 'CentOS_9';
+            }
+            elsif ( $distro eq 'ubuntu' && $version == 20 ) {
+                $expected_target = 'Ubuntu_22.04';
+            }
+            else {
+                die "Unknown distro and version combination: $distro $version\n";
+            }
+
+            message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
             message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
+
+            # The expected target is CloudLinux_8 when Imunify 360 provides
+            # hardened PHP
+            if ( ( $distro eq 'cent' && $version == 7 ) || ( $distro eq 'alma' && $version == 8 ) ) {
+                my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+                $mock_elevate_ea4->redefine(
+                    _imunify360_is_installed_and_provides_hardened_php => 1,
+                );
+
+                is( Elevate::EA4::_get_ea4_profile(1), $expected_profile, "_get_ea4_profile uses a temporary file for the profile" );
+
+                my $expected_target = $distro eq 'cent' && $version == 7 ? 'CloudLinux_8' : 'CloudLinux_9';
+                message_seen( 'INFO' => "Running: /usr/local/bin/ea_current_to_profile --target-os=$expected_target --output=$expected_profile" );
+                message_seen( 'INFO' => "Backed up EA4 profile to $expected_profile" );
+            }
         }
     }
 
@@ -274,26 +296,29 @@ sub backup_non_existing_profile : Test(34) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        like(
-            dies { $ea4->_backup_ea4_profile() },
-            qr/Unable to backup EA4 profile/,
-            "Unable to backup EA4 profile - non existing profile file"
-        );
+            like(
+                dies { $ea4->_backup_ea4_profile() },
+                qr/Unable to backup EA4 profile/,
+                "Unable to backup EA4 profile - non existing profile file"
+            );
 
-        _message_run_ea_current_to_profile($os);
+            _message_run_ea_current_to_profile();
 
-        $self->{mock_profile}->contents('');
+            $self->{mock_profile}->contents('');
 
-        like(
-            dies { $ea4->_backup_ea4_profile() },
-            qr/Unable to backup EA4 profile/,
-            "Unable to backup EA4 profile - empty profile file"
-        );
+            like(
+                dies { $ea4->_backup_ea4_profile() },
+                qr/Unable to backup EA4 profile/,
+                "Unable to backup EA4 profile - empty profile file"
+            );
 
-        _message_run_ea_current_to_profile($os);
+            _message_run_ea_current_to_profile();
+        }
     }
 
     is Elevate::StageFile::read_stage_file(), { ea4 => { enable => 1 } }, "stage file - ea4 is enabled but we failed";
@@ -304,7 +329,7 @@ sub backup_non_existing_profile : Test(34) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile : Test(23) ($self) {
+sub test_backup_and_restore_ea4_profile : Test(28) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
@@ -317,11 +342,14 @@ sub test_backup_and_restore_ea4_profile : Test(23) ($self) {
 
     $self->_update_profile_file($profile);
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        is( $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4" );
-        _message_run_ea_current_to_profile( $os, 1 );
+            is( $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4" );
+            _message_run_ea_current_to_profile(1);
+        }
     }
 
     is Elevate::StageFile::read_stage_file(), { ea4 => { enable => 1, profile => PROFILE_FILE } }, "stage file - ea4 is enabled / profile is backup";
@@ -333,198 +361,206 @@ sub test_backup_and_restore_ea4_profile : Test(23) ($self) {
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_dropped_packages : Test(56) ($self) {
+sub test_backup_and_restore_ea4_profile_dropped_packages : Test(70) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $profile = {
-            "os_upgrade" => {
-                "source_os"          => "<the source OS’s display name>",
-                "target_os"          => "<the --target-os=value value>",
-                "target_obs_project" => "<the target os’s OBS project>",
-                "dropped_pkgs"       => {
-                    "ea-bar" => "reg",
-                    "ea-baz" => "exp"
+            my $profile = {
+                "os_upgrade" => {
+                    "source_os"          => "<the source OS’s display name>",
+                    "target_os"          => "<the --target-os=value value>",
+                    "target_obs_project" => "<the target os’s OBS project>",
+                    "dropped_pkgs"       => {
+                        "ea-bar" => "reg",
+                        "ea-baz" => "exp"
+                    }
                 }
-            }
-        };
-        $self->_update_profile_file($profile);
+            };
+            $self->_update_profile_file($profile);
 
-        my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
-        $mock_elevate_ea4->redefine(
-            _backup_ea_addons => 0,
-        );
+            my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+            $mock_elevate_ea4->redefine(
+                _backup_ea_addons => 0,
+            );
 
-        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
-        _message_run_ea_current_to_profile( $os, 1 );
+            is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
+            _message_run_ea_current_to_profile(1);
 
-        is Elevate::StageFile::read_stage_file(), {
-            ea4 => {
-                enable       => 1,                                        #
-                profile      => PROFILE_FILE,                             #
-                dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
-            }
-          },
-          "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
+            is Elevate::StageFile::read_stage_file(), {
+                ea4 => {
+                    enable       => 1,                                        #
+                    profile      => PROFILE_FILE,                             #
+                    dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
+                }
+              },
+              "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
 
-        is $ea4->_restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
-        is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
-          or diag explain $self->{last_ssystem_call};
+            is $ea4->_restore_ea4_profile(), 1, "restore_ea4_profile: profile restored";
+            is $self->{last_ssystem_call}, [qw{ /usr/local/bin/ea_install_profile --install /var/my.profile}], "call ea_install_profile to restore it"
+              or diag explain $self->{last_ssystem_call};
 
-        my $expect = <<'EOS';
+            my $expect = <<'EOS';
 One or more EasyApache 4 package(s) cannot be restored from your previous profile:
 - 'ea-bar'
 - 'ea-baz' ( package was Experimental in CentOS 7 )
 EOS
-        chomp $expect;
-        foreach my $l ( split( "\n", $expect ) ) {
-            message_seen( 'WARN' => $l );
-        }
+            chomp $expect;
+            foreach my $l ( split( "\n", $expect ) ) {
+                message_seen( 'WARN' => $l );
+            }
 
-        $stage_file->unlink;
+            $stage_file->unlink;
+        }
     }
 
     return;
 }
 
-sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(48) ($self) {
+sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(60) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $profile = {
-            "os_upgrade" => {
-                "source_os"          => "<the source OS’s display name>",
-                "target_os"          => "<the --target-os=value value>",
-                "target_obs_project" => "<the target os’s OBS project>",
-                "dropped_pkgs"       => {
-                    "ea-bar" => "reg",
-                    "ea-baz" => "exp"
+            my $profile = {
+                "os_upgrade" => {
+                    "source_os"          => "<the source OS’s display name>",
+                    "target_os"          => "<the --target-os=value value>",
+                    "target_obs_project" => "<the target os’s OBS project>",
+                    "dropped_pkgs"       => {
+                        "ea-bar" => "reg",
+                        "ea-baz" => "exp"
+                    }
                 }
-            }
-        };
-        $self->_update_profile_file($profile);
+            };
+            $self->_update_profile_file($profile);
 
-        my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
-        $mock_elevate_ea4->redefine(
-            _backup_ea_addons => 0,
-        );
+            my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
+            $mock_elevate_ea4->redefine(
+                _backup_ea_addons => 0,
+            );
 
-        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
-        _message_run_ea_current_to_profile( $os, 1 );
+            is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
+            _message_run_ea_current_to_profile(1);
 
-        is Elevate::StageFile::read_stage_file(), {
-            ea4 => {
-                enable       => 1,                                        #
-                profile      => PROFILE_FILE,                             #
-                dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
-            }
-          },
-          "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
+            is Elevate::StageFile::read_stage_file(), {
+                ea4 => {
+                    enable       => 1,                                        #
+                    profile      => PROFILE_FILE,                             #
+                    dropped_pkgs => $profile->{os_upgrade}->{dropped_pkgs}    #
+                }
+              },
+              "stage file - ea4 is enabled / profile is backup with dropped_pkgs";
 
-        $profile = {
-            "os_upgrade" => {
-                "source_os"          => "<the source OS’s display name>",
-                "target_os"          => "<the --target-os=value value>",
-                "target_obs_project" => "<the target os’s OBS project>",
-            }
-        };
-        $self->_update_profile_file($profile);
+            $profile = {
+                "os_upgrade" => {
+                    "source_os"          => "<the source OS’s display name>",
+                    "target_os"          => "<the --target-os=value value>",
+                    "target_obs_project" => "<the target os’s OBS project>",
+                }
+            };
+            $self->_update_profile_file($profile);
 
-        is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
-        _message_run_ea_current_to_profile( $os, 1 );
+            is $ea4->_backup_ea4_profile(), undef, "backup_ea4_profile - using ea4";
+            _message_run_ea_current_to_profile(1);
 
-        my $stage = Elevate::StageFile::read_stage_file();
-        is $stage, {
-            ea4 => {
-                enable  => 1,               #
-                profile => PROFILE_FILE,    #
-            }
-          },
-          "stage file - ea4 is enabled / profile: clear the dropped_pkgs hash"
-          or diag explain $stage;
-
+            my $stage = Elevate::StageFile::read_stage_file();
+            is $stage, {
+                ea4 => {
+                    enable  => 1,               #
+                    profile => PROFILE_FILE,    #
+                }
+              },
+              "stage file - ea4 is enabled / profile: clear the dropped_pkgs hash"
+              or diag explain $stage;
+        }
     }
 
     return;
 
 }
 
-sub test_backup_and_restore_config_files : Test(40) ($self) {
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+sub test_backup_and_restore_config_files : Test(50) ($self) {
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( sort keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my %config_files_restored;
-        my $mock_file_copy = Test::MockModule->new('File::Copy');
-        $mock_file_copy->redefine(
-            cp => 1,
-            mv => sub {
-                my ( $from, $to ) = @_;
-                $config_files_restored{$to} = 1;
-                return 1;
-            },
-        );
-
-        my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
-        $mock_pkgmgr->redefine(
-            ssystem_capture_output => sub ( $, @args ) {
-                my $pkg         = pop @args;
-                my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
-                my $ret         = {
-                    status => 0,
-                    stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
-                };
-                return $ret;
-            },
-            get_installed_pkgs => sub {
-                return {
-                    'ea-foo'   => 1,
-                    'ea-bar'   => 1,
-                    'ea-nginx' => 1,
-                };
-            },
-        );
-
-        my $ea4 = cpev->new->get_component('EA4');
-
-        is( $ea4->_backup_config_files(), undef, '_backup_config_files() successfully completes' );
-
-        is(
-            Elevate::StageFile::read_stage_file(),
-            {
-                ea4_config_files => {
-                    'ea-foo'   => ['/tmp/foo.conf'],
-                    'ea-bar'   => ['/tmp/bar.conf'],
-                    'ea-nginx' => [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ],
+            my %config_files_restored;
+            my $mock_file_copy = Test::MockModule->new('File::Copy');
+            $mock_file_copy->redefine(
+                cp => 1,
+                mv => sub {
+                    my ( $from, $to ) = @_;
+                    $config_files_restored{$to} = 1;
+                    return 1;
                 },
-            },
-            'stage file contains the expected config files',
-        );
+            );
 
-        my $mock_foo   = Test::MockFile->file( '/tmp/foo.conf.rpmsave',         '' );
-        my $mock_bar   = Test::MockFile->file( '/tmp/bar.conf.rpmsave',         '' );
-        my $mock_nginx = Test::MockFile->file( '/etc/nginx/nginx.conf.rpmsave', '' );
+            my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+            $mock_pkgmgr->redefine(
+                ssystem_capture_output => sub ( $, @args ) {
+                    my $pkg         = pop @args;
+                    my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
+                    my $ret         = {
+                        status => 0,
+                        stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
+                    };
+                    return $ret;
+                },
+                get_installed_pkgs => sub {
+                    return {
+                        'ea-foo'   => 1,
+                        'ea-bar'   => 1,
+                        'ea-nginx' => 1,
+                    };
+                },
+            );
 
-        is( $ea4->_restore_config_files(), undef, '_restore_config_files() successfully completes' );
+            my $ea4 = cpev->new->get_component('EA4');
 
-        is(
-            \%config_files_restored,
-            {
-                '/tmp/foo.conf'         => 1,
-                '/tmp/bar.conf'         => 1,
-                '/etc/nginx/nginx.conf' => 1,
-            },
-            'The expected files are restored',
-        );
+            is( $ea4->_backup_config_files(), undef, '_backup_config_files() successfully completes' );
 
-        message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
-        message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
-        message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
+            is(
+                Elevate::StageFile::read_stage_file(),
+                {
+                    ea4_config_files => {
+                        'ea-foo'   => ['/tmp/foo.conf'],
+                        'ea-bar'   => ['/tmp/bar.conf'],
+                        'ea-nginx' => [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ],
+                    },
+                },
+                'stage file contains the expected config files',
+            );
+
+            my $mock_foo   = Test::MockFile->file( '/tmp/foo.conf.rpmsave',         '' );
+            my $mock_bar   = Test::MockFile->file( '/tmp/bar.conf.rpmsave',         '' );
+            my $mock_nginx = Test::MockFile->file( '/etc/nginx/nginx.conf.rpmsave', '' );
+
+            is( $ea4->_restore_config_files(), undef, '_restore_config_files() successfully completes' );
+
+            is(
+                \%config_files_restored,
+                {
+                    '/tmp/foo.conf'         => 1,
+                    '/tmp/bar.conf'         => 1,
+                    '/etc/nginx/nginx.conf' => 1,
+                },
+                'The expected files are restored',
+            );
+
+            message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
+            message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
+            message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
+        }
     }
 
     return;
@@ -604,7 +640,7 @@ sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
 
 sub test_blocker_ea4_profile : Test(18) ($self) {
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');
@@ -666,7 +702,7 @@ Please remove these packages before continuing the update.
     return;
 }
 
-sub test_blocker_incompatible_package : Test(21) ($self) {
+sub test_blocker_incompatible_package : Test(26) ($self) {
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');
@@ -691,26 +727,28 @@ sub test_blocker_incompatible_package : Test(21) ($self) {
 
     # only testing the blocking case
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();
-        like(
-            $ea4->_blocker_ea4_profile(),
-            {
-                id  => q[Elevate::Components::EA4::_blocker_ea4_profile],
-                msg => <<~"EOS",
+            my $expected_target_os = Elevate::OS::upgrade_to_pretty_name();
+            like(
+                $ea4->_blocker_ea4_profile(),
+                {
+                    id  => q[Elevate::Components::EA4::_blocker_ea4_profile],
+                    msg => <<~"EOS",
         One or more EasyApache 4 package(s) are not compatible with $expected_target_os.
         Please remove these packages before continuing the update.
         - ea4-bad-pkg
         EOS
 
-            },
-            'blocks when EA4 has an incompatible package'
-        );
+                },
+                'blocks when EA4 has an incompatible package'
+            );
 
-        $self->_ea_info_check($expected_target_os);
-        message_seen( ERROR => <<"EOS" );
+            $self->_ea_info_check($expected_target_os);
+            message_seen( ERROR => <<"EOS" );
 *** Elevation Blocker detected: ***
 One or more EasyApache 4 package(s) are not compatible with $expected_target_os.
 Please remove these packages before continuing the update.
@@ -718,13 +756,14 @@ Please remove these packages before continuing the update.
 
 EOS
 
+        }
     }
 
     no_messages_seen();
     return;
 }
 
-sub test_blocker_behavior : Test(101) ($self) {
+sub test_blocker_behavior : Test(126) ($self) {
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');
@@ -734,109 +773,112 @@ sub test_blocker_behavior : Test(101) ($self) {
     my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
     $mock_elevate_ea4->redefine( backup => sub { return; } );
 
-    for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-        set_os_to($os);
+    my %os_hash = $self->_get_os_hash();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        my $target_os = Elevate::OS::upgrade_to_pretty_name();
+            my $target_os = Elevate::OS::upgrade_to_pretty_name();
 
-        ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
-        $self->_ea_info_check($target_os);
+            ok !$ea4->_blocker_ea4_profile(), "no ea4 blockers without an ea4 profile to backup";
+            $self->_ea_info_check($target_os);
 
-        my $stage_ea4 = {
-            profile => '/some/file.not.used.there',
-        };
+            my $stage_ea4 = {
+                profile => '/some/file.not.used.there',
+            };
 
-        my $update_stage_file_data = {};
+            my $update_stage_file_data = {};
 
-        my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
-        $mock_stagefile->redefine(
-            _read_stage_file => sub {
-                return { ea4 => $stage_ea4 };
-            },
-            update_stage_file => sub ($data) {
-                $update_stage_file_data = $data;
-            },
-            remove_from_stage_file => 1,
-        );
+            my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
+            $mock_stagefile->redefine(
+                _read_stage_file => sub {
+                    return { ea4 => $stage_ea4 };
+                },
+                update_stage_file => sub ($data) {
+                    $update_stage_file_data = $data;
+                },
+                remove_from_stage_file => 1,
+            );
 
-        ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs" );
+            ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile without any dropped_pkgs" );
 
-        $self->_ea_info_check($target_os);
+            $self->_ea_info_check($target_os);
 
-        $stage_ea4->{'dropped_pkgs'} = {
-            "ea-bar" => "exp",
-            "ea-baz" => "exp",
-        };
-        ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only" );
-        $self->_ea_info_check($target_os);
+            $stage_ea4->{'dropped_pkgs'} = {
+                "ea-bar" => "exp",
+                "ea-baz" => "exp",
+            };
+            ok( !$ea4->_blocker_ea4_profile(), "no ea4 blockers: profile with dropped_pkgs: exp only" );
+            $self->_ea_info_check($target_os);
 
-        $stage_ea4->{'dropped_pkgs'} = {
-            "pkg1"   => "reg",
-            "ea-baz" => "exp",
-            "pkg3"   => "reg",
-            "pkg4"   => "whatever",
-        };
+            $stage_ea4->{'dropped_pkgs'} = {
+                "pkg1"   => "reg",
+                "ea-baz" => "exp",
+                "pkg3"   => "reg",
+                "pkg4"   => "whatever",
+            };
 
-        ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
-        $self->_ea_info_check($target_os);
+            ok my $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
+            $self->_ea_info_check($target_os);
 
-        message_seen( 'ERROR' => qr[Elevation Blocker detected] );
+            message_seen( 'ERROR' => qr[Elevation Blocker detected] );
 
-        like $blocker, object {
-            prop blessed => 'cpev::Blocker';
+            like $blocker, object {
+                prop blessed => 'cpev::Blocker';
 
-            field id => q[Elevate::Components::EA4::_blocker_ea4_profile];
-            field msg => qq[One or more EasyApache 4 package(s) are not compatible with $target_os.
+                field id => q[Elevate::Components::EA4::_blocker_ea4_profile];
+                field msg => qq[One or more EasyApache 4 package(s) are not compatible with $target_os.
 Please remove these packages before continuing the update.
 - pkg1
 - pkg3
 - pkg4
 ];
 
-            end();
-        }, "blocker with expected error" or diag explain $blocker;
+                end();
+            }, "blocker with expected error" or diag explain $blocker;
 
-        $mock_ea4->redefine(
-            _php_version_is_in_use => 1,
-        );
+            $mock_ea4->redefine(
+                _php_version_is_in_use => 1,
+            );
 
-        $stage_ea4->{'dropped_pkgs'} = {
-            pkg1       => 'exp',
-            pkg2       => 'reg',
-            'ea-php42' => 'reg',
-        };
+            $stage_ea4->{'dropped_pkgs'} = {
+                pkg1       => 'exp',
+                pkg2       => 'reg',
+                'ea-php42' => 'reg',
+            };
 
-        ok $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
-        $self->_ea_info_check($target_os);
+            ok $blocker = $ea4->_blocker_ea4_profile(), "_blocker_ea4_profile ";
+            $self->_ea_info_check($target_os);
 
-        message_seen( 'ERROR' => qr[Elevation Blocker detected] );
+            message_seen( 'ERROR' => qr[Elevation Blocker detected] );
 
-        like $blocker, object {
-            prop blessed => 'cpev::Blocker';
+            like $blocker, object {
+                prop blessed => 'cpev::Blocker';
 
-            field id => q[Elevate::Components::EA4::_blocker_ea4_profile];
-            field msg => qq[One or more EasyApache 4 package(s) are not compatible with $target_os.
+                field id => q[Elevate::Components::EA4::_blocker_ea4_profile];
+                field msg => qq[One or more EasyApache 4 package(s) are not compatible with $target_os.
 Please remove these packages before continuing the update.
 - ea-php42
 - pkg2
 ];
 
-            end();
-        }, "blocker with expected error when dropped ea-php package is in use"
-          or diag explain $blocker;
+                end();
+            }, "blocker with expected error when dropped ea-php package is in use"
+              or diag explain $blocker;
 
-        $mock_ea4->redefine(
-            _php_version_is_in_use => 0,
-        );
+            $mock_ea4->redefine(
+                _php_version_is_in_use => 0,
+            );
 
-        $stage_ea4->{'dropped_pkgs'} = {
-            'ea-php42' => 'reg',
-        };
+            $stage_ea4->{'dropped_pkgs'} = {
+                'ea-php42' => 'reg',
+            };
 
-        ok !$ea4->_blocker_ea4_profile(), 'No blocker when dropped package is an ea-php version that is not in use';
-        $self->_ea_info_check($target_os);
+            ok !$ea4->_blocker_ea4_profile(), 'No blocker when dropped package is an ea-php version that is not in use';
+            $self->_ea_info_check($target_os);
 
-        $stage_ea4 = {};
+            $stage_ea4 = {};
+        }
     }
 
     no_messages_seen();
@@ -950,7 +992,7 @@ sub test__get_php_versions_in_use : Test(7) ($self) {
 
 ## helpers
 
-sub _message_run_ea_current_to_profile ( $os = 'cent', $success = 0 ) {
+sub _message_run_ea_current_to_profile ( $success = 0 ) {
 
     my $target = Elevate::OS::ea_alias();
 
@@ -974,6 +1016,15 @@ sub _update_profile_file ( $self, $profile ) {
 sub _ea_info_check ( $self, $os ) {
     message_seen( 'INFO' => "Checking EasyApache profile compatibility with $os." );
     return;
+}
+
+sub _get_os_hash ($self) {
+    return (
+        alma   => [8],
+        cent   => [7],
+        cloud  => [ 7, 8 ],
+        ubuntu => [20],
+    );
 }
 
 1;

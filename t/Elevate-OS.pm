@@ -28,15 +28,19 @@ my @skip = qw{ ALL ALWAYS AUTOLOAD BEGIN DESTROY DEBUG ERROR FATAL INFO INIT LOG
 
 my @stash = sort keys %{Elevate::OS::};
 
-foreach my $os (qw{ CentOS7 CloudLinux7 Ubuntu20 }) {
+foreach my $os ( Elevate::OS::SUPPORTED_DISTROS() ) {
     note "Test $os";
-    set_os_to($os);
+
+    my ( $distro, $major ) = split ' ', $os;
+    my $as_distro = lc "set_os_to_${distro}_${major}";
+
+    Test::Elevate->can($as_distro)->();
 
     foreach my $sub (@stash) {
         next if $sub =~ m{::};
         next if grep { $_ eq $sub } @skip;
 
-        my $pkg = "Elevate::OS::$os";
+        my $pkg = "Elevate::OS::$distro$major";
         ok( $pkg->can($sub), "Elevate::OS::${os}::$sub" );
     }
 }

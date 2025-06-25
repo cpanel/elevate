@@ -38,14 +38,14 @@ my $comp = cpev->new->get_component('KernelCare');
 {
     note 'Blocker behavior';
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
 
     is( $comp->check(), undef, "Returns early when $kcarectl is not executable" );
 
     $mock_kcarectl->chmod(0755);
     is( $comp->check(), undef, 'Returns early when KernelCare is supported' );
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     like(
         $comp->check(),
         {
@@ -59,7 +59,7 @@ my $comp = cpev->new->get_component('KernelCare');
 {
     note 'pre_distro_upgrade';
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
     my $mock_rpm = Test::MockFile->file( $rpm, '' );
     $mock_rpm->chmod(0755);
     $mock_kcarectl->chmod(0755);
@@ -103,11 +103,13 @@ my $comp = cpev->new->get_component('KernelCare');
         _remove_kernelcare_if_needed => sub { die "do not call\n"; },
     );
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     is( $comp->pre_distro_upgrade, undef, 'Returns early when KernelCare is not supported' );
 
-    set_os_to('cloud');
-    is( $comp->pre_distro_upgrade, undef, 'Returns early when leapp can handle KernelCare' );
+    foreach my $version ( 7, 8 ) {
+        set_os_to( 'cloud', $version );
+        is( $comp->pre_distro_upgrade, undef, 'Returns early when leapp can handle KernelCare' );
+    }
 }
 
 {
@@ -115,7 +117,7 @@ my $comp = cpev->new->get_component('KernelCare');
 
     clear_messages_seen();
 
-    set_os_to('cent');
+    set_os_to( 'cent', 7 );
 
     my $mock_kcare_conf         = Test::MockFile->file( '/etc/sysconfig/kcare/kcare.conf',         '' );
     my $mock_kcare_conf_rpmsave = Test::MockFile->file( '/etc/sysconfig/kcare/kcare.conf.rpmsave', 'My very own customization' );
@@ -186,11 +188,13 @@ my $comp = cpev->new->get_component('KernelCare');
         _restore_kernelcare => sub { die "do not call\n"; },
     );
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     is( $comp->pre_distro_upgrade, undef, 'Returns early when KernelCare is not supported' );
 
-    set_os_to('cloud');
-    is( $comp->pre_distro_upgrade, undef, 'Returns early when leapp can handle KernelCare' );
+    foreach my $version ( 7, 8 ) {
+        set_os_to( 'cloud', $version );
+        is( $comp->pre_distro_upgrade, undef, 'Returns early when leapp can handle KernelCare' );
+    }
 }
 
 done_testing();

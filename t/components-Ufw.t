@@ -43,7 +43,7 @@ $mock_stagefile->redefine(
 {
     note "checking pre_distro_upgrade";
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     $mock_ufw->redefine(
         upgrade_distro_manually => 1,
@@ -57,13 +57,13 @@ $mock_stagefile->redefine(
         upgrade_distro_manually => 0,
     );
 
-    set_os_to('alma');
+    set_os_to( 'alma', 8 );
 
     is( $ufw->pre_distro_upgrade(), undef, 'Returns early if the upgrade method is NOT do-release-upgrade' );
     is( $ssystem_and_die_params,    [],    'No system commands were called' );
     no_messages_seen();
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $mock_sbin_ufw = Test::MockFile->file( '/usr/sbin/ufw', '' );
 
@@ -178,7 +178,7 @@ $mock_stagefile->redefine(
 {
     note "testing post_distro_upgrade";
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $stage_data = '';
     $mock_stagefile->redefine(

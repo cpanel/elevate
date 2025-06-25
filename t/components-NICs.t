@@ -237,17 +237,23 @@ my $nics = cpev->new->get_component('NICs');
     my $mock_nic_component = Test::MockModule->new('Elevate::Components::NICs');
     my $mock_file_slurper  = Test::MockModule->new('File::Slurper');
 
-    foreach my $os (qw{ cent ubuntu }) {
-        set_os_to($os);
+    my %os_hash = (
+        cent   => [7],
+        ubuntu => [20],
+    );
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        $mock_nics->redefine(
-            get_nics => sub { die "DO NOT CALL THIS\n"; },
-        );
+            $mock_nics->redefine(
+                get_nics => sub { die "DO NOT CALL THIS\n"; },
+            );
 
-        ok( lives { $nics->_blocker_ifcfg_files() }, "This check is a noop for $os" );
+            ok( lives { $nics->_blocker_ifcfg_files() }, "This check is a noop for $distro $version" );
+        }
     }
 
-    set_os_to('alma');
+    set_os_to( 'alma', 8 );
 
     $mock_nics->redefine(
         get_nics => sub { return ('eth0'); },

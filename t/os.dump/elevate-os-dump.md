@@ -34,14 +34,15 @@ yath -v t/Elevate-OS_detect_changes.t
 
 ---
 ```
-+-------------+------------+-------+-------------------------+
-| key         | distro     | major | archive_dir             |
-+-------------+------------+-------+-------------------------+
-| archive_dir | AlmaLinux  | 8     | "CentOS7-to-AlmaLinux8" |
-| archive_dir | CentOS     | 7     | undef                   |
-| archive_dir | CloudLinux | 7     | undef                   |
-| archive_dir | Ubuntu     | 20    | undef                   |
-+-------------+------------+-------+-------------------------+
++-------------+------------+-------+------------------------------+
+| key         | distro     | major | archive_dir                  |
++-------------+------------+-------+------------------------------+
+| archive_dir | AlmaLinux  | 8     | "CentOS7-to-AlmaLinux8"      |
+| archive_dir | CentOS     | 7     | undef                        |
+| archive_dir | CloudLinux | 7     | undef                        |
+| archive_dir | CloudLinux | 8     | "CloudLinux7-to-CloudLinux8" |
+| archive_dir | Ubuntu     | 20    | undef                        |
++-------------+------------+-------+------------------------------+
 ```
 ---
 
@@ -56,6 +57,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | bootloader_config_method | AlmaLinux  | 8     | "grubby"                 |
 | bootloader_config_method | CentOS     | 7     | "grubby"                 |
 | bootloader_config_method | CloudLinux | 7     | "grubby"                 |
+| bootloader_config_method | CloudLinux | 8     | "grubby"                 |
 | bootloader_config_method | Ubuntu     | 20    | "grub-mkconfig"          |
 +--------------------------+------------+-------+--------------------------+
 ```
@@ -72,6 +74,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | default_upgrade_to | AlmaLinux  | 8     | "AlmaLinux"        |
 | default_upgrade_to | CentOS     | 7     | "AlmaLinux"        |
 | default_upgrade_to | CloudLinux | 7     | "CloudLinux"       |
+| default_upgrade_to | CloudLinux | 8     | "CloudLinux"       |
 | default_upgrade_to | Ubuntu     | 20    | "Ubuntu"           |
 +--------------------+------------+-------+--------------------+
 ```
@@ -115,6 +118,16 @@ yath -v t/Elevate-OS_detect_changes.t
 |                         |            |       |   "mysql-community.repo",\n |
 |                         |            |       | ]                           |
 |                         |            |       |                             |
+| disable_mysql_yum_repos | CloudLinux | 8     | [\n                         |
+|                         |            |       |   "MariaDB102.repo",\n      |
+|                         |            |       |   "MariaDB103.repo",\n      |
+|                         |            |       |   "MariaDB105.repo",\n      |
+|                         |            |       |   "MariaDB106.repo",\n      |
+|                         |            |       |   "Mysql57.repo",\n         |
+|                         |            |       |   "Mysql80.repo",\n         |
+|                         |            |       |   "mysql-community.repo",\n |
+|                         |            |       | ]                           |
+|                         |            |       |                             |
 | disable_mysql_yum_repos | Ubuntu     | 20    | undef                       |
 +-------------------------+------------+-------+-----------------------------+
 ```
@@ -131,6 +144,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | ea_alias | AlmaLinux  | 8     | "CentOS_9"     |
 | ea_alias | CentOS     | 7     | "CentOS_8"     |
 | ea_alias | CloudLinux | 7     | "CloudLinux_8" |
+| ea_alias | CloudLinux | 8     | "CloudLinux_9" |
 | ea_alias | Ubuntu     | 20    | "Ubuntu_22.04" |
 +----------+------------+-------+----------------+
 ```
@@ -147,6 +161,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | el_package_regex | AlmaLinux  | 8     | "el8"            |
 | el_package_regex | CentOS     | 7     | "el7"            |
 | el_package_regex | CloudLinux | 7     | "el7"            |
+| el_package_regex | CloudLinux | 8     | "el8"            |
 | el_package_regex | Ubuntu     | 20    | undef            |
 +------------------+------------+-------+------------------+
 ```
@@ -163,6 +178,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | elevate_rpm_url | AlmaLinux  | 8     | "https://repo.almalinux.org/elevate/elevate-release-latest-el8.noarch.rpm"  |
 | elevate_rpm_url | CentOS     | 7     | "https://repo.almalinux.org/elevate/elevate-release-latest-el7.noarch.rpm"  |
 | elevate_rpm_url | CloudLinux | 7     | "https://repo.cloudlinux.com/elevate/elevate-release-latest-el7.noarch.rpm" |
+| elevate_rpm_url | CloudLinux | 8     | "https://repo.cloudlinux.com/elevate/elevate-release-latest-el8.noarch.rpm" |
 | elevate_rpm_url | Ubuntu     | 20    | undef                                                                       |
 +-----------------+------------+-------+-----------------------------------------------------------------------------+
 ```
@@ -179,6 +195,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | expected_post_upgrade_major | AlmaLinux  | 8     | 9                           |
 | expected_post_upgrade_major | CentOS     | 7     | 8                           |
 | expected_post_upgrade_major | CloudLinux | 7     | 8                           |
+| expected_post_upgrade_major | CloudLinux | 8     | 9                           |
 | expected_post_upgrade_major | Ubuntu     | 20    | 22                          |
 +-----------------------------+------------+-------+-----------------------------+
 ```
@@ -195,6 +212,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | has_crypto_policies | AlmaLinux  | 8     | 1                   |
 | has_crypto_policies | CentOS     | 7     | 0                   |
 | has_crypto_policies | CloudLinux | 7     | 0                   |
+| has_crypto_policies | CloudLinux | 8     | 1                   |
 | has_crypto_policies | Ubuntu     | 20    | 0                   |
 +---------------------+------------+-------+---------------------+
 ```
@@ -211,6 +229,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | has_imunify_ea_alias | AlmaLinux  | 8     | 1                    |
 | has_imunify_ea_alias | CentOS     | 7     | 1                    |
 | has_imunify_ea_alias | CloudLinux | 7     | 0                    |
+| has_imunify_ea_alias | CloudLinux | 8     | 0                    |
 | has_imunify_ea_alias | Ubuntu     | 20    | 0                    |
 +----------------------+------------+-------+----------------------+
 ```
@@ -227,6 +246,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | imunify_ea_alias | AlmaLinux  | 8     | "CloudLinux_9"   |
 | imunify_ea_alias | CentOS     | 7     | "CloudLinux_8"   |
 | imunify_ea_alias | CloudLinux | 7     | undef            |
+| imunify_ea_alias | CloudLinux | 8     | undef            |
 | imunify_ea_alias | Ubuntu     | 20    | undef            |
 +------------------+------------+-------+------------------+
 ```
@@ -243,6 +263,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | is_apt_based | AlmaLinux  | 8     | 0            |
 | is_apt_based | CentOS     | 7     | 0            |
 | is_apt_based | CloudLinux | 7     | 0            |
+| is_apt_based | CloudLinux | 8     | 0            |
 | is_apt_based | Ubuntu     | 20    | 1            |
 +--------------+------------+-------+--------------+
 ```
@@ -259,6 +280,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | is_experimental | AlmaLinux  | 8     | 0               |
 | is_experimental | CentOS     | 7     | 0               |
 | is_experimental | CloudLinux | 7     | 0               |
+| is_experimental | CloudLinux | 8     | 1               |
 | is_experimental | Ubuntu     | 20    | 0               |
 +-----------------+------------+-------+-----------------+
 ```
@@ -275,6 +297,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | is_supported | AlmaLinux  | 8     | 1            |
 | is_supported | CentOS     | 7     | 1            |
 | is_supported | CloudLinux | 7     | 1            |
+| is_supported | CloudLinux | 8     | 1            |
 | is_supported | Ubuntu     | 20    | 1            |
 +--------------+------------+-------+--------------+
 ```
@@ -291,6 +314,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | jetbackup_repo_rpm_url | AlmaLinux  | 8     | "https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm" |
 | jetbackup_repo_rpm_url | CentOS     | 7     | undef                                                             |
 | jetbackup_repo_rpm_url | CloudLinux | 7     | undef                                                             |
+| jetbackup_repo_rpm_url | CloudLinux | 8     | "https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm" |
 | jetbackup_repo_rpm_url | Ubuntu     | 20    | undef                                                             |
 +------------------------+------------+-------+-------------------------------------------------------------------+
 ```
@@ -307,6 +331,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | leapp_can_handle_imunify | AlmaLinux  | 8     | 0                        |
 | leapp_can_handle_imunify | CentOS     | 7     | 0                        |
 | leapp_can_handle_imunify | CloudLinux | 7     | 1                        |
+| leapp_can_handle_imunify | CloudLinux | 8     | 1                        |
 | leapp_can_handle_imunify | Ubuntu     | 20    | undef                    |
 +--------------------------+------------+-------+--------------------------+
 ```
@@ -323,6 +348,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | leapp_can_handle_kernelcare | AlmaLinux  | 8     | 0                           |
 | leapp_can_handle_kernelcare | CentOS     | 7     | 0                           |
 | leapp_can_handle_kernelcare | CloudLinux | 7     | 1                           |
+| leapp_can_handle_kernelcare | CloudLinux | 8     | 1                           |
 | leapp_can_handle_kernelcare | Ubuntu     | 20    | undef                       |
 +-----------------------------+------------+-------+-----------------------------+
 ```
@@ -339,6 +365,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | leapp_data_pkg | AlmaLinux  | 8     | "leapp-data-almalinux"  |
 | leapp_data_pkg | CentOS     | 7     | "leapp-data-almalinux"  |
 | leapp_data_pkg | CloudLinux | 7     | "leapp-data-cloudlinux" |
+| leapp_data_pkg | CloudLinux | 8     | "leapp-data-cloudlinux" |
 | leapp_data_pkg | Ubuntu     | 20    | undef                   |
 +----------------+------------+-------+-------------------------+
 ```
@@ -355,6 +382,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | leapp_flag | AlmaLinux  | 8     | undef      |
 | leapp_flag | CentOS     | 7     | undef      |
 | leapp_flag | CloudLinux | 7     | "--nowarn" |
+| leapp_flag | CloudLinux | 8     | "--nowarn" |
 | leapp_flag | Ubuntu     | 20    | undef      |
 +------------+------------+-------+------------+
 ```
@@ -371,6 +399,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | leapp_repo_beta | AlmaLinux  | 8     | ""                                   |
 | leapp_repo_beta | CentOS     | 7     | ""                                   |
 | leapp_repo_beta | CloudLinux | 7     | "cloudlinux-elevate-updates-testing" |
+| leapp_repo_beta | CloudLinux | 8     | "cloudlinux-elevate-updates-testing" |
 | leapp_repo_beta | Ubuntu     | 20    | undef                                |
 +-----------------+------------+-------+--------------------------------------+
 ```
@@ -387,6 +416,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | leapp_repo_prod | AlmaLinux  | 8     | "elevate"            |
 | leapp_repo_prod | CentOS     | 7     | "elevate"            |
 | leapp_repo_prod | CloudLinux | 7     | "cloudlinux-elevate" |
+| leapp_repo_prod | CloudLinux | 8     | "cloudlinux-elevate" |
 | leapp_repo_prod | Ubuntu     | 20    | undef                |
 +-----------------+------------+-------+----------------------+
 ```
@@ -403,6 +433,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | lts_supported | AlmaLinux  | 8     | undef         |
 | lts_supported | CentOS     | 7     | 110           |
 | lts_supported | CloudLinux | 7     | 110           |
+| lts_supported | CloudLinux | 8     | undef         |
 | lts_supported | Ubuntu     | 20    | 118           |
 +---------------+------------+-------+---------------+
 ```
@@ -419,6 +450,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | name | AlmaLinux  | 8     | "AlmaLinux8"  |
 | name | CentOS     | 7     | "CentOS7"     |
 | name | CloudLinux | 7     | "CloudLinux7" |
+| name | CloudLinux | 8     | "CloudLinux8" |
 | name | Ubuntu     | 20    | "Ubuntu20"    |
 +------+------------+-------+---------------+
 ```
@@ -435,6 +467,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_crb | AlmaLinux  | 8     | 1         |
 | needs_crb | CentOS     | 7     | 0         |
 | needs_crb | CloudLinux | 7     | 0         |
+| needs_crb | CloudLinux | 8     | 1         |
 | needs_crb | Ubuntu     | 20    | 0         |
 +-----------+------------+-------+-----------+
 ```
@@ -451,6 +484,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_do_release_upgrade | AlmaLinux  | 8     | 0                        |
 | needs_do_release_upgrade | CentOS     | 7     | 0                        |
 | needs_do_release_upgrade | CloudLinux | 7     | 0                        |
+| needs_do_release_upgrade | CloudLinux | 8     | 0                        |
 | needs_do_release_upgrade | Ubuntu     | 20    | 1                        |
 +--------------------------+------------+-------+--------------------------+
 ```
@@ -467,6 +501,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_epel | AlmaLinux  | 8     | 1          |
 | needs_epel | CentOS     | 7     | 1          |
 | needs_epel | CloudLinux | 7     | 1          |
+| needs_epel | CloudLinux | 8     | 1          |
 | needs_epel | Ubuntu     | 20    | 0          |
 +------------+------------+-------+------------+
 ```
@@ -483,6 +518,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_grub_enable_blscfg | AlmaLinux  | 8     | 1                        |
 | needs_grub_enable_blscfg | CentOS     | 7     | 0                        |
 | needs_grub_enable_blscfg | CloudLinux | 7     | 0                        |
+| needs_grub_enable_blscfg | CloudLinux | 8     | 1                        |
 | needs_grub_enable_blscfg | Ubuntu     | 20    | 0                        |
 +--------------------------+------------+-------+--------------------------+
 ```
@@ -499,6 +535,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_leapp | AlmaLinux  | 8     | 1           |
 | needs_leapp | CentOS     | 7     | 1           |
 | needs_leapp | CloudLinux | 7     | 1           |
+| needs_leapp | CloudLinux | 8     | 1           |
 | needs_leapp | Ubuntu     | 20    | 0           |
 +-------------+------------+-------+-------------+
 ```
@@ -515,6 +552,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_network_manager | AlmaLinux  | 8     | 1                     |
 | needs_network_manager | CentOS     | 7     | 0                     |
 | needs_network_manager | CloudLinux | 7     | 0                     |
+| needs_network_manager | CloudLinux | 8     | 1                     |
 | needs_network_manager | Ubuntu     | 20    | 0                     |
 +-----------------------+------------+-------+-----------------------+
 ```
@@ -531,6 +569,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_powertools | AlmaLinux  | 8     | 0                |
 | needs_powertools | CentOS     | 7     | 1                |
 | needs_powertools | CloudLinux | 7     | 1                |
+| needs_powertools | CloudLinux | 8     | 0                |
 | needs_powertools | Ubuntu     | 20    | 0                |
 +------------------+------------+-------+------------------+
 ```
@@ -547,6 +586,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_sha1_enabled | AlmaLinux  | 8     | 1                  |
 | needs_sha1_enabled | CentOS     | 7     | 0                  |
 | needs_sha1_enabled | CloudLinux | 7     | 0                  |
+| needs_sha1_enabled | CloudLinux | 8     | 1                  |
 | needs_sha1_enabled | Ubuntu     | 20    | 0                  |
 +--------------------+------------+-------+--------------------+
 ```
@@ -563,6 +603,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_type_in_ifcfg | AlmaLinux  | 8     | 1                   |
 | needs_type_in_ifcfg | CentOS     | 7     | 0                   |
 | needs_type_in_ifcfg | CloudLinux | 7     | 0                   |
+| needs_type_in_ifcfg | CloudLinux | 8     | 1                   |
 | needs_type_in_ifcfg | Ubuntu     | 20    | 0                   |
 +---------------------+------------+-------+---------------------+
 ```
@@ -579,6 +620,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | needs_vdo | AlmaLinux  | 8     | 1         |
 | needs_vdo | CentOS     | 7     | 0         |
 | needs_vdo | CloudLinux | 7     | 0         |
+| needs_vdo | CloudLinux | 8     | 1         |
 | needs_vdo | Ubuntu     | 20    | 0         |
 +-----------+------------+-------+-----------+
 ```
@@ -595,6 +637,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | original_os_major | AlmaLinux  | 8     | 8                 |
 | original_os_major | CentOS     | 7     | 7                 |
 | original_os_major | CloudLinux | 7     | 7                 |
+| original_os_major | CloudLinux | 8     | 8                 |
 | original_os_major | Ubuntu     | 20    | 20                |
 +-------------------+------------+-------+-------------------+
 ```
@@ -611,6 +654,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | package_manager | AlmaLinux  | 8     | "YUM"           |
 | package_manager | CentOS     | 7     | "YUM"           |
 | package_manager | CloudLinux | 7     | "YUM"           |
+| package_manager | CloudLinux | 8     | "YUM"           |
 | package_manager | Ubuntu     | 20    | "APT"           |
 +-----------------+------------+-------+-----------------+
 ```
@@ -627,6 +671,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | pkgmgr_lib_path | AlmaLinux  | 8     | "/var/lib/dnf"  |
 | pkgmgr_lib_path | CentOS     | 7     | "/var/lib/yum"  |
 | pkgmgr_lib_path | CloudLinux | 7     | "/var/lib/yum"  |
+| pkgmgr_lib_path | CloudLinux | 8     | "/var/lib/dnf"  |
 | pkgmgr_lib_path | Ubuntu     | 20    | undef           |
 +-----------------+------------+-------+-----------------+
 ```
@@ -643,6 +688,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | pretty_name | AlmaLinux  | 8     | "AlmaLinux 8"  |
 | pretty_name | CentOS     | 7     | "CentOS 7"     |
 | pretty_name | CloudLinux | 7     | "CloudLinux 7" |
+| pretty_name | CloudLinux | 8     | "CloudLinux 8" |
 | pretty_name | Ubuntu     | 20    | "Ubuntu 20.04" |
 +-------------+------------+-------+----------------+
 ```
@@ -659,6 +705,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | provides_mysql_governor | AlmaLinux  | 8     | 0                       |
 | provides_mysql_governor | CentOS     | 7     | 0                       |
 | provides_mysql_governor | CloudLinux | 7     | 1                       |
+| provides_mysql_governor | CloudLinux | 8     | 1                       |
 | provides_mysql_governor | Ubuntu     | 20    | 0                       |
 +-------------------------+------------+-------+-------------------------+
 ```
@@ -675,6 +722,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | remove_els | AlmaLinux  | 8     | 0          |
 | remove_els | CentOS     | 7     | 1          |
 | remove_els | CloudLinux | 7     | 0          |
+| remove_els | CloudLinux | 8     | 0          |
 | remove_els | Ubuntu     | 20    | 0          |
 +------------+------------+-------+------------+
 ```
@@ -691,6 +739,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | set_update_tier_to_release | AlmaLinux  | 8     | 0                          |
 | set_update_tier_to_release | CentOS     | 7     | 1                          |
 | set_update_tier_to_release | CloudLinux | 7     | 1                          |
+| set_update_tier_to_release | CloudLinux | 8     | 0                          |
 | set_update_tier_to_release | Ubuntu     | 20    | 0                          |
 +----------------------------+------------+-------+----------------------------+
 ```
@@ -707,6 +756,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | should_archive_elevate_files | AlmaLinux  | 8     | 1                            |
 | should_archive_elevate_files | CentOS     | 7     | 0                            |
 | should_archive_elevate_files | CloudLinux | 7     | 0                            |
+| should_archive_elevate_files | CloudLinux | 8     | 1                            |
 | should_archive_elevate_files | Ubuntu     | 20    | 0                            |
 +------------------------------+------------+-------+------------------------------+
 ```
@@ -723,6 +773,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | should_check_cloudlinux_license | AlmaLinux  | 8     | 0                               |
 | should_check_cloudlinux_license | CentOS     | 7     | 0                               |
 | should_check_cloudlinux_license | CloudLinux | 7     | 1                               |
+| should_check_cloudlinux_license | CloudLinux | 8     | 1                               |
 | should_check_cloudlinux_license | Ubuntu     | 20    | 0                               |
 +---------------------------------+------------+-------+---------------------------------+
 ```
@@ -736,9 +787,10 @@ yath -v t/Elevate-OS_detect_changes.t
 +--------------------------+------------+-------+--------------------------+
 | key                      | distro     | major | skip_minor_version_check |
 +--------------------------+------------+-------+--------------------------+
-| skip_minor_version_check | AlmaLinux  | 8     | 0                        |
+| skip_minor_version_check | AlmaLinux  | 8     | 1                        |
 | skip_minor_version_check | CentOS     | 7     | 0                        |
 | skip_minor_version_check | CloudLinux | 7     | 0                        |
+| skip_minor_version_check | CloudLinux | 8     | 1                        |
 | skip_minor_version_check | Ubuntu     | 20    | 1                        |
 +--------------------------+------------+-------+--------------------------+
 ```
@@ -755,6 +807,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | supported_cpanel_mysql_versions | AlmaLinux  | 8     | [10.11, 10.5, 10.6, 11.4, "8.0", 8.4]        |
 | supported_cpanel_mysql_versions | CentOS     | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
 | supported_cpanel_mysql_versions | CloudLinux | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
+| supported_cpanel_mysql_versions | CloudLinux | 8     | [10.11, 10.5, 10.6, 11.4, "8.0", 8.4]        |
 | supported_cpanel_mysql_versions | Ubuntu     | 20    | [10.11, 10.6, "8.0"]                         |
 +---------------------------------+------------+-------+----------------------------------------------+
 ```
@@ -771,6 +824,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | supported_cpanel_nameserver_types | AlmaLinux  | 8     | ["bind", "disabled", "powerdns"]  |
 | supported_cpanel_nameserver_types | CentOS     | 7     | ["bind", "disabled", "powerdns"]  |
 | supported_cpanel_nameserver_types | CloudLinux | 7     | ["bind", "disabled", "powerdns"]  |
+| supported_cpanel_nameserver_types | CloudLinux | 8     | ["bind", "disabled", "powerdns"]  |
 | supported_cpanel_nameserver_types | Ubuntu     | 20    | ["disabled", "powerdns"]          |
 +-----------------------------------+------------+-------+-----------------------------------+
 ```
@@ -787,6 +841,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | supports_jetbackup | AlmaLinux  | 8     | 1                  |
 | supports_jetbackup | CentOS     | 7     | 1                  |
 | supports_jetbackup | CloudLinux | 7     | 1                  |
+| supports_jetbackup | CloudLinux | 8     | 1                  |
 | supports_jetbackup | Ubuntu     | 20    | 1                  |
 +--------------------+------------+-------+--------------------+
 ```
@@ -803,6 +858,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | supports_kernelcare | AlmaLinux  | 8     | 1                   |
 | supports_kernelcare | CentOS     | 7     | 1                   |
 | supports_kernelcare | CloudLinux | 7     | 1                   |
+| supports_kernelcare | CloudLinux | 8     | 1                   |
 | supports_kernelcare | Ubuntu     | 20    | 0                   |
 +---------------------+------------+-------+---------------------+
 ```
@@ -819,6 +875,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | supports_named_tiers | AlmaLinux  | 8     | 1                    |
 | supports_named_tiers | CentOS     | 7     | 0                    |
 | supports_named_tiers | CloudLinux | 7     | 0                    |
+| supports_named_tiers | CloudLinux | 8     | 1                    |
 | supports_named_tiers | Ubuntu     | 20    | 0                    |
 +----------------------+------------+-------+----------------------+
 ```
@@ -835,6 +892,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | supports_postgresql | AlmaLinux  | 8     | 1                   |
 | supports_postgresql | CentOS     | 7     | 1                   |
 | supports_postgresql | CloudLinux | 7     | 1                   |
+| supports_postgresql | CloudLinux | 8     | 1                   |
 | supports_postgresql | Ubuntu     | 20    | 0                   |
 +---------------------+------------+-------+---------------------+
 ```
@@ -851,6 +909,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | upgrade_to_pretty_name | AlmaLinux  | 8     | "AlmaLinux 9"          |
 | upgrade_to_pretty_name | CentOS     | 7     | "AlmaLinux 8"          |
 | upgrade_to_pretty_name | CloudLinux | 7     | "CloudLinux 8"         |
+| upgrade_to_pretty_name | CloudLinux | 8     | "CloudLinux 9"         |
 | upgrade_to_pretty_name | Ubuntu     | 20    | "Ubuntu 22.04"         |
 +------------------------+------------+-------+------------------------+
 ```
@@ -867,6 +926,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | vetted_apt_lists | AlmaLinux  | 8     | {}                                                                                                                                                                                                                                                           |
 | vetted_apt_lists | CentOS     | 7     | {}                                                                                                                                                                                                                                                           |
 | vetted_apt_lists | CloudLinux | 7     | {}                                                                                                                                                                                                                                                           |
+| vetted_apt_lists | CloudLinux | 8     | {}                                                                                                                                                                                                                                                           |
 |                  |            |       |                                                                                                                                                                                                                                                              |
 | vetted_apt_lists | Ubuntu     | 20    | {\n                                                                                                                                                                                                                                                          |
 |                  |            |       |   "cpanel-plugins.list"    => "deb mirror://httpupdate.cpanel.net/cpanel-plugins-u22-mirrorlist ./",\n                                                                                                                                                       |
@@ -921,6 +981,11 @@ yath -v t/Elevate-OS_detect_changes.t
 |                           |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n             |
 |                           |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                             |
 |                           |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n           |
+|                           |            |       | ]                                                                            |
+|                           |            |       |                                                                              |
+| vetted_mysql_yum_repo_ids | CloudLinux | 8     | [\n                                                                          |
+|                           |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n          |
+|                           |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                            |
 |                           |            |       | ]                                                                            |
 |                           |            |       |                                                                              |
 | vetted_mysql_yum_repo_ids | Ubuntu     | 20    | undef                                                                        |
@@ -1046,6 +1111,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
 |                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
 |                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
+|                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
 |                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
 |                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
 |                 |            |       |   "base",\n                                                                        |
@@ -1076,6 +1142,62 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   "updates",\n                                                                     |
 |                 |            |       | ]                                                                                  |
 |                 |            |       |                                                                                    |
+| vetted_yum_repo | CloudLinux | 8     | [\n                                                                                |
+|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                 |
+|                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n |
+|                 |            |       |   qr/(?^u:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                        |
+|                 |            |       |   qr/(?^u:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                                |
+|                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                    |
+|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
+|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                 |
+|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
+|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                |
+|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                  |
+|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
+|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
+|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
+|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
+|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
+|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
+|                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
+|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
+|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   "appstream",\n                                                                   |
+|                 |            |       |   "base",\n                                                                        |
+|                 |            |       |   "c7-media",\n                                                                    |
+|                 |            |       |   "centosplus",\n                                                                  |
+|                 |            |       |   "cl-ea4",\n                                                                      |
+|                 |            |       |   "cl7h",\n                                                                        |
+|                 |            |       |   "cp-dev-tools",\n                                                                |
+|                 |            |       |   "cpanel-addons-production-feed",\n                                               |
+|                 |            |       |   "cpanel-plugins",\n                                                              |
+|                 |            |       |   "cr",\n                                                                          |
+|                 |            |       |   "ct-preset",\n                                                                   |
+|                 |            |       |   "digitalocean-agent",\n                                                          |
+|                 |            |       |   "droplet-agent",\n                                                               |
+|                 |            |       |   "extras",\n                                                                      |
+|                 |            |       |   "fasttrack",\n                                                                   |
+|                 |            |       |   "hgdedi",\n                                                                      |
+|                 |            |       |   "imunify360",\n                                                                  |
+|                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
+|                 |            |       |   "influxdata",\n                                                                  |
+|                 |            |       |   "influxdb",\n                                                                    |
+|                 |            |       |   "jetapps",\n                                                                     |
+|                 |            |       |   "kernelcare",\n                                                                  |
+|                 |            |       |   "mysqclient",\n                                                                  |
+|                 |            |       |   "mysql-debuginfo",\n                                                             |
+|                 |            |       |   "platform360-cpanel",\n                                                          |
+|                 |            |       |   "powertools",\n                                                                  |
+|                 |            |       |   "r1soft",\n                                                                      |
+|                 |            |       |   "updates",\n                                                                     |
+|                 |            |       | ]                                                                                  |
+|                 |            |       |                                                                                    |
 | vetted_yum_repo | Ubuntu     | 20    | undef                                                                              |
 +-----------------+------------+-------+------------------------------------------------------------------------------------+
 ```
@@ -1092,6 +1214,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | yum_conf_needs_plugins | AlmaLinux  | 8     | 0                      |
 | yum_conf_needs_plugins | CentOS     | 7     | 0                      |
 | yum_conf_needs_plugins | CloudLinux | 7     | 1                      |
+| yum_conf_needs_plugins | CloudLinux | 8     | 0                      |
 | yum_conf_needs_plugins | Ubuntu     | 20    | 0                      |
 +------------------------+------------+-------+------------------------+
 ```

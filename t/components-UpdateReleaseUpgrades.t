@@ -50,11 +50,11 @@ my $comp = cpev->new->get_component('UpdateReleaseUpgrades');
 {
     note 'pre_distro_upgrade';
 
-    set_os_to('alma');
+    set_os_to( 'alma', 8 );
     is( $comp->pre_distro_upgrade(), undef, 'Returns early on systems that do not use do_release_upgrade to perform the distro upgrade' );
     no_messages_seen();
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
     like( $mock_upgrade_file->contents(), qr/Prompt=never/, 'Update is blocked before pre_distro_upgrade executes' );
     is( $comp->pre_distro_upgrade(), undef, 'Returns undef' );
     message_seen( INFO => qr/Removing install script that blocks upgrades to/ );

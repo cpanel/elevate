@@ -23,6 +23,13 @@ use Test::Elevate;
 
 use cPstrict;
 
+my %os_hash = (
+    alma   => [8],
+    cent   => [7],
+    cloud  => [ 7, 8 ],
+    ubuntu => [20],
+);
+
 my $mock_file_copy = Test::MockModule->new('File::Copy');
 $mock_file_copy->redefine(
     mv => sub { die "do not call yet\n"; },
@@ -35,58 +42,69 @@ $mock_stages->redefine(
 
 my $components = cpev->new()->components;
 
-for my $os (qw{ cent cloud ubuntu }) {
-    set_os_to($os);
+foreach my $distro ( keys %os_hash ) {
+    foreach my $version ( @{ $os_hash{$distro} } ) {
+        next if $version == 8;
+        set_os_to( $distro, $version );
 
-    is( $components->archive_elevate_files(), undef, 'Returns early unless log archival is needed' );
+        is( $components->archive_elevate_files(), undef, 'Returns early unless log archival is needed' );
+    }
 }
 
-set_os_to('alma');
+foreach my $distro ( keys %os_hash ) {
+    foreach my $version ( @{ $os_hash{$distro} } ) {
+        next unless $version == 8;
+        set_os_to( $distro, $version );
 
-$mock_stages->redefine(
-    get_stage => 6,
-);
+        $mock_stages->redefine(
+            get_stage => 6,
+        );
 
-my $mock_stage_file    = Test::MockFile->file('/var/cpanel/elevate');
-my $mock_blockers_file = Test::MockFile->file('/var/cpanel/elevate-blockers');
-my $mock_elevate_log   = Test::MockFile->file('/var/log/elevate-cpanel.log');
+        my $mock_stage_file    = Test::MockFile->file('/var/cpanel/elevate');
+        my $mock_blockers_file = Test::MockFile->file('/var/cpanel/elevate-blockers');
+        my $mock_elevate_log   = Test::MockFile->file('/var/log/elevate-cpanel.log');
 
-is( $components->archive_elevate_files(), undef, 'Returns early when there are no files to archive' );
+        is( $components->archive_elevate_files(), undef, 'Returns early when there are no files to archive' );
 
-$mock_stages->redefine(
-    get_stage => 1,
-);
+        $mock_stages->redefine(
+            get_stage => 1,
+        );
 
-my $mock_archive_dir    = Test::MockFile->dir('/var/cpanel/elevate_archive');
-my $mock_os_archive_dir = Test::MockFile->dir('/var/cpanel/elevate_archive/CentOS7-to-AlmaLinux8');
+        my $path = $distro eq 'alma' ? 'CentOS7-to-AlmaLinux8' : 'CloudLinux7-to-CloudLinux8';
 
-$mock_stage_file->contents('stuff');
-$mock_blockers_file->contents('foo');
-$mock_elevate_log->contents('bar');
+        my $mock_archive_dir    = Test::MockFile->dir('/var/cpanel/elevate_archive');
+        my $mock_os_archive_dir = Test::MockFile->dir("/var/cpanel/elevate_archive/$path");
 
-is( $components->archive_elevate_files(), undef, 'Returns early unless a successful elevate has completed' );
+        $mock_stage_file->contents('stuff');
+        $mock_blockers_file->contents('foo');
+        $mock_elevate_log->contents('bar');
 
-$mock_stages->redefine(
-    get_stage => 6,
-);
+        is( $components->archive_elevate_files(), undef, 'Returns early unless a successful elevate has completed' );
 
-my %archived_files;
-$mock_file_copy->redefine(
-    mv => sub {
-        $archived_files{ $_[0] } = $_[1];
-    },
-);
+        $mock_stages->redefine(
+            get_stage => 6,
+        );
 
-is( $components->archive_elevate_files(), undef, 'Successfully archives logs when all preconditions are met' );
-is(
-    \%archived_files,
-    {
-        '/var/cpanel/elevate'          => '/var/cpanel/elevate_archive/CentOS7-to-AlmaLinux8/_var_cpanel_elevate',
-        '/var/cpanel/elevate-blockers' => '/var/cpanel/elevate_archive/CentOS7-to-AlmaLinux8/_var_cpanel_elevate-blockers',
-        '/var/log/elevate-cpanel.log'  => '/var/cpanel/elevate_archive/CentOS7-to-AlmaLinux8/_var_log_elevate-cpanel.log',
-    },
-    'The expected logs are archived to the expected archive locations',
-);
+        my %archived_files;
+        $mock_file_copy->redefine(
+            mv => sub {
+                $archived_files{ $_[0] } = $_[1];
+            },
+        );
+
+        is( $components->archive_elevate_files(), undef, 'Successfully archives logs when all preconditions are met' );
+        is(
+            \%archived_files,
+            {
+                '/var/cpanel/elevate'          => "/var/cpanel/elevate_archive/$path/_var_cpanel_elevate",
+                '/var/cpanel/elevate-blockers' => "/var/cpanel/elevate_archive/$path/_var_cpanel_elevate-blockers",
+                '/var/log/elevate-cpanel.log'  => "/var/cpanel/elevate_archive/$path/_var_log_elevate-cpanel.log",
+            },
+            'The expected logs are archived to the expected archive locations',
+        );
+
+    }
+}
 
 done_testing;
 exit;

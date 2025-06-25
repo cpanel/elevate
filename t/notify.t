@@ -40,52 +40,59 @@ $mock_notify->redefine(
 
 my $cpev = bless {}, 'cpev';
 
-for my $os ( 'cent', 'cloud', 'ubuntu', 'alma' ) {
-    set_os_to($os);
+my %os_hash = (
+    alma   => [8],
+    cent   => [7],
+    cloud  => [ 7, 8 ],
+    ubuntu => [20],
+);
+foreach my $distro ( keys %os_hash ) {
+    foreach my $version ( @{ $os_hash{$distro} } ) {
+        set_os_to( $distro, $version );
 
-    my $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
+        my $stage_file = Test::MockFile->file( Elevate::StageFile::ELEVATE_STAGE_FILE() );
 
-    my $start_os     = Elevate::OS::pretty_name();
-    my $expect_os    = Elevate::OS::upgrade_to_pretty_name();
-    my $expect_title = "Successfully updated to $expect_os";
-    my $expect_body  = "The cPanel & WHM server has completed the elevation process from $start_os to $expect_os.\n";
+        my $start_os     = Elevate::OS::pretty_name();
+        my $expect_os    = Elevate::OS::upgrade_to_pretty_name();
+        my $expect_title = "Successfully updated to $expect_os";
+        my $expect_body  = "The cPanel & WHM server has completed the elevation process from $start_os to $expect_os.\n";
 
-    $cpev->_notify_success();
+        $cpev->_notify_success();
 
-    is $notification, {
-        title => $expect_title,
-        body  => $expect_body,
-        opts  => { is_success => 1 },
-      },
-      " _notify_success"
-      or diag explain $notification;
+        is $notification, {
+            title => $expect_title,
+            body  => $expect_body,
+            opts  => { is_success => 1 },
+          },
+          " _notify_success"
+          or diag explain $notification;
 
-    $notification = {};
+        $notification = {};
 
-    ok Elevate::Notify::add_final_notification("My First Notification"), 'add_final_notification';
+        ok Elevate::Notify::add_final_notification("My First Notification"), 'add_final_notification';
 
-    is Elevate::StageFile::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
+        is Elevate::StageFile::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
-    ok !Elevate::Notify::add_final_notification(undef), q[cannot add_final_notification(undef)];
-    ok !Elevate::Notify::add_final_notification(''),    q[cannot add_final_notification('')];
+        ok !Elevate::Notify::add_final_notification(undef), q[cannot add_final_notification(undef)];
+        ok !Elevate::Notify::add_final_notification(''),    q[cannot add_final_notification('')];
 
-    is Elevate::StageFile::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
+        is Elevate::StageFile::read_stage_file(), { final_notifications => ['My First Notification'] }, "stage file - notifications";
 
-    Elevate::Notify::add_final_notification("My Second Notification\nwith two lines.");
+        Elevate::Notify::add_final_notification("My Second Notification\nwith two lines.");
 
-    is Elevate::StageFile::read_stage_file(), {
-        final_notifications => [
-            "My Second Notification\nwith two lines.",
-            'My First Notification',
-        ]
-      },
-      "stage file - notifications"
-      or diag explain cpev::read_stage_file();
+        is Elevate::StageFile::read_stage_file(), {
+            final_notifications => [
+                "My Second Notification\nwith two lines.",
+                'My First Notification',
+            ]
+          },
+          "stage file - notifications"
+          or diag explain cpev::read_stage_file();
 
-    $cpev->_notify_success();
+        $cpev->_notify_success();
 
-    is $notification->{title}, "Successfully updated to $expect_os", '_notify_success: title';
-    is $notification->{body},  <<EOS,                                '_notify_success: body' or note $notification->{body};
+        is $notification->{title}, "Successfully updated to $expect_os", '_notify_success: title';
+        is $notification->{body},  <<EOS,                                '_notify_success: body' or note $notification->{body};
 The cPanel & WHM server has completed the elevation process from $start_os to $expect_os.
 
 The update to $expect_os was successful but please note that one ore more notifications require your attention:
@@ -95,11 +102,12 @@ The update to $expect_os was successful but please note that one ore more notifi
 * My Second Notification
 with two lines.
 EOS
-    no_messages_seen();
+        no_messages_seen();
 
-    $notification = {};
-    undef $stage_file;
+        $notification = {};
+        undef $stage_file;
 
+    }
 }
 
 done_testing();

@@ -31,16 +31,23 @@ my $mock_comp   = Test::MockModule->new('Elevate::Components::Lists');
 
 my $comp = cpev->new->get_component('Lists');
 
+my %os_hash = (
+    alma => [8],
+    cent => [7],
+);
+
 {
     note 'Lists blockers';
 
-    foreach my $os (qw{ cent alma }) {
-        set_os_to($os);
-        is( $comp->check(), 1, 'Returns early if the system does not use the apt package manager' );
-        no_messages_seen();
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
+            is( $comp->check(), 1, 'Returns early if the system does not use the apt package manager' );
+            no_messages_seen();
+        }
     }
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $makecache_ret;
     my $clean_all_ret = {};
@@ -135,7 +142,7 @@ my $comp = cpev->new->get_component('Lists');
 {
     note 'post_distro_upgrade';
 
-    set_os_to('ubuntu');
+    set_os_to( 'ubuntu', 20 );
 
     my $mock_repo_file         = Test::MockFile->file( '/etc/apt/sources.list.d/thing.repo',          '' );
     my $mock_known_list_file   = Test::MockFile->file( '/etc/apt/sources.list.d/cpanel-plugins.list', 'yup yup' );
@@ -156,14 +163,16 @@ my $comp = cpev->new->get_component('Lists');
         'The expected list files were updated',
     );
 
-    foreach my $os (qw{ cent alma }) {
-        set_os_to($os);
+    foreach my $distro ( keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-        $mock_comp->redefine(
-            update_list_files => sub { die "Do not call\n"; },
-        );
+            $mock_comp->redefine(
+                update_list_files => sub { die "Do not call\n"; },
+            );
 
-        is( $comp->post_distro_upgrade(), undef, 'Returns early on systems that do not rely on apt' );
+            is( $comp->post_distro_upgrade(), undef, 'Returns early on systems that do not rely on apt' );
+        }
     }
 }
 
