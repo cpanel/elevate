@@ -42,7 +42,7 @@ We **strongly** recommend that you have multiple ways to access your server befo
 To identify many blockers, [download the `elevate-cpanel`](https://cpanel.github.io/elevate/getting-started/#updating-your-server) script and run the following command:
 
 ```
- /scripts/elevate-cpanel --check`
+ /scripts/elevate-cpanel --check
 ```
 
 ## Major blockers
