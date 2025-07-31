@@ -17,6 +17,8 @@ use parent 'Elevate::OS::Ubuntu';
 # The value represents the contents that the file should contain after the
 # upgrade has completed
 use constant vetted_apt_lists => {
+    'alt-common-els.list' => q{deb [arch=amd64] https://repo.alt.tuxcare.com/alt-common/deb/ubuntu/22.04/stable jammy main},
+
     'cpanel-plugins.list' => q{deb mirror://httpupdate.cpanel.net/cpanel-plugins-u22-mirrorlist ./},
 
     'droplet-agent.list' => q{deb [signed-by=/usr/share/keyrings/droplet-agent-keyring.gpg] https://repos-droplet.digitalocean.com/apt/droplet-agent main main},
@@ -32,7 +34,7 @@ deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-6/ jammy main
 deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-7/ jammy main
 deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-8/ jammy main},
 
-    'imunify360.list' => q{deb [arch=amd64] https://repo.imunify360.cloudlinux.com/imunify360/ubuntu/22.04/ jammy main'},
+    'imunify360.list' => q{deb [arch=amd64] https://repo.imunify360.cloudlinux.com/imunify360/ubuntu/22.04/ jammy main},
 
     'mysql.list' => q{# Use command 'dpkg-reconfigure mysql-apt-config' as root for modifications.
 deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-apt-config
@@ -42,10 +44,10 @@ deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-tools
 deb-src https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0},
 
     'wp-toolkit-cpanel.list' => q{# WP Toolkit
-deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/wp-toolkit/ ./
+deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/wp-toolkit/ ./
 
 # WP Toolkit Thirdparties
-deb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ ./},
+deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ ./},
 
     # If you don't assign $_ it is a syntax error in this context. Can't cheat with postfix for either.
     map { my $thing = $_; "jetapps-$_.list" => "deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/$_ main" } qw{base plugins alpha beta edge rc release stable},

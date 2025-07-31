@@ -34,6 +34,7 @@ use constant vetted_mysql_yum_repo_ids => (
 );
 
 use constant vetted_yum_repo => (
+    'alt-common',
     'base',
     'c7-media',
     qr/^centos-kernel(?:-experimental)?$/,

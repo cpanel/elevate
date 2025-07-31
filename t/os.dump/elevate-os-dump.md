@@ -929,13 +929,14 @@ yath -v t/Elevate-OS_detect_changes.t
 | vetted_apt_lists | CloudLinux | 8     | {}                                                                                                                                                                                                                                                           |
 |                  |            |       |                                                                                                                                                                                                                                                              |
 | vetted_apt_lists | Ubuntu     | 20    | {\n                                                                                                                                                                                                                                                          |
+|                  |            |       |   "alt-common-els.list"    => "deb [arch=amd64] https://repo.alt.tuxcare.com/alt-common/deb/ubuntu/22.04/stable jammy main",\n                                                                                                                               |
 |                  |            |       |   "cpanel-plugins.list"    => "deb mirror://httpupdate.cpanel.net/cpanel-plugins-u22-mirrorlist ./",\n                                                                                                                                                       |
 |                  |            |       |   "droplet-agent.list"     => "deb [signed-by=/usr/share/keyrings/droplet-agent-keyring.gpg] https://repos-droplet.digitalocean.com/apt/droplet-agent main main",\n                                                                                          |
 |                  |            |       |   "EA4.list"               => "deb mirror://httpupdate.cpanel.net/ea4-u22-mirrorlist ./",\n                                                                                                                                                                  |
 |                  |            |       |   "imunify-rollout.list"   => "deb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-1/ jammy main\ndeb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-2/ jammy main\ndeb [arch=amd64] https://download.imunify360.com/ubuntu/2 |
 |                  |            |       | 2.04/slot-3/ jammy main\ndeb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-4/ jammy main\ndeb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-5/ jammy main\ndeb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/s |
 |                  |            |       | lot-6/ jammy main\ndeb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-7/ jammy main\ndeb [arch=amd64] https://download.imunify360.com/ubuntu/22.04/slot-8/ jammy main",\n                                                                    |
-|                  |            |       |   "imunify360.list"        => "deb [arch=amd64] https://repo.imunify360.cloudlinux.com/imunify360/ubuntu/22.04/ jammy main'",\n                                                                                                                              |
+|                  |            |       |   "imunify360.list"        => "deb [arch=amd64] https://repo.imunify360.cloudlinux.com/imunify360/ubuntu/22.04/ jammy main",\n                                                                                                                               |
 |                  |            |       |   "jetapps-alpha.list"     => "deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/alpha main",\n                                                                                                                                                      |
 |                  |            |       |   "jetapps-base.list"      => "deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/base main",\n                                                                                                                                                       |
 |                  |            |       |   "jetapps-beta.list"      => "deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/beta main",\n                                                                                                                                                       |
@@ -946,7 +947,8 @@ yath -v t/Elevate-OS_detect_changes.t
 |                  |            |       |   "jetapps-stable.list"    => "deb [arch=amd64] https://repo.jetlicense.com/ubuntu jammy/stable main",\n                                                                                                                                                     |
 |                  |            |       |   "mysql.list"             => "# Use command 'dpkg-reconfigure mysql-apt-config' as root for modifications.\ndeb https://repo.mysql.com/apt/ubuntu/ jammy mysql-apt-config\ndeb https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0\ndeb https://repo.mysql.c |
 |                  |            |       | om/apt/ubuntu/ jammy mysql-tools\n#deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-tools-preview\ndeb-src https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0",\n                                                                                          |
-|                  |            |       |   "wp-toolkit-cpanel.list" => "# WP Toolkit\ndeb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/wp-toolkit/ ./\n\n# WP Toolkit Thirdparties\ndeb https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ ./",\n           |
+|                  |            |       |   "wp-toolkit-cpanel.list" => "# WP Toolkit\ndeb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/wp-toolkit/ ./\n\n# WP Toolkit Thirdparties\ndeb [signed-by=/etc/apt/keyrings/wp-toolkit |
+|                  |            |       | -cpanel.gpg] https://wp-toolkit.plesk.com/cPanel/Ubuntu-22.04-x86_64/latest/thirdparty/ ./",\n                                                                                                                                                               |
 |                  |            |       | }                                                                                                                                                                                                                                                            |
 +------------------+------------+-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
@@ -1021,6 +1023,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
 |                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
 |                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   "alt-common",\n                                                                  |
 |                 |            |       |   "appstream",\n                                                                   |
 |                 |            |       |   "base",\n                                                                        |
 |                 |            |       |   "c7-media",\n                                                                    |
@@ -1066,6 +1069,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
 |                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
 |                 |            |       |   qr/(?^u:centos7[-]*els(-rollout-[0-9]+|))/,\n                                    |
+|                 |            |       |   "alt-common",\n                                                                  |
 |                 |            |       |   "base",\n                                                                        |
 |                 |            |       |   "c7-media",\n                                                                    |
 |                 |            |       |   "centosplus",\n                                                                  |
@@ -1114,6 +1118,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
 |                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
 |                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   "alt-common",\n                                                                  |
 |                 |            |       |   "base",\n                                                                        |
 |                 |            |       |   "c7-media",\n                                                                    |
 |                 |            |       |   "centosplus",\n                                                                  |
@@ -1168,6 +1173,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
 |                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
 |                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   "alt-common",\n                                                                  |
 |                 |            |       |   "appstream",\n                                                                   |
 |                 |            |       |   "base",\n                                                                        |
 |                 |            |       |   "c7-media",\n                                                                    |
