@@ -87,6 +87,13 @@ sub _blocker_is_invalid_cpanel_whm ($self) {
         return $self->has_blocker('Invalid cPanel & WHM major_version.');
     }
 
+    my $current_type = readlink('/usr/local/cpanel/server.type') // 'cpanel';
+    if ( $current_type eq 'wp2' ) {
+        $self->components->abort_on_first_blocker(1);
+
+        return $self->has_blocker("This script is only designed to work with cPanel & WHM installs. $current_type servers are not eligible for upgrades.");
+    }
+
     return 0;
 }
 

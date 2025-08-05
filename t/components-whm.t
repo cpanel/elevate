@@ -1,6 +1,6 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
-#                                      Copyright 2024 WebPros International, LLC
+#                                      Copyright 2025 WebPros International, LLC
 #                                                           All rights reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
@@ -68,6 +68,8 @@ my %os_hash = (
 {
     note "cPanel & WHM not fully populated.";
 
+    my $mock_server_type = Test::MockFile->symlink( 'cpanel', '/usr/local/cpanel/server.type' );
+
     no warnings 'once';
     local $Cpanel::Version::Tiny::major_version;
     is(
@@ -81,6 +83,19 @@ my %os_hash = (
 
     $Cpanel::Version::Tiny::major_version = 106;
     is( $whm->_blocker_is_invalid_cpanel_whm(), 0, '11.106 is unsupported for this script.' );
+
+    $mock_server_type->readlink('wp2');
+    like(
+        dies { $whm->_blocker_is_invalid_cpanel_whm() },
+        {
+            id  => q[Elevate::Components::WHM::_blocker_is_invalid_cpanel_whm],
+            msg => qr/wp2 servers are not eligible for/,
+        },
+        q{wp2 is not eligible to be upgraded}
+    );
+
+    # Reset this
+    $whm->components->abort_on_first_blocker(0);
 }
 
 {
