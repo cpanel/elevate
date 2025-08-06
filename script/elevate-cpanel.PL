@@ -1076,6 +1076,11 @@ sub run_stage_3 ($self) {
     Do not interrupt power during this event or you will corrupt your system.
     EOS
 
+    # Make sure to clear this here since the server SHOULD be a different OS
+    # when it comes back up
+    # NOTE: This should be the last thing we do before rebooting
+    Cpanel::OS::flush_disk_caches();
+
     return ACTION_REBOOT_NEEDED;
 
     # This takes a while because on reboot it's installing 800 packages
