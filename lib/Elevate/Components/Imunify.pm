@@ -46,10 +46,7 @@ use constant IMUNIFY_LICENSE_BACKUP => Elevate::Constants::ELEVATE_BACKUP_DIR . 
 
 sub pre_distro_upgrade ($self) {
 
-    if ( Elevate::OS::needs_leapp() ) {
-        return if Elevate::OS::leapp_can_handle_imunify();
-    }
-
+    return if Elevate::OS::leapp_can_handle_imunify();
     return unless $self->is_installed;
 
     $self->run_once("_capture_imunify_features");
@@ -61,9 +58,7 @@ sub pre_distro_upgrade ($self) {
 
 sub post_distro_upgrade ($self) {
 
-    if ( Elevate::OS::needs_leapp() ) {
-        return if Elevate::OS::leapp_can_handle_imunify();
-    }
+    return if Elevate::OS::leapp_can_handle_imunify();
 
     # order matters
     $self->run_once('_reinstall_imunify_360');

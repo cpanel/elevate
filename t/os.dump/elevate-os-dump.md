@@ -332,7 +332,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | leapp_can_handle_imunify | CentOS     | 7     | 0                        |
 | leapp_can_handle_imunify | CloudLinux | 7     | 1                        |
 | leapp_can_handle_imunify | CloudLinux | 8     | 1                        |
-| leapp_can_handle_imunify | Ubuntu     | 20    | undef                    |
+| leapp_can_handle_imunify | Ubuntu     | 20    | 1                        |
 +--------------------------+------------+-------+--------------------------+
 ```
 ---
