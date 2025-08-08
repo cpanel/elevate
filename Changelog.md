@@ -1,3 +1,11 @@
+##### **2025-08-08** - version 69
+
+* Fixed case RE-1599: Skip Imunify Component on Ubuntu
+* Fixed case RE-1593: Add blocker for wp2 servers
+* Fixed case RE-1595: Flush Cpanel::OS cache before rebooting to upgrade OS
+* Fixed case RE-1589: Add 'alt-common' to list of vetted yum repos
+* Fix documentation typo in blockers.
+
 ##### **2025-06-25** - version 68
 
 * Fixed case RE-1309: Add experimental support for CL8->CL9 distro upgrades.
