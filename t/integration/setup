@@ -23,4 +23,23 @@ if [[ -f /etc/redhat-release ]] && grep -q "^CentOS.*release 7" /etc/redhat-rele
     sed -i 's/CPANEL=.*/CPANEL=11.110/' /etc/cpupdate.conf
 fi
 
+# RE-1573
+echo "Creating 3 accounts"
+for DOMAIN in withfpm nofpm inherit; do /usr/local/cpanel/bin/whmapi1 createacct username=$DOMAIN domain=$DOMAIN.tld; done
+
+echo "Clearing the task queue"
+/usr/local/cpanel/bin/servers_queue run
+
+echo "Setting 'withfpm' account to ea-php81 with php-fpm enabled"
+/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=ea-php81 vhost=withfpm.tld php_fpm=1
+
+echo "Setting 'nofpm' account to ea-php82 with php-fpm disabled"
+/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=ea-php82 vhost=nofpm.tld php_fpm=0
+
+echo "Setting 'inherit' account to inherit the default PHP version"
+/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=inherit vhost=inherit.tld
+
+echo "Clearing the task queue"
+/usr/local/cpanel/bin/servers_queue run
+
 exit 0;

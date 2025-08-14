@@ -151,7 +151,8 @@ BEGIN {    # Suppress load of all of these at earliest point.
 
     use constant POSTGRESQL_SYSTEM_DATADIR => '/var/lib/pgsql/data';
 
-    use constant OVH_MONITORING_TOUCH_FILE => '/var/cpanel/acknowledge_ovh_monitoring_for_elevate';
+    use constant OVH_MONITORING_TOUCH_FILE  => '/var/cpanel/acknowledge_ovh_monitoring_for_elevate';
+    use constant SKIP_PRESERVE_PHP_VERSIONS => '/var/cpanel/elevate_skip_preserve_php_versions';
 
     1;
 
@@ -2240,19 +2241,57 @@ EOS
     }
 
     sub _ensure_sites_use_correct_php_version ($self) {
+        return if -e Elevate::Constants::SKIP_PRESERVE_PHP_VERSIONS;
 
-        my $vhost_versions = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+        my $default_php_version       = Elevate::StageFile::read_stage_file('php_get_system_default_version');
+        my $php_get_inherited_domains = Elevate::StageFile::read_stage_file('php_get_inherited_domains');
+        my $vhost_versions            = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+
         return unless ref $vhost_versions eq 'ARRAY';
         return unless scalar $vhost_versions->@*;
+
+        my $whmapi1_bin    = '/usr/local/cpanel/bin/whmapi1';
+        my $desired_output = '--output=json';
+
+        if ( length $default_php_version ) {
+            my @api_cmd = (
+                $whmapi1_bin,
+                $desired_output,
+                'php_set_system_default_version',
+                "version=$default_php_version",
+            );
+
+            my $out    = Cpanel::SafeRun::Simple::saferunnoerror(@api_cmd);
+            my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+            my $api_string = join( ' ', @api_cmd );
+            unless ( $result->{metadata}{result} ) {
+
+                WARN(<<~"EOS");
+            Unable to set the default PHP version back to its original version.
+            To set it back to its original PHP version, execute the following
+            command:
+
+            $api_string
+            EOS
+            }
+        }
+
+        my %inherited_domains;
+        if ( ref $php_get_inherited_domains eq 'ARRAY' ) {
+            %inherited_domains = map { $_ => 1 } @$php_get_inherited_domains;
+        }
 
         foreach my $vhost_entry (@$vhost_versions) {
             my $version = $vhost_entry->{version};
             my $vhost   = $vhost_entry->{vhost};
             my $fpm     = $vhost_entry->{php_fpm};
 
+            $version = 'inherit' if $inherited_domains{$vhost};
+
             my @api_cmd = (
-                '/usr/local/cpanel/bin/whmapi1',
-                '--output=json',
+                $whmapi1_bin,
+                $desired_output,
                 'php_set_vhost_versions',
                 "version=$version",
                 "vhost=$vhost",
@@ -2279,9 +2318,20 @@ EOS
     }
 
     sub _gather_php_usage ($self) {
+        return if -e Elevate::Constants::SKIP_PRESERVE_PHP_VERSIONS;
+
+        my $php_get_system_default_version = Elevate::EA4::php_get_system_default_version();
+        Elevate::StageFile::remove_from_stage_file('php_get_system_default_version');
+        Elevate::StageFile::update_stage_file( { php_get_system_default_version => $php_get_system_default_version } );
+
         my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
         Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
         Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $php_get_vhost_versions } );
+
+        my $php_get_inherited_domains = Elevate::EA4::php_get_inherited_domains();
+        Elevate::StageFile::remove_from_stage_file('php_get_inherited_domains');
+        Elevate::StageFile::update_stage_file( { php_get_inherited_domains => $php_get_inherited_domains } );
+
         return;
     }
 
@@ -9450,7 +9500,7 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
     my $php_get_vhost_versions;
 
     sub php_get_vhost_versions () {
-        return $php_get_vhost_versions if defined $php_get_vhost_versions && ref $php_get_vhost_versions eq 'HASH';
+        return $php_get_vhost_versions if defined $php_get_vhost_versions && ref $php_get_vhost_versions eq 'ARRAY';
 
         my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
         my $result = eval { Cpanel::JSON::Load($out); } // {};
@@ -9468,6 +9518,52 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
 
         my $php_get_vhost_versions = $result->{data}{versions};
         return $php_get_vhost_versions;
+    }
+
+    my $php_get_system_default_version;
+
+    sub php_get_system_default_version () {
+        return $php_get_system_default_version if defined $php_get_system_default_version;
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_system_default_version});
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        unless ( $result->{metadata}{result} ) {
+
+            WARN(<<~"EOS");
+        The php_get_system_default_version API call failed. Unable to determine current
+        system default PHP version.
+
+        EOS
+
+            return;
+        }
+
+        my $php_get_system_default_version = $result->{data}{version};
+        return $php_get_system_default_version;
+    }
+
+    my $php_get_inherited_domains;
+
+    sub php_get_inherited_domains () {
+        return $php_get_inherited_domains if defined $php_get_inherited_domains && ref $php_get_inherited_domains eq 'ARRAY';
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_impacted_domains system_default=1 });
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        unless ( $result->{metadata}{result} ) {
+
+            WARN(<<~"EOS");
+        The php_get_impacted_domains API call failed. Unable to determine domains
+        that are currently set to inherit their PHP version.
+
+        EOS
+
+            return;
+        }
+
+        my $php_get_inherited_domains = $result->{data}{domains};
+        return $php_get_inherited_domains;
     }
 
     1;

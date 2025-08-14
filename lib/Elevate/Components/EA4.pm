@@ -190,19 +190,60 @@ sub _restore_config_files ($self) {
 }
 
 sub _ensure_sites_use_correct_php_version ($self) {
+    return if -e Elevate::Constants::SKIP_PRESERVE_PHP_VERSIONS;
 
-    my $vhost_versions = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+    my $default_php_version       = Elevate::StageFile::read_stage_file('php_get_system_default_version');
+    my $php_get_inherited_domains = Elevate::StageFile::read_stage_file('php_get_inherited_domains');
+    my $vhost_versions            = Elevate::StageFile::read_stage_file('php_get_vhost_versions');
+
     return unless ref $vhost_versions eq 'ARRAY';
     return unless scalar $vhost_versions->@*;
 
+    my $whmapi1_bin    = '/usr/local/cpanel/bin/whmapi1';
+    my $desired_output = '--output=json';
+
+    # Set the default PHP version to ensure that it does not change after the update
+    if ( length $default_php_version ) {
+        my @api_cmd = (
+            $whmapi1_bin,
+            $desired_output,
+            'php_set_system_default_version',
+            "version=$default_php_version",
+        );
+
+        my $out    = Cpanel::SafeRun::Simple::saferunnoerror(@api_cmd);
+        my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+        my $api_string = join( ' ', @api_cmd );
+        unless ( $result->{metadata}{result} ) {
+
+            WARN(<<~"EOS");
+            Unable to set the default PHP version back to its original version.
+            To set it back to its original PHP version, execute the following
+            command:
+
+            $api_string
+            EOS
+        }
+    }
+
+    my %inherited_domains;
+    if ( ref $php_get_inherited_domains eq 'ARRAY' ) {
+        %inherited_domains = map { $_ => 1 } @$php_get_inherited_domains;
+    }
+
+    # Ensure sites maintain the same PHP version after the update
     foreach my $vhost_entry (@$vhost_versions) {
         my $version = $vhost_entry->{version};
         my $vhost   = $vhost_entry->{vhost};
         my $fpm     = $vhost_entry->{php_fpm};
 
+        # Ensure that the domain stays inherited if it was inherited before the upgrade
+        $version = 'inherit' if $inherited_domains{$vhost};
+
         my @api_cmd = (
-            '/usr/local/cpanel/bin/whmapi1',
-            '--output=json',
+            $whmapi1_bin,
+            $desired_output,
             'php_set_vhost_versions',
             "version=$version",
             "vhost=$vhost",
@@ -229,9 +270,20 @@ sub _ensure_sites_use_correct_php_version ($self) {
 }
 
 sub _gather_php_usage ($self) {
+    return if -e Elevate::Constants::SKIP_PRESERVE_PHP_VERSIONS;
+
+    my $php_get_system_default_version = Elevate::EA4::php_get_system_default_version();
+    Elevate::StageFile::remove_from_stage_file('php_get_system_default_version');
+    Elevate::StageFile::update_stage_file( { php_get_system_default_version => $php_get_system_default_version } );
+
     my $php_get_vhost_versions = Elevate::EA4::php_get_vhost_versions();
     Elevate::StageFile::remove_from_stage_file('php_get_vhost_versions');
     Elevate::StageFile::update_stage_file( { php_get_vhost_versions => $php_get_vhost_versions } );
+
+    my $php_get_inherited_domains = Elevate::EA4::php_get_inherited_domains();
+    Elevate::StageFile::remove_from_stage_file('php_get_inherited_domains');
+    Elevate::StageFile::update_stage_file( { php_get_inherited_domains => $php_get_inherited_domains } );
+
     return;
 }
 

@@ -12,7 +12,7 @@ use Cpanel::SafeRun::Simple ();
 use Cpanel::SafeRun::Object ();
 
 use Test::More;
-plan tests => 8;
+plan tests => 9;
 
 # "Poor man's" FailWarnings
 $SIG{'__WARN__'} = sub { fail("Warning detected: $_[0]"); };
@@ -56,6 +56,42 @@ my $content   = curl($login_url);
 like( $content, qr/<title>WHM/, "WHM is able to be logged into" );
 
 like( run_get_output( qw{/usr/bin/bash -c}, 'echo "SHOW DATABASES" | mysql' ), qr/information_schema/, "MySQL seems OK" );
+
+# RE-1573
+subtest 'Preserve PHP versions' => sub {
+
+    my %accounts = (
+        withfpm => {
+            php_fpm => 1,
+            version => 'ea-php81',
+        },
+        nofpm => {
+            php_fpm => 0,
+            version => 'ea-php82',
+        },
+        inherit => {
+            php_fpm => 0,
+            version => 'inherit',
+        },
+    );
+
+    my $expected_tests = scalar keys %accounts;
+    plan tests => $expected_tests * 2 + 1;
+
+    my $default_php_version = run_api(qw{whmapi1 php_get_system_default_version});
+    is( $default_php_version->{data}{version}, 'ea-php81', 'Default PHP version remains unchanged' );
+
+    my $inherited_domains_result = run_api(qw{whmapi1 php_get_impacted_domains system_default=1});
+    my %inherited_domains        = map { $_ => 1 } @{ $inherited_domains_result->{data}{domains} };
+
+    for my $account ( sort keys %accounts ) {
+        my $out = run_api( 'uapi', "--user=$account", 'LangPHP', 'php_get_vhost_versions' );
+        $out->{result}{data}[0]{version} = 'inherit' if $inherited_domains{ $out->{result}{data}[0]{vhost} };
+
+        is( $out->{result}{data}[0]{version}, $accounts{$account}{version}, "The $account account has the correct PHP version" );
+        is( $out->{result}{data}[0]{php_fpm}, $accounts{$account}{php_fpm}, "php_fpm is enabled for the $account account" );
+    }
+};
 
 # XXX TODO randomize this, I really wish I had t/qa tools here. Also need to set allowunreg, etc. ;_;
 note "Creating an account for testing...";
@@ -102,6 +138,6 @@ sub run_api {
         $out = eval { Cpanel::JSON::Load( run_get_output( "/usr/local/cpanel/bin/$api", '--output=json', @call_args ) ) };
         warn $@ if $@;
     }
-    warn "$api @call_args failed: $out->{'metadata'}{'reason'}" if !$out->{'metadata'}{'result'};
+    warn "$api @call_args failed: $out->{'metadata'}{'reason'}" if ( exists $out->{metadata}{result} && $out->{'metadata'}{'result'} != 1 ) || ( exists $out->{result}{status} && $out->{result}{status} != 1 );
     return $out;
 }
