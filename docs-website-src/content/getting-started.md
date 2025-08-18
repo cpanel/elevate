@@ -168,6 +168,10 @@ By default, the elevate script will set the `LEAPP_OVL_SIZE` variable to `3000` 
 
 For more information about the `LEAPP_OVL_SIZE` variable, read the [leapp documentation](https://leapp.readthedocs.io/en/latest/el7toel8/envars.html#leapp-ovl-size)
 
+### Skip the logic that verifies that each sites PHP version remains the same after upgrade
+
+Create the `/var/cpanel/elevate_skip_preserve_php_versions` touch file to indicate that you want to skip this logic and handle any potential breakage manually.
+
 ## Risks
 
 When you upgrade your server, you may experience data loss or unexpected behavior that can render your server not functional.

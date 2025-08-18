@@ -566,7 +566,9 @@ sub test_backup_and_restore_config_files : Test(50) ($self) {
     return;
 }
 
-sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
+sub test__ensure_sites_use_correct_php_version : Test(17) ($self) {
+
+    my $mock_touchfile = Test::MockFile->file('/var/cpanel/elevate_skip_preserve_php_versions');
 
     my $mock_stagefile = Test::MockModule->new('Elevate::StageFile');
     $mock_stagefile->redefine(
@@ -591,28 +593,53 @@ sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
 
     $mock_stagefile->redefine(
         read_stage_file => sub {
-            return [
-                {
-                    version => 'ea-php42',
-                    vhost   => 'foo.tld',
-                    php_fpm => 0,
-                },
-                {
-                    version => 'ea-php99',
-                    vhost   => 'bar.tld',
-                    php_fpm => 1,
-                },
-            ];
+            my ($desired_key) = @_;
+
+            if ( $desired_key eq 'php_get_system_default_version' ) {
+                return 'ea-php23';
+            }
+            elsif ( $desired_key eq 'php_get_inherited_domains' ) {
+                return ['finn.tld'];
+            }
+            elsif ( $desired_key eq 'php_get_vhost_versions' ) {
+                return [
+                    {
+                        version => 'ea-php42',
+                        vhost   => 'foo.tld',
+                        php_fpm => 0,
+                    },
+                    {
+                        version => 'ea-php99',
+                        vhost   => 'bar.tld',
+                        php_fpm => 1,
+                    },
+                    {
+                        version => 'ea-php23',
+                        vhost   => 'finn.tld',
+                        php_fpm => 0,
+                    },
+                ];
+            }
         },
     );
+
+    $mock_touchfile->touch();
+
+    is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
+    is( \@saferun_calls,                             [],    'No API calls are made when the touch file is in place' );
+
+    undef @saferun_calls;
+    unlink '/var/cpanel/elevate_skip_preserve_php_versions';
 
     is( $ea4->_ensure_sites_use_correct_php_version, undef, 'Returns undef' );
 
     is(
         \@saferun_calls,
         [
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_system_default_version version=ea-php23],
             q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php42 vhost=foo.tld php_fpm=0],
             q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php99 vhost=bar.tld php_fpm=1],
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=inherit vhost=finn.tld php_fpm=0],
         ],
         'The correct API calls are made',
     );
@@ -625,14 +652,18 @@ sub test__ensure_sites_use_correct_php_version : Test(11) ($self) {
     is(
         \@saferun_calls,
         [
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_system_default_version version=ea-php23],
             q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php42 vhost=foo.tld php_fpm=0],
             q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=ea-php99 vhost=bar.tld php_fpm=1],
+            q[/usr/local/cpanel/bin/whmapi1 --output=json php_set_vhost_versions version=inherit vhost=finn.tld php_fpm=0],
         ],
         'The correct API calls are made',
     );
 
+    message_seen( WARN => qr/Unable to set the default PHP version back to its original version/ );
     message_seen( WARN => qr/Unable to set foo\.tld back to its desired PHP version/ );
     message_seen( WARN => qr/Unable to set bar\.tld back to its desired PHP version/ );
+    message_seen( WARN => qr/Unable to set finn\.tld back to its desired PHP version/ );
     no_messages_seen();
 
     return;

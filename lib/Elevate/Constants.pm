@@ -66,6 +66,7 @@ use constant ACRONIS_OTHER_PACKAGES => qw{
 
 use constant POSTGRESQL_SYSTEM_DATADIR => '/var/lib/pgsql/data';
 
-use constant OVH_MONITORING_TOUCH_FILE => '/var/cpanel/acknowledge_ovh_monitoring_for_elevate';
+use constant OVH_MONITORING_TOUCH_FILE  => '/var/cpanel/acknowledge_ovh_monitoring_for_elevate';
+use constant SKIP_PRESERVE_PHP_VERSIONS => '/var/cpanel/elevate_skip_preserve_php_versions';
 
 1;

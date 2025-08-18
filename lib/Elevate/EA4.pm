@@ -167,7 +167,7 @@ sub _backup_ea_addons () {
 my $php_get_vhost_versions;
 
 sub php_get_vhost_versions () {
-    return $php_get_vhost_versions if defined $php_get_vhost_versions && ref $php_get_vhost_versions eq 'HASH';
+    return $php_get_vhost_versions if defined $php_get_vhost_versions && ref $php_get_vhost_versions eq 'ARRAY';
 
     my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_vhost_versions});
     my $result = eval { Cpanel::JSON::Load($out); } // {};
@@ -185,6 +185,52 @@ sub php_get_vhost_versions () {
 
     my $php_get_vhost_versions = $result->{data}{versions};
     return $php_get_vhost_versions;
+}
+
+my $php_get_system_default_version;
+
+sub php_get_system_default_version () {
+    return $php_get_system_default_version if defined $php_get_system_default_version;
+
+    my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_system_default_version});
+    my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+    unless ( $result->{metadata}{result} ) {
+
+        WARN(<<~"EOS");
+        The php_get_system_default_version API call failed. Unable to determine current
+        system default PHP version.
+
+        EOS
+
+        return;
+    }
+
+    my $php_get_system_default_version = $result->{data}{version};
+    return $php_get_system_default_version;
+}
+
+my $php_get_inherited_domains;
+
+sub php_get_inherited_domains () {
+    return $php_get_inherited_domains if defined $php_get_inherited_domains && ref $php_get_inherited_domains eq 'ARRAY';
+
+    my $out    = Cpanel::SafeRun::Simple::saferunnoerror(qw{/usr/local/cpanel/bin/whmapi1 --output=json php_get_impacted_domains system_default=1 });
+    my $result = eval { Cpanel::JSON::Load($out); } // {};
+
+    unless ( $result->{metadata}{result} ) {
+
+        WARN(<<~"EOS");
+        The php_get_impacted_domains API call failed. Unable to determine domains
+        that are currently set to inherit their PHP version.
+
+        EOS
+
+        return;
+    }
+
+    my $php_get_inherited_domains = $result->{data}{domains};
+    return $php_get_inherited_domains;
 }
 
 1;
