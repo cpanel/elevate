@@ -76,6 +76,7 @@ sub install ($self) {
         Type=simple
         # want to run it once per boot time
         RemainAfterExit=yes
+        TimeoutStartSec=15min
         ExecStartPre=-/usr/local/cpanel/scripts/fix-cpanel-perl >/dev/null 2>&1
         ExecStart=/usr/local/cpanel/scripts/elevate-cpanel --service
         Environment="LANG=C"
