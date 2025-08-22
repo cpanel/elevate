@@ -12,6 +12,11 @@ _exit_with_haste(1) if !length( $ENV{REBOOT_STRING} );
 open( my $elevate_log_fh, '<', ELEVATE_LOG_PATH ) or die "## [ERROR][reboot_watch]: Unable to open ELEVATE_LOG_PATH: $!\n";
 
 while ( my $line = readline $elevate_log_fh ) {
+
+    # --check failed so there is no status
+    # just exit in this case
+    _exit_with_haste(1) if $line =~ /Please fix the detected issues before performing the elevation process/ && !_script_is_running();
+
     if ( index( $line, $ENV{REBOOT_STRING} ) >= 0 ) {
         close $elevate_log;
         _pre_success_message();
@@ -32,9 +37,13 @@ sub _check_elevate_log_for_REBOOT_STRING {
     $file = File::Tail->new( name => $filepath, maxinterval => .1, adjustafter => 1000, interval => .1, resetafter => 1000000 );
     while ( defined( $line = $file->read ) ) {
 
+        # --check failed so there is no status
+        # just exit in this case
+        _exit_with_haste(1) if $line =~ /Please fix the detected issues before performing the elevation process/;
+
         # Lines that match ERROR or FATAL are an indication that the script
         # has failed or is about to fail
-        if ( $line =~ /\[(?:ERROR|FATAL|No valid license found\.)\]|Please fix the detected issues before|You can continue the process after fixing the errors by running|The elevation process failed/ ) {
+        if ( $line =~ /\[(?:ERROR|FATAL|No valid license found\.)\]|You can continue the process after fixing the errors by running|The elevation process failed/ ) {
             if ( _script_has_failed() ) {
 
                 # If it failed due to temporary mirror issues,
@@ -51,6 +60,17 @@ sub _check_elevate_log_for_REBOOT_STRING {
             _exit_with_haste(0);
         }
     }
+}
+
+sub _script_is_running {
+
+    open( my $fh, '<', '/var/cpanel/elevate' ) or _exit_with_haste(1);
+    my $raw_content = do { local $/; <$fh>; };
+    close $fh;
+
+    my $elevate_data   = JSON::PP->new->decode($raw_content);
+    my $elevate_status = $elevate_data->{status};
+    return $elevate_status eq 'running' ? 1 : 0;
 }
 
 sub _script_has_failed {
