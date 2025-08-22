@@ -180,7 +180,7 @@ jobs:
             echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
             echo "## [INFO]: Now running /usr/bin/cldetect --check-license" && /usr/bin/cldetect --check-license
             until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
-            /usr/bin/yum erase -y awscli
+            /usr/bin/yum erase -y awscli git-lfs
             echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo=cloudlinux-x86_64-server --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
             mv -v /etc/yum.repos.d/clmirror.repo /root/
             yum-config-manager --enable cloudlinux-base
