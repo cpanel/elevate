@@ -1,3 +1,8 @@
+##### **2025-08-25** - version 70
+
+* Fixed case RE-1602: Increate timeout in systemd unit file from default of 90s to 15min
+* Fixed case RE-1573: Account for inherited domains when preserving PHP version
+
 ##### **2025-08-08** - version 69
 
 * Fixed case RE-1599: Skip Imunify Component on Ubuntu
