@@ -1,3 +1,5 @@
+## ELevate Change Log
+
 ##### **2025-08-25** - version 70
 
 * Fixed case RE-1602: Increate timeout in systemd unit file from default of 90s to 15min
@@ -51,8 +53,6 @@
 * Fixed case RE-1371: Add support for Imunify 360's hardened PHP during A8->A9 upgrades
 * Fixed case RE-1386: Work around encoding bug in Leapp.
 * Fixed case RE-1387: Install VDO tools to satisfy a Leapp dependency on EL8-based systems.
-
-## ELevate Change Log
 
 ##### **2025-03-13** - version 62
 
