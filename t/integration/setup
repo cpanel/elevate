@@ -1,45 +1,80 @@
-#!/usr/bin/bash
+#!/usr/local/cpanel/3rdparty/bin/perl
 
 #                                      Copyright 2025 WebPros International, LLC
 #                                                           All rights reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited.
 
+use Cpanel::JSON            ();
+use Cpanel::OS              ();
+use Cpanel::SafeRun::Object ();
+
 # RE-1179 / RE-1244
-if [[ ! -f "/etc/scl/prefixes/ea-php80" ]]
-then
-	echo -e "\nFile does not exist at /etc/scl/prefixes/ea-php80; installing ea-php80 via scripts/installpkg"
-	/usr/local/cpanel/scripts/installpkg ea-php80
-else
-	echo -e "\nFile already exists at /etc/scl/prefixes/ea-php80; skipping install of ea-php80."
-fi
+if ( -e '/etc/scl/prefixes/ea-php80' ) {
+    print "\nFile already exists at /etc/scl/prefixes/ea-php80; skipping install of ea-php80.\n";
+}
+else {
+    print "\nFile does not exist at /etc/scl/prefixes/ea-php80; installing ea-php80 via scripts/installpkg\n";
+    run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php80});
+}
 
 # RE-1416 / RE-1461
-echo -e "\nInstalling ea-nginx via scripts/installpkg"
-/usr/local/cpanel/scripts/installpkg ea-nginx
+print "\nInstalling ea-nginx via scripts/installpkg";
+run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-nginx});
 
 # RE-1568
-if [[ -f /etc/redhat-release ]] && grep -q "^CentOS.*release 7" /etc/redhat-release; then
-    sed -i 's/CPANEL=.*/CPANEL=11.110/' /etc/cpupdate.conf
-fi
+if ( Cpanel::OS::distro() eq 'centos' && Cpanel::OS::major() == 7 ) {
+    print "Setting update tier to 11.110\n";
+    run_api_or_die(qw{whmapi1 set_tier tier=11.110})
+}
+
+print "Clearing the task queue\n";
+run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
 # RE-1573
-echo "Creating 3 accounts"
-for DOMAIN in withfpm nofpm inherit; do /usr/local/cpanel/bin/whmapi1 createacct username=$DOMAIN domain=$DOMAIN.tld; done
+print "Creating 3 accounts\n";
+foreach my $domain (qw{withfpm nofpm inherit}) {
+    run_api_or_die( 'whmapi1', 'createacct', "username=$domain", "domain=$domain.tld", );
+}
 
-echo "Clearing the task queue"
-/usr/local/cpanel/bin/servers_queue run
+print "Clearing the task queue\n";
+run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
-echo "Setting 'withfpm' account to ea-php81 with php-fpm enabled"
-/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=ea-php81 vhost=withfpm.tld php_fpm=1
+print "Setting 'withfpm' account to ea-php81 with php-fpm enabled\n";
+run_api_or_die(qw{whmapi1 php_set_vhost_versions version=ea-php81 vhost=withfpm.tld php_fpm=1});
 
-echo "Setting 'nofpm' account to ea-php82 with php-fpm disabled"
-/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=ea-php82 vhost=nofpm.tld php_fpm=0
+print "Setting 'nofpm' account to ea-php82 with php-fpm disabled\n";
+run_api_or_die(qw{whmapi1 php_set_vhost_versions version=ea-php82 vhost=nofpm.tld php_fpm=0});
 
-echo "Setting 'inherit' account to inherit the default PHP version"
-/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=inherit vhost=inherit.tld
+print "Setting 'inherit' account to inherit the default PHP version\n";
+run_api_or_die(qw{whmapi1 php_set_vhost_versions version=inherit vhost=inherit.tld});
 
-echo "Clearing the task queue"
-/usr/local/cpanel/bin/servers_queue run
+print "Clearing the task queue\n";
+run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
 exit 0;
+
+sub run_or_die {
+    my ( $program, @args ) = @_;
+
+    my $run = Cpanel::SafeRun::Object->new_or_die(
+        program => $program,
+        args    => \@args,
+    );
+
+    my $out = $run->stdout();
+    print "$out\n";
+    return $out;
+}
+
+sub run_api_or_die {
+    my ( $api, @call_args ) = @_;
+    my $out = {};
+    {
+        local $@;
+        $out = eval { Cpanel::JSON::Load( run_or_die( "/usr/local/cpanel/bin/$api", '--output=json', @call_args ) ) };
+        die $@ if $@;
+    }
+    die "$api @call_args failed: $out->{'metadata'}{'reason'}" if ( exists $out->{metadata}{result} && $out->{'metadata'}{'result'} != 1 ) || ( exists $out->{result}{status} && $out->{result}{status} != 1 );
+    return;
+}
