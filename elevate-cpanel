@@ -7459,8 +7459,8 @@ EOS
     sub _blocker_cpanel_needs_update ( $self, $major ) {
         if ( !$self->getopt('skip-cpanel-version-check') ) {
             my $tiers_obj        = Cpanel::Update::Tiers->new( logger => Log::Log4perl->get_logger(__PACKAGE__) );
-            my $expected_version = $tiers_obj->get_flattened_hash()->{"11.$major"};
-            if ( !Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '==', $expected_version ) ) {
+            my $expected_version = $tiers_obj->get_flattened_hash()->{"11.$major"} // "";                            # $major could be a dev version and thus odd and without a tier, so give a defined value in that case
+            if ( !length $expected_version || Cpanel::Version::Compare::compare( $Cpanel::Version::Tiny::VERSION_BUILD, '<', $expected_version ) ) {
                 my $msg = "This installation of cPanel ($Cpanel::Version::Tiny::VERSION_BUILD) does not appear to be up to date.\n";
                 $msg .= length $expected_version ? "Please upgrade cPanel to $expected_version.\n" : "Additionally, we were unable to determine the expected version for this build.\n";
 
