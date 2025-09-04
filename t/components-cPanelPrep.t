@@ -55,6 +55,13 @@ my $cpanel_prep = bless {}, 'Elevate::Components::cPanelPrep';
     note "Checking _suspend_chkservd()";
     my $chkservd_suspend_file = Elevate::Constants::CHKSRVD_SUSPEND_FILE();
     my $mock_chksrvd_suspend  = Test::MockFile->file($chkservd_suspend_file);
+    my $mock_touch            = Test::MockModule->new('Cpanel::FileUtils::TouchFile')->redefine(
+        touchfile => sub {
+            open my $fh, '>>', $chkservd_suspend_file or return 0;
+            close $fh;
+            return 1;
+        },
+    );
     $cpanel_prep->_suspend_chkservd();
     ok -e $chkservd_suspend_file, "$chkservd_suspend_file was created";
 }
