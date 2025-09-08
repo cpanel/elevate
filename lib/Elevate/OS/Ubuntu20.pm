@@ -62,7 +62,6 @@ use constant supported_cpanel_mysql_versions => qw{
 use constant default_upgrade_to          => 'Ubuntu';
 use constant ea_alias                    => 'Ubuntu_22.04';
 use constant expected_post_upgrade_major => 22;
-use constant is_experimental             => 0;
 use constant lts_supported               => 118;
 use constant name                        => 'Ubuntu20';
 use constant original_os_major           => 20;
