@@ -27,7 +27,7 @@ my %os_designation = (
     AlmaLinux8  => 0,
     CentOS7     => 0,
     CloudLinux7 => 0,
-    CloudLinux8 => 1,
+    CloudLinux8 => 0,
     Ubuntu20    => 0,
 );
 

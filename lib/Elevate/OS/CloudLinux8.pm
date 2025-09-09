@@ -26,7 +26,6 @@ use constant ea_alias                     => 'CloudLinux_9';
 use constant el_package_regex             => 'el8';
 use constant elevate_rpm_url              => 'https://repo.cloudlinux.com/elevate/elevate-release-latest-el8.noarch.rpm';
 use constant expected_post_upgrade_major  => 9;
-use constant is_experimental              => 1;
 use constant jetbackup_repo_rpm_url       => 'https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm';
 use constant name                         => 'CloudLinux8';
 use constant needs_crb                    => 1;
