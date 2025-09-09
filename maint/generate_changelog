@@ -76,12 +76,20 @@ print `git tag -d v$to`;
 my $date                  = DateTime->now->ymd;
 my $new_changelog_entries = join "\n", @changelog_entries;
 my $new_changelog_content = <<"EOS";
+## ELevate Change Log
+
 ##### **$date** - version $to
 
 $new_changelog_entries
 EOS
 
-my $content = $new_changelog_content . "\n" . read_text($changelog);
+# split out the first two lines of the Changelog since we add them above
+my @orig_lines = split /\n/, read_text($changelog);
+shift @orig_lines;
+shift @orig_lines;
+
+my $orig    = join "\n", @orig_lines;
+my $content = $new_changelog_content . "\n" . $orig . "\n";
 
 write_binary( $changelog, $content );
 
