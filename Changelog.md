@@ -1,5 +1,10 @@
 ## ELevate Change Log
 
+##### **2025-09-11** - version 71
+
+* Fixed case CPANEL-49117: Remove experimental status for CL8->CL9 upgrades
+* Fixed case RE-1604: Do not block the upgrade when the existing cPanel version is newer than what is stated in the major version's tier.
+
 ##### **2025-08-25** - version 70
 
 * Fixed case RE-1602: Increate timeout in systemd unit file from default of 90s to 15min
