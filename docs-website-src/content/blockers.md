@@ -16,11 +16,10 @@ This document lists the blockers for successfully upgrading your system.
 To successfully run the ELevate script, you must meet the following conditions:  
 
 * You are logged in to the server as the `root` user.
-* Your system runs CentOS 7, CloudLinux™ 7, or Ubuntu® 20.
+* Your system runs CentOS 7, CloudLinux 7, Ubuntu 20, AlmaLinux OS 8, or CloudLinux 8.
   * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
   * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
-  * AlmaLinux 8 support is only available on name cPanel & WHM tiers such a
-s RELEASE or LTS.
+  * Systems that run AlmaLinux OS 8 or CloudLinux 8 **must** run on a named tier (LTS, STABLE, RELEASE, CURRENT, or EDGE) of cPanel & WHM
 * Your system **must** run the most recent minor version of its cPanel version for your operating system.
 * cPanel **must** have a valid license.
 * If applicable, **CloudLinux** has a valid license.
@@ -89,6 +88,7 @@ We only support the following PHP versions:
 * CloudLinux 8: PHP 5.1 and later
 * Ubuntu 22: PHP 8.1 and later
 * AlmaLinux OS 9: PHP 8.0 and later
+* CloudLinux 9: PHP 5.6 or later
 
 If any of your users use a PHP version earlier than these, the ELevate process will be **blocked**.
 If these PHP versions are only installed but not in use, the system will upgrade as normal, but the PHP versions will **not** be reinstalled.
