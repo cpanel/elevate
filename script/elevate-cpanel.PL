@@ -41,9 +41,19 @@ For Ubuntu, it wraps the do-release-upgrade utility which handles major version 
 
 Currently supported upgrade paths:
 
-CentOS 7     => AlmaLinux 8
-CloudLinux 7 => CloudLinux 8
-Ubuntu 20    => Ubuntu 22
+=over 4
+
+=item * CentOS 7     => AlmaLinux 8
+
+=item * CloudLinux 7 => CloudLinux 8
+
+=item * Ubuntu 20    => Ubuntu 22
+
+=item * AlmaLinux 8  => AlmaLinux 9
+
+=item * CloudLinux 8 => CloudLinux 9
+
+=back
 
 =head1 SYNOPSIS
 
@@ -137,8 +147,8 @@ the update process by running:
 
 =head3 Using an alternative tool to upgrade your distro
 
-On CentOS, the elevate script runs the L<leapp process|https://almalinux.org/elevate/>
-to upgrade you from 7 to 8. `Leapp` may not be compatible with your system.
+On RHEL based distros, the elevate script runs the L<leapp process|https://almalinux.org/elevate/>
+to upgrade you. `Leapp` may not be compatible with your system.
 
 Using the `--upgrade-distro-manually` option gives you a way to do the actual distro upgrade in your own way.
 This, for instance, can be used to allow `Virtuozzo` systems to upgrade cPanel systems, which are not supported by `Leapp`.
