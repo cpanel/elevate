@@ -14,8 +14,9 @@ You can perform the following elevations:
 * CentOS 7 to AlmaLinux OS 8
 * CloudLinux™ 7 to CloudLinux 8
 * Ubuntu® 20 to Ubuntu 22
+* Ubuntu 22 to Ubuntu 24
 * AlmaLinux OS 8 to AlmaLinux OS 9
-* CloudLinux™ 8 to CloudLinux 9
+* CloudLinux 8 to CloudLinux 9
 
 ## Prerequisites
 
@@ -24,9 +25,10 @@ ELevate **requires** access to an interactive shell as the `root` user.
 Before you upgrade your system, make **certain** that you've met the following requirements.
 
 * You are logged in to the server as the `root` user.
-* Your system runs CentOS 7, CloudLinux 7, Ubuntu 20, AlmaLinux OS 8, or CloudLinux 8.
+* Your system runs CentOS 7, CloudLinux 7, Ubuntu 20, Ubuntu 22, AlmaLinux OS 8, or CloudLinux 8.
   * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
   * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
+  * Systems that run Ubuntu 22 **must** run cPanel & WHM version 126.
   * Systems that run AlmaLinux OS 8 or CloudLinux 8 **must** run on a named tier (LTS, STABLE, RELEASE, CURRENT, or EDGE) of cPanel & WHM
 * Your system **must** run the most recent minor version of its cPanel version for your operating system.
 * cPanel **must** have a valid license.
@@ -60,6 +62,7 @@ We recommend that you verify and update the software on your server **before** y
 * Ensure that you're using the latest stable version of cPanel & WHM that is available for your current OS:
   * CentOS 7 and CloudLinux 7 support is only available on cPanel & WHM version 110.
   * Ubuntu 20.04 support is only available on cPanel & WHM version 118.
+  * Ubuntu 22.04 support is only available on cPanel & WHM version 126.
   * AlmaLinux 8 and CloudLinux 8 support is only available on name cPanel & WHM tiers such as RELEASE or LTS.
 * Make certain that you're using a version of MySQL/MariaDB that is compatible with your target distribution.
 
