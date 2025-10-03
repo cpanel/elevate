@@ -19,7 +19,7 @@ use constant supported_cpanel_nameserver_types => qw{
 
 use constant archive_dir                     => undef;
 use constant bootloader_config_method        => 'grub-mkconfig';
-use constant default_upgrade_to              => undef;
+use constant default_upgrade_to              => 'Ubuntu';
 use constant disable_mysql_yum_repos         => undef;
 use constant ea_alias                        => undef;
 use constant el_package_regex                => undef;
@@ -57,7 +57,7 @@ use constant pretty_name                     => 'Ubuntu';
 use constant provides_mysql_governor         => 0;
 use constant remove_els                      => 0;
 use constant set_update_tier_to_release      => 0;
-use constant should_archive_elevate_files    => 0;
+use constant should_archive_elevate_files    => undef;
 use constant should_check_cloudlinux_license => 0;
 use constant skip_minor_version_check        => 1;
 use constant supported_cpanel_mysql_versions => undef;
@@ -66,8 +66,9 @@ use constant supports_kernelcare             => 0;
 use constant supports_named_tiers            => 0;
 use constant supports_postgresql             => 0;
 use constant upgrade_to_pretty_name          => undef;
-use constant vetted_yum_repo                 => undef;
+use constant vetted_apt_lists                => undef;
 use constant vetted_mysql_yum_repo_ids       => undef;
+use constant vetted_yum_repo                 => undef;
 use constant yum_conf_needs_plugins          => 0;
 
 1;

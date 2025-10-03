@@ -58,6 +58,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/Components/RpmDB.pm'}                  = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/SSH.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Softaculous.pm'}            = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/Components/Systemd.pm'}                = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/Ufw.pm'}                    = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/UnconvertedModules.pm'}     = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/Components/UpdateReleaseUpgrades.pm'}  = 'script/elevate-cpanel.PL.static';
@@ -74,6 +75,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     $INC{'Elevate/OS/RHEL.pm'}                           = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/Ubuntu.pm'}                         = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/OS/Ubuntu20.pm'}                       = 'script/elevate-cpanel.PL.static';
+    $INC{'Elevate/OS/Ubuntu22.pm'}                       = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/PkgMgr.pm'}                            = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/PkgMgr/APT.pm'}                        = 'script/elevate-cpanel.PL.static';
     $INC{'Elevate/PkgMgr/Base.pm'}                       = 'script/elevate-cpanel.PL.static';
@@ -352,6 +354,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
     use Elevate::Components::RpmDB                  ();
     use Elevate::Components::SSH                    ();
     use Elevate::Components::Softaculous            ();
+    use Elevate::Components::Systemd                ();
     use Elevate::Components::Ufw                    ();
     use Elevate::Components::UnconvertedModules     ();
     use Elevate::Components::UpdateReleaseUpgrades  ();
@@ -422,6 +425,7 @@ BEGIN {    # Suppress load of all of these at earliest point.
       RmMod
       RpmDB
       Softaculous
+      Systemd
       Ufw
       UnconvertedModules
       UpdateReleaseUpgrades
@@ -6957,6 +6961,89 @@ EOS
 
 }    # --- END lib/Elevate/Components/Softaculous.pm
 
+{    # --- BEGIN lib/Elevate/Components/Systemd.pm
+
+    package Elevate::Components::Systemd;
+
+    use cPstrict;
+
+    use File::Slurper ();
+
+    use Cpanel::SafeDir::MK ();
+
+    use Elevate::StageFile ();
+
+    # use Log::Log4perl qw(:easy);
+    INIT { Log::Log4perl->import(qw{:easy}); }
+
+    # use Elevate::Components::Base();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::Components::Base); }
+
+    use constant RESOLVED_CONF_D => '/etc/systemd/resolved.conf.d';
+    use constant CPANEL_CONF     => RESOLVED_CONF_D . '/cpanel.conf';
+    use constant ETC_RESOLV_CONF => '/etc/resolv.conf';
+
+    sub pre_distro_upgrade ($self) {
+        return if $self->upgrade_distro_manually();    # skip when --upgrade-distro-manually is provided
+
+        $self->run_once('_add_systemd_resolved_config');
+        $self->run_once('_store_etc_resolv_conf_contents');
+
+        return;
+    }
+
+    sub post_distro_upgrade ($self) {
+
+        $self->run_once('_restore_etc_resolv_conf_contents');
+
+        return;
+    }
+
+    sub _add_systemd_resolved_config ($self) {
+
+        return if -s CPANEL_CONF;
+
+        Cpanel::SafeDir::MK::safemkdir( '/etc/systemd/resolved.conf.d', 0755 );
+        File::Slurper::write_text( CPANEL_CONF, <<'EOF' );
+[Resolve]
+DNSStubListener=no
+EOF
+
+        chmod 0644, CPANEL_CONF;
+
+        $self->ssystem( '/usr/bin/systemctl', 'daemon-reload' );
+        $self->ssystem(qw{/usr/bin/systemctl restart systemd-resolved});
+
+        return;
+    }
+
+    sub _store_etc_resolv_conf_contents ($self) {
+        return unless -f ETC_RESOLV_CONF && -s _;
+
+        my $resolv_conf = File::Slurper::read_binary(ETC_RESOLV_CONF);
+        Elevate::StageFile::update_stage_file( { etc_resolv_conf => $resolv_conf } );
+
+        return;
+    }
+
+    sub _restore_etc_resolv_conf_contents ($self) {
+        return unless -l ETC_RESOLV_CONF;
+
+        my $resolv_contents = Elevate::StageFile::read_stage_file( 'etc_resolv_conf', '' );
+        return unless $resolv_contents;
+
+        unlink ETC_RESOLV_CONF;
+        File::Slurper::write_binary( ETC_RESOLV_CONF, $resolv_contents );
+        chmod 0644, ETC_RESOLV_CONF;
+
+        return;
+    }
+
+    1;
+
+}    # --- END lib/Elevate/Components/Systemd.pm
+
 {    # --- BEGIN lib/Elevate/Components/Ufw.pm
 
     package Elevate::Components::Ufw;
@@ -7016,6 +7103,8 @@ EOS
         return unless ref $ufw_data && ref $ufw_data eq 'HASH';
 
         return if $ufw_data->{is_active} && $ufw_data->{is_open};
+
+        return unless -x UFW;
 
         $self->ssystem_and_die( UFW, 'delete', 'allow', '1022/tcp' );
 
@@ -7676,6 +7765,7 @@ EOS
         'CloudLinux 7',
         'CloudLinux 8',
         'Ubuntu 20',
+        'Ubuntu 22',
     );
 
     our $OS;
@@ -8213,7 +8303,7 @@ EOS
 
     use constant archive_dir                     => undef;
     use constant bootloader_config_method        => 'grub-mkconfig';
-    use constant default_upgrade_to              => undef;
+    use constant default_upgrade_to              => 'Ubuntu';
     use constant disable_mysql_yum_repos         => undef;
     use constant ea_alias                        => undef;
     use constant el_package_regex                => undef;
@@ -8251,7 +8341,7 @@ EOS
     use constant provides_mysql_governor         => 0;
     use constant remove_els                      => 0;
     use constant set_update_tier_to_release      => 0;
-    use constant should_archive_elevate_files    => 0;
+    use constant should_archive_elevate_files    => undef;
     use constant should_check_cloudlinux_license => 0;
     use constant skip_minor_version_check        => 1;
     use constant supported_cpanel_mysql_versions => undef;
@@ -8260,8 +8350,9 @@ EOS
     use constant supports_named_tiers            => 0;
     use constant supports_postgresql             => 0;
     use constant upgrade_to_pretty_name          => undef;
-    use constant vetted_yum_repo                 => undef;
+    use constant vetted_apt_lists                => undef;
     use constant vetted_mysql_yum_repo_ids       => undef;
+    use constant vetted_yum_repo                 => undef;
     use constant yum_conf_needs_plugins          => 0;
 
     1;
@@ -8318,18 +8409,80 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
       10.11
     };
 
-    use constant default_upgrade_to          => 'Ubuntu';
-    use constant ea_alias                    => 'Ubuntu_22.04';
-    use constant expected_post_upgrade_major => 22;
-    use constant lts_supported               => 118;
-    use constant name                        => 'Ubuntu20';
-    use constant original_os_major           => 20;
-    use constant pretty_name                 => 'Ubuntu 20.04';
-    use constant upgrade_to_pretty_name      => 'Ubuntu 22.04';
+    use constant ea_alias                     => 'Ubuntu_22.04';
+    use constant expected_post_upgrade_major  => 22;
+    use constant lts_supported                => 118;
+    use constant name                         => 'Ubuntu20';
+    use constant original_os_major            => 20;
+    use constant pretty_name                  => 'Ubuntu 20.04';
+    use constant should_archive_elevate_files => 0;
+    use constant upgrade_to_pretty_name       => 'Ubuntu 22.04';
 
     1;
 
 }    # --- END lib/Elevate/OS/Ubuntu20.pm
+
+{    # --- BEGIN lib/Elevate/OS/Ubuntu22.pm
+
+    package Elevate::OS::Ubuntu22;
+
+    use cPstrict;
+
+    # use Elevate::OS::Ubuntu();
+    our @ISA;
+    BEGIN { push @ISA, qw(Elevate::OS::Ubuntu); }
+
+    use constant vetted_apt_lists => {
+        'alt-common-els.list' => q{deb [arch=amd64] https://repo.alt.tuxcare.com/alt-common/deb/ubuntu/24.04/stable noble main},
+
+        'cpanel-plugins.list' => q{deb mirror://httpupdate.cpanel.net/cpanel-plugins-u24-mirrorlist ./},
+
+        'droplet-agent.list' => q{deb [signed-by=/usr/share/keyrings/droplet-agent-keyring.gpg] https://repos-droplet.digitalocean.com/apt/droplet-agent main main},
+
+        'EA4.list' => q{deb mirror://httpupdate.cpanel.net/ea4-u24-mirrorlist ./},
+
+        'imunify-rollout.list' => q{deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-1/ noble main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-2/ noble main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-3/ noble main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-4/ noble main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-5/ noble main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-6/ noble main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-7/ noble main
+deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-8/ noble main},
+
+        'imunify360.list' => q{deb [arch=amd64] https://repo.imunify360.cloudlinux.com/imunify360/ubuntu/24.04/ noble main},
+
+        'mariadb.list' => q{deb [arch=amd64,arm64] https://dlm.mariadb.com/repo/mariadb-server/10.11/repo/ubuntu noble main
+deb [arch=amd64,arm64] https://dlm.mariadb.com/repo/mariadb-server/10.11/repo/ubuntu noble main/debug},
+
+        'wp-toolkit-cpanel.list' => q{# WP Toolkit
+deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk.com/cPanel/Ubuntu-24.04-x86_64/latest/wp-toolkit/ ./
+
+deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk.com/cPanel/Ubuntu-24.04-x86_64/latest/thirdparty/ ./},
+
+        map { my $thing = $_; "jetapps-$_.list" => "deb [signed-by=/usr/share/keyrings/jetapps-archive-keyring.gpg arch=amd64] https://repo.jetlicense.com/ubuntu noble/$_ main" } qw{base plugins alpha beta edge rc release stable},
+    };
+
+    use constant supported_cpanel_mysql_versions => qw{
+      8.0
+      8.4
+      10.11
+      11.4
+    };
+
+    use constant archive_dir                  => 'Ubuntu20-to-Ubuntu22';
+    use constant ea_alias                     => 'xUbuntu_24.04';
+    use constant expected_post_upgrade_major  => 24;
+    use constant lts_supported                => 132;
+    use constant name                         => 'Ubuntu22';
+    use constant original_os_major            => 22;
+    use constant pretty_name                  => 'Ubuntu 22.04';
+    use constant should_archive_elevate_files => 1;
+    use constant upgrade_to_pretty_name       => 'Ubuntu 24.04';
+
+    1;
+
+}    # --- END lib/Elevate/OS/Ubuntu22.pm
 
 {    # --- BEGIN lib/Elevate/PkgMgr.pm
 
@@ -11021,11 +11174,13 @@ Currently supported upgrade paths:
 
 =item * CloudLinux 7 => CloudLinux 8
 
-=item * Ubuntu 20    => Ubuntu 22
-
 =item * AlmaLinux 8  => AlmaLinux 9
 
 =item * CloudLinux 8 => CloudLinux 9
+
+=item * Ubuntu 20.04 => Ubuntu 22.04
+
+=item * Ubuntu 22.04 => Ubuntu 24.04
 
 =back
 
@@ -11268,6 +11423,7 @@ use Elevate::Components::RmMod                  ();
 use Elevate::Components::RpmDB                  ();
 use Elevate::Components::SSH                    ();
 use Elevate::Components::Softaculous            ();
+use Elevate::Components::Systemd                ();
 use Elevate::Components::Ufw                    ();
 use Elevate::Components::UnconvertedModules     ();
 use Elevate::Components::UpdateReleaseUpgrades  ();
@@ -11286,6 +11442,7 @@ use Elevate::OS::CloudLinux8 ();
 use Elevate::OS::RHEL        ();
 use Elevate::OS::Ubuntu      ();
 use Elevate::OS::Ubuntu20    ();
+use Elevate::OS::Ubuntu22    ();
 
 # - fatpack package logic
 use Elevate::PkgMgr       ();
@@ -12008,7 +12165,7 @@ sub run_stage_3 ($self) {
     $self->run_once('run_final_components_pre_distro_upgrade');
 
     # The server should not reboot between executing this
-    # and executing do-release-upgrade
+    # and upgrading the distro
     $self->run_component_once( 'Ufw'            => 'pre_distro_upgrade' );
     $self->run_component_once( 'NetworkManager' => 'pre_distro_upgrade' );
 
@@ -12150,6 +12307,7 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
+    $self->run_component_once( 'Systemd'   => 'post_distro_upgrade' );
     $self->run_component_once( 'Ufw'       => 'post_distro_upgrade' );
     $self->run_component_once( 'Lists'     => 'post_distro_upgrade' );
     $self->run_component_once( 'WPToolkit' => 'post_distro_upgrade' );
@@ -12395,6 +12553,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'Acronis'               => 'pre_distro_upgrade' );
     $self->run_component_once( 'UpdateReleaseUpgrades' => 'pre_distro_upgrade' );
     $self->run_component_once( 'CryptoPolicies'        => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Systemd'               => 'pre_distro_upgrade' );
     $self->run_component_once( 'RpmDB'                 => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;

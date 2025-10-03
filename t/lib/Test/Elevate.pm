@@ -28,6 +28,7 @@ our @EXPORT = qw(
   set_os_to_cloudlinux_7
   set_os_to_cloudlinux_8
   set_os_to_ubuntu_20
+  set_os_to_ubuntu_22
   set_os_to
   unmock_os
 );
@@ -221,12 +222,6 @@ sub set_os_to_cloudlinux_7 {
     return;
 }
 
-sub set_os_to_ubuntu_20 {
-    note 'Mock Elevate::OS singleton to think this server is Ubuntu 20';
-    $Elevate::OS::OS = bless {}, 'Elevate::OS::Ubuntu20';
-    return;
-}
-
 sub set_os_to_almalinux_8 {
     note 'Mock Elevate::OS singleton to think this server is AlmaLinux 8';
     $Elevate::OS::OS = bless {}, 'Elevate::OS::AlmaLinux8';
@@ -239,12 +234,25 @@ sub set_os_to_cloudlinux_8 {
     return;
 }
 
+sub set_os_to_ubuntu_20 {
+    note 'Mock Elevate::OS singleton to think this server is Ubuntu 20';
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::Ubuntu20';
+    return;
+}
+
+sub set_os_to_ubuntu_22 {
+    note 'Mock Elevate::OS singleton to think this server is Ubuntu 22';
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::Ubuntu22';
+    return;
+}
+
 sub set_os_to ( $os, $version ) {
     return set_os_to_centos_7     if $os =~ m/^cent/i   && $version == 7;
     return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i  && $version == 7;
-    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i && $version == 20;
     return set_os_to_almalinux_8  if $os =~ m/^alma/i   && $version == 8;
     return set_os_to_cloudlinux_8 if $os =~ m/^cloud/i  && $version == 8;
+    return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i && $version == 20;
+    return set_os_to_ubuntu_22    if $os =~ m/^ubuntu/i && $version == 22;
 
     die "Unknown os:  $os $version\n";
 }

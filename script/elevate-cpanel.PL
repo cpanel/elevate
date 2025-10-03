@@ -47,11 +47,13 @@ Currently supported upgrade paths:
 
 =item * CloudLinux 7 => CloudLinux 8
 
-=item * Ubuntu 20    => Ubuntu 22
-
 =item * AlmaLinux 8  => AlmaLinux 9
 
 =item * CloudLinux 8 => CloudLinux 9
+
+=item * Ubuntu 20.04 => Ubuntu 22.04
+
+=item * Ubuntu 22.04 => Ubuntu 24.04
 
 =back
 
@@ -294,6 +296,7 @@ use Elevate::Components::RmMod                  ();
 use Elevate::Components::RpmDB                  ();
 use Elevate::Components::SSH                    ();
 use Elevate::Components::Softaculous            ();
+use Elevate::Components::Systemd                ();
 use Elevate::Components::Ufw                    ();
 use Elevate::Components::UnconvertedModules     ();
 use Elevate::Components::UpdateReleaseUpgrades  ();
@@ -312,6 +315,7 @@ use Elevate::OS::CloudLinux8 ();
 use Elevate::OS::RHEL        ();
 use Elevate::OS::Ubuntu      ();
 use Elevate::OS::Ubuntu20    ();
+use Elevate::OS::Ubuntu22    ();
 
 # - fatpack package logic
 use Elevate::PkgMgr       ();
@@ -1034,7 +1038,7 @@ sub run_stage_3 ($self) {
     $self->run_once('run_final_components_pre_distro_upgrade');
 
     # The server should not reboot between executing this
-    # and executing do-release-upgrade
+    # and upgrading the distro
     $self->run_component_once( 'Ufw'            => 'pre_distro_upgrade' );
     $self->run_component_once( 'NetworkManager' => 'pre_distro_upgrade' );
 
@@ -1176,6 +1180,7 @@ sub run_stage_4 ($self) {
 
     $stash->{stage4} //= {};    # run once each blocks
 
+    $self->run_component_once( 'Systemd'   => 'post_distro_upgrade' );
     $self->run_component_once( 'Ufw'       => 'post_distro_upgrade' );
     $self->run_component_once( 'Lists'     => 'post_distro_upgrade' );
     $self->run_component_once( 'WPToolkit' => 'post_distro_upgrade' );
@@ -1421,6 +1426,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'Acronis'               => 'pre_distro_upgrade' );
     $self->run_component_once( 'UpdateReleaseUpgrades' => 'pre_distro_upgrade' );
     $self->run_component_once( 'CryptoPolicies'        => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Systemd'               => 'pre_distro_upgrade' );
     $self->run_component_once( 'RpmDB'                 => 'pre_distro_upgrade' );    # remove the RPMs last
 
     return;

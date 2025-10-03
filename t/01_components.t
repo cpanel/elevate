@@ -20,7 +20,7 @@ use Elevate::Components ();
 my @components_from_lib = _get_components_from_lib();
 
 foreach my $component (@components_from_lib) {
-    is( $component, in_set(@Elevate::Components::CHECKS), "component '$component' has a check registered in Elevate::Blockers::CHECKS list" );
+    is( $component, in_set(@Elevate::Components::CHECKS), "component '$component' has a check registered in Elevate::Components::CHECKS list" );
 
     my $name = "Elevate::Components::$component";
     my $pkg  = $name->new();
@@ -33,7 +33,7 @@ foreach my $component (@components_from_lib) {
 is(
     [ sort @Elevate::Components::CHECKS ],
     [ sort @components_from_lib ],
-    q[all components listed in lib are used by @Elevate::Blockers::CHECKS]
+    q[all components listed in lib are used by @Elevate::Components::CHECKS]
 );
 
 done_testing;

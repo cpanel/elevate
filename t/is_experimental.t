@@ -29,6 +29,7 @@ my %os_designation = (
     CloudLinux7 => 0,
     CloudLinux8 => 0,
     Ubuntu20    => 0,
+    Ubuntu22    => 0,
 );
 
 foreach my $os ( Elevate::OS::SUPPORTED_DISTROS() ) {

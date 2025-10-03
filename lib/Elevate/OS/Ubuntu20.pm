@@ -12,7 +12,6 @@ use cPstrict;
 
 use parent 'Elevate::OS::Ubuntu';
 
-# This is intentionally very ridid for the MVP of u20->u22 upgrades
 # The key represents the exact name of the file that is supported
 # The value represents the contents that the file should contain after the
 # upgrade has completed
@@ -59,13 +58,13 @@ use constant supported_cpanel_mysql_versions => qw{
   10.11
 };
 
-use constant default_upgrade_to          => 'Ubuntu';
-use constant ea_alias                    => 'Ubuntu_22.04';
-use constant expected_post_upgrade_major => 22;
-use constant lts_supported               => 118;
-use constant name                        => 'Ubuntu20';
-use constant original_os_major           => 20;
-use constant pretty_name                 => 'Ubuntu 20.04';
-use constant upgrade_to_pretty_name      => 'Ubuntu 22.04';
+use constant ea_alias                     => 'Ubuntu_22.04';
+use constant expected_post_upgrade_major  => 22;
+use constant lts_supported                => 118;
+use constant name                         => 'Ubuntu20';
+use constant original_os_major            => 20;
+use constant pretty_name                  => 'Ubuntu 20.04';
+use constant should_archive_elevate_files => 0;
+use constant upgrade_to_pretty_name       => 'Ubuntu 22.04';
 
 1;
