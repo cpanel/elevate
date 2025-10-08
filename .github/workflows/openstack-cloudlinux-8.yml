@@ -169,8 +169,8 @@ jobs:
           username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: "22"
-          timeout: 30m
-          command_timeout: 30m
+          timeout: 45m
+          command_timeout: 45m
           envs: REPODIR,CLOUDLINUX_LICENSE_KEY
           script: |
             /usr/local/cpanel/scripts/post_snapshot --yes
@@ -180,14 +180,23 @@ jobs:
             echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
             echo "## [INFO]: Now running /usr/bin/cldetect --check-license" && /usr/bin/cldetect --check-license
             until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
+            echo "[cloudlinux-base]" > /etc/yum.repos.d/cloudlinux-base.repo
+            echo "name=CloudLinux-\$releasever - Base" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "baseurl=https://repo.cloudlinux.com/cloudlinux/\$releasever/BaseOS/\$basearch/os/" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "enabled=0" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "gpgcheck=1" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CloudLinux" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "" >> /etc/yum.repos.d/cloudlinux-base.repo
             /usr/bin/yum erase -y awscli git-lfs
-            echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo=cloudlinux-x86_64-server --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
+            rpm -evh kmod-lve-2.0-43.el8.x86_64 || true
+            echo "yum remove -y `yum list installed | awk '$3~/cloudlinux-PowerTools/{printf "%s ", $1}'`" | sh
+            echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-BaseOS/{printf "%s ", $1}'` --disablerepo=cloudlinux-BaseOS --enablerepo=cloudlinux-base" | sh
             mv -v /etc/yum.repos.d/clmirror.repo /root/
             yum-config-manager --enable cloudlinux-base
-            yum-config-manager --enable cloudlinux-updates
             /usr/bin/yum clean all
             /usr/bin/yum makecache
             /usr/bin/yum -y update
+            mv -v /etc/yum.repos.d/cloudlinux-compat.repo /root/
             REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
             cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
             cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
@@ -473,7 +482,7 @@ jobs:
           command_timeout: 10m
           script: |
             REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
-            /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/cloudlinux8-to-cloudlinux8/
+            /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/cloudlinux8-to-cloudlinux9/
             /usr/local/cpanel/3rdparty/bin/prove -lvm /opt/${REPODIR}/t/integration/
 
   terraform_openstack_destroy:
