@@ -205,6 +205,12 @@ $mock_stagefile->redefine(
         is_open   => 0,
     };
 
+    my $mock_sbin_ufw = Test::MockFile->file( '/usr/sbin/ufw', '' );
+
+    is( $ufw->post_distro_upgrade(), undef, 'Returns early if the /usr/sbin/ufw script is not executable' );
+
+    chmod 0755, '/usr/sbin/ufw';
+
     is( $ufw->post_distro_upgrade(), undef, 'Closes the port and returns if the firewall was active prior to starting and the port was NOT open prior to starting' );
     is(
         $ssystem_and_die_params,

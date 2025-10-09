@@ -24,6 +24,7 @@ use constant SUPPORTED_DISTROS => (
     'CloudLinux 7',
     'CloudLinux 8',
     'Ubuntu 20',
+    'Ubuntu 22',
 );
 
 our $OS;

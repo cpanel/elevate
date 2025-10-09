@@ -73,6 +73,11 @@ sub post_distro_upgrade ($self) {
 
     return if $ufw_data->{is_active} && $ufw_data->{is_open};
 
+    # Just return if do-release-upgrade removes the ufw package
+    # If this happens, then any changes made during pre_distro_upgrade
+    # have been reverted anyway
+    return unless -x UFW;
+
     $self->ssystem_and_die( UFW, 'delete', 'allow', '1022/tcp' );
 
     return if $ufw_data->{is_active};

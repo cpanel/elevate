@@ -94,18 +94,44 @@ my $distros = $cpev->get_blocker('Distros');
     undef $f;
     Cpanel::OS::clear_cache_after_cloudlinux_update();
     unmock_os();
+    $f = Test::MockFile->symlink( 'linux|ubuntu|20|04|6', '/var/cpanel/caches/Cpanel-OS' );
+    is( $distros->check(), 0, 'U20 is supported.' );
+
+    undef $f;
+    Cpanel::OS::clear_cache_after_cloudlinux_update();
+    unmock_os();
     $f = Test::MockFile->symlink( 'linux|ubuntu|22|04|3', '/var/cpanel/caches/Cpanel-OS' );
+    is( $distros->check(), 0, 'U22 is supported.' );
+
+    undef $f;
+    Cpanel::OS::clear_cache_after_cloudlinux_update();
+    unmock_os();
+    $f = Test::MockFile->symlink( 'linux|almalinux|10|0|0', '/var/cpanel/caches/Cpanel-OS' );
     like(
         dies { $distros->check() },
         qr/This script is only designed to upgrade the following OSs/,
-        'U22 is not supported.'
+        'A10 is not supported.'
     );
 
     undef $f;
     Cpanel::OS::clear_cache_after_cloudlinux_update();
     unmock_os();
-    $f = Test::MockFile->symlink( 'linux|ubuntu|20|04|6', '/var/cpanel/caches/Cpanel-OS' );
-    is( $distros->check(), 0, 'U20 is supported.' );
+    $f = Test::MockFile->symlink( 'linux|ubuntu|24|04|3', '/var/cpanel/caches/Cpanel-OS' );
+    like(
+        dies { $distros->check() },
+        qr/This script is only designed to upgrade the following OSs/,
+        'U24 is not supported.'
+    );
+
+    undef $f;
+    Cpanel::OS::clear_cache_after_cloudlinux_update();
+    unmock_os();
+    $f = Test::MockFile->symlink( 'linux|almalinux|11|0|0', '/var/cpanel/caches/Cpanel-OS' );
+    like(
+        dies { $distros->check() },
+        qr/This script is only designed to upgrade the following OSs/,
+        'A11 is not supported.'
+    );
 
 }
 
