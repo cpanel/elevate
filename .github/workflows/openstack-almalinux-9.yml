@@ -1,0 +1,33 @@
+name: "Test Run: AlmaLinux-9"
+
+on:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-openstack-almalinux-8
+  cancel-in-progress: true
+
+env:
+  # secrets
+  TF_VAR_application_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+  TF_VAR_application_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+  TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
+  # vars
+  TF_VAR_os_auth_url: ${{ vars.OS_AUTH_URL }}
+  TF_VAR_os_auth_type: ${{ vars.OS_AUTH_TYPE }}
+  TF_VAR_os_identity_api_version: ${{ vars.OS_IDENTITY_API_VERSION }}
+  TF_VAR_os_interface: ${{ vars.OS_INTERFACE }}
+  TF_VAR_os_region_name: ${{ vars.OS_REGION_NAME }}
+
+  # github
+  TF_VAR_github_repository: ${{ github.repository }}
+  TF_VAR_github_run_id: ${{ github.run_id }}
+  tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack"
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Place holder to ensure that this runs when we add it for real"
