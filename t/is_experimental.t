@@ -25,6 +25,7 @@ use Test::Elevate::OS ();
 
 my %os_designation = (
     AlmaLinux8  => 0,
+    AlmaLinux9  => 1,
     CentOS7     => 0,
     CloudLinux7 => 0,
     CloudLinux8 => 0,

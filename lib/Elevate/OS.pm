@@ -20,6 +20,7 @@ use Log::Log4perl qw(:easy);
 
 use constant SUPPORTED_DISTROS => (
     'AlmaLinux 8',
+    'AlmaLinux 9',
     'CentOS 7',
     'CloudLinux 7',
     'CloudLinux 8',
@@ -106,6 +107,7 @@ BEGIN {
         'leapp_repo_beta',                      # This is the repo name for the beta repo. The OS might not provide a beta repo in which case it'll be blank.
         'leapp_repo_prod',                      # This is the repo name for the production repo.
         'lts_supported',                        # This is the major cPanel version supported for this OS
+        'minimum_supported_cpanel_version',     # The version of cPanel that the target OS was introduced in
         'name',                                 # This is the name of the OS we are upgrading from (i.e. CentOS7, or CloudLinux7)
         'needs_crb',                            # This is used to determine if the OS requires the crb repo
         'needs_do_release_upgrade',             # This is used to determine if the OS requires the do-release-upgrade utility to upgrade
@@ -117,7 +119,9 @@ BEGIN {
         'needs_sha1_enabled',                   # This distro needs to be specially configured to support packages with SHA-1 signatures
         'needs_type_in_ifcfg',                  # This is used to determine if the OS requires the TYPE key in its ifcfg files (converts from network-scripts to NetworkManager)
         'needs_vdo',                            # AL8->9 inhibits without the vdo package installed (needed to perform authoritative checks for an obscure volume format)
+        'network_scripts_are_supported',        # This is used to determine if the distro supports network scripts
         'original_os_major',                    # The initial starting OS major version
+        'os_provides_sha1_module',              # The dsitro provides the SHA-1 signatures module to support packages using that signature
         'package_manager',                      # This is the package manager that the OS uses.  i.e. RPM
         'pkgmgr_lib_path',                      # The path to the package manager's database directory
         'pretty_name',                          # This is the pretty name of the OS we are upgrading from (i.e. 'CentOS 7')
@@ -129,6 +133,7 @@ BEGIN {
         'skip_minor_version_check',             # Used to determine if we need to skip the minor version check for the OS
         'supported_cpanel_mysql_versions',      # Returns array of supported mysql versions for the OS we are upgrading to
         'supported_cpanel_nameserver_types',    # Returns array of supported nameserver types
+        'supports_cpaddons',                    # This is used to determine if cpaddons is currently supported
         'supports_jetbackup',                   # This is used to determine if jetbackup is currently supported
         'supports_kernelcare',                  # This is used to determine if kernelcare is currently supported for this upgrade
         'supports_named_tiers',                 # This is used to determine if the OS is eligible to upgrade on any named tier (RELEASE, STABLE, etc)

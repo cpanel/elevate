@@ -108,6 +108,7 @@ our @CHECKS = qw{
   JetBackup
   KernelCare
   NICs
+  NetworkManager
   EA4
   CryptoPolicies
   BootKernel
@@ -127,7 +128,6 @@ our @NOOP_CHECKS = qw{
   InfluxDB
   Kernel
   LiteSpeed
-  NetworkManager
   NixStats
   PECL
   PackageRestore
@@ -194,6 +194,15 @@ sub check ($self) {    # do_check - main  entry point
     my $has_blockers = $self->_has_blockers( $self->cpev->getopt('start') ? 0 : 1 );
 
     $self->save( $blocker_file, { 'blockers' => $self->{'blockers'} } );
+
+    if ( Elevate::OS::is_experimental() ) {
+        my $pretty_name            = Elevate::OS::pretty_name();
+        my $upgrade_to_pretty_name = Elevate::OS::upgrade_to_pretty_name();
+        INFO(<<"EOS");
+Warning*:  ELevate for $pretty_name to $upgrade_to_pretty_name is experimental software
+and is not recommended for production environments.
+EOS
+    }
 
     if ($has_blockers) {
         WARN(<<~'EOS');

@@ -16,6 +16,9 @@ Elevate::Components::Repositories
 
 1. Remove yum-plugin-fastestmirror
 2. Remove known mysql yum repo files
+3. Ensure that epel.repo has the correct content
+4. Remove cPAddons.repo on appropriate distros since it is no longer supported
+5. Remove excludes line from '/etc/yum.conf'
 
 =head2 post_distro_upgrade
 
@@ -72,7 +75,19 @@ sub pre_distro_upgrade ($self) {
     $self->run_once("_disable_yum_plugin_fastestmirror");
     $self->run_once("_disable_known_yum_repositories");
     $self->run_once("_fixup_epel_repo");
+    $self->run_once("_remove_cpaddons_repo");
     $self->run_once("_remove_excludes");
+
+    return;
+}
+
+sub _remove_cpaddons_repo ($self) {
+    return if Elevate::OS::supports_cpaddons();
+
+    # Just remove this file if it is not supported
+    # If something is installed from the repo, the upgrade should be blocked
+    # since this repo has been removed from the list of vetted repos
+    unlink '/etc/yum.repos.d/cPAddons.repo';
 
     return;
 }

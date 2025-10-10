@@ -74,6 +74,7 @@ sub _check_for_inhibitors ($self) {
           check_detected_devices_and_drivers
           check_installed_devel_kernels
           cl_mysql_repository_setup
+          network_deprecations
           persistentnetnamesdisable
           verify_check_results
         )

@@ -89,10 +89,7 @@ sub get_installed_pkgs ( $self, $filter = undef ) {
 }
 
 sub get_cpanel_arch_pkgs ($self) {
-    my $pkg_info         = $self->get_installed_pkgs();
-    my @installed_pkgs   = keys %$pkg_info;
-    my @cpanel_arch_pkgs = grep { $_ =~ m/^cpanel-.*\.x86_64$/ } @installed_pkgs;
-    return @cpanel_arch_pkgs;
+    return;
 }
 
 sub remove_cpanel_arch_pkgs ($self) {
@@ -179,6 +176,10 @@ sub remove_pkgs_from_repos ( $self, @pkg_list ) {
 
 sub showhold ($self) {
     die "showhold unimplemented";
+}
+
+sub get_leapp_pkgs ($self) {
+    die "get_leapp_pkgs unimplemented";
 }
 
 1;

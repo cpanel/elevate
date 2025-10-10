@@ -35,7 +35,10 @@ my %installed_packages;
 
     # crypto-policies is EL-only
     Test::Elevate::set_os_to_ubuntu_20();
-    try_ok { $comp->check() } "Short-circuits on Ubuntu";
+    try_ok { $comp->check() } "Short-circuits on Ubuntu 20";
+
+    Test::Elevate::set_os_to_ubuntu_22();
+    try_ok { $comp->check() } "Short-circuits on Ubuntu 22";
 
     # crypto-policies doesn't exist on C7/CL7
     Test::Elevate::set_os_to_centos_7();
@@ -44,35 +47,43 @@ my %installed_packages;
     Test::Elevate::set_os_to_cloudlinux_7();
     try_ok { $comp->check() } "Short-circuits on CloudLinux 7";
 
-    Test::Elevate::set_os_to_almalinux_8();
-    $mock_packages->redefine( is_installed => sub { return $installed_packages{ $_[0] } // 0 } );
-    %installed_packages = (
-        'crypto-policies'         => 0,
-        'crypto-policies-scripts' => 0,
+    my %os_hash = (
+        almalinux  => [ 8, 9 ],
+        cloudlinux => [8],
     );
+    foreach my $distro ( sort keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
+            $mock_packages->redefine( is_installed => sub { return $installed_packages{ $_[0] } // 0 } );
+            %installed_packages = (
+                'crypto-policies'         => 0,
+                'crypto-policies-scripts' => 0,
+            );
 
-    like( $comp->check()->msg, qr/ELevate expects to see the crypto-policies/, "Blocks when packages not installed" );
+            like( $comp->check()->msg, qr/ELevate expects to see the crypto-policies/, "Blocks when packages not installed" );
 
-    %installed_packages = (
-        'crypto-policies'         => 1,
-        'crypto-policies-scripts' => 1,
-    );
+            %installed_packages = (
+                'crypto-policies'         => 1,
+                'crypto-policies-scripts' => 1,
+            );
 
-    my $mock_tool   = File::Temp->new( PERMS => 0644 );
-    my $mock_policy = Test::MockModule->new('Elevate::Components::CryptoPolicies');
-    $mock_policy->redefine( UPDATE_CRYPTO_POLICIES_PATH => $mock_tool->filename );
+            my $mock_tool   = File::Temp->new( PERMS => 0644 );
+            my $mock_policy = Test::MockModule->new('Elevate::Components::CryptoPolicies');
+            $mock_policy->redefine( UPDATE_CRYPTO_POLICIES_PATH => $mock_tool->filename );
 
-    like( $comp->check()->msg, qr/There appear to be some file permission issues/, "Blocks when update-crypto-policies doesn't exist or isn't executable" );
+            like( $comp->check()->msg, qr/There appear to be some file permission issues/, "Blocks when update-crypto-policies doesn't exist or isn't executable" );
 
-    chmod 0755, $mock_tool->filename;
+            chmod 0755, $mock_tool->filename;
 
-    foreach my $policy (qw( DEFAULT DEFAULT:SHA1 LEGACY )) {
-        $mock_policy->redefine( current_policy => $policy );
-        ok( !$comp->check(), "Policy $policy doesn't block" );
+            foreach my $policy (qw( DEFAULT DEFAULT:SHA1 LEGACY )) {
+                $mock_policy->redefine( current_policy => $policy );
+                ok( !$comp->check(), "Policy $policy doesn't block" );
+            }
+
+            $mock_policy->redefine( current_policy => 'UNRECOGNIZED' );
+            like( $comp->check()->msg, qr/The system's cryptographic policy/, "Blocks when policy is unrecognized" );
+        }
     }
-
-    $mock_policy->redefine( current_policy => 'UNRECOGNIZED' );
-    like( $comp->check()->msg, qr/The system's cryptographic policy/, "Blocks when policy is unrecognized" );
 }
 
 {
@@ -95,7 +106,10 @@ my %installed_packages;
 
     # crypto-policies is EL-only
     Test::Elevate::set_os_to_ubuntu_20();
-    try_ok { $comp->pre_distro_upgrade() } "Short-circuits on Ubuntu";
+    try_ok { $comp->pre_distro_upgrade() } "Short-circuits on Ubuntu 20";
+
+    Test::Elevate::set_os_to_ubuntu_22();
+    try_ok { $comp->pre_distro_upgrade() } "Short-circuits on Ubuntu 22";
 
     # crypto-policies doesn't exist on C7/CL7
     Test::Elevate::set_os_to_centos_7();
@@ -104,127 +118,178 @@ my %installed_packages;
     Test::Elevate::set_os_to_cloudlinux_7();
     try_ok { $comp->pre_distro_upgrade() } "Short-circuits on CloudLinux 7";
 
-    Test::Elevate::set_os_to_almalinux_8();
+    note 'Testing prepare_system_for_sha1_policy_changes';
+
+    Test::Elevate::set_os_to_almalinux_9();
+    try_ok { $comp->prepare_system_for_sha1_policy_changes() } "Short-circuits on AlmaLinux 9";
+
     $mock_policy->redefine( current_policy => sub { return $policy } );
 
-    $policy = 'LEGACY';
-    try_ok { $comp->pre_distro_upgrade() } "Short-circuits if policy is LEGACY";
+    my %os_hash = (
+        almalinux  => [8],
+        cloudlinux => [8],
+    );
+    foreach my $distro ( sort keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
 
-    $policy = 'DEFAULT:SHA1';
-    try_ok { $comp->pre_distro_upgrade() } "Short-circuits if policy is already DEFAULT:SHA1";
+            $policy = 'LEGACY';
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "Short-circuits if policy is LEGACY";
 
-    $policy = 'UNRECOGNIZED';
-    like( dies { $comp->pre_distro_upgrade() }, qr/^Unexpected crypto policy/, "Dies if policy is completely unexpected" );
+            $policy = 'DEFAULT:SHA1';
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "Short-circuits if policy is already DEFAULT:SHA1";
 
-    my $test_dir    = File::Temp->newdir();
-    my $mock_module = $test_dir->dirname . "/SHA1.pmod";
-    my $mock_backup = $test_dir->dirname . "/SHA1.pmod.elevate.bak";
-    $mock_policy->redefine( CRYPTO_POLICIES_MODULE_PATH => $test_dir->dirname );
+            $policy = 'UNRECOGNIZED';
+            like( dies { $comp->prepare_system_for_sha1_policy_changes() }, qr/^Unexpected crypto policy/, "Dies if policy is completely unexpected" );
 
-    # TODO: I dispise the way I implemented this. Even tests deserve a bit of DRY.
-    #
-    # Permutations:
-    # The given module file may not exist, may exist but be empty, or may exist with content.
-    # The given backup file may not exist, or it may exist.
-    # The resulting module file could have our content, or it could not.
-    # The resulting backup file could exist with the content of the given module file, could exist with the content of the given backup file, or could not exist.
-    # The policy should always result in being set to DEFAULT:SHA1.
+            my $test_dir    = File::Temp->newdir();
+            my $mock_module = $test_dir->dirname . "/SHA1.pmod";
+            my $mock_backup = $test_dir->dirname . "/SHA1.pmod.elevate.bak";
+            $mock_policy->redefine( CRYPTO_POLICIES_MODULE_PATH => $test_dir->dirname );
 
-    # Case: module DNE, backup DNE
-    # Expect: our module, backup DNE
-    $policy = 'DEFAULT';
-    unlink $mock_module;
-    unlink $mock_backup;
+            # TODO: I dispise the way I implemented this. Even tests deserve a bit of DRY.
+            #
+            # Permutations:
+            # The given module file may not exist, may exist but be empty, or may exist with content.
+            # The given backup file may not exist, or it may exist.
+            # The resulting module file could have our content, or it could not.
+            # The resulting backup file could exist with the content of the given module file, could exist with the content of the given backup file, or could not exist.
+            # The policy should always result in being set to DEFAULT:SHA1.
 
-    try_ok { $comp->pre_distro_upgrade() } "given module DNE and backup DNE, doesn't die";
+            # Case: module DNE, backup DNE
+            # Expect: our module, backup DNE
+            $policy = 'DEFAULT';
+            unlink $mock_module;
+            unlink $mock_backup;
 
-    ok( -e $mock_module, "module file exists..." );
-    is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "given module DNE and backup DNE, doesn't die";
 
-    ok( !-e $mock_backup, "backup file DNE" );
+            ok( -e $mock_module, "module file exists..." );
+            is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
 
-    is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
+            ok( !-e $mock_backup, "backup file DNE" );
 
-    # Case: module DNE, backup exists
-    # Expect: our module, given backup
-    #
-    $policy = 'DEFAULT';
-    unlink $mock_module;
-    File::Slurp::write_file( $mock_backup, "something" );
+            is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
 
-    try_ok { $comp->pre_distro_upgrade() } "given module DNE and backup exists, doesn't die";
+            # Case: module DNE, backup exists
+            # Expect: our module, given backup
+            #
+            $policy = 'DEFAULT';
+            unlink $mock_module;
+            File::Slurp::write_file( $mock_backup, "something" );
 
-    ok( -e $mock_module, "module file exists..." );
-    is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "given module DNE and backup exists, doesn't die";
 
-    ok( -e $mock_backup, "backup file exists..." );
-    is( File::Slurp::read_file($mock_backup), "something", "...and is unchanged" );
+            ok( -e $mock_module, "module file exists..." );
+            is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
 
-    is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
+            ok( -e $mock_backup, "backup file exists..." );
+            is( File::Slurp::read_file($mock_backup), "something", "...and is unchanged" );
 
-    # Case: module empty, backup DNE
-    # Expect: our module, backup empty
-    $policy = 'DEFAULT';
-    File::Slurp::write_file( $mock_module, "" );
-    unlink $mock_backup;
+            is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
 
-    try_ok { $comp->pre_distro_upgrade() } "given module empty and backup DNE, doesn't die";
+            # Case: module empty, backup DNE
+            # Expect: our module, backup empty
+            $policy = 'DEFAULT';
+            File::Slurp::write_file( $mock_module, "" );
+            unlink $mock_backup;
 
-    ok( -e $mock_module, "module file exists..." );
-    is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "given module empty and backup DNE, doesn't die";
 
-    ok( -e $mock_backup, "backup file exists..." );
-    is( File::Slurp::read_file($mock_backup), "", "...and is empty, like the original" );
+            ok( -e $mock_module, "module file exists..." );
+            is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
 
-    is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
+            ok( -e $mock_backup, "backup file exists..." );
+            is( File::Slurp::read_file($mock_backup), "", "...and is empty, like the original" );
 
-    # Case: module empty, backup exists
-    # Expect: our module, given backup
-    $policy = 'DEFAULT';
-    File::Slurp::write_file( $mock_module, "" );
-    File::Slurp::write_file( $mock_backup, "something" );
+            is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
 
-    try_ok { $comp->pre_distro_upgrade() } "given module empty and backup exists, doesn't die";
+            # Case: module empty, backup exists
+            # Expect: our module, given backup
+            $policy = 'DEFAULT';
+            File::Slurp::write_file( $mock_module, "" );
+            File::Slurp::write_file( $mock_backup, "something" );
 
-    ok( -e $mock_module, "module file exists..." );
-    is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "given module empty and backup exists, doesn't die";
 
-    ok( -e $mock_backup, "backup file exists..." );
-    is( File::Slurp::read_file($mock_backup), "something", "...and is unchanged" );
+            ok( -e $mock_module, "module file exists..." );
+            is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
 
-    is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
+            ok( -e $mock_backup, "backup file exists..." );
+            is( File::Slurp::read_file($mock_backup), "something", "...and is unchanged" );
 
-    # Case: module exists, backup DNE
-    # Expect: our module, backup is given module
-    $policy = 'DEFAULT';
-    File::Slurp::write_file( $mock_module, "something" );
-    unlink $mock_backup;
+            is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
 
-    try_ok { $comp->pre_distro_upgrade() } "given module exists and backup DNE, doesn't die";
+            # Case: module exists, backup DNE
+            # Expect: our module, backup is given module
+            $policy = 'DEFAULT';
+            File::Slurp::write_file( $mock_module, "something" );
+            unlink $mock_backup;
 
-    ok( -e $mock_module, "module file exists..." );
-    is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "given module exists and backup DNE, doesn't die";
 
-    ok( -e $mock_backup, "backup file exists..." );
-    is( File::Slurp::read_file($mock_backup), "something", "...and has the previous contents of the module" );
+            ok( -e $mock_module, "module file exists..." );
+            is( File::Slurp::read_file($mock_module), $comp->CUSTOM_MODULE_TEXT, "...and has the expected contents" );
 
-    is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
+            ok( -e $mock_backup, "backup file exists..." );
+            is( File::Slurp::read_file($mock_backup), "something", "...and has the previous contents of the module" );
 
-    # Case: module exists, backup exists
-    # Expect: given module, given backup (i.e., no change; the assumption is that a previous run died during set_policy())
-    $policy = 'DEFAULT';
-    File::Slurp::write_file( $mock_module, "something" );
-    File::Slurp::write_file( $mock_backup, "something else" );
+            is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
 
-    try_ok { $comp->pre_distro_upgrade() } "given module exists and backup exists, doesn't die";
+            # Case: module exists, backup exists
+            # Expect: given module, given backup (i.e., no change; the assumption is that a previous run died during set_policy())
+            $policy = 'DEFAULT';
+            File::Slurp::write_file( $mock_module, "something" );
+            File::Slurp::write_file( $mock_backup, "something else" );
 
-    ok( -e $mock_module, "module file exists..." );
-    is( File::Slurp::read_file($mock_module), "something", "...and is unchanged" );
+            try_ok { $comp->prepare_system_for_sha1_policy_changes() } "given module exists and backup exists, doesn't die";
 
-    ok( -e $mock_backup, "backup file exists..." );
-    is( File::Slurp::read_file($mock_backup), "something else", "...and is unchanged" );
+            ok( -e $mock_module, "module file exists..." );
+            is( File::Slurp::read_file($mock_module), "something", "...and is unchanged" );
 
-    is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
+            ok( -e $mock_backup, "backup file exists..." );
+            is( File::Slurp::read_file($mock_backup), "something else", "...and is unchanged" );
+
+            is( $policy, 'DEFAULT:SHA1', "crypto policy set to DEFAULT:SHA1" );
+        }
+    }
+
+    note 'testing set_custom_crypto_policy';
+
+    foreach my $distro ( sort keys %os_hash ) {
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
+            try_ok { $comp->set_custom_crypto_policy() } "Short-circuits on $distro $version";
+        }
+    }
+
+    Test::Elevate::set_os_to_almalinux_9();
+
+    $mock_policy->unmock('CRYPTO_POLICIES_MODULE_PATH');
+
+    my ( $from, $to );
+    my $mock_file_copy = Test::MockModule->new('File::Copy');
+    $mock_file_copy->redefine(
+        cp => sub {
+            ( $from, $to ) = @_;
+        },
+    );
+
+    try_ok { $comp->set_custom_crypto_policy() } "Lives when it updates the policy";
+
+    is(
+        $from,
+        '/usr/local/cpanel/etc/crypto-policies/CPANEL-SHA1.pmod',
+        'File copied from expected location',
+    );
+
+    is(
+        $to,
+        '/etc/crypto-policies/policies/modules/CPANEL-SHA1.pmod',
+        'File copied to expected location',
+    );
+
+    is( $policy, 'DEFAULT:CPANEL-SHA1', 'Expected policy set' );
 }
 
 {
@@ -235,7 +300,10 @@ my %installed_packages;
 
     # crypto-policies is EL-only
     Test::Elevate::set_os_to_ubuntu_20();
-    try_ok { $comp->post_distro_upgrade() } "Short-circuits on Ubuntu";
+    try_ok { $comp->post_distro_upgrade() } "Short-circuits on Ubuntu 20";
+
+    Test::Elevate::set_os_to_ubuntu_22();
+    try_ok { $comp->post_distro_upgrade() } "Short-circuits on Ubuntu 22";
 
     # crypto-policies doesn't exist on C7/CL7
     Test::Elevate::set_os_to_centos_7();
@@ -243,6 +311,9 @@ my %installed_packages;
 
     Test::Elevate::set_os_to_cloudlinux_7();
     try_ok { $comp->post_distro_upgrade() } "Short-circuits on CloudLinux 7";
+
+    Test::Elevate::set_os_to_almalinux_9();
+    try_ok { $comp->post_distro_upgrade() } "Short-circuits on AlmaLinux 9";
 
     Test::Elevate::set_os_to_almalinux_8();
     $mock_policy->redefine(

@@ -614,6 +614,28 @@ EOS
 }
 
 {
+    note 'Testing _remove_cpaddons_repo';
+
+    my $repo_file      = '/etc/yum.repos.d/cPAddons.repo';
+    my $mock_repo_file = Test::MockFile->file( $repo_file, 'mocked' );
+
+    my %os_hash = (
+        cent => 7,
+        alma => 8,
+    );
+    foreach my $distro ( sort keys %os_hash ) {
+        set_os_to( $distro, $os_hash{$distro} );
+        try_ok { $yum->_remove_cpaddons_repo } "Lives okay";
+        ok( -e $repo_file, "Repo file is NOT removed when cpaddons are supported" );
+    }
+
+    set_os_to_almalinux_9();
+
+    try_ok { $yum->_remove_cpaddons_repo } "Lives okay";
+    ok( !-e $repo_file, "Repo file is removed when cpaddons are NOT supported" );
+}
+
+{
     note 'Testing Ubuntu';
 
     set_os_to( 'ubuntu', 20 );

@@ -22,11 +22,34 @@ use Test::Elevate;
 
 use cPstrict;
 
-my $unconvertedmodules = cpev->new->get_component('UnconvertedModules');
+my $unconvertedmodules      = cpev->new->get_component('UnconvertedModules');
+my $mock_unconvertedmodules = Test::MockModule->new('Elevate::Components::UnconvertedModules');
 
 my %os_hash = (
     alma => [8],
     cent => [7],
+);
+
+$mock_unconvertedmodules->redefine(
+    _remove_leapp_packages_from_yum_excludes => 1,
+);
+
+my $mock_pkgmgr = Test::MockModule->new('Elevate::PkgMgr');
+$mock_pkgmgr->redefine(
+    get_leapp_pkgs => sub {
+        return qw{
+          elevate-release
+          snactor
+          leapp
+          leapp-data-almalinux
+          leapp-data-cloudlinux
+          leapp-deps
+          leapp-repository-deps
+          leapp-upgrade
+          python2-leapp
+          python3-leapp
+        };
+    },
 );
 
 {
@@ -129,6 +152,74 @@ EOS
             no_messages_seen();
         }
     }
+}
+
+{
+    note 'Testing _remove_leapp_packages_from_yum_excludes';
+
+    $mock_unconvertedmodules->unmock('_remove_leapp_packages_from_yum_excludes');
+
+    set_os_to_almalinux_9();
+
+    my ( $read, $write, $file );
+    my $mock_file_slurper = Test::MockModule->new('File::Slurper');
+    $mock_file_slurper->redefine(
+        read_text  => sub { die "similate failure\n"; },
+        write_text => sub { die "yikes\n"; },
+    );
+
+    try_ok { $unconvertedmodules->_remove_leapp_packages_from_yum_excludes() } 'Lives ok';
+
+    $mock_file_slurper->redefine(
+        read_text  => sub { return $read; },
+        write_text => sub { ( $file, $write ) = @_; },
+    );
+
+    $read = _get_yum_conf();
+
+    try_ok { $unconvertedmodules->_remove_leapp_packages_from_yum_excludes() } 'Lives ok';
+    is( $file,  '/etc/yum.conf', 'Expected file written to' );
+    is( $write, $read,           'Nothing changed when exclude line is missing' );
+
+    undef $write;
+    undef $file;
+
+    $read = _get_yum_conf();
+    $read .= "exclude=bind-chroot dovecot* exim* filesystem nsd* p0f php* proftpd* pure-ftpd*\n";
+
+    try_ok { $unconvertedmodules->_remove_leapp_packages_from_yum_excludes() } 'Lives ok';
+    is( $file,  '/etc/yum.conf', 'Expected file written to' );
+    is( $write, $read,           'Nothing changed when nothing needs altered in the exclude line' );
+
+    undef $write;
+    undef $file;
+
+    $read = _get_yum_conf();
+    $read .= "exclude=bind-chroot dovecot* exim* leapp,leapp-data-almalinux filesystem snactor nsd* p0f php* proftpd* pure-ftpd* elevate-release\n";
+
+    my $expect = _get_yum_conf();
+    $expect .= "exclude=bind-chroot dovecot* exim* filesystem nsd* p0f php* proftpd* pure-ftpd*\n";
+
+    try_ok { $unconvertedmodules->_remove_leapp_packages_from_yum_excludes() } 'Lives ok';
+    is( $file,  '/etc/yum.conf', 'Expected file written to' );
+    is( $write, $expect,         'Nothing changed when nothing needs altered in the exclude line' );
+}
+
+sub _get_yum_conf {
+    my $txt = <<'EOF';
+[main]
+tolerant=1
+plugins=1
+gpgcheck=1
+installonly_limit=3
+clean_requirements_on_remove=True
+best=True
+skip_if_unavailable=False
+minrate=50k
+ip_resolve=4
+EOF
+
+    return $txt;
 }
 
 done_testing();

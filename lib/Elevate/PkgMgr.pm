@@ -70,6 +70,10 @@ sub get_cpanel_arch_pkgs () {
     return instance()->get_cpanel_arch_pkgs();
 }
 
+sub get_leapp_pkgs () {
+    return instance()->get_leapp_pkgs();
+}
+
 sub remove_cpanel_arch_pkgs () {
     return instance()->remove_cpanel_arch_pkgs();
 }

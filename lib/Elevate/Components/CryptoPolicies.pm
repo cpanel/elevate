@@ -13,8 +13,7 @@ need to use the default policy.
 
 =head2 pre_distro_upgrade
 
-On appropriate systems, create C</etc/crypto-policies/policies/modules/SHA1.pmod>,
-then add C<:SHA1> to the current policy using C<update-crypto-policies>.
+On appropriate systems, ensure that the needed SHA1 policy is set
 
 =head2 post_distro_upgrade
 
@@ -42,6 +41,7 @@ EOF
 # allow tests to override this
 sub UPDATE_CRYPTO_POLICIES_PATH { return "/usr/bin/update-crypto-policies"; }
 sub CRYPTO_POLICIES_MODULE_PATH { return "/etc/crypto-policies/policies/modules"; }
+sub CPANEL_MODULE_FILE          { return "/usr/local/cpanel/etc/crypto-policies/CPANEL-SHA1.pmod"; }
 
 sub check ($self) {
 
@@ -88,6 +88,25 @@ sub pre_distro_upgrade ($self) {
 
     return unless Elevate::OS::has_crypto_policies() && Elevate::OS::needs_sha1_enabled();
 
+    $self->prepare_system_for_sha1_policy_changes();
+    $self->set_custom_crypto_policy();
+
+    return;
+}
+
+sub set_custom_crypto_policy ($self) {
+    return if Elevate::OS::os_provides_sha1_module();
+
+    my $custom_crypto_policies_file = CRYPTO_POLICIES_MODULE_PATH() . '/CPANEL-SHA1.pmod';
+    File::Copy::cp( CPANEL_MODULE_FILE(), $custom_crypto_policies_file );
+    $self->set_policy('DEFAULT:CPANEL-SHA1');
+
+    return;
+}
+
+sub prepare_system_for_sha1_policy_changes ($self) {
+    return unless Elevate::OS::os_provides_sha1_module();
+
     my $current_policy = $self->current_policy();
 
     # Leapp currently demands that the policy be exactly DEFAULT:SHA1 or
@@ -128,6 +147,14 @@ sub pre_distro_upgrade ($self) {
 sub post_distro_upgrade ($self) {
 
     return unless Elevate::OS::has_crypto_policies() && Elevate::OS::needs_sha1_enabled();
+
+    $self->set_to_os_provided_sha1_policy();
+
+    return;
+}
+
+sub set_to_os_provided_sha1_policy ($self) {
+    return unless Elevate::OS::os_provides_sha1_module();
 
     my $current_policy = $self->current_policy();
 

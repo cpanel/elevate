@@ -20,6 +20,8 @@ use constant disable_mysql_yum_repos => qw{
   MariaDB103.repo
   MariaDB105.repo
   MariaDB106.repo
+  MariaDB1011.repo
+  MariaDB114.repo
 
   mysql-community.repo
 };
@@ -47,6 +49,7 @@ use constant vetted_yum_repo => (
     'digitalocean-agent',
     'droplet-agent',
     qr/^EA4(?:-c\$releasever)?$/,
+    qr/^EA4(?:-\$os_name_prefix\$releasever)?$/,
     qr/^elasticsearch(?:7\.x)?$/,
     qr/^elevate(?:-source)?$/,
     qr/^epel(?:-testing)?$/,
@@ -77,55 +80,59 @@ use constant supported_cpanel_nameserver_types => qw{
   powerdns
 };
 
-use constant archive_dir                     => undef;
-use constant bootloader_config_method        => 'grubby';
-use constant default_upgrade_to              => undef;
-use constant ea_alias                        => undef;
-use constant el_package_regex                => undef;
-use constant elevate_rpm_url                 => undef;
-use constant expected_post_upgrade_major     => undef;
-use constant has_crypto_policies             => 1;
-use constant has_imunify_ea_alias            => 0;
-use constant imunify_ea_alias                => undef;
-use constant is_apt_based                    => 0;
-use constant is_experimental                 => 0;
-use constant is_supported                    => 1;
-use constant jetbackup_repo_rpm_url          => undef;
-use constant leapp_can_handle_imunify        => 0;
-use constant leapp_can_handle_kernelcare     => 0;
-use constant leapp_data_pkg                  => undef;
-use constant leapp_flag                      => undef;
-use constant leapp_repo_beta                 => '';
-use constant leapp_repo_prod                 => 'elevate';
-use constant lts_supported                   => undef;
-use constant name                            => 'RHEL';
-use constant needs_crb                       => 0;
-use constant needs_do_release_upgrade        => 0;
-use constant needs_epel                      => 1;
-use constant needs_grub_enable_blscfg        => 0;
-use constant needs_leapp                     => 1;
-use constant needs_network_manager           => 0;
-use constant needs_powertools                => 0;
-use constant needs_sha1_enabled              => 0;
-use constant needs_type_in_ifcfg             => 0;
-use constant needs_vdo                       => 0;
-use constant original_os_major               => undef;
-use constant package_manager                 => 'YUM';
-use constant pkgmgr_lib_path                 => undef;
-use constant pretty_name                     => 'RHEL';
-use constant provides_mysql_governor         => 0;
-use constant remove_els                      => 0;
-use constant set_update_tier_to_release      => 0;
-use constant should_archive_elevate_files    => 0;
-use constant should_check_cloudlinux_license => 0;
-use constant skip_minor_version_check        => 1;
-use constant supported_cpanel_mysql_versions => undef;
-use constant supports_jetbackup              => 1;
-use constant supports_kernelcare             => 1;
-use constant supports_named_tiers            => 0;
-use constant supports_postgresql             => 1;
-use constant upgrade_to_pretty_name          => undef;
-use constant vetted_apt_lists                => {};
-use constant yum_conf_needs_plugins          => 0;
+use constant archive_dir                      => undef;
+use constant bootloader_config_method         => 'grubby';
+use constant default_upgrade_to               => 'AlmaLinux';
+use constant ea_alias                         => undef;
+use constant el_package_regex                 => undef;
+use constant elevate_rpm_url                  => undef;
+use constant expected_post_upgrade_major      => undef;
+use constant has_crypto_policies              => 1;
+use constant has_imunify_ea_alias             => 0;
+use constant imunify_ea_alias                 => undef;
+use constant is_apt_based                     => 0;
+use constant is_experimental                  => 0;
+use constant is_supported                     => 1;
+use constant jetbackup_repo_rpm_url           => undef;
+use constant leapp_can_handle_imunify         => 0;
+use constant leapp_can_handle_kernelcare      => 0;
+use constant leapp_data_pkg                   => 'leapp-data-almalinux';
+use constant leapp_flag                       => undef;
+use constant leapp_repo_beta                  => '';
+use constant leapp_repo_prod                  => 'elevate';
+use constant lts_supported                    => undef;
+use constant minimum_supported_cpanel_version => undef;
+use constant name                             => 'RHEL';
+use constant needs_crb                        => 0;
+use constant needs_do_release_upgrade         => 0;
+use constant needs_epel                       => 1;
+use constant needs_grub_enable_blscfg         => 0;
+use constant needs_leapp                      => 1;
+use constant needs_network_manager            => 0;
+use constant needs_powertools                 => 0;
+use constant needs_sha1_enabled               => 0;
+use constant needs_type_in_ifcfg              => 0;
+use constant needs_vdo                        => 0;
+use constant network_scripts_are_supported    => 1;
+use constant original_os_major                => undef;
+use constant os_provides_sha1_module          => 1;
+use constant package_manager                  => 'YUM';
+use constant pkgmgr_lib_path                  => '/var/lib/dnf';
+use constant pretty_name                      => 'RHEL';
+use constant provides_mysql_governor          => 0;
+use constant remove_els                       => 0;
+use constant set_update_tier_to_release       => 0;
+use constant should_archive_elevate_files     => 0;
+use constant should_check_cloudlinux_license  => 0;
+use constant skip_minor_version_check         => 1;
+use constant supported_cpanel_mysql_versions  => undef;
+use constant supports_cpaddons                => 1;
+use constant supports_jetbackup               => 1;
+use constant supports_kernelcare              => 1;
+use constant supports_named_tiers             => 0;
+use constant supports_postgresql              => 1;
+use constant upgrade_to_pretty_name           => undef;
+use constant vetted_apt_lists                 => {};
+use constant yum_conf_needs_plugins           => 0;
 
 1;

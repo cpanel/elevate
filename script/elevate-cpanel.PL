@@ -308,6 +308,7 @@ use Elevate::Components::Acronis                ();
 # - fatpack OS
 use Elevate::OS              ();
 use Elevate::OS::AlmaLinux8  ();
+use Elevate::OS::AlmaLinux9  ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux  ();
 use Elevate::OS::CloudLinux7 ();
@@ -330,7 +331,6 @@ use Elevate::Leapp            ();
 use Elevate::Logger           ();
 use Elevate::Marker           ();
 use Elevate::Motd             ();
-use Elevate::NICs             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
 use Elevate::Script           ();
@@ -1433,16 +1433,6 @@ sub run_final_components_pre_distro_upgrade ($self) {
 }
 
 sub post_distro_upgrade_update_restore ($self) {
-
-    if ( Elevate::OS::needs_leapp() ) {
-        INFO('Removing leapp from excludes in /etc/yum.conf');
-        my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
-        if ( length $txt ) {
-            $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
-            $txt =~ s/\s*leapp-upgrade-el8toel9,python3-leapp,leapp,snactor//ms;
-            File::Slurper::write_text( "/etc/yum.conf", $txt );
-        }
-    }
 
     $self->run_component_once( 'CryptoPolicies' => 'post_distro_upgrade' );
 
