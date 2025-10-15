@@ -1533,7 +1533,12 @@ sub reboot ($self) {
         return 0;
     }
 
-    sleep(2);    # ensure display is flushed (using tail...)
+    Elevate::StageFile::update_stage_file( { is_ran_from_ci => 1 } ) if $self->getopt('is-ran-from-ci');
+    my $is_ci = Elevate::StageFile::read_stage_file( 'is_ran_from_ci', 0 );
+
+    # If this is running from the CI, give extra time for the CI to jump out of the server
+    # Otherwise, give time to ensure display is flushed (using tail...)
+    $is_ci ? sleep(10) : sleep(2);
 
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");

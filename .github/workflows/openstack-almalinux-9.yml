@@ -200,7 +200,7 @@ jobs:
           timeout: 30m
           command_timeout: 30m
           script: |
-            /scripts/elevate-cpanel --non-interactive --skip-cpanel-version-check --start &
+            /scripts/elevate-cpanel --is-ran-from-ci --non-interactive --skip-cpanel-version-check --start &
             exit 0
 
   wait_for_stage_1_reboot:
