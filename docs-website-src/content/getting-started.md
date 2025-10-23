@@ -17,6 +17,7 @@ You can perform the following elevations:
 * Ubuntu 22 to Ubuntu 24
 * AlmaLinux OS 8 to AlmaLinux OS 9
 * CloudLinux 8 to CloudLinux 9
+* AlmaLinux OS 9 to AlmaLinux OS 10
 
 ## Prerequisites
 
@@ -29,7 +30,7 @@ Before you upgrade your system, make **certain** that you've met the following r
   * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
   * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
   * Systems that run Ubuntu 22 **must** run cPanel & WHM version 132.
-  * Systems that run AlmaLinux OS 8 or CloudLinux 8 **must** run on a named tier (LTS, STABLE, RELEASE, CURRENT, or EDGE) of cPanel & WHM
+  * Systems that run AlmaLinux OS 8, CloudLinux 8 or AlmaLinux OS 9 **must** run on a named tier (LTS, STABLE, RELEASE, CURRENT, or EDGE) of cPanel & WHM
 * Your system **must** run the most recent minor version of its cPanel version for your operating system.
 * cPanel **must** have a valid license.
 * If applicable, **CloudLinux** has a valid license.
@@ -63,7 +64,7 @@ We recommend that you verify and update the software on your server **before** y
   * CentOS 7 and CloudLinux 7 support is only available on cPanel & WHM version 110.
   * Ubuntu 20.04 support is only available on cPanel & WHM version 118.
   * Ubuntu 22.04 support is only available on cPanel & WHM version 132.
-  * AlmaLinux 8 and CloudLinux 8 support is only available on name cPanel & WHM tiers such as RELEASE or LTS.
+  * AlmaLinux 8, CloudLinux 8 and AlmaLinux 9 support is only available on name cPanel & WHM tiers such as RELEASE or LTS.
 * Make certain that you're using a version of MySQL/MariaDB that is compatible with your target distribution.
 
 We also recommend that you [download the ELevate script](#download-the-elevate-cpanel-script) and [run the pre-checks](#run-pre-upgrade-checks). This will ensure that you don't have any [blockers](https://cpanel.github.io/elevate/blockers/) that will prevent an upgrade.

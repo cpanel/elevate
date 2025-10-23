@@ -51,6 +51,8 @@ Currently supported upgrade paths:
 
 =item * CloudLinux 8 => CloudLinux 9
 
+=item * AlmaLinux 9  => AlmaLinux 10
+
 =item * Ubuntu 20.04 => Ubuntu 22.04
 
 =item * Ubuntu 22.04 => Ubuntu 24.04
