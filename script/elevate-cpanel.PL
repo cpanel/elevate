@@ -1538,7 +1538,13 @@ sub reboot ($self) {
 
     # If this is running from the CI, give extra time for the CI to jump out of the server
     # Otherwise, give time to ensure display is flushed (using tail...)
-    $is_ci ? sleep(10) : sleep(2);
+    if ($is_ci) {
+        INFO("CI mode detected, giving extra time to let CI get out of server");
+        sleep(6);
+    }
+    else {
+        sleep(2);
+    }
 
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");
