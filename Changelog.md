@@ -1,5 +1,11 @@
 ## ELevate Change Log
 
+##### **2025-10-30** - version 72
+
+* Fixed case RE-1614: Add support for upgrades from A9->A10
+* Fixed case RE-1615: Add support for u22->u24 distro upgrades
+* Fixed case RE-1506:  Update documentation to mention that we support CL8->CL9 upgrades
+
 ##### **2025-09-11** - version 71
 
 * Fixed case CPANEL-49117: Remove experimental status for CL8->CL9 upgrades
