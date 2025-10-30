@@ -20,6 +20,7 @@ This project will perform the following upgrades:
 * Ubuntu 22 to Ubuntu 24
 * AlmaLinux 8 to AlmaLinux 9
 * CloudLinux 8 to CloudLinux 9
+* AlmaLinux 9 to AlmaLinux 10
 
 cPanel ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, your system will no longer function correctly.
 

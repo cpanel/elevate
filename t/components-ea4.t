@@ -296,6 +296,11 @@ sub backup_non_existing_profile : Test(34) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
+    my $mock_ea4_install = Test::MockModule->new('Cpanel::EA4::Install');
+    $mock_ea4_install->redefine(
+        install_ea4_repo => 1,
+    );
+
     my %os_hash = $self->_get_os_hash();
     foreach my $distro ( keys %os_hash ) {
         foreach my $version ( @{ $os_hash{$distro} } ) {
@@ -333,6 +338,11 @@ sub test_backup_and_restore_ea4_profile : Test(28) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
 
+    my $mock_ea4_install = Test::MockModule->new('Cpanel::EA4::Install');
+    $mock_ea4_install->redefine(
+        install_ea4_repo => 1,
+    );
+
     my $profile = { my_profile => ['...'] };
 
     my $mock_elevate_ea4 = Test::MockModule->new('Elevate::EA4');
@@ -364,6 +374,11 @@ sub test_backup_and_restore_ea4_profile : Test(28) ($self) {
 sub test_backup_and_restore_ea4_profile_dropped_packages : Test(70) ($self) {
 
     my $ea4 = cpev->new->get_component('EA4');
+
+    my $mock_ea4_install = Test::MockModule->new('Cpanel::EA4::Install');
+    $mock_ea4_install->redefine(
+        install_ea4_repo => 1,
+    );
 
     my %os_hash = $self->_get_os_hash();
     foreach my $distro ( keys %os_hash ) {
@@ -794,7 +809,7 @@ EOS
     return;
 }
 
-sub test_blocker_behavior : Test(126) ($self) {
+sub test_blocker_behavior : Test(121) ($self) {
 
     my $cpev = cpev->new();
     my $ea4  = $cpev->get_component('EA4');

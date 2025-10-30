@@ -25,12 +25,16 @@ noop
 
 use cPstrict;
 
+use File::Slurper ();
+
 use Elevate::OS     ();
 use Elevate::PkgMgr ();
 
 use Log::Log4perl qw(:easy);
 
 use parent qw{Elevate::Components::Base};
+
+use constant YUM_CONF => '/etc/yum.conf';
 
 use constant EXEMPTED_PACKAGES => (
     qr/^kernel-/,
@@ -46,25 +50,38 @@ sub post_distro_upgrade ($self) {
 }
 
 sub _remove_leapp_packages ($self) {
-    my @leapp_packages = qw{
-      elevate-release
-      leapp
-      leapp-data-almalinux
-      leapp-data-cloudlinux
-      leapp-deps
-      leapp-repository-deps
-      leapp-upgrade-el7toel8
-      leapp-upgrade-el7toel8-deps
-      leapp-upgrade-el8toel9
-      leapp-upgrade-el8toel9-deps
-      python2-leapp
-      python3-leapp
-      snactor
-    };
+    $self->_remove_leapp_packages_from_yum_excludes();
 
     INFO('Removing packages provided by leapp');
-    my @to_remove = grep { Cpanel::Pkgr::is_installed($_) } @leapp_packages;
+    my @leapp_packages = Elevate::PkgMgr::get_leapp_pkgs();
+    my @to_remove      = grep { Cpanel::Pkgr::is_installed($_) } @leapp_packages;
     Elevate::PkgMgr::remove(@to_remove);
+
+    return;
+}
+
+sub _remove_leapp_packages_from_yum_excludes ($self) {
+    my $yum_conf = YUM_CONF();
+
+    INFO("Removing leapp from excludes in $yum_conf");
+    my $txt = eval { File::Slurper::read_text($yum_conf) };
+    if ( length $txt ) {
+        my @lines = split "\n", $txt;
+        foreach my $line (@lines) {
+            if ( $line =~ m/^\s*exclude\s*=(.*)/ ) {
+                my $exclude_txt          = $1;
+                my @exclude_pkgs         = split /[ ,]+/, $exclude_txt;
+                my @updated_exclude_pkgs = grep { $_ !~ m/leapp|snactor|elevate-release/ } @exclude_pkgs;
+                my $updated_exclude_txt  = join ' ', @updated_exclude_pkgs;
+
+                $line = "exclude=$updated_exclude_txt";
+            }
+        }
+
+        my $updated_txt = join "\n", @lines;
+        $updated_txt .= "\n";
+        File::Slurper::write_text( $yum_conf, $updated_txt );
+    }
 
     return;
 }

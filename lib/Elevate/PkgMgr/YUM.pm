@@ -337,4 +337,18 @@ sub remove_pkgs_from_repos ( $self, @pkg_list ) {
     return;
 }
 
+sub get_cpanel_arch_pkgs ($self) {
+    my $out = $self->ssystem_capture_output( $rpm, '-qa' ) || {};
+
+    die "Failed to gather RPM information\n" unless $out->{status} == 0;
+    my @cpanel_arch_pkgs = grep { $_ =~ m/^cpanel-.*\.x86_64$/ } @{ $out->{stdout} };
+    return @cpanel_arch_pkgs;
+}
+
+sub get_leapp_pkgs ($self) {
+    my $pkgs       = $self->get_installed_pkgs();
+    my @leapp_pkgs = grep { $_ =~ m/leapp/ || $_ eq 'elevate-release' || $_ eq 'snactor' } keys %$pkgs;
+    return @leapp_pkgs;
+}
+
 1;

@@ -229,7 +229,7 @@ jobs:
           debug: true
           script: |
             /scripts/status_marker 1
-            nohup /scripts/elevate-cpanel --non-interactive --skip-cpanel-version-check --start &
+            nohup /scripts/elevate-cpanel --is-ran-from-ci --non-interactive --skip-cpanel-version-check --start &
             exit 0
 
   wait_for_stage_2_reboot:

@@ -54,14 +54,15 @@ use constant supported_cpanel_mysql_versions => qw{
   11.4
 };
 
-use constant archive_dir                  => 'Ubuntu20-to-Ubuntu22';
-use constant ea_alias                     => 'xUbuntu_24.04';
-use constant expected_post_upgrade_major  => 24;
-use constant lts_supported                => 132;
-use constant name                         => 'Ubuntu22';
-use constant original_os_major            => 22;
-use constant pretty_name                  => 'Ubuntu 22.04';
-use constant should_archive_elevate_files => 1;
-use constant upgrade_to_pretty_name       => 'Ubuntu 24.04';
+use constant archive_dir                      => 'Ubuntu20-to-Ubuntu22';
+use constant ea_alias                         => 'xUbuntu_24.04';
+use constant expected_post_upgrade_major      => 24;
+use constant lts_supported                    => 132;
+use constant minimum_supported_cpanel_version => 132;
+use constant name                             => 'Ubuntu22';
+use constant original_os_major                => 22;
+use constant pretty_name                      => 'Ubuntu 22.04';
+use constant should_archive_elevate_files     => 1;
+use constant upgrade_to_pretty_name           => 'Ubuntu 24.04';
 
 1;

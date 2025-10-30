@@ -23,6 +23,7 @@ sub _OPTIONS {
       upgrade-distro-manually no-leapp
       non-interactive
       leappbeta
+      is-ran-from-ci
     );
 }
 
@@ -32,7 +33,7 @@ sub _validate_option_combos ($self) {
       clean continue help log service status update version
     );
     my @start_only_options = qw(
-      manual-reboots non-interactive leappbeta
+      manual-reboots non-interactive leappbeta is-ran-from-ci
     );
 
     # Invoking with no options is permissible

@@ -29,10 +29,10 @@ my $cpev = cpev->new;
 my $whm  = $cpev->get_component('WHM');
 
 my %os_hash = (
-    alma   => [8],
+    alma   => [ 8, 9 ],
     cent   => [7],
-    cloud  => [ 7, 8 ],
-    ubuntu => [20],
+    cloud  => [ 7,  8 ],
+    ubuntu => [ 20, 22 ],
 );
 
 {
@@ -103,7 +103,7 @@ my %os_hash = (
 
     foreach my $distro ( keys %os_hash ) {
         foreach my $version ( @{ $os_hash{$distro} } ) {
-            next if $version == 8;
+            next if $version == 8 || $version == 9;
             set_os_to( $distro, $version );
             my $cpev = cpev->new;
             my $whm  = $cpev->get_component('WHM');
@@ -113,7 +113,9 @@ my %os_hash = (
 
             my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
             my $expected_upgrade_version = 110;
-            $expected_upgrade_version = 118 if $distro eq 'ubuntu';
+            if ( $distro eq 'ubuntu' ) {
+                $expected_upgrade_version = $version == 20 ? 118 : 132;
+            }
             like(
                 $whm->_blocker_lts_is_supported(),
                 {
@@ -179,7 +181,7 @@ my %os_hash = (
 
     foreach my $distro ( keys %os_hash ) {
         foreach my $version ( @{ $os_hash{$distro} } ) {
-            next unless $version != 8;
+            next unless $version != 8 && $version != 9;
             set_os_to( $distro, $version );
             is( Elevate::OS::supports_named_tiers(), 0, "Named tiers are not supported for $distro $version" );
         }
@@ -187,7 +189,7 @@ my %os_hash = (
 
     foreach my $distro ( keys %os_hash ) {
         foreach my $version ( @{ $os_hash{$distro} } ) {
-            next unless $version == 8;
+            next unless $version == 8 || $version == 9;
             set_os_to( $distro, $version );
 
             my $mock_tiers = Test::MockModule->new('Cpanel::Update::Tiers');
@@ -228,12 +230,35 @@ my %os_hash = (
                 $whm->_blocker_is_named_tier(34),
                 {
                     id  => q[Elevate::Components::WHM::_blocker_is_named_tier],
-                    msg => qr{Please ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE},
+                    msg => qr{You must ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE},
                 },
                 'Blocker returned when the major version does not match a named tier',
             );
         }
     }
+}
+
+{
+    note 'Test _blocker_upgrade_to_not_supported_by_cpanel_version';
+
+    set_os_to_almalinux_8();
+
+    is( $whm->_blocker_upgrade_to_not_supported_by_cpanel_version(42), undef, 'No blocker when there is not a minimum supported version set for the OS' );
+
+    set_os_to_almalinux_9();
+
+    local $Cpanel::Version::Tiny::VERSION_BUILD = '11.130.0.2';
+
+    is( $whm->_blocker_upgrade_to_not_supported_by_cpanel_version(132), undef, 'No blocker when the minimum veresion requirement is met' );
+
+    like(
+        $whm->_blocker_upgrade_to_not_supported_by_cpanel_version(130),
+        {
+            id  => 'Elevate::Components::WHM::_blocker_upgrade_to_not_supported_by_cpanel_version',
+            msg => qr/AlmaLinux 10 is not supported by cPanel version 11\.130\.0\.2/,
+        },
+        'Blocker given when the cPanel version does not support the upgraded distro',
+    );
 }
 
 {

@@ -38,6 +38,7 @@ use Elevate::OS        ();
 use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
+use Cpanel::EA4::Install    ();
 use Cpanel::JSON            ();
 use Cpanel::Pkgr            ();
 use Cpanel::SafeRun::Simple ();
@@ -56,6 +57,7 @@ sub pre_imunify ($self) {
 
 sub pre_distro_upgrade ($self) {
     $self->run_once('_cleanup_rpm_db');
+    $self->_remove_ea4_repo();
     return;
 }
 
@@ -95,6 +97,11 @@ sub _cleanup_rpm_db ($self) {
     return;
 }
 
+sub _remove_ea4_repo ($self) {
+    unlink '/etc/yum.repos.d/EA4.repo';
+    return;
+}
+
 sub _restore_ea_addons ($self) {
 
     return unless Elevate::StageFile::read_stage_file('ea4')->{'nginx'};
@@ -117,6 +124,9 @@ sub _restore_ea4_profile ($self) {
         WARN('Skipping EA4 restore. EA4 does not appear to be enabled on this system.');
         return;
     }
+
+    # Ensure the EA4 repo file is installed since we remove it now
+    Cpanel::EA4::Install::install_ea4_repo();
 
     my $json = $stash->{'ea4'}->{'profile'};
     unless ( length $json && -f $json && -s _ ) {

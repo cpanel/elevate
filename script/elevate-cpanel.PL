@@ -51,6 +51,8 @@ Currently supported upgrade paths:
 
 =item * CloudLinux 8 => CloudLinux 9
 
+=item * AlmaLinux 9  => AlmaLinux 10
+
 =item * Ubuntu 20.04 => Ubuntu 22.04
 
 =item * Ubuntu 22.04 => Ubuntu 24.04
@@ -308,6 +310,7 @@ use Elevate::Components::Acronis                ();
 # - fatpack OS
 use Elevate::OS              ();
 use Elevate::OS::AlmaLinux8  ();
+use Elevate::OS::AlmaLinux9  ();
 use Elevate::OS::CentOS7     ();
 use Elevate::OS::CloudLinux  ();
 use Elevate::OS::CloudLinux7 ();
@@ -330,7 +333,6 @@ use Elevate::Leapp            ();
 use Elevate::Logger           ();
 use Elevate::Marker           ();
 use Elevate::Motd             ();
-use Elevate::NICs             ();
 use Elevate::Notify           ();
 use Elevate::Roles::Run       ();    # used as parent, but ensure fatpack
 use Elevate::Script           ();
@@ -1434,16 +1436,6 @@ sub run_final_components_pre_distro_upgrade ($self) {
 
 sub post_distro_upgrade_update_restore ($self) {
 
-    if ( Elevate::OS::needs_leapp() ) {
-        INFO('Removing leapp from excludes in /etc/yum.conf');
-        my $txt = eval { File::Slurper::read_text("/etc/yum.conf") };
-        if ( length $txt ) {
-            $txt =~ s/\s*python2-leapp,snactor,leapp-upgrade-el7toel8,leapp//ms;
-            $txt =~ s/\s*leapp-upgrade-el8toel9,python3-leapp,leapp,snactor//ms;
-            File::Slurper::write_text( "/etc/yum.conf", $txt );
-        }
-    }
-
     $self->run_component_once( 'CryptoPolicies' => 'post_distro_upgrade' );
 
     # plugins can use MySQL - restore database earlier
@@ -1541,7 +1533,18 @@ sub reboot ($self) {
         return 0;
     }
 
-    sleep(2);    # ensure display is flushed (using tail...)
+    Elevate::StageFile::update_stage_file( { is_ran_from_ci => 1 } ) if $self->getopt('is-ran-from-ci');
+    my $is_ci = Elevate::StageFile::read_stage_file( 'is_ran_from_ci', 0 );
+
+    # If this is running from the CI, give extra time for the CI to jump out of the server
+    # Otherwise, give time to ensure display is flushed (using tail...)
+    if ($is_ci) {
+        INFO("CI mode detected, giving extra time to let CI get out of server");
+        sleep(6);
+    }
+    else {
+        sleep(2);
+    }
 
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");

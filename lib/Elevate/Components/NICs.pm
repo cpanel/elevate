@@ -14,6 +14,10 @@ is missing for A8->A9 conversions
 Determine if the server has multiple NIC devices using the kernel (ethX)
 namespace
 
+Determine if there are any ifcfg-* files in place for A9->A10 conversions since
+network-scripts is no longer supported and servers must fully upgrade to
+NetworkManager as of A10
+
 =head2 pre_distro_upgrade
 
 Rename NICs using the kernel (ethX) namespace
@@ -29,8 +33,9 @@ use cPstrict;
 use File::Slurper ();
 
 use Elevate::Constants ();
-use Elevate::NICs      ();
 use Elevate::OS        ();
+
+use Cpanel::SafeRun::Errors ();
 
 use Log::Log4perl qw(:easy);
 
@@ -41,18 +46,38 @@ use constant NIC_PREFIX                => q[cp];
 use constant PERSISTENT_NET_RULES_PATH => q[/etc/udev/rules.d/70-persistent-net.rules];
 use constant SBIN_IP                   => Elevate::Constants::SBIN_IP;
 
+sub check ($self) {
+
+    # This only matters for upgrades performed with the leapp utility
+    return 1 unless Elevate::OS::needs_leapp();
+    return 1 if $self->upgrade_distro_manually;
+
+    return if $self->_blocker_missing_sbin_ip();
+    return if $self->_nics_have_missing_ifcfg_files();
+
+    $self->_blocker_ifcfg_files_missing_type_parameter();
+    $self->_blocker_bad_nics_naming();
+    $self->_blocker_has_ifcfg_files();
+    return;
+}
+
 sub pre_distro_upgrade ($self) {
     return unless Elevate::OS::needs_leapp();
 
-    $self->_rename_nics();
+    $self->_rename_eth_devices();
 
     return;
 }
 
-sub _rename_nics ($self) {
+sub _blocker_missing_sbin_ip ($self) {
+    return $self->has_blocker( q[Missing ] . SBIN_IP . ' binary' ) unless -x SBIN_IP;
+    return;
+}
+
+sub _rename_eth_devices ($self) {
 
     # Only do this if there are multiple NICs in the kernel (eth) namespace
-    my @nics = Elevate::NICs::get_nics();
+    my @nics = $self->get_eths();
     return unless scalar @nics > 1;
 
     foreach my $nic (@nics) {
@@ -109,26 +134,11 @@ sub _rename_nics ($self) {
     return;
 }
 
-sub check ($self) {
-
-    # This only matters for upgrades performed with the leapp utility
-    return 1 unless Elevate::OS::needs_leapp();
-    return 1 if $self->upgrade_distro_manually;
-
-    $self->_blocker_ifcfg_files();
-    $self->_blocker_bad_nics_naming();
-    return;
-}
-
-sub _blocker_ifcfg_files ($self) {
+sub _blocker_ifcfg_files_missing_type_parameter ($self) {
     return unless Elevate::OS::needs_type_in_ifcfg();
 
-    my @nics = Elevate::NICs::get_nics();
-
-    # just block if this happens
-    return if $self->_nics_have_missing_ifcfg_files(@nics);
-
     my @bad_ifcfg_files;
+    my @nics = $self->get_nics();
     foreach my $nic (@nics) {
         my $nic_path = ETH_FILE_PREFIX . $nic;
 
@@ -166,8 +176,9 @@ sub _blocker_ifcfg_files ($self) {
 }
 
 sub _blocker_bad_nics_naming ($self) {
-    return $self->has_blocker( q[Missing ] . SBIN_IP . ' binary' ) unless -x SBIN_IP;
-    my @eths = Elevate::NICs::get_nics();
+    return unless Elevate::OS::network_scripts_are_supported();
+
+    my @eths = $self->get_eths();
     if ( @eths >= 2 ) {
         WARN(<<~'EOS');
         Your machine has multiple network interface cards (NICs) using
@@ -181,8 +192,6 @@ sub _blocker_bad_nics_naming ($self) {
             EOS
             return 0;
         }
-
-        return if $self->_nics_have_missing_ifcfg_files(@eths);
 
         my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
         WARN(<<~"EOS");
@@ -218,9 +227,11 @@ sub _blocker_bad_nics_naming ($self) {
     return 0;
 }
 
-sub _nics_have_missing_ifcfg_files ( $self, @nics ) {
+sub _nics_have_missing_ifcfg_files ($self) {
+    return unless Elevate::OS::network_scripts_are_supported();
 
     my @nics_missing_nic_path;
+    my @nics = $self->get_nics();
     foreach my $nic (@nics) {
         my $nic_path = ETH_FILE_PREFIX . $nic;
 
@@ -248,6 +259,114 @@ sub _nics_have_missing_ifcfg_files ( $self, @nics ) {
 
         Please provide these interfaces new names before continuing the update.
         EOS
+    }
+
+    return;
+}
+
+sub get_eths ($self) {
+    my @nics = $self->get_nics();
+    my @eths = grep { $_ =~ m/^eth[0-9]+$/ } @nics;
+    return @eths;
+}
+
+sub get_nics ($self) {
+    my $ip_info = Cpanel::SafeRun::Errors::saferunnoerror( SBIN_IP, 'addr' ) // '';
+
+    my @nics;
+    foreach my $line ( split /\n/xms, $ip_info ) {
+
+        # For example:
+        # 2: ens3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+        # 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+        next unless $line =~ m/^[0-9]+:\s([a-zA-Z0-9_-]+):/;
+
+        my $nic   = $1;
+        my $value = readlink "/sys/class/net/$nic";
+
+        next unless $value;
+        next if $value =~ m{/virtual/};
+
+        push @nics, $nic;
+    }
+
+    return @nics;
+}
+
+sub _blocker_has_ifcfg_files ($self) {
+    return if Elevate::OS::network_scripts_are_supported();
+
+    my $glob_path   = ETH_FILE_PREFIX() . '*';
+    my @ifcfg_files = grep { $_ !~ m{/ifcfg-lo$} } glob $glob_path;
+
+    return unless @ifcfg_files;
+
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
+
+    WARN(<<~'EOS');
+    Your machine has network interface cards configured using the legacy
+    network-scripts style configuration.
+    EOS
+
+    # This type of configuration is not supported by NetworkManager, so we have
+    # no choice but to block if we find this type of file
+    my @secondary_ifcfg_files = grep { $_ =~ m/:[0-9]+$/ } @ifcfg_files;
+    if (@secondary_ifcfg_files) {
+        my $alias_interfaces = join( "\n", @secondary_ifcfg_files );
+        return $self->has_blocker(<<~"EOS");
+        Additionally, this machine has the following alias interfaces defined within the
+        legacy network-scripts configuration:
+
+        $alias_interfaces
+
+        This type of configuration is no longer supported and will be ignored by NetworkManager.
+        As such, you will need to manually convert this configuration to be compatible with
+        NetworkManager before elevating this server.
+        EOS
+    }
+
+    if ( $self->is_check_mode() ) {
+        INFO(<<~"EOS");
+        Starting with $pretty_distro_name, the legacy network-scripts style configuration
+        is no longer supported.  This script will need to convert these configuration
+        files to the NetworkManager style configuration before upgrading.
+        EOS
+
+        return;
+    }
+
+    WARN(<<~"EOS");
+    Prior to elevating this system to $pretty_distro_name, this script will automatically
+    convert the legacy network-scripts style configuration to the NetworkManager style
+    configuration.
+
+    EOS
+
+    if ( !$self->getopt('non-interactive') ) {
+        if (
+            !IO::Prompt::prompt(
+                '-one_char',
+                '-yes_no',
+                '-tty',
+                -default => 'y',
+                'Do you consent to converting your network configuration from network-scripts to NetworkManager [Y/n]: ',
+            )
+        ) {
+            my $files_to_convert = join( "\n", @ifcfg_files );
+            return $self->has_blocker(<<~"EOS");
+            The system cannot be elevated to $pretty_distro_name until the legacy network-scripts configuration
+            has been converted to use the NetworkManager configuration.  The following files will need to be converted:
+
+            $files_to_convert
+
+            To convert a file, you can run a command similar to the following:
+
+            /usr/bin/nmcli connection migrate /path/to/ifcfg-file
+
+            NOTE: replace /path/to/ifcfg-file with the real path of the file to convert
+
+            EOS
+        }
     }
 
     return;

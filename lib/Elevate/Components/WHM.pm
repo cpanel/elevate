@@ -60,6 +60,7 @@ sub check ($self) {
 
     if ( Elevate::OS::supports_named_tiers() ) {
         my $major = $Cpanel::Version::Tiny::major_version;
+        $ok = 0 unless $self->_blocker_upgrade_to_not_supported_by_cpanel_version($major);
         $ok = 0 unless $self->_blocker_is_named_tier($major);
         $ok = 0 unless $self->_blocker_cpanel_needs_update($major);
     }
@@ -169,9 +170,26 @@ sub _blocker_is_named_tier ( $self, $major ) {
     my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
     return $self->has_blocker(
         sprintf(
-            "This version %s does not support upgrades to %s. Please ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE.",
+            "cPanel version %s does not support upgrades to %s. You must ensure the cPanel version is on either LTS, STABLE, RELEASE, CURRENT, or EDGE in order to upgrade your distro.",
             $Cpanel::Version::Tiny::VERSION_BUILD,
             $pretty_distro_name,
+        )
+    );
+}
+
+sub _blocker_upgrade_to_not_supported_by_cpanel_version ( $self, $major ) {
+    return unless Elevate::OS::minimum_supported_cpanel_version();
+
+    my $minimum_supported_cpanel_version = Elevate::OS::minimum_supported_cpanel_version();
+    return if $major >= $minimum_supported_cpanel_version;
+
+    my $pretty_distro_name = Elevate::OS::upgrade_to_pretty_name();
+    return $self->has_blocker(
+        sprintf(
+            "%s is not supported by cPanel version %s. You must upgrade to cPanel version %s or newer in order to upgrade your distro.",
+            $pretty_distro_name,
+            $Cpanel::Version::Tiny::VERSION_BUILD,
+            $minimum_supported_cpanel_version,
         )
     );
 }

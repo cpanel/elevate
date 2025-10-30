@@ -24,6 +24,7 @@ our @EXPORT = qw(
   no_notifications_seen
   notification_seen
   set_os_to_almalinux_8
+  set_os_to_almalinux_9
   set_os_to_centos_7
   set_os_to_cloudlinux_7
   set_os_to_cloudlinux_8
@@ -228,6 +229,12 @@ sub set_os_to_almalinux_8 {
     return;
 }
 
+sub set_os_to_almalinux_9 {
+    note 'Mock Elevate::OS singleton to think this server is AlmaLinux 9';
+    $Elevate::OS::OS = bless {}, 'Elevate::OS::AlmaLinux9';
+    return;
+}
+
 sub set_os_to_cloudlinux_8 {
     note 'Mock Elevate::OS singleton to think this server is CloudLinux 8';
     $Elevate::OS::OS = bless {}, 'Elevate::OS::CloudLinux8';
@@ -250,6 +257,7 @@ sub set_os_to ( $os, $version ) {
     return set_os_to_centos_7     if $os =~ m/^cent/i   && $version == 7;
     return set_os_to_cloudlinux_7 if $os =~ m/^cloud/i  && $version == 7;
     return set_os_to_almalinux_8  if $os =~ m/^alma/i   && $version == 8;
+    return set_os_to_almalinux_9  if $os =~ m/^alma/i   && $version == 9;
     return set_os_to_cloudlinux_8 if $os =~ m/^cloud/i  && $version == 8;
     return set_os_to_ubuntu_20    if $os =~ m/^ubuntu/i && $version == 20;
     return set_os_to_ubuntu_22    if $os =~ m/^ubuntu/i && $version == 22;

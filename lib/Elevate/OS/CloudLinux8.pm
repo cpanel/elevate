@@ -35,7 +35,6 @@ use constant needs_sha1_enabled           => 1;
 use constant needs_type_in_ifcfg          => 1;
 use constant needs_vdo                    => 1;
 use constant original_os_major            => 8;
-use constant pkgmgr_lib_path              => '/var/lib/dnf';
 use constant pretty_name                  => 'CloudLinux 8';
 use constant should_archive_elevate_files => 1;
 use constant supports_named_tiers         => 1;
