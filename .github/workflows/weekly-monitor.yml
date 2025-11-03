@@ -125,7 +125,7 @@ jobs:
       - name: Create summary
         run: |
           cat << 'EOF' >> $GITHUB_STEP_SUMMARY
-          # Nightly Test Results Summary
+          # Elevate cPanel Weekly Test Results Summary
 
           **Overall Status**: ${{ steps.check-runs.outputs.overall_status == 'success' && '🟢 **All tests passing**' || '🔴 **Some tests failed**' }}
 
@@ -177,7 +177,7 @@ jobs:
             --arg text "$LINES" \
             '{
               blocks: [
-                { type: "header", text: { type: "plain_text", text: ("Nightly Test Results: " + (if $status == "success" then "All tests passing 🟢" else "Issues detected 🔴" end)), emoji: true } },
+                { type: "header", text: { type: "plain_text", text: ("Elevate cPanel Weekly Test Results: " + (if $status == "success" then "All tests passing 🟢" else "Issues detected 🔴" end)), emoji: true } },
                 { type: "divider" },
                 { type: "section", text: { type: "mrkdwn", text: $text } }
               ]
