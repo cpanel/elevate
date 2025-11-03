@@ -66,7 +66,7 @@ jobs:
               fi
             fi
           done
-          terraform apply -var="image_name=11.132.0.* on Ubuntu 22.04" -var="cpanel_release_version=110" -no-color -auto-approve
+          terraform apply -var="image_name=11.132.0.* on Ubuntu 22.04" -var="cpanel_release_version=132" -no-color -auto-approve
           terraform output -json > ${{ github.run_id }}-tf.out.json
           mv -v .terraform.lock.hcl terraform.lock.hcl
       - name: Upload Terraform Artifacts
@@ -506,4 +506,4 @@ jobs:
               fi
             fi
           done
-          terraform destroy -var="image_name=11.132.0.* on Ubuntu 20.04" -var="cpanel_release_version=110" -no-color -auto-approve
+          terraform destroy -var="image_name=11.132.0.* on Ubuntu 22.04" -var="cpanel_release_version=132" -no-color -auto-approve
