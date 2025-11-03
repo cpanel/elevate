@@ -89,7 +89,8 @@ jobs:
     secrets: inherit
     if: >
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
   CloudLinux-7:
     needs: testsuite
@@ -97,7 +98,8 @@ jobs:
     secrets: inherit
     if: >
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
   CloudLinux-8:
     needs: testsuite
@@ -105,7 +107,8 @@ jobs:
     secrets: inherit
     if: >
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
   AlmaLinux-8:
     needs: testsuite
@@ -113,7 +116,8 @@ jobs:
     secrets: inherit
     if: >
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
   AlmaLinux-9:
     needs: testsuite
@@ -121,7 +125,8 @@ jobs:
     secrets: inherit
     if: >
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
   Ubuntu-20:
     needs: testsuite
@@ -129,7 +134,8 @@ jobs:
     secrets: inherit
     if: >
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
   Ubuntu-22:
     needs: testsuite
@@ -137,4 +143,5 @@ jobs:
     secrets: inherit
     if: >
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
