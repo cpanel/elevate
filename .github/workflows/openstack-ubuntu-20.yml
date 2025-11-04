@@ -2,6 +2,7 @@ name: "Test Run: Ubuntu-20"
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-openstack-ubuntu-20.04

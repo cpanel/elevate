@@ -2,6 +2,7 @@ name: "Test Run: CloudLinux-7"
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-openstack-cloudlinux-7

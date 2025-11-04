@@ -2,6 +2,7 @@ name: "Test Run: AlmaLinux-8"
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-openstack-almalinux-8
