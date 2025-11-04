@@ -3837,10 +3837,15 @@ EOS
     our @ISA;
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
-    use Cwd ();
+    use Cwd           ();
+    use File::Copy    ();
+    use File::Slurper ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
+
+    use constant YUM_CONF     => '/etc/yum.conf';
+    use constant YUM_CONF_BAK => '/etc/yum.conf.elevate_bak';
 
     sub check ($self) {
 
@@ -3854,7 +3859,12 @@ EOS
 
         $self->cpev->leapp->install();
 
+        File::Copy::cp( YUM_CONF(), YUM_CONF_BAK() );
+        $self->_remove_excludes();
+
         my $out = $self->cpev->leapp->preupgrade();
+
+        File::Copy::cp( YUM_CONF_BAK(), YUM_CONF() );
 
         return if ( $out->{status} == 0 );
 
@@ -3866,6 +3876,11 @@ EOS
             INFO('Leapp found issues which would prevent the upgrade, more information can be obtained in the files under /var/log/leapp');
         }
 
+        return;
+    }
+
+    sub pre_distro_upgrade ($self) {
+        $self->run_once("_remove_excludes");
         return;
     }
 
@@ -3906,6 +3921,26 @@ EOS
         if ( length $error_block ) {
             $self->has_blocker( "Leapp encountered the following error(s):\n" . $error_block );
         }
+
+        return;
+    }
+
+    sub _remove_excludes ($self) {
+        return unless Elevate::OS::needs_leapp();
+
+        my $yum_conf = YUM_CONF();
+
+        INFO("Removing excludes from $yum_conf");
+        my $txt   = eval { File::Slurper::read_text($yum_conf) };
+        my @lines = split "\n", $txt;
+        foreach my $line (@lines) {
+            next unless $line =~ /^\s*exclude\s*=/;
+            $line = '';
+        }
+
+        my $config = join "\n", @lines;
+        $config .= "\n";
+        File::Slurper::write_text( $yum_conf, $config );
 
         return;
     }
@@ -6419,7 +6454,6 @@ EOS
         $self->run_once("_disable_known_yum_repositories");
         $self->run_once("_fixup_epel_repo");
         $self->run_once("_remove_cpaddons_repo");
-        $self->run_once("_remove_excludes");
 
         return;
     }
@@ -6428,24 +6462,6 @@ EOS
         return if Elevate::OS::supports_cpaddons();
 
         unlink '/etc/yum.repos.d/cPAddons.repo';
-
-        return;
-    }
-
-    sub _remove_excludes ($self) {
-        return unless Elevate::OS::needs_leapp();
-
-        INFO('Removing excludes from /etc/yum.conf');
-        my $txt   = eval { File::Slurper::read_text("/etc/yum.conf") };
-        my @lines = split "\n", $txt;
-        foreach my $line (@lines) {
-            next unless $line =~ /^\s*exclude\s*=/;
-            $line = '';
-        }
-
-        my $config = join "\n", @lines;
-        $config .= "\n";
-        File::Slurper::write_text( "/etc/yum.conf", $config );
 
         return;
     }
@@ -12873,6 +12889,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'MySQL'                 => 'pre_distro_upgrade' );
     $self->run_component_once( 'PostgreSQL'            => 'pre_distro_upgrade' );
     $self->run_component_once( 'Repositories'          => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Leapp'                 => 'pre_distro_upgrade' );
     $self->run_component_once( 'cPanelPlugins'         => 'pre_distro_upgrade' );
     $self->run_component_once( 'PerlXS'                => 'pre_distro_upgrade' );
     $self->run_component_once( 'WPToolkit'             => 'pre_distro_upgrade' );

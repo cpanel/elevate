@@ -82,6 +82,7 @@ my $comp = cpev->new->get_component('Leapp');
             $mock_comp->redefine(
                 _check_for_inhibitors   => sub { $num_blockers_found++; return; },
                 _check_for_fatal_errors => 0,
+                _remove_excludes        => 0,
             );
 
             my $preupgrade_out;
@@ -94,6 +95,11 @@ my $comp = cpev->new->get_component('Leapp');
                 status => 0,
             };
 
+            my $mock_file_copy = Test::MockModule->new('File::Copy');
+            $mock_file_copy->redefine(
+                cp => 0,
+            );
+
             is( $comp->check(), undef, 'No blockers returns if leapp preupgrade returns clean' );
             no_messages_seen();
 
@@ -103,6 +109,68 @@ my $comp = cpev->new->get_component('Leapp');
 
             is( $comp->check(), undef, 'Returns undef' );
             message_seen( INFO => qr/Leapp found issues which would prevent the upgrade/ );
+            no_messages_seen();
+        }
+    }
+
+    $mock_comp->unmock('_remove_excludes');
+}
+
+{
+    note 'Testing _remove_excludes';
+
+    my %os_hash = (
+        alma   => [ 8, 9 ],
+        cent   => [7],
+        cloud  => [ 7,  8 ],
+        ubuntu => [ 20, 22 ],
+    );
+
+    foreach my $distro ( sort keys %os_hash ) {
+        next if $distro eq 'ubuntu';
+        foreach my $version ( @{ $os_hash{$distro} } ) {
+            set_os_to( $distro, $version );
+
+            my $content;
+            my $actual_content;
+            my $mock_file_slurper = Test::MockModule->new('File::Slurper');
+            $mock_file_slurper->redefine(
+                read_text  => sub { return $content; },
+                write_text => sub { $actual_content = $_[1]; },
+            );
+
+            $content = <<'EOS';
+[main]
+exclude=bind-chroot dovecot* exim* filesystem nsd* p0f php* proftpd* pure-ftpd*
+tolerant=1
+plugins=1
+gpgcheck=1
+installonly_limit=3
+clean_requirements_on_remove=True
+best=True
+skip_if_unavailable=False
+minrate=50k
+ip_resolve=4
+EOS
+
+            my $expected_content = <<'EOS';
+[main]
+
+tolerant=1
+plugins=1
+gpgcheck=1
+installonly_limit=3
+clean_requirements_on_remove=True
+best=True
+skip_if_unavailable=False
+minrate=50k
+ip_resolve=4
+EOS
+
+            is( $comp->_remove_excludes(), undef,             'Returns undef' );
+            is( $actual_content,           $expected_content, 'Successfully removes the excludes line from yum.conf' );
+
+            message_seen( INFO => 'Removing excludes from /etc/yum.conf' );
             no_messages_seen();
         }
     }
