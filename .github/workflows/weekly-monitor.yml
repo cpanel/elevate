@@ -87,17 +87,21 @@ jobs:
               "https://api.github.com/repos/webpros-cpanel/app-elevate-cpanel/actions/workflows")
 
             OPENSTACK_WORKFLOWS=$(echo "$WORKFLOWS" | jq -r '.workflows[].path | split("/") | last | select(test("^openstack-"))')
-            TOTAL_WORKFLOWS=$(echo "$OPENSTACK_WORKFLOWS" | wc -l)
-            ((TOTAL_WORKFLOWS++))
 
-            FAILED_PLATFORMS=""
-            PENDING_COUNT=0
-            FAILED_COUNT=0
             if [[ "$RUN_STATUS" == "null" || -z "$RUN_STATUS" ]]; then
-              ((PENDING_COUNT++))
+              echo "testsuite.yml timed out"
+              TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **TIMEOUT** | testsuite job still running after 5+ hours | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+              OVERALL_STATUS="failure"
             elif [[ "$RUN_STATUS" == "failure" ]]; then
-              ((FAILED_COUNT++))
-              FAILED_PLATFORMS="testsuite.yml"
+              echo "testsuite.yml failed"
+              TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **FAILED** | Failed: testsuite.yml | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+              OVERALL_STATUS="failure"
+            elif [[ "$RUN_STATUS" == "success" ]]; then
+              echo "testsuite.yml succeeded"
+              TABLE_ROWS="${TABLE_ROWS}| main | 🟢 **SUCCESS** | All $TOTAL_WORKFLOWS jobs passed | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+            else
+              echo "testsuite.yml had unknown status"
+              OVERALL_STATUS="failure"
             fi
 
             # iterate through each openstack workflow and do the same
@@ -129,31 +133,23 @@ jobs:
                 echo "Created: $OPENSTACK_CREATED_AT"
                 echo "URL: $OPENSTACK_RUN_URL"
 
-                if [[ "$RUN_STATUS" == "null" || -z "$RUN_STATUS" ]]; then
-                  ((PENDING_COUNT++))
-                elif [[ "$RUN_STATUS" == "failure" ]]; then
-                  ((FAILED_COUNT++))
-                  FAILED_PLATFORMS="$FAILED_PLATFORMS, $file"
+                if [[ "$OPENSTACK_RUN_STATUS" == "null" || -z "$OPENSTACK_RUN_STATUS" ]]; then
+                  echo "$file timed out"
+                  TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **TIMEOUT** | $file job still running after 5+ hours | [View Run]($OPENSTACK_RUN_URL) | $OPENSTACK_COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+                  OVERALL_STATUS="failure"
+                elif [[ "$OPENSTACK_RUN_STATUS" == "failure" ]]; then
+                  echo "$file failed"
+                  TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **FAILED** | Failed: $file | [View Run]($OPENSTACK_RUN_URL) | $OPENSTACK_COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+                  OVERALL_STATUS="failure"
+                elif [[ "$RUN_STATUS" == "success" ]]; then
+                  echo "$file succeeded"
+                  TABLE_ROWS="${TABLE_ROWS}| main | 🟢 **SUCCESS** | Success: $file | [View Run]($OPENSTACK_RUN_URL) | $OPENSTACK_COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+                else
+                  echo "$file had unknown status"
+                  OVERALL_STATUS="failure"
                 fi
               fi
             done
-
-            if [ "$PENDING_COUNT" -gt 0 ]; then
-              echo "🔴 TIMEOUT: Branch main: $PENDING_COUNT/$TOTAL_WORKFLOWS jobs still running after 5+ hours"
-              TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **TIMEOUT** | $PENDING_COUNT/$TOTAL_WORKFLOWS jobs still running after 5+ hours | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
-              OVERALL_STATUS="failure"
-            elif [ "$FAILED_COUNT" -gt 0 ]; then
-              echo "🔴 FAILED: Branch main: $FAILED_COUNT/$TOTAL_WORKFLOWS jobs failed"
-              TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **FAILED** | Failed: $FAILED_PLATFORMS | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
-              OVERALL_STATUS="failure"
-            elif [ "$TOTAL_WORKFLOWS" -gt 0 ]; then
-              echo "🟢 SUCCESS: Branch main: All $TOTAL_WORKFLOWS jobs passed"
-              TABLE_ROWS="${TABLE_ROWS}| main | 🟢 **SUCCESS** | All $TOTAL_WORKFLOWS jobs passed | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
-            else
-              echo "⚪ UNKNOWN: Branch main: No smoker jobs found"
-              TABLE_ROWS="${TABLE_ROWS}| main | ⚪ **UNKNOWN** | No jobs found | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
-              OVERALL_STATUS="failure"
-            fi
           fi
 
           # Save table rows for the summary
