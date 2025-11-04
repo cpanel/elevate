@@ -7,8 +7,9 @@
 #
 # The workflow:
 # 1. Checks the most recent testsuite.yml workflow run
-# 2. Reports detailed status
-# 3. Creates a summary report and fails if any tests failed
+# 2. Checks each of hte openstack-*.yml workflow runs
+# 3. Reports detailed status
+# 5. Creates a summary report and fails if any tests failed
 #
 # Manual triggering is supported with a configurable lookback period.
 
@@ -24,9 +25,6 @@ on:
         required: false
         default: '24'
         type: string
-
-env:
-  SANDBOX_WORKFLOW_FILE: testsuite.yml
 
 jobs:
   monitor-weekly-results:
@@ -53,26 +51,26 @@ jobs:
           # Look for runs from the specified hours back to catch the weekly run
           SINCE=$(date -d "$HOURS_BACK hours ago" --iso-8601=seconds)
 
-          WORKFLOW_RUNS=$(curl -s \
+          TESTSUITE_RUN=$(curl -s \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ github.token }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/${{ env.SANDBOX_WORKFLOW_FILE }}/runs?branch=main&event=workflow_dispatch&created=>=$SINCE&per_page=1")
+            "${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/testsuite.yml/runs?branch=main&event=workflow_dispatch&created=>=$SINCE&per_page=1")
 
           # Check if we got any runs
-          RUN_COUNT=$(echo "$WORKFLOW_RUNS" | jq '.total_count')
+          RUN_COUNT=$(echo "$TESTSUITE_RUN" | jq '.total_count')
 
           if [ "$RUN_COUNT" -eq 0 ]; then
-            echo "🔴 FAILED: No recent runs found for branch main"
-            TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **FAILED** | No recent runs found | - | - | - |"$'\n'
+            echo "🔴 FAILED: No recent testsuite runs found for branch main"
+            TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **FAILED** | No recent testsuite runs found | - | - | - |"$'\n'
             OVERALL_STATUS="failure"
           else
             # Get the most recent run details
-            RUN_STATUS=$(echo "$WORKFLOW_RUNS" | jq -r '.workflow_runs[0].conclusion')
-            RUN_URL=$(echo "$WORKFLOW_RUNS" | jq -r '.workflow_runs[0].html_url')
-            RUN_ID=$(echo "$WORKFLOW_RUNS" | jq -r '.workflow_runs[0].id')
-            CREATED_AT=$(echo "$WORKFLOW_RUNS" | jq -r '.workflow_runs[0].created_at')
-            COMMIT_SHA=$(echo "$WORKFLOW_RUNS" | jq -r '.workflow_runs[0].head_sha')
+            RUN_STATUS=$(echo "$TESTSUITE_RUN" | jq -r '.workflow_runs[0].conclusion')
+            RUN_URL=$(echo "$TESTSUITE_RUN" | jq -r '.workflow_runs[0].html_url')
+            RUN_ID=$(echo "$TESTSUITE_RUN" | jq -r '.workflow_runs[0].id')
+            CREATED_AT=$(echo "$TESTSUITE_RUN" | jq -r '.workflow_runs[0].created_at')
+            COMMIT_SHA=$(echo "$TESTSUITE_RUN" | jq -r '.workflow_runs[0].head_sha')
             SHORT_SHA=${COMMIT_SHA:0:12}
             COMMIT_LINK="[\`$SHORT_SHA\`](${{ github.server_url }}/${{ github.repository }}/commit/$COMMIT_SHA)"
 
@@ -81,34 +79,76 @@ jobs:
             echo "Created: $CREATED_AT"
             echo "URL: $RUN_URL"
 
-            # Get all jobs for this workflow run
-            JOBS=$(curl -s \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs")
+            # Get all the openstack-*.yml workflow runs
+            WORKFLOWS=$(curl -s \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'Authorization: Bearer ${{ github.token }}' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/webpros-cpanel/app-elevate-cpanel/actions/workflows")
 
-            # Get the results of the jobs
-            # jq -r --arg suffix "terraform_openstack_destroy" '.jobs[] | select((.name | endswith($suffix)) or (.name == "testsuite")) | select(.conclusion == "success") | .name'
-            FAILED_JOBS=$(echo "$JOBS" | jq -r --arg suffix "terraform_openstack_destroy" '.jobs[] | select((.name | endswith($suffix)) or (.name == "testsuite")) | select(.conclusion == "failure") | .name')
-            PENDING_JOBS=$(echo "$JOBS" | jq -r --arg suffix "terraform_openstack_destroy" '.jobs[] | select((.name | endswith($suffix)) or (.name == "testsuite")) | select(.conclusion == null or .conclusion == "") | .name')
-            TOTAL_SMOKER_JOBS=$(echo "$JOBS" | jq -r --arg suffix "terraform_openstack_destroy" '.jobs[] | select((.name | endswith($suffix)) or (.name == "testsuite")) | .name' | wc -l)
-            FAILED_COUNT=$(echo "$FAILED_JOBS" | grep -c . || echo "0")
-            PENDING_COUNT=$(echo "$PENDING_JOBS" | grep -c . || echo "0")
+            OPENSTACK_WORKFLOWS=$(echo "$WORKFLOWS" | jq -r '.workflows[].path | split("/") | last | select(test("^openstack-"))')
+            TOTAL_WORKFLOWS=$(echo "$OPENSTACK_WORKFLOWS" | wc -l)
+            ((TOTAL_WORKFLOWS++))
+
+            FAILED_PLATFORMS=""
+            PENDING_COUNT=0
+            FAILED_COUNT=0
+            if [[ "$RUN_STATUS" == "null" || -z "$RUN_STATUS" ]]; then
+              ((PENDING_COUNT++))
+            elif [[ "$RUN_STATUS" == "failure" ]]; then
+              ((FAILED_COUNT++))
+              FAILED_PLATFORMS="testsuite.yml"
+            fi
+
+            # iterate through each openstack workflow and do the same
+            for file in $(echo "$OPENSTACK_WORKFLOWS"); do
+              OPENSTACK_RUN=$(curl -s \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${{ github.token }}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/$file/runs?branch=main&event=workflow_dispatch&created=>=$SINCE&per_page=1")
+
+              RUN_COUNT=$(echo "$OPENSTACK_RUN" | jq '.total_count')
+
+              if [ "$RUN_COUNT" -eq 0 ]; then
+                echo "🔴 FAILED: No recent $file runs found for branch main"
+                TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **FAILED** | No recent $file runs found | - | - | - |"$'\n'
+                OVERALL_STATUS="failure"
+              else
+                # Get the most recent run details
+                OPENSTACK_RUN_STATUS=$(echo "$OPENSTACK_RUN" | jq -r '.workflow_runs[0].conclusion')
+                OPENSTACK_RUN_URL=$(echo "$OPENSTACK_RUN" | jq -r '.workflow_runs[0].html_url')
+                OPENSTACK_RUN_ID=$(echo "$OPENSTACK_RUN" | jq -r '.workflow_runs[0].id')
+                OPENSTACK_CREATED_AT=$(echo "$OPENSTACK_RUN" | jq -r '.workflow_runs[0].created_at')
+                OPENSTACK_COMMIT_SHA=$(echo "$OPENSTACK_RUN" | jq -r '.workflow_runs[0].head_sha')
+                OPENSTACK_SHORT_SHA=${COMMIT_SHA:0:12}
+                OPENSTACK_COMMIT_LINK="[\`$SHORT_SHA\`](${{ github.server_url }}/${{ github.repository }}/commit/$COMMIT_SHA)"
+
+                echo "Run ID: $OPENSTACK_RUN_ID"
+                echo "Status: $OPENSTACK_RUN_STATUS"
+                echo "Created: $OPENSTACK_CREATED_AT"
+                echo "URL: $OPENSTACK_RUN_URL"
+
+                if [[ "$RUN_STATUS" == "null" || -z "$RUN_STATUS" ]]; then
+                  ((PENDING_COUNT++))
+                elif [[ "$RUN_STATUS" == "failure" ]]; then
+                  ((FAILED_COUNT++))
+                  FAILED_PLATFORMS="$FAILED_PLATFORMS, $file"
+                fi
+              fi
+            done
 
             if [ "$PENDING_COUNT" -gt 0 ]; then
-              echo "🔴 TIMEOUT: Branch main: $PENDING_COUNT/$TOTAL_SMOKER_JOBS jobs still running after 5+ hours"
-              TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **TIMEOUT** | $PENDING_COUNT/$TOTAL_SMOKER_JOBS jobs still running after 5+ hours | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+              echo "🔴 TIMEOUT: Branch main: $PENDING_COUNT/$TOTAL_WORKFLOWS jobs still running after 5+ hours"
+              TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **TIMEOUT** | $PENDING_COUNT/$TOTAL_WORKFLOWS jobs still running after 5+ hours | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
               OVERALL_STATUS="failure"
             elif [ "$FAILED_COUNT" -gt 0 ]; then
-              echo "🔴 FAILED: Branch main: $FAILED_COUNT/$TOTAL_SMOKER_JOBS jobs failed"
-              # Extract platform info from failed job names for better reporting
-              FAILED_PLATFORMS=$(echo "$FAILED_JOBS" | cut -d '/' -f1)
+              echo "🔴 FAILED: Branch main: $FAILED_COUNT/$TOTAL_WORKFLOWS jobs failed"
               TABLE_ROWS="${TABLE_ROWS}| main | 🔴 **FAILED** | Failed: $FAILED_PLATFORMS | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
               OVERALL_STATUS="failure"
-            elif [ "$TOTAL_SMOKER_JOBS" -gt 0 ]; then
-              echo "🟢 SUCCESS: Branch main: All $TOTAL_SMOKER_JOBS jobs passed"
-              TABLE_ROWS="${TABLE_ROWS}| main | 🟢 **SUCCESS** | All $TOTAL_SMOKER_JOBS jobs passed | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+            elif [ "$TOTAL_WORKFLOWS" -gt 0 ]; then
+              echo "🟢 SUCCESS: Branch main: All $TOTAL_WORKFLOWS jobs passed"
+              TABLE_ROWS="${TABLE_ROWS}| main | 🟢 **SUCCESS** | All $TOTAL_WORKFLOWS jobs passed | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
             else
               echo "⚪ UNKNOWN: Branch main: No smoker jobs found"
               TABLE_ROWS="${TABLE_ROWS}| main | ⚪ **UNKNOWN** | No jobs found | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
