@@ -21,3 +21,23 @@ jobs:
               -H 'X-GitHub-Api-Version: 2022-11-28' \
               "${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/testsuite.yml/dispatches" \
               -d '{"ref": "main"}'
+
+      - name: Trigger openstack workflows
+        run: |
+            set -o pipefail
+            WORKFLOWS=$(curl -s \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'Authorization: Bearer ${{ github.token }}' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/webpros-cpanel/app-elevate-cpanel/actions/workflows") 
+
+            OPENSTACK_WORKFLOWS=$(echo "$WORKFLOWS" | jq -r '.workflows[].path | split("/") | last | select(test("^openstack-"))')
+            for file in $(echo "$OPENSTACK_WORKFLOWS"); do 
+              curl -sSL \
+                -X POST \
+                -H 'Accept: application/vnd.github+json' \
+                -H 'Authorization: Bearer ${{ github.token }}' \
+                -H 'X-GitHub-Api-Version: 2022-11-28' \
+                "${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/$file/dispatches" \
+                -d '{"ref": "main"}'
+            done
