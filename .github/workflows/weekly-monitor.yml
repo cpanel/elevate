@@ -98,7 +98,7 @@ jobs:
               OVERALL_STATUS="failure"
             elif [[ "$RUN_STATUS" == "success" ]]; then
               echo "testsuite.yml succeeded"
-              TABLE_ROWS="${TABLE_ROWS}| main | 🟢 **SUCCESS** | All $TOTAL_WORKFLOWS jobs passed | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
+              TABLE_ROWS="${TABLE_ROWS}| main | 🟢 **SUCCESS** | Success: testsuite.yml | [View Run]($RUN_URL) | $COMMIT_LINK | $(TZ='America/Chicago' date -d "$CREATED_AT" '+%Y-%m-%d %H:%M %Z') |"$'\n'
             else
               echo "testsuite.yml had unknown status"
               OVERALL_STATUS="failure"
@@ -226,7 +226,7 @@ jobs:
       - name: Send notification on failure
         if: steps.check-runs.outputs.overall_status != 'success'
         run: |
-          echo "::warning::One or more nightly test runs failed or are missing"
+          echo "::warning::One or more weekly test runs failed or are missing"
           echo "Check the summary above for details on which branches failed"
 
           # Create a more detailed error message
