@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2025-11-06** - version 73
+
+* Fixed case CPANEL-50105: Remove excludes line from /etc/yum.conf before executing leapp preupgrade
+
 ##### **2025-10-30** - version 72
 
 * Fixed case RE-1614: Add support for upgrades from A9->A10
