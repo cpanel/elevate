@@ -9,6 +9,10 @@ use Cpanel::JSON            ();
 use Cpanel::OS              ();
 use Cpanel::SafeRun::Object ();
 
+# Make sure task queue is clear before starting this
+print "Clearing the task queue\n";
+run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
+
 # RE-1179 / RE-1244
 if ( -e '/etc/scl/prefixes/ea-php80' ) {
     print "\nFile already exists at /etc/scl/prefixes/ea-php80; skipping install of ea-php80.\n";
@@ -25,7 +29,7 @@ run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-nginx});
 # RE-1568
 if ( Cpanel::OS::distro() eq 'centos' && Cpanel::OS::major() == 7 ) {
     print "Setting update tier to 11.110\n";
-    run_api_or_die(qw{whmapi1 set_tier tier=11.110})
+    run_api_or_die(qw{whmapi1 set_tier tier=11.110});
 }
 
 print "Clearing the task queue\n";

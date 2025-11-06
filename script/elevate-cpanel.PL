@@ -1413,6 +1413,7 @@ sub run_final_components_pre_distro_upgrade ($self) {
     $self->run_component_once( 'MySQL'                 => 'pre_distro_upgrade' );
     $self->run_component_once( 'PostgreSQL'            => 'pre_distro_upgrade' );
     $self->run_component_once( 'Repositories'          => 'pre_distro_upgrade' );
+    $self->run_component_once( 'Leapp'                 => 'pre_distro_upgrade' );
     $self->run_component_once( 'cPanelPlugins'         => 'pre_distro_upgrade' );
     $self->run_component_once( 'PerlXS'                => 'pre_distro_upgrade' );
     $self->run_component_once( 'WPToolkit'             => 'pre_distro_upgrade' );

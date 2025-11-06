@@ -31,12 +31,12 @@ if ( !defined $HOST ) {
     exit 1;
 }
 
-# elevate-cpanel sleeps for 10 seconds before rebooting in CI mode to ensure
+# elevate-cpanel sleeps for 6 seconds before rebooting in CI mode to ensure
 # that the CI has plenty of time to jump out of the server
 # To avoid race conditions due to this, we sleep for 10 seconds before checking
 # to see if the server has rebooted in order to ensure that the server has been
 # rebooted before attempting to see if we can connect to it via ssh
-sleep(10);
+sleep(6);
 
 while ( $RETVAL != 0 ) {
     my $cmd    = qq{ $NC_PATH -z -w 1 $HOST $PORT };

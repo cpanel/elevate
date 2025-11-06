@@ -455,59 +455,6 @@ EOS
 }
 
 {
-    note 'Testing _remove_excludes';
-
-    foreach my $distro ( sort keys %os_hash ) {
-        next if $distro eq 'ubuntu';
-        foreach my $version ( @{ $os_hash{$distro} } ) {
-            set_os_to( $distro, $version );
-
-            my $content;
-            my $actual_content;
-            my $mock_file_slurper = Test::MockModule->new('File::Slurper');
-            $mock_file_slurper->redefine(
-                read_text  => sub { return $content; },
-                write_text => sub { $actual_content = $_[1]; },
-            );
-
-            $content = <<'EOS';
-[main]
-exclude=bind-chroot dovecot* exim* filesystem nsd* p0f php* proftpd* pure-ftpd*
-tolerant=1
-plugins=1
-gpgcheck=1
-installonly_limit=3
-clean_requirements_on_remove=True
-best=True
-skip_if_unavailable=False
-minrate=50k
-ip_resolve=4
-EOS
-
-            my $expected_content = <<'EOS';
-[main]
-
-tolerant=1
-plugins=1
-gpgcheck=1
-installonly_limit=3
-clean_requirements_on_remove=True
-best=True
-skip_if_unavailable=False
-minrate=50k
-ip_resolve=4
-EOS
-
-            is( $yum->_remove_excludes(), undef,             'Returns undef' );
-            is( $actual_content,          $expected_content, 'Successfully removes the excludes line from yum.conf' );
-
-            message_seen( INFO => 'Removing excludes from /etc/yum.conf' );
-            no_messages_seen();
-        }
-    }
-}
-
-{
     note 'Testing _blocker_yum_conf_missing_plugins';
 
     my $mock_file_slurper = Test::MockModule->new('File::Slurper');

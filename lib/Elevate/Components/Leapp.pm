@@ -12,7 +12,9 @@ Execute 'leapp preupgrade' and block if there are any inhibitors
 
 =head2 pre_distro_upgrade
 
-noop
+NOTE: This is here because this is being done specifically for leapp
+
+1. Remove excludes line from '/etc/yum.conf'
 
 =head2 post_distro_upgrade
 
@@ -28,7 +30,12 @@ use Elevate::OS        ();
 use parent qw{Elevate::Components::Base};
 
 use Cwd           ();
+use File::Copy    ();
+use File::Slurper ();
 use Log::Log4perl qw(:easy);
+
+use constant YUM_CONF     => '/etc/yum.conf';
+use constant YUM_CONF_BAK => '/etc/yum.conf.elevate_bak';
 
 sub check ($self) {
 
@@ -42,7 +49,14 @@ sub check ($self) {
 
     $self->cpev->leapp->install();
 
+    # Remove the excludes line from yum.conf before executing leapp preupgrade
+    File::Copy::cp( YUM_CONF(), YUM_CONF_BAK() );
+    $self->_remove_excludes();
+
     my $out = $self->cpev->leapp->preupgrade();
+
+    # Restore the excludes line afterwards since this could fail and we are still running checks
+    File::Copy::cp( YUM_CONF_BAK(), YUM_CONF() );
 
     # A return code of zero indicates that no inhibitors
     # or fatal errors have been found. I.e., success.
@@ -56,6 +70,11 @@ sub check ($self) {
         INFO('Leapp found issues which would prevent the upgrade, more information can be obtained in the files under /var/log/leapp');
     }
 
+    return;
+}
+
+sub pre_distro_upgrade ($self) {
+    $self->run_once("_remove_excludes");
     return;
 }
 
@@ -108,6 +127,26 @@ sub _check_for_fatal_errors ( $self, $out ) {
     if ( length $error_block ) {
         $self->has_blocker( "Leapp encountered the following error(s):\n" . $error_block );
     }
+
+    return;
+}
+
+sub _remove_excludes ($self) {
+    return unless Elevate::OS::needs_leapp();
+
+    my $yum_conf = YUM_CONF();
+
+    INFO("Removing excludes from $yum_conf");
+    my $txt   = eval { File::Slurper::read_text($yum_conf) };
+    my @lines = split "\n", $txt;
+    foreach my $line (@lines) {
+        next unless $line =~ /^\s*exclude\s*=/;
+        $line = '';
+    }
+
+    my $config = join "\n", @lines;
+    $config .= "\n";
+    File::Slurper::write_text( $yum_conf, $config );
 
     return;
 }

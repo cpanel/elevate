@@ -18,7 +18,6 @@ Elevate::Components::Repositories
 2. Remove known mysql yum repo files
 3. Ensure that epel.repo has the correct content
 4. Remove cPAddons.repo on appropriate distros since it is no longer supported
-5. Remove excludes line from '/etc/yum.conf'
 
 =head2 post_distro_upgrade
 
@@ -76,7 +75,6 @@ sub pre_distro_upgrade ($self) {
     $self->run_once("_disable_known_yum_repositories");
     $self->run_once("_fixup_epel_repo");
     $self->run_once("_remove_cpaddons_repo");
-    $self->run_once("_remove_excludes");
 
     return;
 }
@@ -88,24 +86,6 @@ sub _remove_cpaddons_repo ($self) {
     # If something is installed from the repo, the upgrade should be blocked
     # since this repo has been removed from the list of vetted repos
     unlink '/etc/yum.repos.d/cPAddons.repo';
-
-    return;
-}
-
-sub _remove_excludes ($self) {
-    return unless Elevate::OS::needs_leapp();
-
-    INFO('Removing excludes from /etc/yum.conf');
-    my $txt   = eval { File::Slurper::read_text("/etc/yum.conf") };
-    my @lines = split "\n", $txt;
-    foreach my $line (@lines) {
-        next unless $line =~ /^\s*exclude\s*=/;
-        $line = '';
-    }
-
-    my $config = join "\n", @lines;
-    $config .= "\n";
-    File::Slurper::write_text( "/etc/yum.conf", $config );
 
     return;
 }
