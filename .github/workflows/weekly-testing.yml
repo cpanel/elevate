@@ -2,7 +2,7 @@ name: Trigger weekly test runs
 
 on:
   schedule:
-      - cron: '0 9 * * 0'    # 09:00 UTC (3 am CST, 4 am CDT)
+      - cron: '0 9 * * 0'
   workflow_dispatch:
 
 jobs:
