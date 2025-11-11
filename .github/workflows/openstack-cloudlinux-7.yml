@@ -160,6 +160,9 @@ jobs:
           port: "22"
           envs: REPODIR
           script: |
+            /usr/local/cpanel/scripts/post_snapshot --yes
+            while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking your Update Manager."; sleep 1; done
+            /scripts/restartsrv_mysql
             chmod -v +x /opt/${{ env.REPODIR}}/t/integration/setup
             /opt/${{ env.REPODIR }}/t/integration/setup
 
@@ -174,8 +177,6 @@ jobs:
           command_timeout: 30m
           envs: REPODIR,CLOUDLINUX_LICENSE_KEY
           script: |
-            /usr/local/cpanel/scripts/post_snapshot --yes
-            while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking your Update Manager."; sleep 1; done
             echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
             echo "## [INFO]: /usr/sbin/rhnreg_ks --activationkey=${CLOUDLINUX_LICENSE_KEY:0:2}****" --force && /usr/sbin/rhnreg_ks --activationkey=$CLOUDLINUX_LICENSE_KEY --force
             echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
@@ -193,7 +194,6 @@ jobs:
             cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
             cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
             cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
-            /scripts/restartsrv_mysql
             chmod -v +x /scripts/elevate-cpanel
             shutdown -r +0 -t 15 "Restarting system after updates before we Elevate." &
             exit 0

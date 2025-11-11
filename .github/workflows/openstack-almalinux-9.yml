@@ -159,6 +159,9 @@ jobs:
           port: "22"
           envs: REPODIR
           script: |
+            /usr/local/cpanel/scripts/post_snapshot --yes
+            while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking you Update Manager."; sleep 1; done
+            /scripts/restartsrv_mysql
             chmod -v +x /opt/${{ env.REPODIR}}/t/integration/setup
             /opt/${{ env.REPODIR }}/t/integration/setup
 
@@ -176,9 +179,6 @@ jobs:
             cp -pv /opt/$REPODIR/elevate-cpanel /scripts/elevate-cpanel
             cp -pv /opt/$REPODIR/.github/workflows/openstack/status_marker /scripts/status_marker
             cp -pv /opt/$REPODIR/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
-            /usr/local/cpanel/scripts/post_snapshot --yes
-            while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking you Update Manager."; sleep 1; done
-            /scripts/restartsrv_mysql
             chmod -v +x /scripts/elevate-cpanel
             until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
 
