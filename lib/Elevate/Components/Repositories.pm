@@ -40,6 +40,7 @@ use Elevate::PkgMgr    ();
 use Cpanel::SafeRun::Simple ();
 use Cwd                     ();
 use File::Copy              ();
+use List::MoreUtils         ();
 use Log::Log4perl           qw(:easy);
 
 use parent qw{Elevate::Components::Base};
@@ -245,15 +246,6 @@ sub _blocker_invalid_yum_repos ($self) {
     my $status_hr = $self->_check_yum_repos();
     if ( _yum_status_hr_contains_blocker($status_hr) ) {
         my $msg = '';
-        if ( $status_hr->{'INVALID_SYNTAX'} ) {
-            $msg .= <<~'EOS';
-            One or more enabled YUM repo are using invalid syntax.
-            '\$' variables behave differently in repo files between RedHat 7 and RedHat 8.
-            RedHat 7 interpolates '\$' variable whereas RedHat 8 does not.
-
-            Please fix the files before continuing the update.
-            EOS
-        }
         if ( $status_hr->{'USE_RPMS_FROM_UNVETTED_REPO'} ) {
             $msg .= <<~'EOS';
             One or more enabled YUM repositories are currently unsupported and have installed packages.
@@ -271,6 +263,28 @@ sub _blocker_invalid_yum_repos ($self) {
         }
 
         return 0 unless _yum_status_hr_contains_blocker($status_hr);
+
+        if ( $status_hr->{'INVALID_SYNTAX'} ) {
+            my $invalid_syntax_msg = <<~'EOS';
+            One or more enabled YUM repo are using invalid syntax.
+            '\$' variables behave differently in repo files between RedHat 7 and RedHat 8.
+            RedHat 7 interpolates '\$' variable whereas RedHat 8 does not.
+
+            Please fix the files before continuing the update.
+            EOS
+
+            my @paths      = @{ $self->{_yum_repos_path_using_invalid_syntax} };
+            my @uniq_paths = List::Util::uniq(@paths);
+            my $blocker_id = ref($self) . '::YumRepoConfigInvalidSyntax';
+            $self->has_blocker(
+                $invalid_syntax_msg,
+                info => {
+                    name  => $blocker_id,
+                    error => 'YUM repository has unsupported syntax',
+                    path  => \@uniq_paths,
+                },
+            );
+        }
 
         if ( $status_hr->{DUPLICATE_IDS} ) {
             my $duplicate_ids = join "\n", keys $self->{_duplicate_repoids}->%*;
@@ -490,23 +504,9 @@ sub _check_yum_repos ($self) {
                 return unless $current_repo_enabled;
 
                 WARN( sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ) );
-                unless ( grep { $_ eq $path } $self->{_yum_repos_path_using_invalid_syntax}->@* ) {
-                    my $blocker_id = ref($self) . '::YumRepoConfigInvalidSyntax';
 
-                    $self->has_blocker(
-                        sprintf( "YUM repo '%s' is using unsupported '\\\$' syntax in %s", $current_repo_name, $path ),
-                        info => {
-                            name       => $blocker_id,
-                            error      => 'YUM repository has unsupported syntax',
-                            repository => $current_repo_name,
-                            path       => $path,
-                        },
-                        blocker_id => $blocker_id,
-                        quiet      => 1,
-                    );
+                push( $self->{_yum_repos_path_using_invalid_syntax}->@*, $path );
 
-                    push( $self->{_yum_repos_path_using_invalid_syntax}->@*, $path );
-                }
                 $status{'INVALID_SYNTAX'} = 1;
             }
             return;
