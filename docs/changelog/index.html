@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    
+    <title>cPanel ELevate Documentation | </title>
+    <link rel=icon href="https://cpanel.github.io/elevate/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="https://cpanel.github.io/elevate/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/style.css">
+</head><body><nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="https://cpanel.github.io/elevate">
+            <img src="https://cpanel.github.io/elevate/images/elevate-logo.svg" alt="cPanel elevate">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+            aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">
+                    
+                    Report an Issue
+                </a>
+                </li>
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate">
+                    
+                    Contribute
+                </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</nav>
+<div id="content">
+    <div class="container">
+        <ol class="d-none d-md-flex breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="https://cpanel.github.io/elevate">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                
+            </li>
+        </ol>
+    </div>
+</div>
+<br><div id="content">
+<div id="content">
+    <div class="container">
+
+        <div class="row"><div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">Issues</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate">Documentation</a></li>
+                
+                <a href="/elevate/#the-cpanel-elevate-project">
+                    
+                    <li>Introduction</li>
+                </a>
+                
+                <a href="/elevate/#the-elevate-process">
+                    
+                    <li>The Upgrade Process</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#requirements">
+                    
+                    <li>Requirements</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#risks">
+                    
+                    <li>Risks</li>
+                </a>
+                
+                <a href="/elevate/getting-started/">
+                    
+                    <li>Upgrade Your Server</li>
+                </a>
+                
+                <a href="/elevate/#copyright">
+                    
+                    <li>Copyright</li>
+                </a>
+                
+                <li>
+                    <a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/elevate-faq">FAQ</a>
+                </li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/blockers/">Known Blockers</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/changelog/">Change Log</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/whitepaper/">White Paper</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div>
+<div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
+                    <h2 id="elevate-change-log">ELevate Change Log</h2>
+<h5 id="2025-11-17---version-74"><strong>2025-11-17</strong> - version 74</h5>
+<ul>
+<li>Fixed case RE-1647: Attempt to fix invalid yum repo syntax before blocking on it in start mode</li>
+</ul>
+<h5 id="2025-11-06---version-73"><strong>2025-11-06</strong> - version 73</h5>
+<ul>
+<li>Fixed case CPANEL-50105: Remove excludes line from /etc/yum.conf before executing leapp preupgrade</li>
+</ul>
+<h5 id="2025-10-30---version-72"><strong>2025-10-30</strong> - version 72</h5>
+<ul>
+<li>Fixed case RE-1614: Add support for upgrades from A9-&gt;A10</li>
+<li>Fixed case RE-1615: Add support for u22-&gt;u24 distro upgrades</li>
+<li>Fixed case RE-1506:  Update documentation to mention that we support CL8-&gt;CL9 upgrades</li>
+</ul>
+<h5 id="2025-09-11---version-71"><strong>2025-09-11</strong> - version 71</h5>
+<ul>
+<li>Fixed case CPANEL-49117: Remove experimental status for CL8-&gt;CL9 upgrades</li>
+<li>Fixed case RE-1604: Do not block the upgrade when the existing cPanel version is newer than what is stated in the major version&rsquo;s tier.</li>
+</ul>
+<h5 id="2025-08-25---version-70"><strong>2025-08-25</strong> - version 70</h5>
+<ul>
+<li>Fixed case RE-1602: Increate timeout in systemd unit file from default of 90s to 15min</li>
+<li>Fixed case RE-1573: Account for inherited domains when preserving PHP version</li>
+</ul>
+<h5 id="2025-08-08---version-69"><strong>2025-08-08</strong> - version 69</h5>
+<ul>
+<li>Fixed case RE-1599: Skip Imunify Component on Ubuntu</li>
+<li>Fixed case RE-1593: Add blocker for wp2 servers</li>
+<li>Fixed case RE-1595: Flush Cpanel::OS cache before rebooting to upgrade OS</li>
+<li>Fixed case RE-1589: Add &lsquo;alt-common&rsquo; to list of vetted yum repos</li>
+<li>Fix documentation typo in blockers.</li>
+</ul>
+<h5 id="2025-06-25---version-68"><strong>2025-06-25</strong> - version 68</h5>
+<ul>
+<li>Fixed case RE-1309: Add experimental support for CL8-&gt;CL9 distro upgrades.</li>
+</ul>
+<h5 id="2025-06-16---version-67"><strong>2025-06-16</strong> - version 67</h5>
+<ul>
+<li>Fixed case RE-1555: Ensure that Perl 5.42 get rebuild on the first upcp</li>
+<li>Fixed case RE-1568: Set update tier to release on C7-&gt;A8 upgrades</li>
+</ul>
+<h5 id="2025-05-28---version-66"><strong>2025-05-28</strong> - version 66</h5>
+<ul>
+<li>Fixed case RE-1531: Add support for MySQL 8.4 for a8-&gt;a9 distro upgrades</li>
+<li>Fixed case RE-1535: Add blocker for when ifcfg files are missing the TYPE parameter on upgrades from A8-&gt;A9</li>
+<li>Fixed case RE-1500: Ensure that the correct package signing keys are installed if KernelCare is detected.</li>
+<li>Fixed case RE-1511: Add support for the platform360-cpanel repo</li>
+<li>Fixed case RE-1461: Move EA4 post_distro_upgrade step to after first upcp.</li>
+<li>Fixed case RE-1501: Only emit warning about absolute symlinks if there are absolute symlinks</li>
+<li>Fixed case RE-1442: Ensure plugins=1 is set in yum.conf before starting CloudLinux upgrades</li>
+<li>Fixed case RE-1442: Have Blockers emit an error to the logs instead of a warning</li>
+</ul>
+<h5 id="2025-04-23---version-65"><strong>2025-04-23</strong> - version 65</h5>
+<ul>
+<li>Fixed case RE-1397: Add support for named tiers and have a8-&gt;a9 upgrades use it</li>
+<li>Fixed case RE-1416: Fixed elevation on Ubuntu with Nginx installed.</li>
+<li>Revert &ldquo;Pass &lsquo;&ndash;target 8.9&rsquo; to leapp upgrade for c7-&gt;a8 upgrades&rdquo; Upstream has corrected this.</li>
+</ul>
+<h5 id="2025-04-03---version-64"><strong>2025-04-03</strong> - version 64</h5>
+<ul>
+<li>Fixed case RE-1450: Pass &lsquo;&ndash;target 8.9&rsquo; to leapp upgrade for c7-&gt;a8 upgrades to address instability with upgrades to 8.10</li>
+</ul>
+<h5 id="2025-04-02---version-63"><strong>2025-04-02</strong> - version 63</h5>
+<ul>
+<li>Alma 8-&gt;9 is no longer Experimental.</li>
+<li>Fixed case RE-1391: Support elevation of AlmaLinux 8 with JetBackup installed.</li>
+<li>Fixed case RE-1388: Support systems with SHA1-signed packages.</li>
+<li>Fixed case RE-1395: Change ordering of components so that the WPToolkit component runs sooner during the post distro upgrade stage.</li>
+<li>Fixed case RE-1395: Add component to disable securetmp during u20-&gt;u22 upgrades</li>
+<li>Fixed case RE-1371: Add support for Imunify 360&rsquo;s hardened PHP during A8-&gt;A9 upgrades</li>
+<li>Fixed case RE-1386: Work around encoding bug in Leapp.</li>
+<li>Fixed case RE-1387: Install VDO tools to satisfy a Leapp dependency on EL8-based systems.</li>
+</ul>
+<h5 id="2025-03-13---version-62"><strong>2025-03-13</strong> - version 62</h5>
+<ul>
+<li>Fixed case RE-1389: Block elevation of AlmaLinux 8 with JetBackup installed (until we support that).</li>
+<li>Fixed case RE-1383: Fix elevate to work when MariaDB 11.4 is installed.</li>
+<li>Fixed case RE-1155: Add support for A8-&gt;A9 distro upgrades</li>
+<li>Fixed case RE-1348: Preserve exim config files during elevate.</li>
+<li>Fixed case RE-1356: Ignore warnings on Ubuntu about deprecated storage of GPG keys.</li>
+<li>Fixed case RE-1262: Default MySQL/MariaDB database checks to a UTF-8 character set.</li>
+</ul>
+<h5 id="2025-02-06---version-61"><strong>2025-02-06</strong> - version 61</h5>
+<ul>
+<li>Fixed case RE-1179: Do not restore config files for dropped packages. Especially on Ubuntu</li>
+</ul>
+<h5 id="2025-01-15---version-60"><strong>2025-01-15</strong> - version 60</h5>
+<ul>
+<li>Fixed case RE-1160: Remove experimental status for u20-&gt;u22 upgrades</li>
+<li>Fixed case RE-800: Update &ndash;help to be more Ubuntu friendly</li>
+<li>Fixed case RE-945: Update strings to be language agnostic for Ubuntu</li>
+<li>Fixed case RE-943: Add component to manage port 1022 for ELevations that rely on the do-release-upgrade script to perform the OS upgrade</li>
+<li>Fixed case RE-670: Add Ubuntu support for checking that the system controls its own boot process.</li>
+</ul>
+<h5 id="2024-12-02---version-59"><strong>2024-12-02</strong> - version 59</h5>
+<ul>
+<li>Fixed case RE-664: Add initial support for Ubuntu 20 to Ubuntu 22 upgrades</li>
+<li>Fixed case RE-996: Add auto retry for package manager based commands</li>
+<li>Fixed case RE-974: Only perform the check to determine if MySQL has any corrupted databases while in start mode</li>
+<li>Fixed case RE-672: Update DiskSpace check to account for Ubuntu</li>
+<li>Fixed case RE-668: Add support for Jetbackup in U20-&gt;U22</li>
+</ul>
+<h5 id="2024-11-19---version-58"><strong>2024-11-19</strong> - version 58</h5>
+<ul>
+<li>Fixed case RE-964: Avoid Perl error in &lsquo;Elevate::Components::Repositories&rsquo;</li>
+<li>Fixed case RE-952: Add &lsquo;sys-snap&rsquo; to the list of packages that the PackageRestore component handles</li>
+<li>Fail with a more specific error about what executable is not available</li>
+</ul>
+<h5 id="2024-11-07---version-57"><strong>2024-11-07</strong> - version 57</h5>
+<ul>
+<li>Fixed case RE-846: Re-install Softaculous after upgrade.</li>
+<li>Fixed case RE-934: Ensure final dnf update is executed</li>
+<li>Fixed case RE-844: Add support for the hgdedi repository and remove obsolete packages it provides:  eigid and quickinstall.</li>
+<li>Fixed case RE-252: Refactor package manager logic</li>
+<li>Fixed case RE-782: Verify integrity of databases before elevation.</li>
+<li>Fixed case RE-845: Add &lsquo;ul&rsquo; and &lsquo;ul_*&rsquo; to the list of vetted repositories.</li>
+</ul>
+<h5 id="2024-10-28---version-56"><strong>2024-10-28</strong> - version 56</h5>
+<ul>
+<li>Fixed case RE-812: Fix elevate failures stemming from having a customized epel.repo file.</li>
+<li>Fixed case RE-575: Support running elevate on systems that have the Acronis backup agent installed.</li>
+<li>Fixed case RE-652: Attempt to resolve duplicate RPMs found prior to upgrade.</li>
+<li>Fixed case RE-723: Use mv and cp from File::Copy instead of copy and move</li>
+<li>Fixed case RE-862: Ensure Imunify upgrade is not executing before attempting to uninstall it</li>
+<li>Fixed case RE-673: Merge blockers into components</li>
+</ul>
+<h5 id="2024-09-30---version-55"><strong>2024-09-30</strong> - version 55</h5>
+<ul>
+<li>Add support for &ldquo;cl7h&rdquo; (Cloud Linux 7 Hybrid) repository.</li>
+</ul>
+<h5 id="2024-09-23---version-54"><strong>2024-09-23</strong> - version 54</h5>
+<ul>
+<li>Fixed case RE-697: Make &lsquo;upgrade_to_pretty_name&rsquo; an Elevate::OS key</li>
+<li>Fixed case RE-603: Add a whitelist for some legacy pacakges without a repo</li>
+<li>Fixed case RE-695: Turn <code>--no-leapp</code> into a more generic <code>--upgrade-distro-manually</code> option, but continue to recognize <code>--no-leapp</code> as an alias for it.</li>
+<li>Fixed case RE-217: Re-work Leapp failure handling to report all inhibitors.</li>
+</ul>
+<h5 id="2024-08-29---version-53"><strong>2024-08-29</strong> - version 53</h5>
+<ul>
+<li>Fixed case RE-574: Ensure that system with net-snmp installed will have it installed post-elevate.</li>
+<li>Fixed case RE-492: Where appropriate, mention &ldquo;MariaDB&rdquo; instead of &ldquo;MySQL&rdquo;.</li>
+</ul>
+<h5 id="2024-08-22---version-52"><strong>2024-08-22</strong> - version 52</h5>
+<ul>
+<li>Fixed case RE-43: No longer block on Panopta or FortiMonitor</li>
+<li>Fixed case RE-247: Permit leapp to handle updates to the EPEL repository.</li>
+<li>Fixed case RE-102: Attempt to upgrade PostgreSQL during ELevate.</li>
+<li>Fixed case RE-662: Fix text in failure advice when MySQL restore fails</li>
+</ul>
+<h5 id="2024-08-07---version-51"><strong>2024-08-07</strong> - version 51</h5>
+<ul>
+<li>Fixed case RE-543: Restore my.cnf after installing the database server during post_leapp</li>
+<li>Fixed case RE-611: Move logic to gather and store php usage to a component</li>
+<li>Fixed case RE-499: Fix restore logic for config files of packages provided by EA4</li>
+<li>Fixed case RE-614: Add &lsquo;check_detected_devices_and_drivers&rsquo; to list of inhibitors to ignore in the leapp preupgrade check to prepare for upstream leapp version 0.19.0</li>
+<li>Fixed case RE-34: Unblock remote MySQL blocker by temporarily disabling the remote profile during the upgrade.</li>
+</ul>
+<h5 id="2024-08-01---version-50"><strong>2024-08-01</strong> - version 50</h5>
+<ul>
+<li>Fixed case RE-514: Check whether leapp can control the boot process before significant and irreversible changes are applied to the system.</li>
+<li>Fixed case RE-113: Stop using the &ndash;noscripts flag when erasing wp-toolkit-cpanel in pre-leapp stage.</li>
+<li>Fixed case RE-404: Do not log output of Imunify license check</li>
+<li>Fixed case RE-502: Enable elevate on systems with the R1Soft Backup Agent installed.</li>
+<li>Fixed case RE-544: Do not cleanup database packages if the database is provided by CloudLinux</li>
+<li>Fixed case RE-535: Have check that Imunify 360 provides hardened PHP ensure that the &lsquo;ea-cpanel-tools&rsquo; package is provided by the CloudLinux repository</li>
+</ul>
+<h5 id="2024-07-23---version-49"><strong>2024-07-23</strong> - version 49</h5>
+<ul>
+<li>Fixed Case RE-72: Update PECL check to run before EA in pre_leapp phase; use php_get_installed_versions to determine EA PHP package versions.</li>
+<li>Fixed Case RE-452: Add blocker for duplicate repo IDs</li>
+</ul>
+<h5 id="2024-07-16---version-48"><strong>2024-07-16</strong> - version 48</h5>
+<ul>
+<li>Fixed case RE-538: Have ELS component always remove the ELS repo files if they exist</li>
+</ul>
+<h5 id="2024-07-11---version-47"><strong>2024-07-11</strong> - version 47</h5>
+<ul>
+<li>Fixed case RE-542:  Add jetapps-* to the list of vetted repos</li>
+</ul>
+<h5 id="2024-07-10---version-46"><strong>2024-07-10</strong> - version 46</h5>
+<ul>
+<li>Re-enable cloudlinux elevations after bugs related to dnf/spacewalk were addressed in upstream leapp.</li>
+<li>Fixed case RE-361: Make it more clear why yum makecache failures are a problem</li>
+<li>Fixed case RE-466: Improve error output when the script aborts due to a failed external command.</li>
+<li>Fixed case RE-534: Don&rsquo;t block on ELS rollout repo slots</li>
+<li>Fixed case RE-420: Block when packages are installed from a disabled repo</li>
+<li>Fixed case RE-505: Do not allow check to run in the middle of an elevation</li>
+</ul>
+<h5 id="2024-07-03---version-45"><strong>2024-07-03</strong> - version 45</h5>
+<ul>
+<li>Case RE-500: Disable cloudlinux elevations until bugs related to dnf/spacewalk are addressed in upstream leapp.</li>
+</ul>
+<h5 id="2024-07-01---version-44"><strong>2024-07-01</strong> - version 44</h5>
+<ul>
+<li>Fixed case RE-368: Remove &lsquo;ELS for CentOS 7&rsquo; prior to elevation.</li>
+</ul>
+<h5 id="2024-06-26---version-43"><strong>2024-06-26</strong> - version 43</h5>
+<ul>
+<li>Fixed case RE-403: Use &lsquo;CloudLinux_8&rsquo; target to backup EA4 profile on servers with Imunify 360 installed and providing the hardened PHP feature</li>
+</ul>
+<h5 id="2024-06-25---version-42"><strong>2024-06-25</strong> - version 42</h5>
+<ul>
+<li>Fixed case RE-450: Set locale environment variables to &ldquo;C&rdquo; before elevating.</li>
+<li>Fixed case RE-475: Teach wait_for_leapp_completion() about the no-leapp option</li>
+<li>Fixed case RE-336: Removed python36 blocker on CloudLinux/CentOS 7</li>
+<li>Fixed case RE-337: Convert multiple NICs blocker to component</li>
+</ul>
+<h5 id="2024-06-12---version-41"><strong>2024-06-12</strong> - version 41</h5>
+<ul>
+<li>Fixed case RE-338: No longer blocks if there are unfinished yum transactions.</li>
+</ul>
+<h5 id="2024-06-05---version-40"><strong>2024-06-05</strong> - version 40</h5>
+<ul>
+<li>Fixed case RE-343: Runs &quot;yum clean all&quot; and retries &quot;yum makecache&quot; if it had initially failed.</li>
+</ul>
+<h5 id="2024-05-29---version-39"><strong>2024-05-29</strong> - version 39</h5>
+<ul>
+<li>Fixed case RE-132: Have pre_leapp component remove packages that leapp will remove.</li>
+<li>Fixed case RE-373: Add blocker for an invalid Imunify license.</li>
+</ul>
+<h5 id="2024-05-15---version-38"><strong>2024-05-15</strong> - version 38</h5>
+<ul>
+<li>Fixed case RE-134: Have script block if mount -a fails to exit cleanly.</li>
+<li>Fixed case RE-313: Enhance EA4 blocker so that it only blocks on installed PHP versions that are not provided by Imunify 360 and are actively in use by domains on the server.</li>
+<li>Revert RE-306: It is no longer necessary to block if /usr is a separate private mount point now it has been fixed in the upstream leapp project.</li>
+</ul>
+<h5 id="2024-05-06---version-37"><strong>2024-05-06</strong> - version 37</h5>
+<ul>
+<li>Fixed case RE-306: Add blocker if '/usr' is a separate private mount point.</li>
+</ul>
+<h5 id="2024-04-30---version-36"><strong>2024-04-30</strong> - version 36</h5>
+<ul>
+<li>Fixed case RE-78: Convert CCS blocker to component.</li>
+<li>Fixed case RE-167: Updated the documentation about the blockers.</li>
+<li>Fixed case RE-261: In the event of a blocker found by performing a leapp preupgrade, direct the user to the /var/log/leapp directory to find more information.</li>
+</ul>
+<h5 id="2024-04-23---version-35"><strong>2024-04-23</strong> - version 35</h5>
+<ul>
+<li>Fixed case RE-122: Move logic for prepping cPanel for leapp to a component.</li>
+<li>Fixed case RE-218: Remove support for elevating to Rocky Linux.</li>
+<li>Fixed case RE-305: Do not delay 10 minutes when elevate_leap_fail_continue is put in place.</li>
+<li>Fixed case RE-318: Fix DNS blocker to check the systems name server type.</li>
+</ul>
+<h5 id="2024-04-16---version-34"><strong>2024-04-16</strong> - version 34</h5>
+<ul>
+<li>Fixed case RE-171: Provide auto-upgrade mechanism for out-of-date MySQL/MariaDB versions (installed via cPanel, not CloudLinux).</li>
+<li>Fixed case RE-224: Added in more checks to report potential failures of LEAPP.</li>
+<li>Fixed case RE-260: Ensure all system calls are executable absolute paths.</li>
+</ul>
+<h5 id="2024-04-09---version-33"><strong>2024-04-09</strong> - version 33</h5>
+<ul>
+<li>Removed experimental tag from Cloud Linux 7-&gt;8</li>
+</ul>
+<h5 id="2024-04-02---version-32"><strong>2024-04-02</strong> - version 32</h5>
+<ul>
+<li>Fixed case RE-250: Modularize stage logic.</li>
+<li>Fixed case RE-274: Update string in last chance message to inform the user of the correct OS that is being updated.</li>
+</ul>
+<h5 id="2024-03-29---version-31"><strong>2024-03-29</strong> - version 31</h5>
+<ul>
+<li>Fixed case RE-275: Add command line arg &ndash;leappbeta to use the leapp beta repos</li>
+</ul>
+<h5 id="2024-03-27---version-30"><strong>2024-03-27</strong> - version 30</h5>
+<ul>
+<li>Fixed case RE-265: Validate script can execute start option before parsing upgrade_to option.</li>
+</ul>
+<h5 id="2024-03-26---version-29"><strong>2024-03-26</strong> - version 29</h5>
+<ul>
+<li>Fixed case CPANEL-41659: Change to Let's Encrypt if Sectigo is the AutoSSL provider.</li>
+<li>Fixed case RE-83: Block if the grub2-pc package is not installed or if the grub.cfg file is missing.</li>
+<li>Fixed case RE-138: Ensure upcp and backups cannot run at the same time as ELevate.</li>
+<li>Fixed case RE-213: Convert logic to remove modules that do not convert into component.</li>
+<li>Fixed case RE-223: Also block on the 'leapp preupgrade' ERRORS.</li>
+<li>Fixed case RE-249: Ensure proper OS detection on servers that have been previously elevated.</li>
+</ul>
+<h5 id="2024-03-13---version-28"><strong>2024-03-13</strong> - version 28</h5>
+<ul>
+<li>Fixed case RE-153: Add support for CL MySQL.</li>
+<li>Fixed case RE-172: Remove blocker to check if the system is up to date.</li>
+</ul>
+<h5 id="2024-03-05---version-27"><strong>2024-03-05</strong> - version 27</h5>
+<ul>
+<li>Fixed case RE-89: Improved blocker yum reporting.</li>
+<li>Fixed case RE-228: Do not copy the stage file to the success file until we notify the user that the process succeeded.</li>
+</ul>
+<h5 id="2024-02-27---version-26"><strong>2024-02-27</strong> - version 26</h5>
+<ul>
+<li>Fixed case RE-90: Add a pre-flight leapp check when checking for upgrade blockers.</li>
+<li>Fixed case RE-173: Add blocker for invalid CloudLinux licenses.</li>
+<li>Fixed case RE-188: Improve the check for PostgreSQL users to be more efficient and not throw an error if the feature is disabled for any of the users.</li>
+</ul>
+<h5 id="2024-02-21---version-25"><strong>2024-02-21</strong> - version 25</h5>
+<ul>
+<li>Fixed case RE-206: Do not remove 'alt-pcre802' post elevate to avoid breaking Cloudlinux ea-php51/ea-php52</li>
+</ul>
+<h5 id="2024-02-19---version-24"><strong>2024-02-19</strong> - version 24</h5>
+<ul>
+<li>Fixed case RE-18: Add initial &ldquo;Experimental&rdquo; support for Elevating from CL7 to CL8.</li>
+<li>Fixed case RE-186: Document manual-reboots flag in help text.</li>
+</ul>
+<h5 id="2024-02-12---version-23"><strong>2024-02-12</strong> - version 23</h5>
+<ul>
+<li>Fixed case RE-2: Always show ELevate MOTD when ELevate is running.</li>
+<li>Fixed case RE-112: Set PermitRootLogin for sshd to 'yes' if not explicitly set in the configuration file so that the behavior does not change after the upgrade.</li>
+</ul>
+<h5 id="2024-02-05---version-22"><strong>2024-02-05</strong> - version 22</h5>
+<ul>
+<li>RE-55: Document possible statuses in /var/cpanel/elevate.</li>
+<li>RE-56: Removed the simple version check from the BEGIN block of the script since this happens during the check operation.</li>
+<li>RE-57: Improved command line option validation</li>
+<li>RE-71: Add blocker for start mode if bin/backup or scripts/upcp is currently executing.</li>
+<li>RE-38: Restore config files for packages provided by the EA4 repo.</li>
+</ul>
+<h5 id="2024-01-25---version-21"><strong>2024-01-25</strong> - version 21</h5>
+<ul>
+<li>Get fix-cpanel-perl to run after distro change without breaking perl.</li>
+<li>Update elevate for jetbackup to be aware of JetBackup 5.3</li>
+</ul>
+<h5 id="2024-01-22---version-20"><strong>2024-01-22</strong> - version 20</h5>
+<ul>
+<li>#338 - Improve warning and add prompt before starting the upgrade process</li>
+<li>#327 - Block with cPanel accounts have databases on postgresql.</li>
+<li>RE-93 - Do not return from EA4 blocker check prematurely</li>
+<li>RE-13 - Fix typo in help docs. s/convertion/conversion/</li>
+</ul>
+<h5 id="2024-01-16---version-19"><strong>2024-01-16</strong> - version 19</h5>
+<ul>
+<li>#337 - Add blocker if cPanel is not running version 110</li>
+<li>#341 - Use canonical_dump() when building JSON for repo blocker reports</li>
+<li>#348 - Incorporate running &ndash;check into running &ndash;start</li>
+</ul>
+<h5 id="2024-01-09---version-18"><strong>2024-01-09</strong> - version 18</h5>
+<ul>
+<li>#332 - Suppress additional checks when run with &ndash;check &ndash;no-leapp</li>
+</ul>
+<h5 id="2023-12-20---version-17"><strong>2023-12-20</strong> - version 17</h5>
+<ul>
+<li>Encode blocked repos to assist with enabling support for future elevations</li>
+</ul>
+<h5 id="2023-12-11---version-16"><strong>2023-12-11</strong> - version 16</h5>
+<ul>
+<li>Add repo allowance for vzzo custom migrations - ct-preset</li>
+</ul>
+<h5 id="2023-11-29---version-15"><strong>2023-11-29</strong> - version 15</h5>
+<ul>
+<li>Enable powertools after upgrade</li>
+<li>Disable cpanel-plugins repo after upgrade for initial dnf update</li>
+</ul>
+<h5 id="2023-09-09---version-14"><strong>2023-09-09</strong> - version 14</h5>
+<ul>
+<li>Use leapp answerfile instead of userchoices. Fixes #216</li>
+<li>Check MySQL status before starting upgrade. Fixes #287</li>
+<li>Vet digitalocean-agent repo.</li>
+<li>Vet elasticsearch-7.x repo.</li>
+<li>Fixup BootKernel error message. Fixes #305</li>
+<li>Add EA4-c$releasever to vetted repo list.</li>
+<li>Improve stop and disable function in Systemctl logic. Fixes #309</li>
+<li>cpanel-elevate stage 4 during mysql upgrade improved success detection. Fixes #311</li>
+<li>Add support for non-leapp upgrades. Fixes #302</li>
+</ul>
+<h5 id="2023-06-01---version-13"><strong>2023-06-01</strong> - version 13</h5>
+<ul>
+<li>Clear Cpanel::OS' $instance cache after upgrade to rocky 8. Fixes false positive failure.</li>
+<li>Remove duped final_notifications display on final success.</li>
+<li>Add documentation fixes for NIC rename advice</li>
+<li>Pass through the &ldquo;check only&rdquo; mode status properly. - Fixes Linode upgrade failures.</li>
+<li>Fix for &ldquo;Wide character warning&rdquo;</li>
+</ul>
+<h5 id="2023-05-18---version-12"><strong>2023-05-18</strong> - version 12</h5>
+<ul>
+<li>#170 - preserve and restore /etc/my.cnf after LEAPP upgrade and mysql restore.</li>
+<li>Fix MOTD message being blank due to fatpacker stripping it out.</li>
+<li>Assure LANG=C on all elevate systems.</li>
+<li>Add logic to autofix absolute symlinks in / which blocks leapp upgrades.</li>
+<li>If we run check-upgrade to a specific flavor, suggest to run the correct command.</li>
+<li>Fix bad getopt caller, that is delegated to cpev.</li>
+<li>Improved error message when calling missing functions.</li>
+<li>Impose maximum LTS version, change version recommendation to v110.</li>
+<li>Add new imunify repos to known list.</li>
+</ul>
+<h5 id="2023-05-08---version-11"><strong>2023-05-08</strong> - version 11</h5>
+<ul>
+<li>Block use of this product if cPanel unlicensed.</li>
+<li>Add blocker for presence of python36 RPMs.</li>
+<li>Bugfix due to bad caller of Base in InvalidYumRepo check. Fixes #252</li>
+</ul>
+<h5 id="2023-05-03---version-10"><strong>2023-05-03</strong> - version 10</h5>
+<ul>
+<li>Fix more bad ssystem calls</li>
+<li>Block if the running and boot kernels differ</li>
+</ul>
+<h5 id="2023-04-27---version-9"><strong>2023-04-27</strong> - version 9</h5>
+<ul>
+<li>Fix for #243. restore XS was crashing post upgrade.</li>
+</ul>
+<h5 id="2023-04-26---version-8"><strong>2023-04-26</strong> - version 8</h5>
+<p>There are no user facing changes in this release. We have re-designed the development
+process to make it faster and easier for us to develop this product.</p>
+<h5 id="2023-04-10---version-7"><strong>2023-04-10</strong> - version 7</h5>
+<ul>
+<li>Fix issue #151: Do not block on installed repos if no packages are installed from them.</li>
+<li>Remove source, debuginfo and vault entries from vetted repos.</li>
+<li>Stop restore_perl_xs from running dnf needlessly which led to a crash.</li>
+<li>Track which version of cpanel-elevate upgraded the local distro.</li>
+<li>Change recommended policy to direct people to cPanel support for issues.</li>
+</ul>
+<h5 id="2023-03-13---version-6"><strong>2023-03-13</strong> - version 6</h5>
+<ul>
+<li>If the file /var/cpanel/elevate-noc-recommendations exists, present the user with the contents of the file and confirm if they want to proceed.</li>
+<li>Exempt EA4 OpenSSL devel packages from blocker</li>
+<li>Ensure <code>net.ifnames=0</code> is added to the GRUB env if not mentioned there.</li>
+</ul>
+<h5 id="2023-02-14---version-5"><strong>2023-02-14</strong> - version 5</h5>
+<h6 id="user-facing">User Facing</h6>
+<ul>
+<li>Correct spelling of &ldquo;Alamlinux&rdquo;</li>
+<li>Add a doc notification for OVH monitoring</li>
+<li>Add a warning/blocker for OVH monitoring</li>
+<li>Bump copyright to 2023</li>
+<li>Check and fix grub for net.ifnames=0 post leapp upgrade.</li>
+</ul>
+<h5 id="2022-12-20---version-4"><strong>2022-12-20</strong> - version 4</h5>
+<h6 id="user-facing-1">User Facing</h6>
+<ul>
+<li>Increase the disk requirements for upgrade +1GB to allow more space in the leapp container.</li>
+<li>#149 - Cleanup stage_file before storing data. Fixes inaccurate EA4 blocker cache issue.</li>
+</ul>
+<h5 id="2022-12-12---version-3"><strong>2022-12-12</strong> - version 3</h5>
+<h6 id="user-facing-2">User Facing</h6>
+<ul>
+<li>Do not use &ldquo;ERROR&rdquo; for successful notifications.</li>
+<li>Fine tune the logging colors and only use it for the keyword.</li>
+<li>Fix crash when restoring imunify if it was not present at start.</li>
+<li>Do not block when detecting kernel update required.</li>
+<li>Better hints for MySQL upgrade needed.</li>
+<li>Handle recovery after manual intervention if leapp process fails. Give better advice to users when it happens.</li>
+<li>Stop warning about postgresql 9 now CCS supports 10</li>
+</ul>
+<h6 id="internal">Internal:</h6>
+<ul>
+<li>Simplify v# release process.</li>
+<li>Modularize blocker tests.</li>
+</ul>
+<h5 id="2022-11-16---version-2"><strong>2022-11-16</strong> - version 2</h5>
+<h6 id="user-facing-3">User Facing</h6>
+<ul>
+<li>Fixed bug in logic for version check which was detecting a new version incorrectly.</li>
+<li>Recommend proper MariaDB version for cPanel v110</li>
+</ul>
+<h6 id="internal-1">Internal:</h6>
+<ul>
+<li>Allow testing using alternative update URLs</li>
+</ul>
+<h5 id="2022-10-17---version-1"><strong>2022-10-17</strong> - version 1</h5>
+<h6 id="user-facing-4">User Facing</h6>
+<ul>
+<li>Fix run_once entry names in stage file</li>
+<li>Work around use of /boot/grub/ in some providers</li>
+<li>Implement self-update mechanism for elevate-cpanel</li>
+<li>Allow upgrades when using MySQL from mysql-community.repo</li>
+<li>Allow upgrades to Rocky Linux 8</li>
+<li>AlmaLinux capitalization</li>
+<li>Begin versioning and a formal changelog</li>
+<li>Backup EA profile to a temporary file on &ndash;check</li>
+</ul>
+<h6 id="internal-2">Internal:</h6>
+<ul>
+<li>read_stage_file() can read specific data</li>
+<li>run_once is now a method</li>
+</ul>
+<h5 id="2022-10-07---version-0"><strong>2022-10-07</strong> - version 0</h5>
+<ul>
+<li>See git log for more history.</li>
+</ul>
+
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div><script type="text/javascript" src="https://cpanel.github.io/elevate/js/copy-code.js"></script>
+<footer class="text-center mt-0">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-1">
+    <a href="//cpanel.com" title="cPanel, L.L.C." class="center-block cPanel-logo">
+    <img src="https://docs.cpanel.net/img/cpanel-logo.min.svg" title="cPanel, L.L.C." />
+    </a>
+    </div>
+    <div class="col-md-11 legal">
+    <p class="small">
+    &copy; 2025 cPanel L.L.C.
+    </p>
+    </div>
+    </div>
+    </div>
+    <div class="container-fluid trademark">
+    <div class="row">
+    <div class="col-sm-12 text-center">
+    <small>
+        cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
+        <br><i>page generated at Nov 17, 2025 at 17:21 (UTC)</i>
+    </small>
+    </div>
+    </div>
+    </div>
+</footer></body>
+</html>

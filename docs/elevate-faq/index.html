@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    
+    <title>cPanel ELevate Documentation | Troubleshooting the ELevate Process</title>
+    <link rel=icon href="https://cpanel.github.io/elevate/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="https://cpanel.github.io/elevate/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/style.css">
+</head><body><nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="https://cpanel.github.io/elevate">
+            <img src="https://cpanel.github.io/elevate/images/elevate-logo.svg" alt="cPanel elevate">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+            aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">
+                    
+                    Report an Issue
+                </a>
+                </li>
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate">
+                    
+                    Contribute
+                </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</nav>
+<div id="content">
+    <div class="container">
+        <ol class="d-none d-md-flex breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="https://cpanel.github.io/elevate">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                Troubleshooting the ELevate Process
+            </li>
+        </ol>
+    </div>
+</div>
+<br><div id="content">
+<div id="content">
+    <div class="container">
+
+        <div class="row"><div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">Issues</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate">Documentation</a></li>
+                
+                <a href="/elevate/#the-cpanel-elevate-project">
+                    
+                    <li>Introduction</li>
+                </a>
+                
+                <a href="/elevate/#the-elevate-process">
+                    
+                    <li>The Upgrade Process</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#requirements">
+                    
+                    <li>Requirements</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#risks">
+                    
+                    <li>Risks</li>
+                </a>
+                
+                <a href="/elevate/getting-started/">
+                    
+                    <li>Upgrade Your Server</li>
+                </a>
+                
+                <a href="/elevate/#copyright">
+                    
+                    <li>Copyright</li>
+                </a>
+                
+                <li>
+                    <a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/elevate-faq">FAQ</a>
+                </li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/blockers/">Known Blockers</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/changelog/">Change Log</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/whitepaper/">White Paper</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div>
+<div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
+                    <h1 id="troubleshooting-and-frequently-asked-questions">Troubleshooting and frequently asked questions</h1>
+<p>This document provides answers to frequently asked questions and solutions for some common troubleshooting issues.</p>
+<p>If you need more help, you can <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">open a ticket</a>.</p>
+<h2 id="frequently-asked-questions">Frequently asked questions</h2>
+<h3 id="how-do-i-check-the-current-status-of-the-process">How do I check the current status of the process?</h3>
+<p>Run the following command to check the current status of the ELevate process:</p>
+<pre tabindex="0"><code>/scripts/elevate-cpanel --status
+</code></pre><h3 id="where-are-the-current-stage-and-status-stored">Where are the current stage and status stored?</h3>
+<p>They are stored in the <code>/var/cpanel/elevate</code> JSON file as values for the
+<code>stage_number</code> and <code>status</code> keys.</p>
+<p>During execution the  <code>stage_number</code> key is set to <code>1</code> through <code>5</code>. When the process completes, the <code>stage_number</code> key is set to <code>6</code>.</p>
+<p>The possible values for <code>status</code> key are:</p>
+<ul>
+<li><code>running</code></li>
+<li><code>paused</code></li>
+<li><code>success</code></li>
+<li><code>failed</code></li>
+</ul>
+<h3 id="where-is-the-elevate-log-file">Where is the ELevate log file?</h3>
+<p>You can view the main log from the <code>/scripts/elevate-cpanel</code> script with the following command:</p>
+<pre tabindex="0"><code>/scripts/elevate-cpanel --log
+</code></pre><h3 id="where-are-leapp-issues-logged">Where are Leapp issues logged?</h3>
+<p>Logs for the Leapp process are located in the following files:</p>
+<ul>
+<li><code>/var/log/leapp/leapp-report.txt</code></li>
+<li><code>/var/log/leapp/leapp-report.json</code></li>
+</ul>
+<h3 id="how-do-i-continue-the-elevate-process-if-it-stops">How do I continue the ELevate process if it stops?</h3>
+<p>Address any reported issues, then continue the existing process with the following command:</p>
+<pre tabindex="0"><code>/scripts/elevate-cpanel --continue
+</code></pre><h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="the-elevate-process-is-locked-on-stage-1">The ELevate process is locked on stage 1</h3>
+<p>If the ELevate process is locked on <code>stage 1</code> and the process appears to be looping, run the following command to unlock the process:</p>
+<pre tabindex="0"><code>   /scripts/elevate-cpanel --start
+</code></pre><p>You can also unlock the process with the following steps:</p>
+<ol>
+<li>Clear the previous stage with the following command. Do <strong>not</strong> use this option if the process is past Stage 2.</li>
+</ol>
+<pre tabindex="0"><code> /scripts/elevate-cpanel --clean
+</code></pre><ol start="2">
+<li>Restart the ELevate process:</li>
+</ol>
+<pre tabindex="0"><code> /scripts/elevate-cpanel --start
+</code></pre><h3 id="the-ccs-service-will-not-start-after-elevate-succeeds">The CCS service will not start after ELevate succeeds</h3>
+<p>This error can occur if the schema failed to update.</p>
+<p>Perform the following steps to correct this error:</p>
+<p><strong>NOTE:</strong> Only remove or reinstall <code>cpanel-z-push</code> if it was installed prior to running
+ELevate or it is currently installed.</p>
+<h4 id="check-the-status-of-the-package">Check the status of the package</h4>
+<p>Run the following command to check the status of the package:</p>
+<p>RHEL-based systems:</p>
+<pre tabindex="0"><code>rpm -q cpanel-z-push
+</code></pre><p>Ubuntu®-based systems:</p>
+<pre tabindex="0"><code>apt list --installed | grep cpanel-z-push
+</code></pre><h4 id="remove-and-reinstall-the-ccs-service">Remove and reinstall the CCS service</h4>
+<p>Perform the following steps to remove and reinstall the CCS service:</p>
+<ol>
+<li>Remove the package:</li>
+</ol>
+<p>RHEL-based systems:</p>
+<pre tabindex="0"><code>dnf -y remove cpanel-ccs-calendarserver cpanel-z-push
+</code></pre><p>Ubuntu-based systems:</p>
+<pre tabindex="0"><code>apt -y purge cpanel-ccs-calendarserver cpanel-z-push
+</code></pre><ol start="2">
+<li>Remove the <code>cpanel-ccs</code> user&rsquo;s home directory</li>
+</ol>
+<pre tabindex="0"><code>rm -rf /opt/cpanel-ccs/
+</code></pre><ol start="3">
+<li>Install the package(s)</li>
+</ol>
+<p>RHEL-based-systems:</p>
+<pre tabindex="0"><code>dnf -y install cpanel-ccs-calendarserver cpanel-z-push
+</code></pre><p>Ubuntu-based systems:</p>
+<pre tabindex="0"><code>apt -y install cpanel-ccs-calendarserver cpanel-z-push
+</code></pre><ol start="4">
+<li>Clear the <code>queueprocd</code> task queue</li>
+</ol>
+<pre tabindex="0"><code>/usr/local/cpanel/bin/servers_queue run
+</code></pre><ol start="5">
+<li>Verify that the <code>cpanel-ccs</code> service is running with the following command:</li>
+</ol>
+<pre tabindex="0"><code>/scripts/restartsrv_cpanel_ccs --status
+</code></pre><p>The output will resemble the following example if the service is running:</p>
+<pre tabindex="0"><code>cpanel-ccs (CalendarServer 9.3+fbd0e11675cc0f64a425581b5c8398cc1e09cb6a [Combined] ) is running as cpanel-ccs with PID 1865839 (systemd+/proc check method)
+</code></pre><ol start="6">
+<li>Import the CCS data.</li>
+</ol>
+<h3 id="the-ccs-data-failed-to-import-during-elevate">The CCS data failed to import during elevate</h3>
+<p>This data is exported to the <code>/var/cpanel/elevate_ccs_export/</code> directory during the ELevate process.</p>
+<p>Run the following command as the <code>root</code> user to import the data for <strong>every</strong> user:</p>
+<pre tabindex="0"><code>/usr/local/cpanel/3rdparty/bin/perl -MCpanel::Config::Users -e 'require &quot;/var/cpanel/perl5/lib/CCSHooks.pm&quot;; my @users = Cpanel::Config::Users::getcpusers(); foreach my $user (@users) { my $import_data = { user =&gt; $user, extract_dir =&gt; &quot;/var/cpanel/elevate_ccs_export/$user&quot;, }; CCSHooks::pkgacct_restore( undef, $import_data ); }'
+</code></pre><p>To import a <strong>single</strong> user run the following command, where <code>CPTEST</code> represents the username:</p>
+<pre tabindex="0"><code>/usr/local/cpanel/3rdparty/bin/perl -e 'require &quot;/var/cpanel/perl5/lib/CCSHooks.pm&quot;; my $import_data = { user =&gt; &quot;CPTEST&quot;, extract_dir =&gt; &quot;/var/cpanel/elevate_ccs_export/CPTEST&quot;, }; CCSHooks::pkgacct_restore( undef, $import_data );'
+</code></pre>
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div><script type="text/javascript" src="https://cpanel.github.io/elevate/js/copy-code.js"></script>
+<footer class="text-center mt-0">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-1">
+    <a href="//cpanel.com" title="cPanel, L.L.C." class="center-block cPanel-logo">
+    <img src="https://docs.cpanel.net/img/cpanel-logo.min.svg" title="cPanel, L.L.C." />
+    </a>
+    </div>
+    <div class="col-md-11 legal">
+    <p class="small">
+    &copy; 2025 cPanel L.L.C.
+    </p>
+    </div>
+    </div>
+    </div>
+    <div class="container-fluid trademark">
+    <div class="row">
+    <div class="col-sm-12 text-center">
+    <small>
+        cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
+        <br><i>page generated at Nov 17, 2025 at 17:21 (UTC)</i>
+    </small>
+    </div>
+    </div>
+    </div>
+</footer></body>
+</html>

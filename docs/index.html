@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html><head>
+	<meta name="generator" content="Hugo 0.91.2" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    
+    <title>cPanel ELevate Documentation</title>
+    <link rel=icon href="https://cpanel.github.io/elevate/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="https://cpanel.github.io/elevate/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/style.css">
+</head><body><nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="https://cpanel.github.io/elevate">
+            <img src="https://cpanel.github.io/elevate/images/elevate-logo.svg" alt="cPanel elevate">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+            aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">
+                    
+                    Report an Issue
+                </a>
+                </li>
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate">
+                    
+                    Contribute
+                </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</nav>
+<div id="content">
+    <div class="container">
+        <ol class="d-none d-md-flex breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="https://cpanel.github.io/elevate">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                cPanel ELevate Project
+            </li>
+        </ol>
+    </div>
+</div>
+<br><div id="content">
+<div id="content">
+    <div class="container">
+
+        <div class="row"><div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">Issues</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate">Documentation</a></li>
+                
+                <a href="/elevate/#the-cpanel-elevate-project">
+                    
+                    <li>Introduction</li>
+                </a>
+                
+                <a href="/elevate/#the-elevate-process">
+                    
+                    <li>The Upgrade Process</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#requirements">
+                    
+                    <li>Requirements</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#risks">
+                    
+                    <li>Risks</li>
+                </a>
+                
+                <a href="/elevate/getting-started/">
+                    
+                    <li>Upgrade Your Server</li>
+                </a>
+                
+                <a href="/elevate/#copyright">
+                    
+                    <li>Copyright</li>
+                </a>
+                
+                <li>
+                    <a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/elevate-faq">FAQ</a>
+                </li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/blockers/">Known Blockers</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/changelog/">Change Log</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/whitepaper/">White Paper</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div>
+<div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
+                    <h1 id="welcome-to-the-cpanel-elevate-project">Welcome to the cPanel® ELevate project</h1>
+<p>The ELevate project aims to upgrade a cPanel installation with minimal outages. It builds and expands on the <a href="https://wiki.almalinux.org/elevate/ELevate-quickstart-guide.html">AlmaLinux OS ELevate</a> project, which was created for in-place upgrades of Red Hat®-based systems.</p>
+<h2 id="the-cpanel-elevate-project">The cPanel ELevate project</h2>
+<p>This project will perform the following upgrades:</p>
+<ul>
+<li>CentOS 7 to AlmaLinux 8</li>
+<li>CloudLinux™ 7 to CloudLinux 8</li>
+<li>Ubuntu® 20 to Ubuntu 22</li>
+<li>Ubuntu 22 to Ubuntu 24</li>
+<li>AlmaLinux 8 to AlmaLinux 9</li>
+<li>CloudLinux 8 to CloudLinux 9</li>
+<li>AlmaLinux 9 to AlmaLinux 10</li>
+</ul>
+<p>cPanel ELevate provides a wrapper around existing upgrade projects. While these projects are very effective at upgrading distribution packages, if you attempt to use them directly on a cPanel installation, your system will no longer function correctly.</p>
+<p>The cPanel ELevate script wraps the following projects:</p>
+<ul>
+<li>RHEL-based systems: The <a href="https://leapp.readthedocs.io/en/latest/">Leapp Project</a>.</li>
+<li>Ubuntu-based systems: The <a href="https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/">do-release-upgrade</a> script.</li>
+</ul>
+<p>For more information about the project, you can watch the cPanel ELevate walkthrough. <a href="https://www.youtube.com/watch?v=Ag9-RneFqmc"><img src="elevate-video.png" alt="cPanel ELevate walkthrough video"></a>.</p>
+<h3 id="the-elevate-process">The ELevate process</h3>
+<p>The cPanel ELevate project <a href="https://cpanel.github.io/elevate/blockers/">checks for any blockers</a> before it starts the upgrade process. The process is performed in stages. The server reboots between each stage and then does a final reboot when the process is complete.</p>
+<h4 id="stage-1">Stage 1</h4>
+<p>Install the <code>elevate-cpanel</code> service.</p>
+<h4 id="stage-2">Stage 2</h4>
+<p>Update the system&rsquo;s distribution packages, disable any cPanel services, and set the message-of-the-day (motd) to inform users an upgrade is in process.</p>
+<h4 id="stage-3">Stage 3</h4>
+<p>Configure the ELevate repository.</p>
+<p>Update cPanel packages, remove any conflicting packages, then back up the existing configuration.</p>
+<p><strong>NOTE:</strong> The backup does <strong>not</strong> include any of the system&rsquo;s data. However, it might include the configuration data for the following software:</p>
+<ul>
+<li>cPanel (<code>upcp</code>)</li>
+<li>EasyApache 4</li>
+<li>MySQL or MariaDB</li>
+<li>Distribution Perl/PECL binary reinstalls</li>
+</ul>
+<p>The system may ask you to provide answers to some questions before it can start the upgrade process.</p>
+<h4 id="stage-4">Stage 4</h4>
+<p>Upgrade the server to the new distribution and restore the removed packages.</p>
+<h4 id="stage-5">Stage 5</h4>
+<p>Verify the installation and clean up the server. This includes removing the <code>elevate-cpanel</code> service.</p>
+<p>To start the ELevate process and upgrade your server, read our <a href="https://cpanel.github.io/elevate/getting-started/">ELevate Your Server</a> documentation.</p>
+<h2 id="need-more-help">Need more help?</h2>
+<p>If you need more assistance, contact <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">cPanel Technical Support</a>.</p>
+<h2 id="disclaimer">Disclaimer</h2>
+<p>We do <strong>not</strong> guarantee the functionality of software in this repository. You assume all risk for use of any software that you install from this repository. Installation of this software could cause significant functionality failures, even for experienced administrators.</p>
+<h2 id="copyright">Copyright</h2>
+<pre tabindex="0"><code>Copyright 2024 WebPros International, LLC
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</code></pre>
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div><script type="text/javascript" src="https://cpanel.github.io/elevate/js/copy-code.js"></script>
+<footer class="text-center mt-0">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-1">
+    <a href="//cpanel.com" title="cPanel, L.L.C." class="center-block cPanel-logo">
+    <img src="https://docs.cpanel.net/img/cpanel-logo.min.svg" title="cPanel, L.L.C." />
+    </a>
+    </div>
+    <div class="col-md-11 legal">
+    <p class="small">
+    &copy; 2025 cPanel L.L.C.
+    </p>
+    </div>
+    </div>
+    </div>
+    <div class="container-fluid trademark">
+    <div class="row">
+    <div class="col-sm-12 text-center">
+    <small>
+        cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
+        <br><i>page generated at Nov 17, 2025 at 17:21 (UTC)</i>
+    </small>
+    </div>
+    </div>
+    </div>
+</footer></body>
+</html>

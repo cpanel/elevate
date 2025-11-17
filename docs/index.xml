@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>cPanel ELevate Project on cPanel ELevate Documentation</title>
+    <link>https://cpanel.github.io/elevate/</link>
+    <description>Recent content in cPanel ELevate Project on cPanel ELevate Documentation</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 07 Dec 2022 08:53:47 -0500</lastBuildDate><atom:link href="https://cpanel.github.io/elevate/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ELevate Your Server</title>
+      <link>https://cpanel.github.io/elevate/getting-started/</link>
+      <pubDate>Wed, 07 Dec 2022 08:53:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/getting-started/</guid>
+      <description>ELevate Your cPanel® Server This document helps you to successfully ELevate your cPanel server to a new version.
+You can perform the following elevations:
+ CentOS 7 to AlmaLinux OS 8 CloudLinux™ 7 to CloudLinux 8 Ubuntu® 20 to Ubuntu 22 Ubuntu 22 to Ubuntu 24 AlmaLinux OS 8 to AlmaLinux OS 9 CloudLinux 8 to CloudLinux 9 AlmaLinux OS 9 to AlmaLinux OS 10  Prerequisites ELevate requires access to an interactive shell as the root user.</description>
+    </item>
+    
+    <item>
+      <title>Troubleshooting the ELevate Process</title>
+      <link>https://cpanel.github.io/elevate/elevate-faq/</link>
+      <pubDate>Wed, 07 Dec 2022 08:53:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/elevate-faq/</guid>
+      <description>Troubleshooting and frequently asked questions This document provides answers to frequently asked questions and solutions for some common troubleshooting issues.
+If you need more help, you can open a ticket.
+Frequently asked questions How do I check the current status of the process? Run the following command to check the current status of the ELevate process:
+/scripts/elevate-cpanel --status Where are the current stage and status stored? They are stored in the /var/cpanel/elevate JSON file as values for the stage_number and status keys.</description>
+    </item>
+    
+    <item>
+      <title>Known cPanel ELevate Blockers</title>
+      <link>https://cpanel.github.io/elevate/blockers/</link>
+      <pubDate>Wed, 23 Mar 2022 16:13:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/blockers/</guid>
+      <description>cPanel ELevate blockers The ELevate script upgrades existing cPanel &amp;amp; WHM® installations to a newer installation.
+This document lists the blockers for successfully upgrading your system.
+Prerequisites To successfully run the ELevate script, you must meet the following conditions:
+ You are logged in to the server as the root user. Your system runs CentOS 7, CloudLinux 7, Ubuntu 20, Ubuntu 22, AlmaLinux OS 8, CloudLinux 8, or AlmaLinux OS 9.</description>
+    </item>
+    
+    <item>
+      <title>White Paper</title>
+      <link>https://cpanel.github.io/elevate/whitepaper/</link>
+      <pubDate>Tue, 15 Mar 2022 08:53:47 -0500</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/whitepaper/</guid>
+      <description>download a pdf version of this white paper
+Abstract cPanel, L.L.C. has embraced the ELevate project [1], an open-source initiative by the AlmaLinux OS Foundation (“AlmaLinux”) to help users perform upgrades between different Red Hat® Enterprise Linux® (RHEL)-derivative distributions. This white paper captures the relevant details in evaluating the ELevate process to upgrade a cPanel &amp;amp; WHM® server from a RHEL-derived distribution version 7.x to an AlmaLinux distribution version 8.x. The intended audience for this paper are the decision-makers who may be considering upgrading their cPanel &amp;amp; WHM servers to a different RHEL-based distribution.</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://cpanel.github.io/elevate/changelog/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://cpanel.github.io/elevate/changelog/</guid>
+      <description>ELevate Change Log 2025-11-17 - version 74  Fixed case RE-1647: Attempt to fix invalid yum repo syntax before blocking on it in start mode  2025-11-06 - version 73  Fixed case CPANEL-50105: Remove excludes line from /etc/yum.conf before executing leapp preupgrade  2025-10-30 - version 72  Fixed case RE-1614: Add support for upgrades from A9-&amp;gt;A10 Fixed case RE-1615: Add support for u22-&amp;gt;u24 distro upgrades Fixed case RE-1506: Update documentation to mention that we support CL8-&amp;gt;CL9 upgrades  2025-09-11 - version 71  Fixed case CPANEL-49117: Remove experimental status for CL8-&amp;gt;CL9 upgrades Fixed case RE-1604: Do not block the upgrade when the existing cPanel version is newer than what is stated in the major version&amp;rsquo;s tier.</description>
+    </item>
+    
+  </channel>
+</rss>

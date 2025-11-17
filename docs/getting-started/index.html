@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    
+    <title>cPanel ELevate Documentation | ELevate Your Server</title>
+    <link rel=icon href="https://cpanel.github.io/elevate/images/favicon.png">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800|Open+Sans:400,700,800" rel="stylesheet">
+    <script type="text/javascript" src="https://cpanel.github.io/elevate/js/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/sass/main.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cpanel.github.io/elevate/css/style.css">
+</head><body><nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="https://cpanel.github.io/elevate">
+            <img src="https://cpanel.github.io/elevate/images/elevate-logo.svg" alt="cPanel elevate">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+            aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">
+                    
+                    Report an Issue
+                </a>
+                </li>
+                
+                <li class="nav-item"></li>
+                <a class="nav-link" href="https://github.com/cpanel/elevate">
+                    
+                    Contribute
+                </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</nav>
+<div id="content">
+    <div class="container">
+        <ol class="d-none d-md-flex breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="https://cpanel.github.io/elevate">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                ELevate Your Server
+            </li>
+        </ol>
+    </div>
+</div>
+<br><div id="content">
+<div id="content">
+    <div class="container">
+
+        <div class="row"><div class="d-none d-md-block col-md-3">
+    <aside class="side-nav sticky">
+        <h4 class="mt-1">Elevate cPanel</h4>
+        <div class="installation-contents-wrapper">
+
+            <ul class="installation-list">
+                <li><a class="btn btn-primary" role="button" href="https://github.com/cpanel/elevate">GitHub
+                        Repository</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">Issues</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate">Documentation</a></li>
+                
+                <a href="/elevate/#the-cpanel-elevate-project">
+                    
+                    <li>Introduction</li>
+                </a>
+                
+                <a href="/elevate/#the-elevate-process">
+                    
+                    <li>The Upgrade Process</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#requirements">
+                    
+                    <li>Requirements</li>
+                </a>
+                
+                <a href="/elevate/getting-started/#risks">
+                    
+                    <li>Risks</li>
+                </a>
+                
+                <a href="/elevate/getting-started/">
+                    
+                    <li>Upgrade Your Server</li>
+                </a>
+                
+                <a href="/elevate/#copyright">
+                    
+                    <li>Copyright</li>
+                </a>
+                
+                <li>
+                    <a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/elevate-faq">FAQ</a>
+                </li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/blockers/">Known Blockers</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/changelog/">Change Log</a></li>
+                <li><a class="btn btn-primary" role="button" href="https://cpanel.github.io/elevate/whitepaper/">White Paper</a></li>
+            </ul>
+        </div>
+
+    </aside>
+</div>
+<div class="col-md-9">
+
+                <article
+                    class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray">
+                    <h1 id="elevate-your-cpanel-server">ELevate Your cPanel® Server</h1>
+<p>This document helps you to successfully ELevate your cPanel server to a new version.</p>
+<p>You can perform the following elevations:</p>
+<ul>
+<li>CentOS 7 to AlmaLinux OS 8</li>
+<li>CloudLinux™ 7 to CloudLinux 8</li>
+<li>Ubuntu® 20 to Ubuntu 22</li>
+<li>Ubuntu 22 to Ubuntu 24</li>
+<li>AlmaLinux OS 8 to AlmaLinux OS 9</li>
+<li>CloudLinux 8 to CloudLinux 9</li>
+<li>AlmaLinux OS 9 to AlmaLinux OS 10</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>ELevate <strong>requires</strong> access to an interactive shell as the <code>root</code> user.</p>
+<p>Before you upgrade your system, make <strong>certain</strong> that you&rsquo;ve met the following requirements.</p>
+<ul>
+<li>You are logged in to the server as the <code>root</code> user.</li>
+<li>Your system runs CentOS 7, CloudLinux 7, Ubuntu 20, Ubuntu 22, AlmaLinux OS 8, or CloudLinux 8.
+<ul>
+<li>Systems that run CentOS 7 or CloudLinux 7 <strong>must</strong> run cPanel &amp; WHM version 110.</li>
+<li>Systems that run Ubuntu 20 <strong>must</strong> run cPanel &amp; WHM version 118.</li>
+<li>Systems that run Ubuntu 22 <strong>must</strong> run cPanel &amp; WHM version 132.</li>
+<li>Systems that run AlmaLinux OS 8, CloudLinux 8 or AlmaLinux OS 9 <strong>must</strong> run on a named tier (LTS, STABLE, RELEASE, CURRENT, or EDGE) of cPanel &amp; WHM</li>
+</ul>
+</li>
+<li>Your system <strong>must</strong> run the most recent minor version of its cPanel version for your operating system.</li>
+<li>cPanel <strong>must</strong> have a valid license.</li>
+<li>If applicable, <strong>CloudLinux</strong> has a valid license.</li>
+</ul>
+<p>Additionally, the following <strong>must</strong> be true about the <code>elevate-cpanel</code> script:</p>
+<ul>
+<li>The script must run from the <code>/scripts</code> directory and use <code>/usr/local/cpanel/scripts</code> when called.</li>
+<li>The script must be up to date.</li>
+</ul>
+<p>We <strong>strongly</strong> recommend that you have multiple ways to access your server before you attempt to upgrade. This ensures you&rsquo;re not locked out of the server if your primary access method does not work. Ways to access your server may include the following methods:</p>
+<ul>
+<li><code>root</code> SSH access to the system.</li>
+<li>Direct physical access to the console.</li>
+<li>IPMI remote console access.</li>
+<li>A virtual console through a hypervisor.</li>
+<li>A custom system based on one of previous methods, made available by your server provider.</li>
+</ul>
+<h2 id="before-you-upgrade-your-server">Before you upgrade your server</h2>
+<p>Before you ELevate your server, perform the following actions to ensure you&rsquo;re ready to start the process. Make certain that you review the <a href="#risks">risks</a> for this process before you begin.</p>
+<p>We <strong>strongly</strong> recommend that you write down the information needed to <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">open a cPanel support request</a>. If you encounter issues during the upgrade process, this information may not be available from the system itself.</p>
+<h3 id="software-verification">Software verification</h3>
+<p>We recommend that you verify and update the software on your server <strong>before</strong> you start the ELevate process.</p>
+<ul>
+<li>Update your server&rsquo;s packages with your package manager. You can use one of the following commands to update the packages:
+<ul>
+<li>Red Hat®-based servers: <code>yum update</code></li>
+<li>Ubuntu-based servers: <code>apt upgrade</code></li>
+</ul>
+</li>
+<li>Ensure that you&rsquo;re using the latest stable version of cPanel &amp; WHM that is available for your current OS:
+<ul>
+<li>CentOS 7 and CloudLinux 7 support is only available on cPanel &amp; WHM version 110.</li>
+<li>Ubuntu 20.04 support is only available on cPanel &amp; WHM version 118.</li>
+<li>Ubuntu 22.04 support is only available on cPanel &amp; WHM version 132.</li>
+<li>AlmaLinux 8, CloudLinux 8 and AlmaLinux 9 support is only available on name cPanel &amp; WHM tiers such as RELEASE or LTS.</li>
+</ul>
+</li>
+<li>Make certain that you&rsquo;re using a version of MySQL/MariaDB that is compatible with your target distribution.</li>
+</ul>
+<p>We also recommend that you <a href="#download-the-elevate-cpanel-script">download the ELevate script</a> and <a href="#run-pre-upgrade-checks">run the pre-checks</a>. This will ensure that you don&rsquo;t have any <a href="https://cpanel.github.io/elevate/blockers/">blockers</a> that will prevent an upgrade.</p>
+<h3 id="backup-the-server">Backup the server</h3>
+<p>You <strong>must</strong> backup your server before you attempt to upgrade.</p>
+<p>While the upgrade process attempts to account for conditions that might result in a broken system, this is not a guarantee. We <strong>strongly</strong> recommend that you backup your system with a whole-system image or snapshot.</p>
+<p>If you must recover your system, you will need to reload the system from the image or snapshot you created.</p>
+<p>The <a href="https://docs.cpanel.net/whm/backup/">cPanel Backup</a> system <strong>only</strong> backs up individual cPanel accounts. Backups of individual cPanel accounts <strong>only</strong> protect data managed by cPanel. These backups <strong>do not</strong> contain any programs or data not managed by cPanel.  If a catastrophic failure happens during the upgrade process, you may have extensive downtime.</p>
+<p>If you must recover your system from individual accounts, you will need to wipe the existing system, install the target operating system, install cPanel on the new operating system, rebuild all system customizations, and restore the cPanel accounts from the backup.</p>
+<p>If individual cPanel account backups are your only backup option, and uptime is a critical consideration, we recommend that you use WHM&rsquo;s <a href="https://docs.cpanel.net/whm/transfers/transfer-tool/">Transfer Tool</a> to migrate to a new system <strong>instead</strong> of upgrading in place using ELevate. This provides you with more control over the transition in the event of a failure.</p>
+<p>If you do not know how much of your system your backup service covers, contact your backup service provider for more information.</p>
+<h2 id="upgrade-your-server">Upgrade your server</h2>
+<h3 id="download-the-elevate-cpanel-script">Download the elevate-cpanel script</h3>
+<p>Run the following command to download the ELevate script to your cPanel server:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">wget -O /scripts/elevate-cpanel <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    https://raw.githubusercontent.com/cpanel/elevate/release/elevate-cpanel ;
+chmod <span style="color:#ae81ff">700</span> /scripts/elevate-cpanel
+</code></pre></div><h3 id="run-pre-upgrade-checks">Run pre-upgrade checks</h3>
+<p>We recommend that you check for <a href="https://cpanel.github.io/elevate/blockers/">known blockers</a> before you upgrade your server. The check will <strong>not</strong> make any changes to your system.</p>
+<p>Run the following command to verify that your system is ready to upgrade:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Check upgrade (dry run mode)</span>
+/scripts/elevate-cpanel --check
+</code></pre></div><h3 id="perform-the-upgrade">Perform the upgrade</h3>
+<p>After you backup your server and clear any upgrade blockers, you can begin your server&rsquo;s upgrade. The cPanel ELevate script does <strong>not</strong> perform a backup before upgrading.</p>
+<p><strong>NOTE</strong>: This upgrade may take over 30 minutes. Your server may be down and unreachable during this time.</p>
+<p>Run the following command to start the upgrade process:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">/scripts/elevate-cpanel --start
+</code></pre></div><p>To read an overview of the ELevate process, read our <a href="https://cpanel.github.io/elevate/#the-elevate-process">ELevate process</a> documentation.</p>
+<h4 id="script-command-line-options">Script command line options</h4>
+<p>The <code>/scripts/elevate-cpanel</code> script accepts the following options:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--check</code></td>
+<td>Verify if your server is ready to run the script (dry run).</td>
+<td><code>/scripts/elevate-cpanel --check</code></td>
+</tr>
+<tr>
+<td><code>--clean</code></td>
+<td>Clear the ELevate process' previous state. Do <strong>not</strong> use this option if the process is past Stage 2.</td>
+<td><code>/scripts/elevate-cpanel --clean</code></td>
+</tr>
+<tr>
+<td><code>--continue</code></td>
+<td>Continue the ELevate process after fixing any errors.</td>
+<td><code>/scripts/elevate-cpanel --continue</code></td>
+</tr>
+<tr>
+<td><code>--log</code></td>
+<td>Monitor the ELevate log.</td>
+<td><code>/scripts/elevate-cpanel --log</code></td>
+</tr>
+<tr>
+<td><code>--status</code></td>
+<td>Display the status of the upgrade.</td>
+<td><code>/scripts/elevate-cpanel --status</code></td>
+</tr>
+<tr>
+<td><code>--start</code></td>
+<td>Start the ELevate process.</td>
+<td><code>/scripts/elevate-cpanel --start</code></td>
+</tr>
+<tr>
+<td><code>--upgrade-distro-manually</code></td>
+<td>Perform the distribution upgrade manually. You can <strong>only</strong> use this option with the <code>--start</code> option.</td>
+<td><code>/scripts/elevate-cpanel --start --upgrade-distro-manually</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>Display the help text</td>
+<td><code>/scripts/elevate-cpanel --help</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="advanced-options">Advanced Options</h2>
+<p>You can also implement the following advanced options when you ELevate your server.</p>
+<h3 id="use-an-alternative-tool-to-upgrade-your-distribution">Use an alternative tool to upgrade your distribution</h3>
+<p>The cPanel ELevate script wraps the following projects, depending on your operating system:</p>
+<ul>
+<li>RHEL-based systems: The <a href="https://leapp.readthedocs.io/en/latest/">LEAPP Project</a></li>
+<li>Ubuntu-based systems: the <a href="https://documentation.ubuntu.com/server/how-to/software/upgrade-your-release/">do-release-upgrade script</a></li>
+</ul>
+<p>You can use the <code>--upgrade-distro-manually</code> option to perform a distribution upgrade manually.</p>
+<p>For example, you can use this option to allow Virtuozzo to upgrade cPanel systems, which is not supported by LEAPP.</p>
+<p>To use the <code>--upgrade-distro-manually</code> option perform the following steps:</p>
+<ol>
+<li>Run the <code>/scripts/elevate-cpanel --start --upgrade-distro-manually</code> command to start the upgrade process.</li>
+</ol>
+<p>The <code>elevate-cpanel</code> service will complete all the steps needed to upgrade the system until it reaches the distribution upgrade stage.</p>
+<p>ELevate will create the <code>/waiting_for_distro_upgrade</code> file, which indicates that the operating system is ready for an upgrade.</p>
+<ol start="2">
+<li>Use your distribution upgrade tool to complete the upgrade process.</li>
+<li>When the upgrade is complete, delete the <code>/waiting_for_distro_upgrade</code> file and reboot the system into normal multi-user mode.</li>
+</ol>
+<p>The ELevate script will resume after the reboot and complete the upgrade.</p>
+<h3 id="use-the-leapp_ovl_size-environment-variable">Use the LEAPP_OVL_SIZE environment variable</h3>
+<p>This section <strong>only</strong> applies to servers that run CentOS 7 or AlmaLinux.</p>
+<p>By default, the elevate script will set the <code>LEAPP_OVL_SIZE</code> variable to <code>3000</code> before it starts the ELevate process. However, if you set this environment variable before you call the ELevate script, the script will use the setting you provide.</p>
+<p>For more information about the <code>LEAPP_OVL_SIZE</code> variable, read the <a href="https://leapp.readthedocs.io/en/latest/el7toel8/envars.html#leapp-ovl-size">leapp documentation</a></p>
+<h3 id="skip-the-logic-that-verifies-that-each-sites-php-version-remains-the-same-after-upgrade">Skip the logic that verifies that each sites PHP version remains the same after upgrade</h3>
+<p>Create the <code>/var/cpanel/elevate_skip_preserve_php_versions</code> touch file to indicate that you want to skip this logic and handle any potential breakage manually.</p>
+<h2 id="risks">Risks</h2>
+<p>When you upgrade your server, you may experience data loss or unexpected behavior that can render your server not functional.</p>
+<p>Upgrades can take between 30 and 90 minutes to complete. For most of this time, the server will be degraded and non-functional. While the ELevate process attempts to disable the software so external systems will not fail, small windows still exist where unexpected failures may lead to some data loss.</p>
+<p>Failure states may include but are not limited to the following states:</p>
+<ul>
+<li>Failure to upgrade the kernel due to custom drivers.</li>
+<li>Incomplete upgrade of software.</li>
+</ul>
+<p>You may also experience the following issues, among others:</p>
+<ul>
+<li>Invalid cPanel binaries.</li>
+<li>Incorrect settings in cPanel.</li>
+<li>The cPanel CSS service may not start.</li>
+<li>Incorrect packages for EasyApache 4 and third-party software.</li>
+<li>Invalid manually installed PECL or Perl CPAN modules.</li>
+<li>MySQL may no longer be upgradable. For more information about supported versions of MySQL, read our <a href="https://docs.cpanel.net/knowledge-base/general-systems-administration/supported-mysql-mariadb-versions/">Supported MySQL/MariaDB versions</a> documentation.</li>
+</ul>
+<p>This list is not comprehensive. We <strong>strongly</strong> recommend you back up (and ideally create a snapshot of) your system before you attempt this process.</p>
+<p>If you need more help, you can <a href="https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/">open a ticket</a>.</p>
+
+                </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div><script type="text/javascript" src="https://cpanel.github.io/elevate/js/copy-code.js"></script>
+<footer class="text-center mt-0">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-1">
+    <a href="//cpanel.com" title="cPanel, L.L.C." class="center-block cPanel-logo">
+    <img src="https://docs.cpanel.net/img/cpanel-logo.min.svg" title="cPanel, L.L.C." />
+    </a>
+    </div>
+    <div class="col-md-11 legal">
+    <p class="small">
+    &copy; 2025 cPanel L.L.C.
+    </p>
+    </div>
+    </div>
+    </div>
+    <div class="container-fluid trademark">
+    <div class="row">
+    <div class="col-sm-12 text-center">
+    <small>
+        cPanel, WebHost Manager and WHM are registered trademarks of cPanel, L.L.C. for providing its computer software that facilitates the management and configuration of internet web servers.
+        <br><i>page generated at Nov 17, 2025 at 17:21 (UTC)</i>
+    </small>
+    </div>
+    </div>
+    </div>
+</footer></body>
+</html>
