@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2025-11-17** - version 74
+
+* Fixed case RE-1647: Attempt to fix invalid yum repo syntax before blocking on it in start mode
+
 ##### **2025-11-06** - version 73
 
 * Fixed case CPANEL-50105: Remove excludes line from /etc/yum.conf before executing leapp preupgrade
