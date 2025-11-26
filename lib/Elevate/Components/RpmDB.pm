@@ -13,7 +13,7 @@ noop
 =head2 pre_distro_upgrade
 
 1. Remove packages provided via rpm.versions
-2. Remove obsolete packages that are not provided after upgrade
+2. Remove obsolete packages
 
 =head2 post_distro_upgrade
 
@@ -50,6 +50,7 @@ use constant OBSOLETE_PACKAGES => (
     'yum-plugin-universal-hooks',
     'eigid',
     'quickinstall',
+    'unattended-upgrades',
 );
 
 sub pre_distro_upgrade ($self) {
@@ -75,10 +76,7 @@ sub _cleanup_rpms ($self) {
 
 sub _remove_obsolete_packages ($self) {
 
-    # This is specific to leapp upgrades
-    return unless Elevate::OS::needs_leapp();
-
-    my @pkgs_to_remove = OBSOLETE_PACKAGES();
+    my @pkgs_to_remove = grep { Cpanel::Pkgr::is_installed($_) } OBSOLETE_PACKAGES();
     Elevate::PkgMgr::remove(@pkgs_to_remove);
     return;
 }
