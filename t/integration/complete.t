@@ -63,11 +63,11 @@ subtest 'Preserve PHP versions' => sub {
     my %accounts = (
         withfpm => {
             php_fpm => 1,
-            version => 'ea-php81',
+            version => 'ea-php82',
         },
         nofpm => {
             php_fpm => 0,
-            version => 'ea-php82',
+            version => 'ea-php83',
         },
         inherit => {
             php_fpm => 0,
