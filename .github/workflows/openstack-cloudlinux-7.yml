@@ -160,9 +160,6 @@ jobs:
           port: "22"
           envs: REPODIR
           script: |
-            /usr/local/cpanel/scripts/post_snapshot --yes
-            while pgrep -x post_snapshot > /dev/null; do echo "Sleeping until post_snapshot is no longer running as it may be locking your Update Manager."; sleep 1; done
-            /scripts/restartsrv_mysql
             chmod -v +x /opt/${{ env.REPODIR}}/t/integration/setup
             /opt/${{ env.REPODIR }}/t/integration/setup
 

@@ -7014,6 +7014,7 @@ EOS
         'yum-plugin-universal-hooks',
         'eigid',
         'quickinstall',
+        'unattended-upgrades',
     );
 
     sub pre_distro_upgrade ($self) {
@@ -7034,9 +7035,7 @@ EOS
 
     sub _remove_obsolete_packages ($self) {
 
-        return unless Elevate::OS::needs_leapp();
-
-        my @pkgs_to_remove = OBSOLETE_PACKAGES();
+        my @pkgs_to_remove = grep { Cpanel::Pkgr::is_installed($_) } OBSOLETE_PACKAGES();
         Elevate::PkgMgr::remove(@pkgs_to_remove);
         return;
     }

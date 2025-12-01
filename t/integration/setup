@@ -7,20 +7,48 @@
 
 use Cpanel::JSON            ();
 use Cpanel::OS              ();
+use Cpanel::PsParser        ();
 use Cpanel::SafeRun::Object ();
+
+# Ensure post_snapshot completes before doing anything
+# It's okay with components of this failing (looking at you hostname)
+my $run = Cpanel::SafeRun::Object->new(
+    program => '/usr/local/cpanel/scripts/post_snapshot',
+    args    => ['--yes'],
+);
+
+my $max_attempts = 100;
+foreach my $attempt ( 1 .. $max_attempts ) {
+    my @pids = Cpanel::PsParser::get_pids_by_name('post_snapshot');
+    last unless @pids;
+
+    if ( $attempt == 1 ) {
+        print "Sleeping until post_snapshot is no longer running as it may be locking Update Manager\n";
+    }
+    else {
+        print "Waiting on post_snapshot:  Attempt $attempt of $max_attempts\n";
+    }
+
+    sleep 3;
+    die "Time out waiting on post_snapshot to complete\n" if $attempt == $max_attempts;
+}
+
+# Make sure task queue is clear before starting this
+print "Clearing the task queue\n";
+run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
+
+# Make sure a hostname and wwwacct is properly setup
+run_api_or_die(qw{whmapi1 sethostname hostname=elevate.os.tld});
+run_or_die(qw{/usr/local/cpanel/scripts/mkwwwacctconf --reset});
 
 # Make sure task queue is clear before starting this
 print "Clearing the task queue\n";
 run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
 # RE-1179 / RE-1244
-if ( -e '/etc/scl/prefixes/ea-php80' ) {
-    print "\nFile already exists at /etc/scl/prefixes/ea-php80; skipping install of ea-php80.\n";
-}
-else {
-    print "\nFile does not exist at /etc/scl/prefixes/ea-php80; installing ea-php80 via scripts/installpkg\n";
-    run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php80});
-}
+run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php81});
+run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php82});
+run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php83});
 
 # RE-1416 / RE-1461
 print "\nInstalling ea-nginx via scripts/installpkg";
@@ -35,6 +63,13 @@ if ( Cpanel::OS::distro() eq 'centos' && Cpanel::OS::major() == 7 ) {
 print "Clearing the task queue\n";
 run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
+# Ensure mysql and nameserver services are running
+my $restart_database_output = run_or_die(qw{/usr/local/cpanel/scripts/restartsrv_mysql});
+die "The database server failed to start\n" unless grep { $_ =~ m/restarted successfully/ } split /\n/, $restart_database_output;
+
+my $restart_nameserver_output = run_or_die(qw{/usr/local/cpanel/scripts/restartsrv_named});
+die "The name server failed to start\n" unless grep { $_ =~ m/restarted successfully/ } split /\n/, $restart_nameserver_output;
+
 # RE-1573
 print "Creating 3 accounts\n";
 foreach my $domain (qw{withfpm nofpm inherit}) {
@@ -44,11 +79,11 @@ foreach my $domain (qw{withfpm nofpm inherit}) {
 print "Clearing the task queue\n";
 run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
-print "Setting 'withfpm' account to ea-php81 with php-fpm enabled\n";
-run_api_or_die(qw{whmapi1 php_set_vhost_versions version=ea-php81 vhost=withfpm.tld php_fpm=1});
+print "Setting 'withfpm' account to ea-php82 with php-fpm enabled\n";
+run_api_or_die(qw{whmapi1 php_set_vhost_versions version=ea-php82 vhost=withfpm.tld php_fpm=1});
 
-print "Setting 'nofpm' account to ea-php82 with php-fpm disabled\n";
-run_api_or_die(qw{whmapi1 php_set_vhost_versions version=ea-php82 vhost=nofpm.tld php_fpm=0});
+print "Setting 'nofpm' account to ea-php83 with php-fpm disabled\n";
+run_api_or_die(qw{whmapi1 php_set_vhost_versions version=ea-php83 vhost=nofpm.tld php_fpm=0});
 
 print "Setting 'inherit' account to inherit the default PHP version\n";
 run_api_or_die(qw{whmapi1 php_set_vhost_versions version=inherit vhost=inherit.tld});
