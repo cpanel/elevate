@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2025-12-01** - version 75
+
+* Fixed case CPANEL-50430: Remove unattended-upgrades before distro upgrade
+
 ##### **2025-11-17** - version 74
 
 * Fixed case RE-1647: Attempt to fix invalid yum repo syntax before blocking on it in start mode
