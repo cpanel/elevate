@@ -359,7 +359,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | key                    | distro     | major | jetbackup_repo_rpm_url                                            |
 +------------------------+------------+-------+-------------------------------------------------------------------+
 | jetbackup_repo_rpm_url | AlmaLinux  | 8     | "https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm" |
-| jetbackup_repo_rpm_url | AlmaLinux  | 9     | undef                                                             |
+| jetbackup_repo_rpm_url | AlmaLinux  | 9     | "https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm" |
 | jetbackup_repo_rpm_url | CentOS     | 7     | undef                                                             |
 | jetbackup_repo_rpm_url | CloudLinux | 7     | undef                                                             |
 | jetbackup_repo_rpm_url | CloudLinux | 8     | "https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm" |
@@ -1024,7 +1024,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | key                | distro     | major | supports_jetbackup |
 +--------------------+------------+-------+--------------------+
 | supports_jetbackup | AlmaLinux  | 8     | 1                  |
-| supports_jetbackup | AlmaLinux  | 9     | 0                  |
+| supports_jetbackup | AlmaLinux  | 9     | 1                  |
 | supports_jetbackup | CentOS     | 7     | 1                  |
 | supports_jetbackup | CloudLinux | 7     | 1                  |
 | supports_jetbackup | CloudLinux | 8     | 1                  |
