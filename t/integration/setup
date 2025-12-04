@@ -50,6 +50,9 @@ run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php81});
 run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php82});
 run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php83});
 
+# Do this to ensure a consistent default php version across all OSs
+run_api_or_die(qw{whmapi1 php_set_system_default_version version=ea-php81});
+
 # RE-1416 / RE-1461
 print "\nInstalling ea-nginx via scripts/installpkg";
 run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-nginx});
