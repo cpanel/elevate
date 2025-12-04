@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2025-12-04** - version 76
+
+* Fixed case CPANEL-48734: Add support for JetBackup on A9->A10 distro upgrades
+
 ##### **2025-12-01** - version 75
 
 * Fixed case CPANEL-50430: Remove unattended-upgrades before distro upgrade
