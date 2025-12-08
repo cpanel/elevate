@@ -157,6 +157,8 @@ jobs:
           username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: "22"
+          timeout: 45m
+          command_timeout: 45m
           envs: REPODIR
           script: |
             chmod -v +x /opt/${{ env.REPODIR}}/t/integration/setup
