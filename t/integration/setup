@@ -46,9 +46,16 @@ print "Clearing the task queue\n";
 run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
 # RE-1179 / RE-1244
-run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php81});
-run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php82});
-run_or_die(qw{/usr/local/cpanel/scripts/installpkg ea-php83});
+my @pkgs_to_install = qw{
+  ea-php81
+  ea-php81-php-fpm
+  ea-php82
+  ea-php82-php-fpm
+  ea-php83
+  ea-php83-php-fpm
+};
+
+run_or_die( '/usr/local/cpanel/scripts/installpkg', @pkgs_to_install );
 
 # Do this to ensure a consistent default php version across all OSs
 run_api_or_die(qw{whmapi1 php_set_system_default_version version=ea-php81});

@@ -1541,7 +1541,7 @@ sub reboot ($self) {
     # Otherwise, give time to ensure display is flushed (using tail...)
     if ($is_ci) {
         INFO("CI mode detected, giving extra time to let CI get out of server");
-        sleep(6);
+        sleep(7);
     }
     else {
         sleep(2);

@@ -1289,6 +1289,8 @@ EOS
     use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
+    use Try::Tiny;
+
     use Cwd ();
 
     # use Log::Log4perl qw(:easy);
@@ -1324,7 +1326,14 @@ EOS
         return unless scalar @$yum_arch_plugins;
 
         INFO('Restoring cPanel yum-based-plugins');
-        Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
+
+        try {
+            Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
+        }
+        catch {
+            my $plugins = join( ' ', @$yum_arch_plugins );
+            WARN("Failed to reinstall cPanel plugins:  $plugins");
+        };
 
         return;
     }
@@ -13016,7 +13025,7 @@ sub reboot ($self) {
     # Otherwise, give time to ensure display is flushed (using tail...)
     if ($is_ci) {
         INFO("CI mode detected, giving extra time to let CI get out of server");
-        sleep(6);
+        sleep(7);
     }
     else {
         sleep(2);
