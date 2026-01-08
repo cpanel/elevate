@@ -331,8 +331,8 @@ jobs:
           username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: "22"
-          timeout: 30m
-          command_timeout: 30m
+          timeout: 60m
+          command_timeout: 60m
           script: |
             /scripts/status_marker 3
             tail -n40 -F /var/log/elevate-cpanel.log &

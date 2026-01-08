@@ -35,6 +35,8 @@ use Elevate::OS        ();
 use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
+use Try::Tiny;
+
 use Cwd           ();
 use Log::Log4perl qw(:easy);
 
@@ -69,7 +71,14 @@ sub post_distro_upgrade ($self) {
     return unless scalar @$yum_arch_plugins;
 
     INFO('Restoring cPanel yum-based-plugins');
-    Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
+
+    try {
+        Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
+    }
+    catch {
+        my $plugins = join( ' ', @$yum_arch_plugins );
+        WARN("Failed to reinstall cPanel plugins:  $plugins");
+    };
 
     return;
 }
