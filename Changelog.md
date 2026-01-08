@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2026-01-08** - version 77
+
+* Fixed case CPANEL-50882: Make cPanel plugin reinstall non-fatal
+
 ##### **2025-12-04** - version 76
 
 * Fixed case CPANEL-48734: Add support for JetBackup on A9->A10 distro upgrades
