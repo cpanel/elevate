@@ -10,8 +10,19 @@ use Cpanel::OS              ();
 use Cpanel::PsParser        ();
 use Cpanel::SafeRun::Object ();
 
+print "Clearing the task queue\n";
+run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
+
+# Make sure a hostname and wwwacct is properly setup
+run_api_or_die(qw{whmapi1 sethostname hostname=elevate.os.tld});
+run_or_die(qw{/usr/local/cpanel/scripts/mkwwwacctconf --reset});
+
+# Make sure task queue is clear before starting this
+print "Clearing the task queue\n";
+run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
+
 # Ensure post_snapshot completes before doing anything
-# It's okay with components of this failing (looking at you hostname)
+# This can fail for various reasons
 my $run = Cpanel::SafeRun::Object->new(
     program => '/usr/local/cpanel/scripts/post_snapshot',
     args    => ['--yes'],
@@ -37,13 +48,8 @@ foreach my $attempt ( 1 .. $max_attempts ) {
 print "Clearing the task queue\n";
 run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
-# Make sure a hostname and wwwacct is properly setup
-run_api_or_die(qw{whmapi1 sethostname hostname=elevate.os.tld});
-run_or_die(qw{/usr/local/cpanel/scripts/mkwwwacctconf --reset});
-
-# Make sure task queue is clear before starting this
-print "Clearing the task queue\n";
-run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
+my $license_check_out = run_or_die(qw{/usr/local/cpanel/cpkeyclt --force-no-tty-check});
+die "Failed to get a valid cPanel license\n" unless grep { $_ =~ m/Update succeeded/ } split /\n/, $license_check_out;
 
 # RE-1179 / RE-1244
 my @pkgs_to_install = qw{
