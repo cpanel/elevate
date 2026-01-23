@@ -9655,7 +9655,10 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
     sub makecache ($self) {
         my $pkgmgr = $self->_pkgmgr();
 
-        my $out    = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
+        my $out = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
+
+        return '' if $out->{status} == 0;
+
         my $stderr = join "\n", @{ $out->{stderr} };
         return $stderr;
     }
