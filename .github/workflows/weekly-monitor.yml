@@ -17,7 +17,7 @@ name: Monitor Weekly Test Results
 
 on:
   schedule:
-    - cron: '0 16 * * 1'
+    - cron: '0 16 * * 5'
   workflow_dispatch:    # Allow manual triggering for testing
     inputs:
       hours_back:

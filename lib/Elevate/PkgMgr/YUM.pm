@@ -256,7 +256,10 @@ sub update_allow_erasing ( $self, @additional_args ) {
 sub makecache ($self) {
     my $pkgmgr = $self->_pkgmgr();
 
-    my $out    = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
+    my $out = $self->ssystem_capture_output( $pkgmgr, 'makecache' );
+
+    return '' if $out->{status} == 0;
+
     my $stderr = join "\n", @{ $out->{stderr} };
     return $stderr;
 }
