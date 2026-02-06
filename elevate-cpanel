@@ -1289,8 +1289,6 @@ EOS
     use Elevate::PkgMgr    ();
     use Elevate::StageFile ();
 
-    use Try::Tiny;
-
     use Cwd ();
 
     # use Log::Log4perl qw(:easy);
@@ -1327,14 +1325,8 @@ EOS
 
         INFO('Restoring cPanel yum-based-plugins');
 
-        try {
-            Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
-        }
-        catch {
-            my $plugins = join( ' ', @$yum_arch_plugins );
-            WARN("Failed to reinstall cPanel plugins:  $plugins");
-        };
-
+        Elevate::PkgMgr::remove(@$yum_arch_plugins);
+        Elevate::PkgMgr::install(@$yum_arch_plugins);
         return;
     }
 
