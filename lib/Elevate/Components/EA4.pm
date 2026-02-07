@@ -40,8 +40,11 @@ use Elevate::StageFile ();
 
 use Cpanel::EA4::Install    ();
 use Cpanel::JSON            ();
+use Cpanel::PackMan         ();
 use Cpanel::Pkgr            ();
 use Cpanel::SafeRun::Simple ();
+
+use Path::Tiny ();
 
 use Cwd           ();
 use Log::Log4perl qw(:easy);
@@ -93,6 +96,13 @@ sub _cleanup_rpm_db ($self) {
 
     # remove all ea- packages
     Elevate::PkgMgr::remove('ea-*');
+
+    # Remove any additional packages included in EA4 now that this is supported
+    # Only do this if additional prefix packages have been added
+    if ( $self->_has_non_ea_prefix_packages() ) {
+        my @supported_non_ea_prefix_packages = $self->_get_installed_non_ea_prefix_supported_packages();
+        Elevate::PkgMgr::remove(@supported_non_ea_prefix_packages);
+    }
 
     return;
 }
@@ -156,9 +166,20 @@ sub _backup_config_files ($self) {
 
     Elevate::StageFile::remove_from_stage_file('ea4_config_files');
 
-    my $ea4_config_files = Elevate::PkgMgr::get_config_files_for_pkg_prefix('ea-*');
+    my $ea4_config_files;
+    if ( $self->_has_non_ea_prefix_packages() ) {
+        my @supported_non_ea_prefix_packages = $self->_get_installed_non_ea_prefix_supported_packages();
 
-    # Filter out any dropped packages since they will be installed
+        $ea4_config_files = Elevate::PkgMgr::get_config_files_for_pkg_prefix(
+            'ea-*',
+            @supported_non_ea_prefix_packages,
+        );
+    }
+    else {
+        $ea4_config_files = Elevate::PkgMgr::get_config_files_for_pkg_prefix('ea-*');
+    }
+
+    # Filter out any dropped packages since they will NOT be installed
     # post distro upgrade
     my $stash        = Elevate::StageFile::read_stage_file();
     my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} // {};
@@ -380,6 +401,48 @@ sub _get_php_usage ($self) {
     }
 
     return $php_usage;
+}
+
+=head2 _get_installed_non_ea_prefix_supported_packages 
+
+The EA4 support for non-ea prefix's is described here:
+
+https://github.com/webpros-cpanel/ea-cpanel-tools#ea4-packages-that-do-not-have-the-ea--prefix-in-their-name
+
+NOTE: The code below is taken from ea_install_profile provided via ea-cpanel-tools
+      so we are gathering these additional prefixes in the same manner that EA4 does
+
+=cut
+
+my @server_pkgs;
+
+sub _get_installed_non_ea_prefix_supported_packages ($self) {
+    return @server_pkgs if scalar @server_pkgs;
+
+    return if $Cpanel::PackMan::VERSION < 0.03;
+
+    my @addl_prefixes = eval {
+        map { $_->basename } Path::Tiny::path("/etc/cpanel/ea4/additional-pkg-prefixes/")->children;
+    };
+
+    # Do not make the expensive call to Cpanel::PackMan unless there are
+    # additional prefix files to check
+    return unless scalar @addl_prefixes;
+
+    my @supported_server_pkgs;
+    for my $prefix (@addl_prefixes) {
+        push @supported_server_pkgs, Cpanel::PackMan->instance->list( 'prefix' => "$prefix-" );
+    }
+
+    my $installed_packages = Elevate::PkgMgr::get_installed_pkgs();
+    @server_pkgs = grep { exists $installed_packages->{$_} } @supported_server_pkgs;
+
+    return @server_pkgs;
+}
+
+sub _has_non_ea_prefix_packages ($self) {
+    my @additional_prefix_packages = $self->_get_installed_non_ea_prefix_supported_packages();
+    return scalar @additional_prefix_packages > 0 ? 1 : 0;
 }
 
 1;

@@ -34,8 +34,11 @@ sub name () {
     return instance()->name();
 }
 
-sub get_config_files_for_pkg_prefix ($prefix) {
-    return instance()->get_config_files_for_pkg_prefix($prefix);
+sub get_config_files_for_pkg_prefix (@pkg_prefixes) {
+    die "Invalid signature given for Elevate::PkgMgr::get_config_files_for_pkg_prefix\n"
+      unless scalar @pkg_prefixes;
+
+    return instance()->get_config_files_for_pkg_prefix(@pkg_prefixes);
 }
 
 sub get_config_files ($pkgs) {
@@ -62,8 +65,8 @@ sub force_upgrade_pkg ($pkg) {
     return instance()->force_upgrade_pkg($pkg);
 }
 
-sub get_installed_pkgs ( $filter = undef ) {
-    return instance()->get_installed_pkgs($filter);
+sub get_installed_pkgs (@filter) {
+    return instance()->get_installed_pkgs(@filter);
 }
 
 sub get_cpanel_arch_pkgs () {

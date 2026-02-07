@@ -503,7 +503,7 @@ sub test_backup_and_restore_ea4_profile_cleanup_dropped_packages : Test(60) ($se
 
 }
 
-sub test_backup_and_restore_config_files : Test(50) ($self) {
+sub test_backup_and_restore_config_files : Test(60) ($self) {
     my %os_hash = $self->_get_os_hash();
     foreach my $distro ( sort keys %os_hash ) {
         foreach my $version ( @{ $os_hash{$distro} } ) {
@@ -523,19 +523,26 @@ sub test_backup_and_restore_config_files : Test(50) ($self) {
             my $mock_pkgmgr = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
             $mock_pkgmgr->redefine(
                 ssystem_capture_output => sub ( $, @args ) {
-                    my $pkg         = pop @args;
-                    my $config_file = $pkg =~ /foo$/ ? '/tmp/foo.conf' : '/tmp/bar.conf';
-                    my $ret         = {
+                    my $pkg = pop @args;
+
+                    my $config_file;
+                    $config_file = '/tmp/foo.conf'      if $pkg =~ /foo$/;
+                    $config_file = '/tmp/bar.conf'      if $pkg =~ /bar$/;
+                    $config_file = '/tmp/altcloud.conf' if $pkg =~ /cloud$/;
+
+                    my $ret = {
                         status => 0,
                         stdout => $pkg eq 'ea-nginx' ? [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ] : [$config_file],
                     };
+
                     return $ret;
                 },
                 get_installed_pkgs => sub {
                     return {
-                        'ea-foo'   => 1,
-                        'ea-bar'   => 1,
-                        'ea-nginx' => 1,
+                        'ea-foo'    => 1,
+                        'ea-bar'    => 1,
+                        'ea-nginx'  => 1,
+                        'alt-cloud' => 1,
                     };
                 },
             );
@@ -548,17 +555,19 @@ sub test_backup_and_restore_config_files : Test(50) ($self) {
                 Elevate::StageFile::read_stage_file(),
                 {
                     ea4_config_files => {
-                        'ea-foo'   => ['/tmp/foo.conf'],
-                        'ea-bar'   => ['/tmp/bar.conf'],
-                        'ea-nginx' => [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ],
+                        'ea-foo'    => ['/tmp/foo.conf'],
+                        'ea-bar'    => ['/tmp/bar.conf'],
+                        'ea-nginx'  => [ '/etc/nginx/conf.d/ea-nginx.conf', '/etc/nginx/nginx.conf' ],
+                        'alt-cloud' => ['/tmp/altcloud.conf'],
                     },
                 },
                 'stage file contains the expected config files',
             );
 
-            my $mock_foo   = Test::MockFile->file( '/tmp/foo.conf.rpmsave',         '' );
-            my $mock_bar   = Test::MockFile->file( '/tmp/bar.conf.rpmsave',         '' );
-            my $mock_nginx = Test::MockFile->file( '/etc/nginx/nginx.conf.rpmsave', '' );
+            my $mock_foo      = Test::MockFile->file( '/tmp/foo.conf.rpmsave',         '' );
+            my $mock_bar      = Test::MockFile->file( '/tmp/bar.conf.rpmsave',         '' );
+            my $mock_nginx    = Test::MockFile->file( '/etc/nginx/nginx.conf.rpmsave', '' );
+            my $mock_altcloud = Test::MockFile->file( '/tmp/altcloud.conf.rpmsave',    '' );
 
             is( $ea4->_restore_config_files(), undef, '_restore_config_files() successfully completes' );
 
@@ -568,10 +577,12 @@ sub test_backup_and_restore_config_files : Test(50) ($self) {
                     '/tmp/foo.conf'         => 1,
                     '/tmp/bar.conf'         => 1,
                     '/etc/nginx/nginx.conf' => 1,
+                    '/tmp/altcloud.conf'    => 1,
                 },
                 'The expected files are restored',
             );
 
+            message_seen( INFO => qr/^Restoring config files for package: 'alt-cloud'/ );
             message_seen( INFO => qr/^Restoring config files for package: 'ea-bar'/ );
             message_seen( INFO => qr/^Restoring config files for package: 'ea-foo'/ );
             message_seen( INFO => qr/^Restoring config files for package: 'ea-nginx'/ );
@@ -1029,6 +1040,123 @@ sub test__get_php_versions_in_use : Test(7) ($self) {
     );
 
     no_messages_seen();
+    return;
+}
+
+sub test__get_installed_non_ea_prefix_supported_packages : Test(4) ($self) {
+
+    my $cpev = cpev->new();
+    my $ea4  = $cpev->get_component('EA4');
+
+    my $mock_path_tiny = Test::MockModule->new('Path::Tiny');
+    $mock_path_tiny->redefine(
+        path => sub { die "do not call this yet\n"; },
+    );
+
+    local $Cpanel::PackMan::VERSION = 0.02;
+
+    is(
+        $ea4->_get_installed_non_ea_prefix_supported_packages,
+        undef,
+        'Returns undef when Cpanel::PackMan version does not support alt prefixes',
+    );
+
+    local $Cpanel::PackMan::VERSION = 0.03;
+
+    $mock_path_tiny->redefine(
+        path => sub {
+            my ($dir) = @_;
+            my $self = [
+                $dir,
+            ];
+            return bless $self, 'Path::Tiny';
+        },
+        children => sub {
+            my ($self) = @_;
+            return $self;
+        },
+        basename => sub { return; },
+    );
+
+    my $mock_packman = Test::MockModule->new('Cpanel::PackMan');
+    $mock_packman->redefine(
+        instance => sub { die "do not call this yet\n"; },
+    );
+
+    is(
+        $ea4->_get_installed_non_ea_prefix_supported_packages,
+        undef,
+        'Returns undef when the additional prefix dir does not exist / have files in it',
+    );
+
+    $mock_path_tiny->redefine(
+        basename => sub { return 'alt'; },
+    );
+
+    $mock_packman->redefine(
+        instance => sub {
+            my ($class) = @_;
+            return bless {}, $class;
+        },
+        list => sub {
+            return (
+                'alt-php1',
+                'alt-php2',
+                'alt-php42',
+            );
+        },
+    );
+
+    my $mock_elevate_pkgmgr = Test::MockModule->new('Elevate::PkgMgr');
+    $mock_elevate_pkgmgr->redefine(
+        get_installed_pkgs => sub {
+            return {
+                'alt-php42' => 1,
+            };
+        },
+    );
+
+    my @pkgs = $ea4->_get_installed_non_ea_prefix_supported_packages;
+    is(
+        \@pkgs,
+        ['alt-php42'],
+        'Returns the installed alt prefix package',
+    );
+
+    @pkgs = undef;
+
+    $mock_path_tiny->redefine(
+        path => sub { die "should be cached\n"; },
+    );
+
+    @pkgs = $ea4->_get_installed_non_ea_prefix_supported_packages;
+    is(
+        \@pkgs,
+        ['alt-php42'],
+        '_get_installed_non_ea_prefix_supported_packages results are cached',
+    );
+
+    return;
+}
+
+sub test__has_non_ea_prefix_packages : Test(2) ($self) {
+
+    my $cpev = cpev->new();
+    my $ea4  = $cpev->get_component('EA4');
+
+    my $mock_ea4 = Test::MockModule->new('Elevate::Components::EA4');
+    $mock_ea4->redefine(
+        _get_installed_non_ea_prefix_supported_packages => sub { return; },
+    );
+
+    is( $ea4->_has_non_ea_prefix_packages, 0, 'Returns false when there are no additional prefix packages installed' );
+
+    $mock_ea4->redefine(
+        _get_installed_non_ea_prefix_supported_packages => sub { return ( 1, 2, 3 ); },
+    );
+
+    is( $ea4->_has_non_ea_prefix_packages, 1, 'Returns true when there are additional prefix packages installed' );
+
     return;
 }
 
