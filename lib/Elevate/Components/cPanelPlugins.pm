@@ -35,8 +35,6 @@ use Elevate::OS        ();
 use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
-use Try::Tiny;
-
 use Cwd           ();
 use Log::Log4perl qw(:easy);
 
@@ -72,14 +70,11 @@ sub post_distro_upgrade ($self) {
 
     INFO('Restoring cPanel yum-based-plugins');
 
-    try {
-        Elevate::PkgMgr::reinstall(@$yum_arch_plugins);
-    }
-    catch {
-        my $plugins = join( ' ', @$yum_arch_plugins );
-        WARN("Failed to reinstall cPanel plugins:  $plugins");
-    };
-
+    # Do not reinstall here due to internal OBS build numbers
+    # This can result in the package version being slightly different between
+    # OS versions
+    Elevate::PkgMgr::remove(@$yum_arch_plugins);
+    Elevate::PkgMgr::install(@$yum_arch_plugins);
     return;
 }
 

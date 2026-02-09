@@ -131,19 +131,26 @@ my %os_hash = (
                 },
             };
 
-            my @reinstall_args;
+            my %plugin_pkgs_to_restore;
             $mock_pkgmgr->redefine(
-                reinstall => sub { shift; @reinstall_args = @_; },
+                remove  => sub { shift; $plugin_pkgs_to_restore{remove}  = \@_; },
+                install => sub { shift; $plugin_pkgs_to_restore{install} = \@_; },
             );
 
             is( $comp->post_distro_upgrade, undef, 'Return undef' );
             message_seen( INFO => 'Restoring cPanel yum-based-plugins' );
             is(
-                \@reinstall_args,
-                [
-                    'bob',
-                    'uncle',
-                ],
+                \%plugin_pkgs_to_restore,
+                {
+                    remove => [
+                        'bob',
+                        'uncle',
+                    ],
+                    install => [
+                        'bob',
+                        'uncle',
+                    ],
+                },
                 'Reinstalls the correctly staged packages',
             );
         }
