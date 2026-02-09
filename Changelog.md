@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2026-02-09** - version 78
+
+* Fixed case RE-1524:  Have cPanel plugins component remove then install packages instead of reinstalling them to avoid failures due to package version differences between distros
+
 ##### **2026-01-08** - version 77
 
 * Fixed case CPANEL-50882: Make cPanel plugin reinstall non-fatal
