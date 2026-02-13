@@ -35,9 +35,11 @@ sub _pkgmgr ($self) {
     die "_pkgmgr unimplemented";
 }
 
-sub get_config_files_for_pkg_prefix ( $self, $prefix ) {
+sub get_config_files_for_pkg_prefix ( $self, @pkg_prefixes ) {
+    die "Invalid signature given for Elevate::PkgMgr::get_config_files_for_pkg_prefix\n"
+      unless scalar @pkg_prefixes;
 
-    my $installed_pkgs = $self->get_installed_pkgs($prefix);
+    my $installed_pkgs = $self->get_installed_pkgs(@pkg_prefixes);
     my @wanted_pkgs    = sort keys %$installed_pkgs;
     my $config_files   = $self->get_config_files( \@wanted_pkgs );
 
@@ -84,8 +86,8 @@ sub force_upgrade_pkg ( $self, $pkg ) {
     die "force_upgrade_pkg unimplemented";
 }
 
-sub get_installed_pkgs ( $self, $filter = undef ) {
-    return $filter ? Cpanel::Pkgr::installed_packages($filter) : Cpanel::Pkgr::installed_packages();
+sub get_installed_pkgs ( $self, @filter ) {
+    return scalar @filter > 0 ? Cpanel::Pkgr::installed_packages(@filter) : Cpanel::Pkgr::installed_packages();
 }
 
 sub get_cpanel_arch_pkgs ($self) {

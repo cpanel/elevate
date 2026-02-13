@@ -228,7 +228,13 @@ sub update_with_options ( $self, $options, $pkgs ) {
 }
 
 sub update_allow_erasing ( $self, @additional_args ) {
-    $self->ssystem_and_die( $apt_get, '-y', 'autoremove', '--purge' );
+
+    my @apt_args = (
+        '-y',
+        APT_NON_INTERACTIVE_ARGS,
+    );
+
+    $self->ssystem_and_die( $apt_get, @apt_args, 'autoremove', '--purge' );
     $self->update();
     return;
 }
