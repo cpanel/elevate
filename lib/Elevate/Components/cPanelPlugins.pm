@@ -64,7 +64,12 @@ sub pre_distro_upgrade ($self) {
 
     return unless @installed_arch_cpanel_plugins;
 
-    Elevate::StageFile::update_stage_file( { restore => { yum => \@installed_arch_cpanel_plugins } } );
+    Elevate::StageFile::remove_from_stage_file('cpanel_plugin_config_files');
+
+    my $plugin_config_files = Elevate::PkgMgr::get_config_files_for_pkg_prefix(@installed_arch_cpanel_plugins);
+
+    Elevate::StageFile::update_stage_file( { plugin_config_files => $plugin_config_files } );
+    Elevate::StageFile::update_stage_file( { restore             => { yum => \@installed_arch_cpanel_plugins } } );
 
     return;
 }
@@ -85,6 +90,15 @@ sub post_distro_upgrade ($self) {
     # OS versions
     Elevate::PkgMgr::remove(@$yum_arch_plugins);
     Elevate::PkgMgr::install(@$yum_arch_plugins);
+
+    my $config_files = $stash->{plugin_config_files};
+    foreach my $key ( sort keys %$config_files ) {
+        INFO("Restoring config files for package: '$key'");
+
+        my @config_files_to_restore = @{ $config_files->{$key} };
+        Elevate::PkgMgr::restore_config_files(@config_files_to_restore);
+    }
+
     return;
 }
 

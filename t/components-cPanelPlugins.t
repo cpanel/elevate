@@ -46,7 +46,8 @@ my %os_hash = (
         foreach my $version ( @{ $os_hash{$distro} } ) {
             set_os_to( $distro, $version );
 
-            my $cpanel_plugin_pkgs = [];
+            my $cpanel_plugin_pkgs  = [];
+            my $plugin_config_files = {};
             $mock_pkgmgr->redefine(
                 pkg_list => sub {
                     return {
@@ -64,6 +65,17 @@ my %os_hash = (
                       },
                       ;
                 },
+                get_config_files_for_pkg_prefix => sub {
+                    shift;
+                    my @installed_plugins = @_;
+
+                    foreach my $plugin (@installed_plugins) {
+                        note "mock get_config_files_for_pkg_prefix plugin: $plugin";
+                        $plugin_config_files->{$plugin} = $plugin eq 'bob' ? ['/etc/bob.conf'] : [];
+                    }
+
+                    return $plugin_config_files;
+                },
             );
 
             my $stage_info = {};
@@ -73,6 +85,7 @@ my %os_hash = (
 
             is( $comp->pre_distro_upgrade, undef, 'Returns undef' );
             is( $stage_info,               {},    'Stage file is not updated when there are no installed cPanel plugins' );
+            is( $plugin_config_files,      {},    'No config files are found if there are not anyy installed cPanel plugins' );
 
             $cpanel_plugin_pkgs = [
                 {
@@ -95,6 +108,14 @@ my %os_hash = (
                     },
                 },
                 'The expected packages are listed in the stage file',
+            );
+            is(
+                $plugin_config_files,
+                {
+                    bob   => ['/etc/bob.conf'],
+                    uncle => [],
+                },
+                'The expected config files are listed for the installed packages',
             );
         }
     }
@@ -129,16 +150,24 @@ my %os_hash = (
                         'uncle',
                     ],
                 },
+                plugin_config_files => {
+                    bob   => ['/etc/bob.conf'],
+                    uncle => [],
+                },
             };
 
             my %plugin_pkgs_to_restore;
+            my $config_files_to_restore = [];
             $mock_pkgmgr->redefine(
-                remove  => sub { shift; $plugin_pkgs_to_restore{remove}  = \@_; },
-                install => sub { shift; $plugin_pkgs_to_restore{install} = \@_; },
+                remove               => sub { shift; $plugin_pkgs_to_restore{remove}  = \@_; },
+                install              => sub { shift; $plugin_pkgs_to_restore{install} = \@_; },
+                restore_config_files => sub { shift; push @$config_files_to_restore, \@_; },
             );
 
             is( $comp->post_distro_upgrade, undef, 'Return undef' );
             message_seen( INFO => 'Restoring cPanel yum-based-plugins' );
+            message_seen( INFO => "Restoring config files for package: 'bob'" );
+            message_seen( INFO => "Restoring config files for package: 'uncle'" );
             is(
                 \%plugin_pkgs_to_restore,
                 {
@@ -153,6 +182,18 @@ my %os_hash = (
                 },
                 'Reinstalls the correctly staged packages',
             );
+            is(
+                $config_files_to_restore,
+                [
+                    [
+                        '/etc/bob.conf',
+                    ],
+                    [],
+                ],
+                'Expected config files are restored',
+            );
+
+            no_messages_seen();
         }
     }
 }
