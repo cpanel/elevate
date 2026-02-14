@@ -1306,7 +1306,10 @@ EOS
         my $installed    = Elevate::PkgMgr::pkg_list();
         my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
         foreach my $repo (@cpanel_repos) {
-            push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
+
+            my @installed_pkgs_for_repo = grep { $_ !~ /^cpanel-monitoring-(?:agent|cpanel-plugin|whm-plugin)$/ } map { $_->{'package'} } $installed->{$repo}->@*;
+
+            push @installed_arch_cpanel_plugins, @installed_pkgs_for_repo;
         }
 
         return unless @installed_arch_cpanel_plugins;
@@ -9474,7 +9477,8 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
 
     use cPstrict;
 
-    use Cpanel::OS ();
+    use Cpanel::OS              ();
+    use Cpanel::SafeRun::Errors ();
 
     use Elevate::OS ();
 

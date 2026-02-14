@@ -49,7 +49,17 @@ sub pre_distro_upgrade ($self) {
     my $installed    = Elevate::PkgMgr::pkg_list();
     my @cpanel_repos = grep { m/^cpanel-/ } keys %$installed;
     foreach my $repo (@cpanel_repos) {
-        push @installed_arch_cpanel_plugins, map { $_->{'package'} } $installed->{$repo}->@*;
+
+        # At some point, we shipped these three packages on c7:
+        #     cpanel-monitoring-agent
+        #     cpanel-monitoring-cpanel-plugin
+        #     cpanel-monitoring-whm-plugin
+        # but, we either renamed them or removed them from the mirrors
+        # They do not exist at all on a8, a9, or a10 and they no longer exist on c7
+        # As such, lets just filter them out
+        my @installed_pkgs_for_repo = grep { $_ !~ /^cpanel-monitoring-(?:agent|cpanel-plugin|whm-plugin)$/ } map { $_->{'package'} } $installed->{$repo}->@*;
+
+        push @installed_arch_cpanel_plugins, @installed_pkgs_for_repo;
     }
 
     return unless @installed_arch_cpanel_plugins;
