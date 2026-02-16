@@ -1,5 +1,12 @@
 ## ELevate Change Log
 
+##### **2026-02-16** - version 79
+
+* Fixed case RE-1654: Preserve config files for cpanel-plugins packages
+* Fixed case RE-1654: Ignore cpanel-plugins packages that are no longer supported
+* Fixed case RE-1650: Teach the script about EA4's support for additional package prefixes
+* Fixed case RE-1650: Ensure apt autoremove is noninteractive
+
 ##### **2026-02-09** - version 78
 
 * Fixed case RE-1524:  Have cPanel plugins component remove then install packages instead of reinstalling them to avoid failures due to package version differences between distros
