@@ -12,7 +12,8 @@ Logic wrapping the RHEL based package managers
 
 use cPstrict;
 
-use Cpanel::OS ();
+use Cpanel::OS              ();
+use Cpanel::SafeRun::Errors ();
 
 use Elevate::OS ();
 
