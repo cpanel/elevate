@@ -172,8 +172,8 @@ jobs:
           username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: "22"
-          timeout: 45m
-          command_timeout: 45m
+          timeout: 90m
+          command_timeout: 90m
           envs: REPODIR,CLOUDLINUX_LICENSE_KEY
           script: |
             echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
