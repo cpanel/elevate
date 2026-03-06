@@ -67,7 +67,7 @@ jobs:
               fi
             fi
           done
-          terraform apply -var="image_name=11.126.0.* on AlmaLinux 8" -var="cpanel_release_version=126" -no-color -auto-approve
+          terraform apply -var="image_name=11.134.0.* on AlmaLinux 8" -var="cpanel_release_version=134" -no-color -auto-approve
           terraform output -json > ${{ github.run_id }}-tf.out.json
           mv -v .terraform.lock.hcl terraform.lock.hcl
       - name: Upload Terraform Artifacts
@@ -524,4 +524,4 @@ jobs:
               fi
             fi
           done
-          terraform destroy -var="image_name=11.126.0.* on AlmaLinux 8" -var="cpanel_release_version=126" -no-color -auto-approve
+          terraform destroy -var="image_name=11.134.0.* on AlmaLinux 8" -var="cpanel_release_version=134" -no-color -auto-approve

@@ -19,7 +19,7 @@ To successfully run the ELevate script, you must meet the following conditions:
 * Your system runs CentOS 7, CloudLinux 7, Ubuntu 20, Ubuntu 22, AlmaLinux OS 8, CloudLinux 8, or AlmaLinux OS 9.
   * Systems that run CentOS 7 or CloudLinux 7 **must** run cPanel & WHM version 110.
   * Systems that run Ubuntu 20 **must** run cPanel & WHM version 118.
-  * Systems that run Ubuntu 22 **must** run cPanel & WHM version 132.
+  * Systems that run Ubuntu 22 **must** run cPanel & WHM version 134.
   * Systems that run AlmaLinux OS 8, CloudLinux 8, or AlmaLinux OS 9 **must** run on a named tier (LTS, STABLE, RELEASE, CURRENT, or EDGE) of cPanel & WHM
 * Your system **must** run the most recent [minor version](https://docs.cpanel.net/knowledge-base/cpanel-product/product-versions-and-the-release-process/#version-numbers) of its cPanel version for your operating system.
 * cPanel **must** have a valid license.
