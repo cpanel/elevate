@@ -79,6 +79,36 @@ if ( Cpanel::OS::distro() eq 'centos' && Cpanel::OS::major() == 7 ) {
 print "Clearing the task queue\n";
 run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
+# Deal with the fact that we can't upgrade out of the box with the default EA4
+# profile on CloudLinux 7 systems
+if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) {
+    print "Removing dropped packages for CloudLinux 7 systems so we can upgrade\n";
+
+    my @dropped_pkgs = qw{
+      alt-php52-percona5.7
+      alt-php53-pear-phpunit
+      alt-php53-percona5.7
+      alt-php53-phalcon
+      alt-php54-pear-phpunit
+      alt-php54-percona5.7
+      alt-php54-phalcon
+      alt-php55-pear-phpunit
+      alt-php55-percona5.7
+      alt-php56-percona5.7
+      alt-php70-pear-phpunit
+      alt-php70-percona5.7
+      alt-php71-pear-phpunit
+      alt-php71-percona5.7
+      alt-php72-percona5.7
+      alt-php72-percona5.7-zts
+      alt-php73-percona5.7
+      alt-php74-percona5.7
+      alt-php80-percona5.7
+    };
+
+    run_or_die( '/usr/bin/yum', '-y', 'remove', @dropped_pkgs );
+}
+
 # Ensure mysql and nameserver services are running
 my $restart_database_output = run_or_die(qw{/usr/local/cpanel/scripts/restartsrv_mysql});
 die "The database server failed to start\n" unless grep { $_ =~ m/restarted successfully/ } split /\n/, $restart_database_output;
