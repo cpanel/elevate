@@ -497,7 +497,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | lts_supported | CloudLinux | 7     | 110           |
 | lts_supported | CloudLinux | 8     | undef         |
 | lts_supported | Ubuntu     | 20    | 118           |
-| lts_supported | Ubuntu     | 22    | 132           |
+| lts_supported | Ubuntu     | 22    | 134           |
 +---------------+------------+-------+---------------+
 ```
 ---

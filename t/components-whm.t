@@ -114,7 +114,7 @@ my %os_hash = (
             my $expected_target_os       = Elevate::OS::upgrade_to_pretty_name();
             my $expected_upgrade_version = 110;
             if ( $distro eq 'ubuntu' ) {
-                $expected_upgrade_version = $version == 20 ? 118 : 132;
+                $expected_upgrade_version = $version == 20 ? 118 : 134;
             }
             like(
                 $whm->_blocker_lts_is_supported(),
