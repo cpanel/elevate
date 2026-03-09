@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2026-03-09** - version 80
+
+* Fixed case RE-1648: Update supported cPanel version for u22->u24 upgrades to 134
+
 ##### **2026-02-16** - version 79
 
 * Fixed case RE-1654: Preserve config files for cpanel-plugins packages
