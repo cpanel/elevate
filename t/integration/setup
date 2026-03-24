@@ -104,6 +104,18 @@ if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) {
       alt-php73-percona5.7
       alt-php74-percona5.7
       alt-php80-percona5.7
+      alt-php54-pecl-brotli
+      alt-php55-pecl-brotli
+      alt-php56-pecl-brotli
+      alt-php70-pecl-brotli
+      alt-php71-pecl-brotli
+      alt-php72-pecl-brotli
+      alt-php73-pecl-brotli
+      alt-php74-pecl-brotli
+      alt-php80-pecl-brotli
+      alt-php81-pecl-brotli
+      alt-php82-pecl-brotli
+      alt-php83-pecl-brotli
     };
 
     run_or_die( '/usr/bin/yum', '-y', 'remove', @dropped_pkgs );
@@ -114,6 +126,18 @@ if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 8 ) {
 
     my @dropped_pkgs = qw{
       alt-php74-leveldb
+      alt-php54-pecl-brotli
+      alt-php55-pecl-brotli
+      alt-php56-pecl-brotli
+      alt-php70-pecl-brotli
+      alt-php71-pecl-brotli
+      alt-php72-pecl-brotli
+      alt-php73-pecl-brotli
+      alt-php74-pecl-brotli
+      alt-php80-pecl-brotli
+      alt-php81-pecl-brotli
+      alt-php82-pecl-brotli
+      alt-php83-pecl-brotli
     };
 
     run_or_die( '/usr/bin/dnf', '-y', 'remove', @dropped_pkgs );
