@@ -188,7 +188,10 @@ jobs:
             echo "gpgcheck=1" >> /etc/yum.repos.d/cloudlinux-base.repo
             echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CloudLinux" >> /etc/yum.repos.d/cloudlinux-base.repo
             echo "" >> /etc/yum.repos.d/cloudlinux-base.repo
-            /usr/bin/yum erase -y awscli git-lfs
+            rm -f /etc/yum.repos.d/almalinux*.repo
+            /usr/bin/yum -y reinstall cloudlinux-release
+            sed -i 's/\[powertools\]/[cloudlinux-PowerTools]/' /etc/yum.repos.d/almalinux-powertools.repo
+            /usr/bin/yum erase -y awscli git-lfs kmod-lve-2.0-43
             rpm -evh kmod-lve-2.0-43.el8.x86_64 || true
             echo "yum remove -y `yum list installed | awk '$3~/cloudlinux-PowerTools/{printf "%s ", $1}'`" | sh
             echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-BaseOS/{printf "%s ", $1}'` --disablerepo=cloudlinux-BaseOS --enablerepo=cloudlinux-base" | sh
