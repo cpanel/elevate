@@ -2,7 +2,9 @@ name: Openstack Pruner
 run-name: Openstack Pruner
 on:
   schedule:
-    - cron: "5 * * * *"
+      # Since this is a small project, once per day is all the pruner needs to run
+      # Run once per day at 11 PM CDT
+    - cron: "0 4 * * *"
   workflow_dispatch:
 jobs:
   run-pruner:
