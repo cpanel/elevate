@@ -39,7 +39,7 @@ use constant os_provides_sha1_module          => 0;
 use constant pretty_name                      => 'AlmaLinux 9';
 use constant should_archive_elevate_files     => 1;
 use constant supports_cpaddons                => 0;
-use constant supports_kernelcare              => 0;
+use constant supports_kernelcare              => 1;
 use constant supports_named_tiers             => 1;
 use constant upgrade_to_pretty_name           => 'AlmaLinux 10';
 
