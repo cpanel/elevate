@@ -1043,7 +1043,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | key                 | distro     | major | supports_kernelcare |
 +---------------------+------------+-------+---------------------+
 | supports_kernelcare | AlmaLinux  | 8     | 1                   |
-| supports_kernelcare | AlmaLinux  | 9     | 0                   |
+| supports_kernelcare | AlmaLinux  | 9     | 1                   |
 | supports_kernelcare | CentOS     | 7     | 1                   |
 | supports_kernelcare | CloudLinux | 7     | 1                   |
 | supports_kernelcare | CloudLinux | 8     | 1                   |
