@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2026-04-21** - version 81
+
+* Fixed case CPANEL-48721: Enable KernelCare support for RHEL 10 based systems
+
 ##### **2026-03-09** - version 80
 
 * Fixed case RE-1648: Update supported cPanel version for u22->u24 upgrades to 134
