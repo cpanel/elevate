@@ -23,6 +23,6 @@ jobs:
     container:
       image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run Openstack Pruner
         run: ./.github/workflows/openstack/prune_openstack

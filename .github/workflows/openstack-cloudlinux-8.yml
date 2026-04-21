@@ -40,7 +40,7 @@ jobs:
       VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
       REPODIR: ${{ steps.expose_repodir.outputs.REPODIR }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Packages Needed by GitHub Network Check
         run: |
@@ -219,7 +219,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -265,7 +265,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -287,7 +287,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Monitor Elevate for Stage 3 Reboot
         uses: appleboy/ssh-action@v1.1.0
@@ -315,7 +315,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -361,7 +361,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -407,7 +407,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -453,7 +453,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -496,7 +496,7 @@ jobs:
     needs: verify_upgraded_os
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.8

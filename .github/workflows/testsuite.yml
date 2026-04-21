@@ -68,7 +68,7 @@ jobs:
           $CPANEL_PERL -MConfig -E 'say $Config{vendorbin}' >> $GITHUB_PATH
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - run: perl -V
 
