@@ -71,7 +71,7 @@ jobs:
           terraform output -json > ${{ github.run_id }}-tf.out.json
           mv -v .terraform.lock.hcl terraform.lock.hcl
       - name: Upload Terraform Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ github.run_id }}-ubuntu22-terraform.tfstate
           path: ${{ env.tf_working_directory }}/terraform*
@@ -473,7 +473,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download Terraform State
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v7
         with:
           name: ${{ github.run_id }}-ubuntu22-terraform.tfstate
           path: ${{ env.tf_working_directory }}
