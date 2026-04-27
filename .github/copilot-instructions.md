@@ -53,3 +53,16 @@ The public docs site at <https://cpanel.github.io/elevate> is built with
 - To update documentation, edit the Markdown files under `docs-website-src/content/`.
 - To preview locally: run `hugo -D` from the `docs-website-src/` directory
   (requires Hugo v0.91.2).
+
+## Commit Message Format
+
+Commits follow the cPanel/WHM convention:
+
+1. **Subject line**: Short summary (imperative mood, ≤50 chars), no case number.
+2. **Blank line**
+3. **Body**: Detailed description; **must begin** with `Case PROJECT-XXXXX:` if a ticket/case exists (use the branch name as the case number when on a case branch).
+4. **Trailers** (in this order):
+   - `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`
+   - `Changelog:` — leave empty for internal-only changes; describe user-visible changes otherwise.
+
+`Changelog:` **must always be the last line** of the commit message.
