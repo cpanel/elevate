@@ -50,5 +50,5 @@ variable "cpanel_release_version" {
 
 variable "flavor_name" {
   type    = string
-  default = "c2.d20.r2048"
+  default = "c2.d40.r2048"
 }
