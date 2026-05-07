@@ -1534,18 +1534,7 @@ sub reboot ($self) {
         return 0;
     }
 
-    Elevate::StageFile::update_stage_file( { is_ran_from_ci => 1 } ) if $self->getopt('is-ran-from-ci');
-    my $is_ci = Elevate::StageFile::read_stage_file( 'is_ran_from_ci', 0 );
-
-    # If this is running from the CI, give extra time for the CI to jump out of the server
-    # Otherwise, give time to ensure display is flushed (using tail...)
-    if ($is_ci) {
-        INFO("CI mode detected, giving extra time to let CI get out of server");
-        sleep(7);
-    }
-    else {
-        sleep(2);
-    }
+    sleep(2);
 
     my $exit = $self->ssystem( '/usr/sbin/reboot', 'now' ) or return 0;
     LOGDIE("Failed to reboot system please correct this and reboot");

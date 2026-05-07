@@ -34,8 +34,29 @@ sub _check_elevate_log_for_REBOOT_STRING {
 
     my $has_continued = 0;
 
+    # If elevate-cpanel dies / hangs after the previous manual reboot
+    # without logging an [ERROR] or [FATAL] line (e.g. the post-reboot
+    # service never re-launches it), File::Tail blocks forever and the
+    # only failure signal becomes appleboy/ssh-action's command_timeout
+    # firing 60 minutes later -- which surfaces as a generic
+    # "Run Command Timeout", not a script failure.  Treat sustained log
+    # silence as a failure so we exit promptly with a clear cause.
+    my $no_activity_timeout = 15 * 60;
+    my $last_activity       = time();
+    $SIG{ALRM} = sub {
+        my $idle = time() - $last_activity;
+        if ( $idle >= $no_activity_timeout ) {
+            my $t = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+            print "## [$t] [ERROR]: No /var/log/elevate-cpanel.log activity for ${idle}s; treating elevate-cpanel as hung.\n";
+            _exit_with_haste(1);
+        }
+        alarm 60;
+    };
+    alarm 60;
+
     $file = File::Tail->new( name => $filepath, maxinterval => .1, adjustafter => 1000, interval => .1, resetafter => 1000000 );
     while ( defined( $line = $file->read ) ) {
+        $last_activity = time();
 
         # --check failed so there is no status
         # just exit in this case
@@ -130,7 +151,15 @@ sub _success_message {
 sub _exit_with_haste {
     my $code = shift;
     print "## [INFO]: Attempting to kill tail and exit_code($code) stage left. ##\n";
-    eval { system(qq{pkill --signal 9 --full "tail -n40 -F /var/log/elevate-cpanel.log"}) };
+
+    # Kill the backgrounded "tail -F /var/log/elevate-cpanel.log" left running
+    # by the surrounding workflow script.  Match on the exact process name
+    # ("tail") rather than --full / cmdline substring: drone-ssh runs the
+    # workflow script via `bash -c "<entire script body>"`, so the bash
+    # process's cmdline contains the tail command string, and a --full match
+    # would SIGKILL our own shell before it can run the remaining steps
+    # (e.g. `shutdown -r +0 &`).
+    eval { system(qq{pkill --signal 9 --exact tail}) };
     print $@ if $@;
     exit $code;
 }
