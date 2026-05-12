@@ -199,3 +199,47 @@ You may also experience the following issues, among others:
 This list is not comprehensive. We **strongly** recommend you back up (and ideally create a snapshot of) your system before you attempt this process.
 
 If you need more help, you can [open a ticket](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
+
+
+### Application Manager (Passenger) Apps and upgrading from AlmaLinux 8 to AlmaLinux 9
+
+During the ELevate process from AlmaLinux 8 to AlmaLinux 9, it automatically updates your Application Manager apps (powered by mod_passenger). ELevate performs the following actions:
+
+* Application registration
+* Apache virtual host configuration
+* The renamed package. For example, `ea-ruby27-mod_passenger` to `ea-apache24-mod-passenger`.
+
+However, your application's runtime dependencies are not migrated and may no longer work on the upgraded OS.
+
+ELevate upgrades the underlying OS, which replaces core language runtimes. For example, it upgrades Python 3.6 to 3.9 and Ruby 2.7 to 3.x. Packages and libraries that you installed against the old runtime (via `pip`, `gem`, `npm`, or similar tools) are still configured for the previous version. After the upgrade, those installed dependencies still exist on disk but may be incompatible with, or invisible to, the new runtime. In some cases, system-level packages that provided dependencies on AlmaLinux 8 may have different names or may no longer be available on AlmaLinux 9.
+
+After you upgrade your OS with ELevate, perform the following steps:
+
+1. Test each application. Use an HTTP request to verify your application responds correctly. An error response (500, connection refused, or a Passenger error page) is the most common indicator that dependencies are broken.
+2. Check the Apache error log for import errors, missing module messages, or gem load failures. Review the following command:
+
+    ```bash
+    tail -100 /usr/local/apache/logs/error_log
+    ```
+3. Reinstall dependencies with the package manager appropriate to the application's language. Run the following commands inside the app directory, as the cPanel user:
+
+    **Python**
+    ```bash
+    pip install -r requirements.txt
+    ```
+    **Ruby**
+    ```bash
+    bundle install
+    ```
+    **Node.js**
+    ```bash
+    npm install
+    ```
+4. Restart Apache with the following script: 
+    ```bash
+    /scripts/restartsrv_httpd
+    ```
+
+You will need to check every cPanel account that had an Application Manager app enabled at the time of ELevate. The upgrade particularly affects apps that use language-specific dependency files (`requirements.txt`, `Gemfile`, `package.json`) or that rely on system packages installed on the AlmaLinux 8 host.
+
+The ELevate upgrade does **not** affect the app's registration in Application Manager, base URI, domain mapping, and Apache include files. 
