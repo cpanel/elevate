@@ -211,7 +211,7 @@ During the ELevate process, it automatically updates your Application Manager ap
 
 However, your application's runtime dependencies are not migrated and may no longer work on the upgraded OS.
 
-ELevate upgrades the underlying OS, which replaces core language runtimes. For example, it upgrades Python 3.6 to 3.9 and Ruby 2.7 to 3.x. Packages and libraries that you installed against the old runtime (via `pip`, `gem`, `npm`, or similar tools) are still configured for the previous version. After the upgrade, those installed dependencies still exist on disk but may be incompatible with, or invisible to, the new runtime. In some cases, system-level packages that provided dependencies on AlmaLinux 8 may have different names or may no longer be available on AlmaLinux 9.
+ELevate upgrades the underlying OS, which replaces core language runtimes. For example, it upgrades Python 3.6 to 3.9 and Ruby 2.7 to 3.x. Packages and libraries that you installed against the old runtime (via `pip`, `gem`, `npm`, or similar tools) are still configured for the previous version. After the upgrade, those installed dependencies still exist on disk but may be incompatible with, or invisible to, the new runtime. In some cases, system-level packages that provided dependencies on the older OS version may have different names or may no longer be available on new OS version.
 
 After you upgrade your OS with ELevate, perform the following steps:
 
@@ -240,6 +240,6 @@ After you upgrade your OS with ELevate, perform the following steps:
     /scripts/restartsrv_httpd
     ```
 
-You will need to check every cPanel account that had an Application Manager app enabled at the time of ELevate. The upgrade particularly affects apps that use language-specific dependency files (`requirements.txt`, `Gemfile`, `package.json`) or that rely on system packages installed on the AlmaLinux 8 host.
+You will need to check every cPanel account that had an Application Manager app enabled at the time of ELevate. The upgrade particularly affects apps that use language-specific dependency files (`requirements.txt`, `Gemfile`, `package.json`) or that rely on system packages installed on the previous OS version host.
 
 The ELevate upgrade does **not** affect the app's registration in Application Manager, base URI, domain mapping, and Apache include files. 
