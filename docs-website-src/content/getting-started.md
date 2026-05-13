@@ -201,12 +201,12 @@ This list is not comprehensive. We **strongly** recommend you back up (and ideal
 If you need more help, you can [open a ticket](https://docs.cpanel.net/knowledge-base/technical-support-services/how-to-open-a-technical-support-ticket/).
 
 
-### Application Manager (Passenger) Apps and upgrading from AlmaLinux 8 to AlmaLinux 9
+### Application Manager (Passenger) Apps
 
-During the ELevate process from AlmaLinux 8 to AlmaLinux 9, it automatically updates your Application Manager apps (powered by mod_passenger). ELevate performs the following actions:
+During the ELevate process, it automatically updates your Application Manager apps (powered by mod_passenger). ELevate performs the following actions:
 
-* Application registration
-* Apache virtual host configuration
+* Application registration.
+* Apache virtual host configuration.
 * The renamed package. For example, `ea-ruby27-mod_passenger` to `ea-apache24-mod-passenger`.
 
 However, your application's runtime dependencies are not migrated and may no longer work on the upgraded OS.
@@ -215,8 +215,8 @@ ELevate upgrades the underlying OS, which replaces core language runtimes. For e
 
 After you upgrade your OS with ELevate, perform the following steps:
 
-1. Test each application. Use an HTTP request to verify your application responds correctly. An error response (500, connection refused, or a Passenger error page) is the most common indicator that dependencies are broken.
-2. Check the Apache error log for import errors, missing module messages, or gem load failures. Review the following command:
+1. Test each application. Use an HTTP request to verify your application responds correctly. An error response (500, connection refused, or a Passenger error page) is the most common indicator of broken dependencies.
+2. Check the Apache error log for import errors, missing module messages, or gem load failures. Run the following command to review the last 100 lines of the Apache error log:
 
     ```bash
     tail -100 /usr/local/apache/logs/error_log
@@ -235,7 +235,7 @@ After you upgrade your OS with ELevate, perform the following steps:
     ```bash
     npm install
     ```
-4. Restart Apache with the following script: 
+4. Run the following script to Restart Apache: 
     ```bash
     /scripts/restartsrv_httpd
     ```
