@@ -14,6 +14,8 @@ jobs:
   build:
     if: github.repository == 'cpanel/elevate'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: checkout
         uses: actions/checkout@v6
@@ -38,13 +40,18 @@ jobs:
           git diff
 
       - name: push
-        uses: github-actions-x/commit@v2.9
-        with:
-          github-token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
-          push-branch: "docs"
-          commit-message: "Regenerate Documentation Website"
-          force-add: "true"
-          force-push: "true"
-          files: docs/
-          name: GitHub Action
-          email: github.bot@cpanel.net
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd docs
+          git init -q
+          git checkout -B docs
+          git -c user.email=github.bot@webpros.com \
+              -c user.name='GitHub Action' \
+              add -A
+          git -c user.email=github.bot@webpros.com \
+              -c user.name='GitHub Action' \
+              commit -m 'Regenerate Documentation Website'
+          git push --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}" \
+            docs
