@@ -43,7 +43,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd docs
+          pubdir="$(mktemp -d)"
+          mkdir -p "$pubdir/docs"
+          cp -a docs/. "$pubdir/docs/"
+          touch "$pubdir/.nojekyll"
+          cd "$pubdir"
           git init -q
           git checkout -B docs
           git -c user.email=github.bot@webpros.com \
