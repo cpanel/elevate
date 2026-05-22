@@ -1429,8 +1429,6 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
 |                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                 |
 |                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n |
-|                 |            |       |   qr/(?^u:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                        |
-|                 |            |       |   qr/(?^u:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                                |
 |                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                    |
 |                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
 |                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
@@ -1449,6 +1447,8 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
 |                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
 |                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                       |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                               |
 |                 |            |       |   "alt-common",\n                                                                  |
 |                 |            |       |   "base",\n                                                                        |
 |                 |            |       |   "c7-media",\n                                                                    |
@@ -1485,8 +1485,6 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
 |                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                 |
 |                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n |
-|                 |            |       |   qr/(?^u:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                        |
-|                 |            |       |   qr/(?^u:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                                |
 |                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                    |
 |                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
 |                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
@@ -1507,6 +1505,8 @@ yath -v t/Elevate-OS_detect_changes.t
 |                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
 |                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
 |                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                       |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                               |
 |                 |            |       |   "alt-common",\n                                                                  |
 |                 |            |       |   "appstream",\n                                                                   |
 |                 |            |       |   "base",\n                                                                        |
