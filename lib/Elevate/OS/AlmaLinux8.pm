@@ -49,16 +49,4 @@ sub vetted_yum_repo ($self) {
     return @repos;
 }
 
-sub vetted_mysql_yum_repo_ids ($self) {
-
-    # No use doing this since we have to call this sub directly via
-    # Elevate::OS::vetted_yum_repo() anyway
-    # my @repos = $self->SUPER::vetted_mysql_yum_repo_ids();
-
-    return (
-        qr/^mysql-[0-9]\.[0-9]-lts-community$/,
-        qr/^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$/,
-    );
-}
-
 1;

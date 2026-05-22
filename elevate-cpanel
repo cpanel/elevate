@@ -8324,14 +8324,6 @@ EOF
         return @repos;
     }
 
-    sub vetted_mysql_yum_repo_ids ($self) {
-
-        return (
-            qr/^mysql-[0-9]\.[0-9]-lts-community$/,
-            qr/^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$/,
-        );
-    }
-
     1;
 
 }    # --- END lib/Elevate/OS/AlmaLinux8.pm
@@ -8609,6 +8601,8 @@ EOF
         qr/^mysql-tools-preview(?:-source)?$/,
         qr/^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$/,
         qr/^MariaDB[0-9]+$/,
+        qr/^mysql-[0-9]\.[0-9]-lts-community$/,
+        qr/^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$/,
     );
 
     use constant vetted_yum_repo => (
