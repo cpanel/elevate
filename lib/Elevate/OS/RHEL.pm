@@ -33,6 +33,8 @@ use constant vetted_mysql_yum_repo_ids => (
     qr/^mysql-tools-preview(?:-source)?$/,
     qr/^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$/,
     qr/^MariaDB[0-9]+$/,
+    qr/^mysql-[0-9]\.[0-9]-lts-community$/,
+    qr/^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$/,
 );
 
 use constant vetted_yum_repo => (
