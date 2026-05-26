@@ -11893,7 +11893,7 @@ use Elevate::SystemctlService ();
 use Elevate::Usage            ();
 
 #<<V *** DO NOT EDIT THESE LINES MANUALLY ***
-use constant VERSION => 82;
+use constant VERSION => 83;
 #>>V *** DO NOT EDIT THESE LINES MANUALLY ***
 
 use constant VALID_STAGES => 5;
