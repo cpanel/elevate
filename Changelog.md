@@ -1,5 +1,10 @@
 ## ELevate Change Log
 
+##### **2026-05-26** - version 82
+
+* Fixed case CPANEL-53422:  Make vetted repo check for cloudlinux-ea4 case insensistive
+* Fixed case RE-1659: ELevate no longer blocks on the MySQL 8.4 LTS community repos on RHEL-derived OSes other than AlmaLinux 8.
+
 ##### **2026-04-21** - version 81
 
 * Fixed case CPANEL-48721: Enable KernelCare support for RHEL 10 based systems
