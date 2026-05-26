@@ -28,8 +28,8 @@ sub vetted_yum_repo ($self) {
     my @vetted_cloudlinux_yum_repo = (
         qr/^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$/,
         qr/^cloudlinux-rollout(?:-[0-9]+)?$/,
-        qr/^cloudlinux-ea4(?:-[0-9]+)?$/,
-        qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/,
+        qr/^cloudlinux-ea4(?:-[0-9]+)?$/i,
+        qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/i,
         'cl-ea4',
         qr/^cl-mysql(?:-meta)?/,
         'mysqclient', 'mysql-debuginfo',
