@@ -200,15 +200,46 @@ jobs:
           timeout: 30m
           command_timeout: 30m
           script: |
-            /scripts/elevate-cpanel --is-ran-from-ci --non-interactive --skip-cpanel-version-check --start &
+            nohup /scripts/elevate-cpanel --manual-reboots --non-interactive --skip-cpanel-version-check --start </dev/null >/dev/null 2>&1 &
             exit 0
 
-  wait_for_stage_1_reboot:
+  watch_for_stage_1_reboot:
     runs-on:
       group: org/cpanel-arc-elevate
     needs: start_elevate
     env:
       VM_IP: ${{ needs.start_elevate.outputs.VM_IP}}
+    outputs:
+      VM_IP: ${{ env.VM_IP }}
+    steps:
+      - name: Monitor Elevate for Initial Reboot into Stage 2
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: "root"
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: "22"
+          timeout: 60m
+          command_timeout: 30m
+          debug: true
+          script: |
+            tail -n40 -F /var/log/elevate-cpanel.log &
+            sleep .5
+            REBOOT_STRING="Rebooting into stage 2 of 5" RETVAL=1 /scripts/reboot_watch
+            RC=$?
+            if [ "$RC" -ne 0 ]; then
+              echo "## [ERROR]: reboot_watch exited $RC -- not rebooting; failing step."
+              exit "$RC"
+            fi
+            shutdown -r +0 "Restarting system to continue ELevate." &
+            exit 0
+
+  wait_for_stage_1_reboot:
+    runs-on:
+      group: org/cpanel-arc-elevate
+    needs: watch_for_stage_1_reboot
+    env:
+      VM_IP: ${{ needs.watch_for_stage_1_reboot.outputs.VM_IP}}
     outputs:
       VM_IP: ${{ env.VM_IP }}
     steps:
@@ -296,6 +327,13 @@ jobs:
             tail -n40 -F /var/log/elevate-cpanel.log &
             sleep .5
             REBOOT_STRING="Rebooting into stage 3 of 5" RETVAL=1 /scripts/reboot_watch
+            RC=$?
+            if [ "$RC" -ne 0 ]; then
+              echo "## [ERROR]: reboot_watch exited $RC -- not rebooting; failing step."
+              exit "$RC"
+            fi
+            shutdown -r +0 "Restarting system to continue ELevate." &
+            exit 0
 
   wait_for_stage_3_reboot:
     runs-on:
@@ -342,6 +380,13 @@ jobs:
             tail -n40 -F /var/log/elevate-cpanel.log &
             sleep .5
             REBOOT_STRING="Rebooting into stage 4 of 5" RETVAL=1 /scripts/reboot_watch
+            RC=$?
+            if [ "$RC" -ne 0 ]; then
+              echo "## [ERROR]: reboot_watch exited $RC -- not rebooting; failing step."
+              exit "$RC"
+            fi
+            shutdown -r +0 "Restarting system to continue ELevate." &
+            exit 0
 
   wait_for_stage_4_reboot:
     runs-on:
@@ -388,6 +433,13 @@ jobs:
             tail -n40 -F /var/log/elevate-cpanel.log &
             sleep .5
             REBOOT_STRING="Rebooting into stage 5 of 5" RETVAL=1 /scripts/reboot_watch
+            RC=$?
+            if [ "$RC" -ne 0 ]; then
+              echo "## [ERROR]: reboot_watch exited $RC -- not rebooting; failing step."
+              exit "$RC"
+            fi
+            shutdown -r +0 "Restarting system to continue ELevate." &
+            exit 0
 
   wait_for_stage_5_reboot:
     runs-on:
@@ -434,6 +486,13 @@ jobs:
             tail -n40 -F /var/log/elevate-cpanel.log &
             sleep .5
             REBOOT_STRING="Doing final reboot" RETVAL=1 /scripts/reboot_watch
+            RC=$?
+            if [ "$RC" -ne 0 ]; then
+              echo "## [ERROR]: reboot_watch exited $RC -- not rebooting; failing step."
+              exit "$RC"
+            fi
+            shutdown -r +0 "Restarting system to continue ELevate." &
+            exit 0
 
   wait_for_final_reboot:
     runs-on:

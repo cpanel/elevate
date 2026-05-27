@@ -31,34 +31,83 @@ if ( !defined $HOST ) {
     exit 1;
 }
 
-# elevate-cpanel sleeps for 7 seconds before rebooting in CI mode to ensure
-# that the CI has plenty of time to jump out of the server
-# To avoid race conditions due to this, we sleep for 6 seconds before checking
-# to see if the server has rebooted in order to ensure that the server has been
-# rebooted before attempting to see if we can connect to it via ssh
-sleep(6);
+# The preceding watch_for_* step triggers a reboot via 'shutdown -r +0 &' and
+# then exits the shell.  shutdown can take 25-60+ seconds to actually take
+# down sshd (varies by services with long stop timeouts), so a quick probe
+# after the watch step exits can find SSH still up while the box is on its
+# way down.  Declaring success at that point makes the *next* watch step's
+# SSH attempt race against the reboot: it sees a timeout or "connection
+# refused" as sshd finally goes down.
+#
+# To make this deterministic, first wait for the connection to go DOWN
+# (proving the reboot has actually started), THEN wait for it to come back
+# UP.  Cap the down-wait so a genuinely fast reboot (port already down by
+# the time we run) doesn't hang us.
 
-while ( $RETVAL != 0 ) {
-    my $cmd    = qq{ $NC_PATH -z -w 1 $HOST $PORT };
-    my $output = `$cmd`;
-    my $time   = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+my $DOWN_WAIT_MAX    = 180;    # max seconds to wait for sshd to first go down
+my $STABLE_DURATION  = 30;     # require this many seconds of continuous "up" before declaring success
 
-    $RETVAL = $?;
+# Outer loop: tolerate a follow-up reboot.  On Ubuntu the elevate-cpanel
+# stage that owns the just-triggered reboot can itself invoke
+# do-release-upgrade, which reboots the box again on its own without
+# emitting any "Rebooting into stage X" message.  A naive "see down, then
+# see up, declare success" gets fooled by the gap between those two
+# reboots: SSH comes up briefly, ssh_retry exits, then the do-release-upgrade
+# reboot drops SSH again and the next watch step hits a "connection
+# refused" / "connection timed out".  Requiring the connection to STAY up
+# for $STABLE_DURATION before exiting closes that window: if SSH drops
+# during the stability check, we loop back and wait for the next come-up.
+while (1) {
+    # --- Phase 1: wait for sshd to go DOWN (proves a reboot is in progress) ---
+    my $down_seen = 0;
+    for my $i ( 1 .. $DOWN_WAIT_MAX ) {
+        `$NC_PATH -z -w 1 $HOST $PORT`;
+        my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+        if ( $? != 0 ) {
+            $down_seen = 1;
+            print "## [$time] [INFO]: SSH on $HOST went down after ${i}s -- reboot in progress.\n";
+            last;
+        }
+        sleep 1;
+    }
+    if ( !$down_seen ) {
+        my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+        print "## [$time] [WARN]: SSH on $HOST never dropped within ${DOWN_WAIT_MAX}s -- assuming fast reboot already completed.\n";
+    }
 
-    if ( $RETVAL == 0 ) {
-        print "## [$time] [INFO] SUCCESS: Connected to SSH on $HOST ##\n";
+    # --- Phase 2: wait for sshd to come back UP ---
+    while (1) {
+        `$NC_PATH -z -w 1 $HOST $PORT`;
+        my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+        if ( $? == 0 ) {
+            print "## [$time] [INFO]: SSH on $HOST is back up; checking for stability...\n";
+            last;
+        }
+        $RETRIES++;
+        print "## [$time] [INFO]: Retrying SSH Connect: Attempt ${RETRIES} to SSH on Host $HOST...\n";
+        if ( $RETRIES >= $RETRY ) {
+            print "## [$time] [ERROR]: ssh_retry.pl: MAX_RETRIES has been reached.\n";
+            exit 1;
+        }
+        sleep 1;
+    }
+
+    # --- Phase 3: stability check.  If SSH stays up for $STABLE_DURATION,
+    # success.  If it drops, loop back and wait for the next reboot cycle.
+    my $stable = 1;
+    for my $i ( 1 .. $STABLE_DURATION ) {
+        `$NC_PATH -z -w 1 $HOST $PORT`;
+        my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+        if ( $? != 0 ) {
+            print "## [$time] [INFO]: SSH on $HOST dropped at second ${i} of stability check -- another reboot is happening; waiting it out.\n";
+            $stable = 0;
+            last;
+        }
+        sleep 1;
+    }
+    if ($stable) {
+        my $time = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+        print "## [$time] [INFO] SUCCESS: SSH on $HOST is up and stable for ${STABLE_DURATION}s.\n";
         exit 0;
     }
-
-    $RETRIES++;
-
-    if ( $RETVAL != 0 ) {
-        print "## [$time] [INFO]: Retrying SSH Connect: Attempt ${RETRIES} to SSH on Host $HOST...\n";
-    }
-
-    if ( $RETRIES >= $RETRY ) {
-        print "## [$time] [ERROR]: ssh_retry.pl: MAX_RETRIES has been reached.\n";
-        exit 1;
-    }
-    sleep 1;
 }
