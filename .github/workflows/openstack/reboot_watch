@@ -3,7 +3,6 @@
 use constant ELEVATE_LOG_PATH => '/var/log/elevate-cpanel.log';
 use constant ELEVATE_PID      => '/var/run/elevate-cpanel.pid';
 
-use File::Tail;
 use JSON::PP;
 use POSIX;
 
@@ -24,23 +23,28 @@ while ( my $line = readline $elevate_log_fh ) {
     }
 }
 
+# Capture the byte offset where the sequential read stopped so the
+# follow-up `tail` can resume from exactly that point.  Without this,
+# `tail` would start at its own idea of EOF (set when tail spawns) and
+# anything written between this close and the tail spawn would be lost.
+my $resume_offset = tell($elevate_log_fh);
 close $elevate_log_fh;
 
-_check_elevate_log_for_REBOOT_STRING( ELEVATE_LOG_PATH, $ENV{REBOOT_STRING} );
+_check_elevate_log_for_REBOOT_STRING( ELEVATE_LOG_PATH, $ENV{REBOOT_STRING}, $resume_offset );
 _exit_with_haste(1);
 
 sub _check_elevate_log_for_REBOOT_STRING {
-    my ( $filepath, $REBOOT_STRING, $RETRIES ) = @_;
+    my ( $filepath, $REBOOT_STRING, $resume_offset ) = @_;
+    $resume_offset //= 0;
 
     my $has_continued = 0;
 
-    # If elevate-cpanel dies / hangs after the previous manual reboot
-    # without logging an [ERROR] or [FATAL] line (e.g. the post-reboot
-    # service never re-launches it), File::Tail blocks forever and the
-    # only failure signal becomes appleboy/ssh-action's command_timeout
-    # firing 60 minutes later -- which surfaces as a generic
-    # "Run Command Timeout", not a script failure.  Treat sustained log
-    # silence as a failure so we exit promptly with a clear cause.
+    # Bail out if elevate-cpanel goes silent for too long without
+    # logging either the reboot string or an [ERROR] / [FATAL] -- e.g.
+    # the post-reboot service never re-launches it.  Without this,
+    # the only failure signal is appleboy/ssh-action's command_timeout
+    # firing 30-60 minutes later, which surfaces as a generic
+    # "Run Command Timeout" instead of a script failure.
     my $no_activity_timeout = 15 * 60;
     my $last_activity       = time();
     $SIG{ALRM} = sub {
@@ -54,8 +58,21 @@ sub _check_elevate_log_for_REBOOT_STRING {
     };
     alarm 60;
 
-    $file = File::Tail->new( name => $filepath, maxinterval => .1, adjustafter => 1000, interval => .1, resetafter => 1000000 );
-    while ( defined( $line = $file->read ) ) {
+    # Use GNU `tail -F` via a pipe rather than File::Tail.  File::Tail's
+    # adaptive userspace polling was observed silently missing a write on
+    # CL7 stage 5 (run 27013630697); coreutils tail uses inotify on Linux
+    # and does not have that failure mode.  `-c +N` resumes at byte N
+    # (1-based) so we pick up exactly where the preceding sequential read
+    # stopped -- closing the close-vs-spawn TOCTOU window.
+    my $tail_start = $resume_offset + 1;
+    open( my $tail_fh, '-|', '/usr/bin/tail', '-c', "+$tail_start", '-F', $filepath )
+      or do {
+        my $t = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+        print "## [$t] [ERROR]: Failed to spawn tail -F on $filepath: $!\n";
+        _exit_with_haste(1);
+      };
+
+    while ( defined( my $line = <$tail_fh> ) ) {
         $last_activity = time();
 
         # --check failed so there is no status
