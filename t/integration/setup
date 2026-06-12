@@ -80,7 +80,12 @@ print "Clearing the task queue\n";
 run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 
 # Deal with the fact that we can't upgrade out of the box with the default EA4
-# profile on CloudLinux 7 systems
+# profile on CloudLinux 7 systems.
+#
+# The alt-phpXX-percona5.7 packages are not compatible with CloudLinux 8 and
+# trip an elevate blocker. We must also remove the alt-phpXX-mysql-meta packages
+# that require them: otherwise the later "yum reinstall" of cloudlinux-x86_64-server
+# packages in the workflow reinstalls mysql-meta, which drags percona5.7 back in.
 if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) {
     print "Removing dropped packages for CloudLinux 7 systems so we can upgrade\n";
 
@@ -104,6 +109,19 @@ if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) {
       alt-php73-percona5.7
       alt-php74-percona5.7
       alt-php80-percona5.7
+
+      alt-php52-mysql-meta
+      alt-php53-mysql-meta
+      alt-php54-mysql-meta
+      alt-php55-mysql-meta
+      alt-php56-mysql-meta
+      alt-php70-mysql-meta
+      alt-php71-mysql-meta
+      alt-php72-mysql-meta
+      alt-php73-mysql-meta
+      alt-php74-mysql-meta
+      alt-php80-mysql-meta
+
       alt-php54-pecl-brotli
       alt-php55-pecl-brotli
       alt-php56-pecl-brotli
