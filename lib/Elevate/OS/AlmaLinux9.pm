@@ -23,7 +23,6 @@ use constant ea_alias                         => 'Almalinux_10';
 use constant el_package_regex                 => 'el9';
 use constant elevate_rpm_url                  => 'https://repo.almalinux.org/elevate/elevate-release-latest-el9.noarch.rpm';
 use constant expected_post_upgrade_major      => 10;
-use constant is_experimental                  => 1;
 use constant jetbackup_repo_rpm_url           => 'https://repo.jetlicense.com/centOS/jetapps-repo-4096-latest.rpm';
 use constant minimum_supported_cpanel_version => 132;
 use constant name                             => 'AlmaLinux9';

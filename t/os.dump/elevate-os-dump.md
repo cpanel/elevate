@@ -321,7 +321,7 @@ yath -v t/Elevate-OS_detect_changes.t
 | key             | distro     | major | is_experimental |
 +-----------------+------------+-------+-----------------+
 | is_experimental | AlmaLinux  | 8     | 0               |
-| is_experimental | AlmaLinux  | 9     | 1               |
+| is_experimental | AlmaLinux  | 9     | 0               |
 | is_experimental | CentOS     | 7     | 0               |
 | is_experimental | CloudLinux | 7     | 0               |
 | is_experimental | CloudLinux | 8     | 0               |
