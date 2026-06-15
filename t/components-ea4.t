@@ -592,6 +592,106 @@ sub test_backup_and_restore_config_files : Test(60) ($self) {
     return;
 }
 
+sub test_restore_ea_prefix_packages : Test(15) ($self) {
+
+    my $ea4 = cpev->new->get_component('EA4');
+
+    my %installed;
+    my @install_calls;
+
+    my $mock_pkgmgr = Test::MockModule->new('Elevate::PkgMgr');
+    $mock_pkgmgr->redefine(
+        get_installed_pkgs => sub (@filter) {
+            return { map { $_ => 1 } keys %installed };
+        },
+        install_with_options => sub ( $options, $pkgs ) {
+            push @install_calls, { options => $options, pkgs => $pkgs };
+            $installed{$_} = 1 for @$pkgs;    # simulate a fully successful reinstall
+            return;
+        },
+    );
+
+    my @notifications;
+    my $mock_notify = Test::MockModule->new('Elevate::Notify');
+    $mock_notify->redefine( add_final_notification => sub ( $msg, $warn = 0 ) { push @notifications, $msg; return 1; } );
+
+    # No snapshot recorded: nothing to do.
+    $stage_file->unlink;
+    is $ea4->_restore_ea_prefix_packages(), undef, 'no-op when no ea-prefix snapshot was recorded';
+    is \@install_calls,                     [],    'no reinstall attempted without a snapshot';
+
+    # Every snapshotted package is already installed: nothing to do.
+    %installed = ( 'ea-apache24' => 1, 'ea-php83' => 1 );
+    $stage_file->unlink;
+    Elevate::StageFile::update_stage_file( { ea_prefix_packages_to_restore => [ 'ea-apache24', 'ea-php83' ] } );
+    is $ea4->_restore_ea_prefix_packages(), undef, 'no-op when every snapshot package is already installed';
+    is \@install_calls,                     [],    'no reinstall when nothing is missing';
+    is \@notifications,                     [],    'no notification when nothing is missing';
+
+    # A package is missing and the reinstall restores it: install runs, no notification.
+    %installed     = ( 'ea-apache24' => 1 );
+    @install_calls = ();
+    @notifications = ();
+    $stage_file->unlink;
+    Elevate::StageFile::update_stage_file( { ea_prefix_packages_to_restore => [ 'ea-apache24', 'ea-php83' ] } );
+    is $ea4->_restore_ea_prefix_packages(), undef,                                                      'completes when the reinstall restores the missing package';
+    is \@install_calls,                     [ { options => ['--skip-broken'], pkgs => ['ea-php83'] } ], 'reinstalls only the missing package with --skip-broken';
+    message_seen( INFO => qr/Reinstalling 1 ea-prefix package/ );
+    is \@notifications, [], 'no notification when the reinstall succeeds';
+
+    # A package cannot be reinstalled: surface a final notification naming it.
+    %installed     = ( 'ea-apache24' => 1 );
+    @install_calls = ();
+    @notifications = ();
+    $mock_pkgmgr->redefine(
+        install_with_options => sub ( $options, $pkgs ) {
+            $installed{$_} = 1 for grep { $_ ne 'ea-nodejs10' } @$pkgs;    # ea-nodejs10 stays broken
+            return;
+        },
+    );
+    $stage_file->unlink;
+    Elevate::StageFile::update_stage_file( { ea_prefix_packages_to_restore => [ 'ea-apache24', 'ea-php83', 'ea-nodejs10' ] } );
+    is $ea4->_restore_ea_prefix_packages(), undef, 'completes when a package cannot be restored';
+    message_seen( INFO => qr/Reinstalling 2 ea-prefix package/ );
+    is scalar(@notifications), 1, 'final notification surfaced when a package cannot be reinstalled';
+    like $notifications[0], qr/ea-nodejs10/, 'notification names the package that could not be reinstalled';
+
+    return;
+}
+
+sub test_restore_ea4_profile_backstops_on_failure : Test(4) ($self) {
+
+    my $ea4 = cpev->new->get_component('EA4');
+
+    my $mock_ea4_install = Test::MockModule->new('Cpanel::EA4::Install');
+    $mock_ea4_install->redefine( install_ea4_repo => 1 );
+
+    # Enable EA4 and point at a profile that exists.
+    $self->_update_profile_file( { my_profile => ['...'] } );
+    Elevate::StageFile::update_stage_file( { ea4 => { enable => 1, profile => PROFILE_FILE } } );
+
+    my $backstop_called = 0;
+    my $mock_ea4        = Test::MockModule->new('Elevate::Components::EA4');
+    $mock_ea4->redefine( _restore_ea_prefix_packages => sub { $backstop_called++; return; } );
+
+    # Control the exit status of the ea_install_profile call.
+    my $exit      = 0;
+    my $mock_cpev = Test::MockModule->new('cpev');
+    $mock_cpev->redefine( ssystem => sub ( $, @cmd ) { return $exit; } );
+
+    $exit            = 0;
+    $backstop_called = 0;
+    is $ea4->_restore_ea4_profile(), 1, 'restore_ea4_profile completes on a clean ea_install_profile exit';
+    is $backstop_called,             0, 'backstop is not invoked when ea_install_profile exits cleanly';
+
+    $exit            = 1;
+    $backstop_called = 0;
+    is $ea4->_restore_ea4_profile(), 1, 'restore_ea4_profile completes after a failed ea_install_profile exit';
+    is $backstop_called,             1, 'backstop is invoked when ea_install_profile exits non-zero';
+
+    return;
+}
+
 sub test__ensure_sites_use_correct_php_version : Test(17) ($self) {
 
     my $mock_touchfile = Test::MockFile->file('/var/cpanel/elevate_skip_preserve_php_versions');
