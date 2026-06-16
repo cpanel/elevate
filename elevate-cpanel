@@ -2208,6 +2208,9 @@ EOS
 
     sub _cleanup_rpm_db ($self) {
 
+        my @ea_pkgs = sort keys %{ Elevate::PkgMgr::get_installed_pkgs('ea-*') };
+        Elevate::StageFile::update_stage_file( { 'ea_prefix_packages_to_restore' => \@ea_pkgs } ) if @ea_pkgs;
+
         Elevate::PkgMgr::remove('ea-*');
 
         if ( $self->_has_non_ea_prefix_packages() ) {
@@ -2235,6 +2238,37 @@ EOS
         return;
     }
 
+    sub _restore_ea_prefix_packages ($self) {
+
+        my $packages = Elevate::StageFile::read_stage_file('ea_prefix_packages_to_restore');
+        return unless ref $packages eq 'ARRAY' && @$packages;
+
+        my @missing = $self->_ea_prefix_packages_missing($packages);
+        return unless @missing;
+
+        INFO( sprintf( 'Reinstalling %d ea-prefix package(s) not restored by ea_install_profile.', scalar @missing ) );
+
+        eval { Elevate::PkgMgr::install_with_options( ['--skip-broken'], \@missing ); 1 } or do {
+            WARN( "ea-prefix reinstall raised an error: " . ( $@ || 'unknown' ) );
+        };
+
+        my @still_missing = $self->_ea_prefix_packages_missing( \@missing );
+        return unless @still_missing;
+
+        my $pkg_list = join "\n", map { "  - $_" } @still_missing;
+        Elevate::Notify::add_final_notification(
+            "elevate-cpanel removed the following ea-prefix packages in pre_distro_upgrade and could not reinstall them post-upgrade:\n$pkg_list\n\nPlease reinstall them manually once their target-OS dependencies are resolvable (e.g. dnf install <packages>).",
+            1
+        );
+
+        return;
+    }
+
+    sub _ea_prefix_packages_missing ( $self, $packages ) {
+        my $installed = Elevate::PkgMgr::get_installed_pkgs('ea-*');
+        return grep { !exists $installed->{$_} } @$packages;
+    }
+
     sub _restore_ea4_profile ($self) {
 
         my $stash      = Elevate::StageFile::read_stage_file();
@@ -2254,7 +2288,8 @@ EOS
             return;
         }
 
-        $self->ssystem( '/usr/local/bin/ea_install_profile', '--install', $json );
+        my $failed = $self->ssystem( '/usr/local/bin/ea_install_profile', '--install', $json );
+        $self->_restore_ea_prefix_packages() if $failed;
 
         if ( my $dropped_pkgs = $stash->{'ea4'}->{'dropped_pkgs'} ) {
             if ( scalar keys $dropped_pkgs->%* ) {
