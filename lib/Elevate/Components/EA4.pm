@@ -10,21 +10,25 @@ Elevate::Components::EA4
 
 Verify if any installed EA4 packages are incompatible with the upgrade
 
-=head2 pre_distro_upgrade
-
-Remove EA4
-
-=head2 post_distro_upgrade
-
-1. Reinstall EA4
-2. Restore EA4 config files
-3. Update sites to use correct PHP versions
-
 =head2 pre_imunify
 
 1. Gather PHP usage
 2. Backup EA4 profile
 3. Backup config files
+
+=head2 pre_distro_upgrade
+
+1. Snapshot user PHP Selector settings
+2. Snapshot PHP-FPM services
+3. Remove EA4
+
+=head2 post_distro_upgrade
+
+1. Reinstall EA4
+2. Restore EA4 config files
+3. Restore user PHP Selector settings
+4. Restore PHP-FPM services
+5. Update sites to use correct PHP versions
 
 TODO: Split pre_imunify out to its own component
 
@@ -38,10 +42,13 @@ use Elevate::OS        ();
 use Elevate::PkgMgr    ();
 use Elevate::StageFile ();
 
+use Cpanel::Config::Users   ();
 use Cpanel::EA4::Install    ();
 use Cpanel::JSON            ();
 use Cpanel::PackMan         ();
 use Cpanel::Pkgr            ();
+use Cpanel::PwCache         ();
+use Cpanel::SafeRun::Object ();
 use Cpanel::SafeRun::Simple ();
 
 use Path::Tiny ();
@@ -59,6 +66,8 @@ sub pre_imunify ($self) {
 }
 
 sub pre_distro_upgrade ($self) {
+    $self->run_once('_snapshot_user_php_selectors');
+    $self->run_once('_snapshot_php_fpm_services');
     $self->run_once('_cleanup_rpm_db');
     $self->_remove_ea4_repo();
     return;
@@ -68,6 +77,8 @@ sub post_distro_upgrade ($self) {
 
     $self->run_once('_restore_ea4_profile');
     $self->run_once('_restore_ea_addons');
+    $self->run_once('_restore_user_php_selectors');
+    $self->run_once('_restore_php_fpm_services');
 
     # This needs to happen after EA4 has been reinstalled
     #
@@ -105,6 +116,143 @@ sub _cleanup_rpm_db ($self) {
     if ( $self->_has_non_ea_prefix_packages() ) {
         my @supported_non_ea_prefix_packages = $self->_get_installed_non_ea_prefix_supported_packages();
         Elevate::PkgMgr::remove(@supported_non_ea_prefix_packages);
+    }
+
+    return;
+}
+
+sub _snapshot_user_php_selectors ($self) {
+
+    # Short-circuit if the existing system doesn't have the ability to change the PHP Selector:
+    return unless -x '/usr/sbin/cloudlinux-selector';
+
+    my %homedirs = map { $_ => Cpanel::PwCache::gethomedir($_) } Cpanel::Config::Users::getcpusers();
+
+    # Capture each user's PHP Selector version before _cleanup_rpm_db. The
+    # alt-php* %postun scriptlet resets every CageFS user's choice to native
+    # when alt-php is fully uninstalled (CLOS-4301); package reinstallation
+    # does not restore the version, so we replay it ourselves in stage 4.
+    my %user_versions;
+    for my $user ( keys %homedirs ) {
+        my $path = "$homedirs{$user}/.cl.selector/defaults.cfg";
+        open my $fh, '<', $path or next;
+        my $in_versions = 0;
+        while ( my $line = <$fh> ) {
+            if ( $line =~ /^\s*\[(\S+)\]\s*$/ ) {
+                $in_versions = ( $1 eq 'versions' ) ? 1 : 0;
+                next;
+            }
+            next unless $in_versions;
+            if ( $line =~ /^\s*php\s*=\s*(\S+)\s*$/ ) {
+                my $version = $1;
+                $user_versions{$user} = $version if $version ne 'native';
+                last;    # Unwritten assumption: the first encounter with a php setting in a [versions] section is the one that matters, rather than the last one.
+            }
+        }
+        close $fh;
+    }
+
+    return unless scalar keys %user_versions;
+
+    INFO( sprintf( 'Recorded %d user(s) with non-native PHP Selector versions.', scalar keys %user_versions ) );
+    Elevate::StageFile::update_stage_file( { 'user_php_selectors' => \%user_versions } );
+    return;
+}
+
+sub _restore_user_php_selectors ($self) {
+
+    # Replay the per-user PHP Selector versions wiped by alt-php's %postun.
+    # Returns early if there's nothing to do.
+    my $user_versions = Elevate::StageFile::read_stage_file('user_php_selectors');
+    return unless ref $user_versions eq 'HASH' && scalar keys %$user_versions;
+
+    my @failed;
+    my $cli = '/usr/sbin/cloudlinux-selector';
+    if ( -x $cli ) {
+        INFO( sprintf( 'Restoring PHP Selector versions for %d user(s).', scalar keys %$user_versions ) );
+
+        for my $user ( sort keys %$user_versions ) {
+            my $version = $user_versions->{$user};
+
+            my $sro = Cpanel::SafeRun::Object->new(
+                program => $cli,
+                args    => [ qw(set --json --interpreter=php), "--current-version=$version", "--user=$user" ],
+            );
+
+            if ( $sro->CHILD_ERROR() ) {
+                WARN( "Could not restore user $user: " . $sro->autopsy );
+                push @failed, $user;
+            }
+        }
+    }
+    else {
+        WARN("Cannot restore PHP Selector versions: $cli is not executable on the target OS.");
+        @failed = keys %$user_versions;
+    }
+
+    if ( scalar @failed ) {
+        my $list = join "\n", map { "  - user: $_, PHP version $user_versions->{$_}" } @failed;
+        WARN("Failed to restore PHP Selector versions for the following users:\n$list");
+        Elevate::Notify::add_final_notification(
+            "elevate-cpanel could not restore PHP Selector versions for these users (alt-php's %postun reset them to 'native' during stage 2):\n$list\n\nPlease run 'cloudlinux-selector set --interpreter=php --current-version=<v> --user=<u>' for each.",
+            1
+        );
+    }
+
+    return;
+}
+
+sub _snapshot_php_fpm_services ($self) {
+
+    # Capture which alt-php{NN}-fpm and ea-php{NN}-php-fpm services are
+    # currently enabled. Both package families' %preun runs `systemctl disable`
+    # on full uninstall, and reinstallation does not re-enable the units, so
+    # we replay the enabled state in stage 4.
+    my @lines = split /\n/, Cpanel::SafeRun::Simple::saferunnoerror(qw(/usr/bin/systemctl list-unit-files --no-legend --no-pager alt-php*-fpm.service ea-php*-php-fpm.service));
+
+    my @enabled;
+    for my $line (@lines) {
+        next unless $line =~ /^(\S+)\s+enabled\b/;
+        push @enabled, $1;
+    }
+
+    return unless scalar @enabled;
+
+    INFO( sprintf( 'Recorded %d PHP-FPM service(s) currently enabled.', scalar @enabled ) );
+    Elevate::StageFile::update_stage_file( { 'php_fpm_services_enabled' => [ sort @enabled ] } );
+    return;
+}
+
+sub _restore_php_fpm_services ($self) {
+
+    # Re-enable PHP-FPM units disabled by alt-php-*-php-fpm and ea-php-*-php-fpm
+    # %preun. systemctl enable is idempotent, so units that are already enabled
+    # (e.g. via systemd presets on reinstall) are a no-op.
+    my $services = Elevate::StageFile::read_stage_file('php_fpm_services_enabled');
+    return unless ref $services eq 'ARRAY' && scalar @$services;
+
+    INFO( sprintf( 'Re-enabling %d PHP-FPM service(s).', scalar @$services ) );
+
+    my @failed;
+    for my $unit (@$services) {
+        my $sro = Cpanel::SafeRun::Object->new(
+            program => '/usr/bin/systemctl',
+            args    => [ qw(enable), $unit ],
+        );
+
+        if ( $sro->CHILD_ERROR() ) {
+            WARN( "Could not re-enable $unit: " . $sro->autopsy );
+            push @failed, $unit;
+        }
+    }
+
+    if ( scalar @failed ) {
+        my $list = join "\n", map { "  - $_" } @failed;
+        WARN("Failed to re-enable PHP-FPM services:\n$list");
+        Elevate::Notify::add_final_notification(
+            "elevate-cpanel could not re-enable these PHP-FPM services (disabled by RPM %preun during stage 2):\n$list\n\nPlease enable them manually with 'systemctl enable <unit>'.",
+            1
+        );
     }
 
     return;
