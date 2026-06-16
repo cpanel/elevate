@@ -7858,10 +7858,7 @@ EOF
 
         $self->ssystem_and_die(qw{/usr/local/cpanel/scripts/update-packages});
 
-        if ( Elevate::OS::is_apt_based() ) {
-            INFO('Removing /etc/apt/preferences.d/99-cpanel-exclude-packages');
-            unlink('/etc/apt/preferences.d/99-cpanel-exclude-packages');
-        }
+        Elevate::PkgMgr::remove_cpanel_exclude_packages_file() if Elevate::OS::is_apt_based();
 
         Elevate::PkgMgr::update();
 
@@ -9153,6 +9150,10 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
         return instance()->clean_all();
     }
 
+    sub remove_cpanel_exclude_packages_file () {
+        return instance()->remove_cpanel_exclude_packages_file();
+    }
+
     sub install_pkg_via_url ($rpm_url) {
         return instance()->install_pkg_via_url($rpm_url);
     }
@@ -9341,6 +9342,18 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
     sub clean_all ($self) {
         my $out = $self->ssystem_capture_output( $apt_get, 'clean' );
         return $out;
+    }
+
+    use constant CPANEL_EXCLUDE_PACKAGES_FILE => '/etc/apt/preferences.d/99-cpanel-exclude-packages';
+
+    sub remove_cpanel_exclude_packages_file ($self) {
+        my $file = CPANEL_EXCLUDE_PACKAGES_FILE;
+        return unless -e $file;
+
+        INFO("Removing $file");
+        unlink($file) or WARN("Failed to remove package exclude file $file: $!");
+
+        return;
     }
 
     sub install_with_options ( $self, $options, $pkgs ) {
@@ -9565,6 +9578,10 @@ deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk
 
     sub clean_all ($self) {
         die "clean_all unimplemented";
+    }
+
+    sub remove_cpanel_exclude_packages_file ($self) {
+        return;
     }
 
     sub install_pkg_via_url ( $self, $rpm_url ) {
@@ -12774,6 +12791,11 @@ sub run_stage_3 ($self) {
     elsif ( Elevate::OS::needs_do_release_upgrade() ) {
         INFO('Remounting /tmp partition with exec option');
         $self->ssystem( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
+
+        # The cPanel apt exclude file can pin packages (such as base-files) in a
+        # way that prevents do-release-upgrade from completing successfully, so
+        # make sure it does not exist before invoking the script.
+        Elevate::PkgMgr::remove_cpanel_exclude_packages_file();
 
         INFO('Running do-release-upgrade');
         my $ret = $self->ssystem_capture_output( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );

@@ -163,6 +163,26 @@ sub clean_all ($self) {
     return $out;
 }
 
+use constant CPANEL_EXCLUDE_PACKAGES_FILE => '/etc/apt/preferences.d/99-cpanel-exclude-packages';
+
+=head1 remove_cpanel_exclude_packages_file
+
+Remove the cPanel-managed apt preferences file, if present. This file pins back
+packages (such as base-files) that cPanel does not want updated on the current
+release.
+
+=cut
+
+sub remove_cpanel_exclude_packages_file ($self) {
+    my $file = CPANEL_EXCLUDE_PACKAGES_FILE;
+    return unless -e $file;
+
+    INFO("Removing $file");
+    unlink($file) or WARN("Failed to remove package exclude file $file: $!");
+
+    return;
+}
+
 =head1 install_with_options
 
 Apt does not handle repos/PPAs the same way as yum and what we are currently
