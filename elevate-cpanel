@@ -5091,6 +5091,8 @@ EOS
         foreach my $nic (@nics) {
             my $nic_path = ETH_FILE_PREFIX . $nic;
 
+            next unless -e $nic_path;
+
             my $found = 0;
             my $txt   = File::Slurper::read_binary($nic_path);
             my @lines = split "\n", $txt;
