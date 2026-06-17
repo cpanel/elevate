@@ -795,6 +795,225 @@ sub test__ensure_sites_use_correct_php_version : Test(17) ($self) {
     return;
 }
 
+sub test__snapshot_user_php_selectors : Test(8) ($self) {
+
+    my $ea4 = cpev->new->get_component('EA4');
+
+    my @cpusers  = qw( alice bob carol dave );
+    my %homedirs = (
+        alice => '/home/alice',
+        bob   => '/home/bob',
+        carol => '/home/carol',
+        dave  => '/home/dave',
+    );
+
+    my $mock_users = Test::MockModule->new('Cpanel::Config::Users');
+    $mock_users->redefine( getcpusers => sub { return @cpusers; } );
+
+    my $mock_pwcache = Test::MockModule->new('Cpanel::PwCache');
+    $mock_pwcache->redefine( gethomedir => sub ($user) { return $homedirs{$user}; } );
+
+    # 1. cloudlinux-selector is not present/executable -> noop
+    my $mock_cli = Test::MockFile->file('/usr/sbin/cloudlinux-selector');    # missing
+    is( $ea4->_snapshot_user_php_selectors,                        undef, 'noop when cloudlinux-selector is not present' );
+    is( Elevate::StageFile::read_stage_file('user_php_selectors'), {},    'stage file untouched when the selector binary is absent' );
+
+    # Make the binary executable for the remaining scenarios.
+    $mock_cli->contents('');
+    $mock_cli->chmod(0755);
+
+    # 2. Every user is on the native version -> noop
+    my $mock_alice = Test::MockFile->file( '/home/alice/.cl.selector/defaults.cfg', "[versions]\nphp = native\n" );
+    my $mock_bob   = Test::MockFile->file( '/home/bob/.cl.selector/defaults.cfg',   "[versions]\nphp = native\n" );
+    my $mock_carol = Test::MockFile->file('/home/carol/.cl.selector/defaults.cfg');                                  # missing file is skipped
+    my $mock_dave  = Test::MockFile->file( '/home/dave/.cl.selector/defaults.cfg', "[versions]\nphp = native\n" );
+
+    is( $ea4->_snapshot_user_php_selectors,                        undef, 'noop when no user has a non-native PHP Selector version' );
+    is( Elevate::StageFile::read_stage_file('user_php_selectors'), {},    'stage file untouched when every user is native' );
+
+    # 3. Some users are on a non-native version -> recorded
+    $mock_alice->contents("[versions]\nphp = 7.4\n");
+
+    # The php setting outside of the [versions] section must be ignored.
+    $mock_dave->contents("[other]\nphp = 9.9\n[versions]\nphp = 8.1\n");
+
+    is( $ea4->_snapshot_user_php_selectors, undef, 'returns undef on success' );
+    message_seen( INFO => 'Recorded 2 user(s) with non-native PHP Selector versions.' );
+
+    is(
+        Elevate::StageFile::read_stage_file('user_php_selectors'),
+        { alice => '7.4', dave => '8.1' },
+        'Only non-native versions from the [versions] section are recorded',
+    );
+
+    return;
+}
+
+sub test__snapshot_php_fpm_services : Test(6) ($self) {
+
+    my $ea4 = cpev->new->get_component('EA4');
+
+    my $output = '';
+    $self->{mock_saferun}->redefine( saferunnoerror => sub (@cmd) { return $output; } );
+
+    # 1. Nothing is enabled -> noop
+    $output = <<~'EOS';
+    alt-php74-fpm.service       disabled  disabled
+    ea-php80-php-fpm.service    masked    disabled
+    EOS
+
+    is( $ea4->_snapshot_php_fpm_services,                                undef, 'noop when no PHP-FPM service is enabled' );
+    is( Elevate::StageFile::read_stage_file('php_fpm_services_enabled'), {},    'stage file untouched when nothing is enabled' );
+
+    # 2. Some services are enabled -> recorded, sorted
+    $output = <<~'EOS';
+    ea-php80-php-fpm.service    enabled   enabled
+    alt-php74-fpm.service       enabled   enabled
+    alt-php73-fpm.service       disabled  disabled
+    EOS
+
+    is( $ea4->_snapshot_php_fpm_services, undef, 'returns undef on success' );
+    message_seen( INFO => 'Recorded 2 PHP-FPM service(s) currently enabled.' );
+
+    is(
+        Elevate::StageFile::read_stage_file('php_fpm_services_enabled'),
+        [ 'alt-php74-fpm.service', 'ea-php80-php-fpm.service' ],
+        'Only enabled services are recorded, sorted',
+    );
+
+    return;
+}
+
+sub test__restore_user_php_selectors : Test(22) ($self) {
+
+    my $ea4 = cpev->new->get_component('EA4');
+
+    my @sro_calls;
+    my %sro_should_fail;
+    my $mock_sro = Test::MockModule->new('Cpanel::SafeRun::Object');
+    $mock_sro->redefine(
+        new => sub ( $class, %args ) {
+            push @sro_calls, { program => $args{program}, args => $args{args} };
+            return bless { args => $args{args} }, $class;
+        },
+        CHILD_ERROR => sub ($self) {
+            for my $arg ( @{ $self->{args} } ) {
+                return 1 if $sro_should_fail{$arg};
+            }
+            return 0;
+        },
+        autopsy => sub ($self) { return 'mocked autopsy'; },
+    );
+
+    my @notifications;
+    my $mock_notify = Test::MockModule->new('Elevate::Notify');
+    $mock_notify->redefine( add_final_notification => sub ( $msg, $warn_now = 0 ) { push @notifications, $msg; return 1; } );
+
+    # 1. Nothing in the stage file -> noop
+    is( $ea4->_restore_user_php_selectors, undef, 'noop when the stage file has no PHP Selector data' );
+    is( \@sro_calls,                       [],    'no cloudlinux-selector calls when there is nothing to restore' );
+
+    Elevate::StageFile::update_stage_file( { user_php_selectors => { alice => '7.4', bob => '8.1' } } );
+
+    # 2. cloudlinux-selector is not executable on the target -> all fail
+    my $mock_cli = Test::MockFile->file('/usr/sbin/cloudlinux-selector');    # missing
+    is( $ea4->_restore_user_php_selectors, undef, 'returns undef when the selector binary is absent' );
+    is( \@sro_calls,                       [],    'no calls attempted when the selector binary is absent' );
+    message_seen( WARN => 'Cannot restore PHP Selector versions: /usr/sbin/cloudlinux-selector is not executable on the target OS.' );
+    message_seen( WARN => qr/Failed to restore PHP Selector versions/ );
+    is( scalar @notifications, 1, 'a final notification is queued when restore is impossible' );
+
+    # 3. Executable, all users restore cleanly
+    @notifications = ();
+    $mock_cli->contents('');
+    $mock_cli->chmod(0755);
+
+    is( $ea4->_restore_user_php_selectors, undef, 'returns undef on success' );
+    message_seen( INFO => 'Restoring PHP Selector versions for 2 user(s).' );
+
+    is(
+        \@sro_calls,
+        [
+            { program => '/usr/sbin/cloudlinux-selector', args => [qw(set --json --interpreter=php --current-version=7.4 --user=alice)] },
+            { program => '/usr/sbin/cloudlinux-selector', args => [qw(set --json --interpreter=php --current-version=8.1 --user=bob)] },
+        ],
+        'cloudlinux-selector is invoked once per user, sorted by user',
+    );
+    is( \@notifications, [], 'no notification queued when every user restores cleanly' );
+
+    # 4. Executable, one user fails
+    @sro_calls       = ();
+    @notifications   = ();
+    %sro_should_fail = ( '--user=bob' => 1 );
+
+    is( $ea4->_restore_user_php_selectors, undef, 'returns undef when a user fails to restore' );
+    message_seen( INFO => 'Restoring PHP Selector versions for 2 user(s).' );
+    message_seen( WARN => 'Could not restore user bob: mocked autopsy' );
+    message_seen( WARN => qr/Failed to restore PHP Selector versions/ );
+    is( scalar @notifications, 1, 'a final notification is queued for the failed user' );
+
+    return;
+}
+
+sub test__restore_php_fpm_services : Test(15) ($self) {
+
+    my $ea4 = cpev->new->get_component('EA4');
+
+    my @sro_calls;
+    my %sro_should_fail;
+    my $mock_sro = Test::MockModule->new('Cpanel::SafeRun::Object');
+    $mock_sro->redefine(
+        new => sub ( $class, %args ) {
+            push @sro_calls, { program => $args{program}, args => $args{args} };
+            return bless { args => $args{args} }, $class;
+        },
+        CHILD_ERROR => sub ($self) {
+            for my $arg ( @{ $self->{args} } ) {
+                return 1 if $sro_should_fail{$arg};
+            }
+            return 0;
+        },
+        autopsy => sub ($self) { return 'mocked autopsy'; },
+    );
+
+    my @notifications;
+    my $mock_notify = Test::MockModule->new('Elevate::Notify');
+    $mock_notify->redefine( add_final_notification => sub ( $msg, $warn_now = 0 ) { push @notifications, $msg; return 1; } );
+
+    # 1. Nothing in the stage file -> noop
+    is( $ea4->_restore_php_fpm_services, undef, 'noop when the stage file has no PHP-FPM data' );
+    is( \@sro_calls,                     [],    'no systemctl calls when there is nothing to restore' );
+
+    Elevate::StageFile::update_stage_file( { php_fpm_services_enabled => [qw(alt-php74-fpm.service ea-php80-php-fpm.service)] } );
+
+    # 2. All units re-enable cleanly
+    is( $ea4->_restore_php_fpm_services, undef, 'returns undef on success' );
+    message_seen( INFO => 'Re-enabling 2 PHP-FPM service(s).' );
+
+    is(
+        \@sro_calls,
+        [
+            { program => '/usr/bin/systemctl', args => [qw(enable alt-php74-fpm.service)] },
+            { program => '/usr/bin/systemctl', args => [qw(enable ea-php80-php-fpm.service)] },
+        ],
+        'systemctl enable is invoked once per unit',
+    );
+    is( \@notifications, [], 'no notification queued when every service re-enables cleanly' );
+
+    # 3. One unit fails to re-enable
+    @sro_calls       = ();
+    @notifications   = ();
+    %sro_should_fail = ( 'ea-php80-php-fpm.service' => 1 );
+
+    is( $ea4->_restore_php_fpm_services, undef, 'returns undef when a unit fails to re-enable' );
+    message_seen( INFO => 'Re-enabling 2 PHP-FPM service(s).' );
+    message_seen( WARN => 'Could not re-enable ea-php80-php-fpm.service: mocked autopsy' );
+    message_seen( WARN => qr/Failed to re-enable PHP-FPM services/ );
+    is( scalar @notifications, 1, 'a final notification is queued for the failed unit' );
+
+    return;
+}
+
 sub test_blocker_ea4_profile : Test(18) ($self) {
 
     set_os_to( 'cent', 7 );
