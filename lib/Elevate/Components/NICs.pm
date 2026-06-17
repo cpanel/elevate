@@ -142,6 +142,10 @@ sub _blocker_ifcfg_files_missing_type_parameter ($self) {
     foreach my $nic (@nics) {
         my $nic_path = ETH_FILE_PREFIX . $nic;
 
+        # If the ifcfg file does not exist, then the NIC has already been
+        # converted to a NetworkManager keyfile and there is nothing to check
+        next unless -e $nic_path;
+
         my $found = 0;
         my $txt   = File::Slurper::read_binary($nic_path);
         my @lines = split "\n", $txt;

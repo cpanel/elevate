@@ -345,6 +345,8 @@ my $nics = cpev->new->get_component('NICs');
         _nics_have_missing_ifcfg_files => 0,
     );
 
+    my $mock_ifcfg_eth0 = Test::MockFile->file( '/etc/sysconfig/network-scripts/ifcfg-eth0', 'mocked' );
+
     my $mock_contents;
     $mock_file_slurper->redefine(
         read_binary => sub { return $mock_contents; },
@@ -384,6 +386,19 @@ my $nics = cpev->new->get_component('NICs');
             msg => qr/The following network-scripts files are missing the TYPE key/,
         },
         'No blocker when the TYPE parameter is defined',
+    );
+
+    # The NIC has already been converted to a NetworkManager keyfile, so no
+    # ifcfg file exists for it on disk
+    $mock_file_slurper->redefine(
+        read_binary => sub { die "DO NOT CALL THIS\n"; },
+    );
+    unlink '/etc/sysconfig/network-scripts/ifcfg-eth0';
+
+    is(
+        $nics->_blocker_ifcfg_files_missing_type_parameter(),
+        undef,
+        'No blocker (and no crash) when the ifcfg file does not exist (already converted to NetworkManager keyfile)',
     );
 }
 
