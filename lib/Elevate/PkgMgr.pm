@@ -89,6 +89,10 @@ sub clean_all () {
     return instance()->clean_all();
 }
 
+sub remove_cpanel_exclude_packages_file () {
+    return instance()->remove_cpanel_exclude_packages_file();
+}
+
 sub install_pkg_via_url ($rpm_url) {
     return instance()->install_pkg_via_url($rpm_url);
 }

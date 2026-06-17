@@ -112,6 +112,12 @@ sub clean_all ($self) {
     die "clean_all unimplemented";
 }
 
+# The cPanel apt exclude file is apt-specific; there is nothing to remove on
+# package managers that do not use it.
+sub remove_cpanel_exclude_packages_file ($self) {
+    return;
+}
+
 sub install_pkg_via_url ( $self, $rpm_url ) {
     die "install_pkg_via_url unimplemented";
 }

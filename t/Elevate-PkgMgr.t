@@ -99,5 +99,23 @@ require $FindBin::Bin . '/../elevate-cpanel';
     is( $obj->makecache(), "something\nsomething else", "makecache() filters the stderr text which is irrelevant" );
 }
 
+{
+    note 'Test PkgMgr::APT::remove_cpanel_exclude_packages_file (RE-1668)';
+
+    set_os_to_ubuntu_20();
+    my $obj = Elevate::PkgMgr::instance();
+
+    my $exclude_file = '/etc/apt/preferences.d/99-cpanel-exclude-packages';
+
+    my $mock_exclude = Test::MockFile->file( $exclude_file, "Package: base-files\nPin: release *\nPin-Priority: -1\n" );
+    ok( -e $exclude_file, 'exclude file exists before removal' );
+    $obj->remove_cpanel_exclude_packages_file();
+    ok( !-e $exclude_file, 'exclude file removed when present' );
+
+    # File is now absent; a second call should be a harmless noop.
+    ok( lives { $obj->remove_cpanel_exclude_packages_file() }, 'removal is a noop when the file is absent' );
+    ok( !-e $exclude_file,                                     'exclude file remains absent' );
+}
+
 done_testing();
 exit;

@@ -1062,6 +1062,11 @@ sub run_stage_3 ($self) {
         INFO('Remounting /tmp partition with exec option');
         $self->ssystem( '/usr/bin/mount', '-o', 'remount,exec', '/tmp' );
 
+        # The cPanel apt exclude file can pin packages (such as base-files) in a
+        # way that prevents do-release-upgrade from completing successfully, so
+        # make sure it does not exist before invoking the script.
+        Elevate::PkgMgr::remove_cpanel_exclude_packages_file();
+
         INFO('Running do-release-upgrade');
         my $ret = $self->ssystem_capture_output( '/usr/bin/do-release-upgrade', '-f', 'DistUpgradeViewNonInteractive' );
 

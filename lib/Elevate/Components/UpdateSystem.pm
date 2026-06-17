@@ -69,10 +69,13 @@ sub pre_distro_upgrade ($self) {
     # the server
     # NOTE: This has to happen after update-packages or update-packages
     #       will put it back in place
-    if ( Elevate::OS::is_apt_based() ) {
-        INFO('Removing /etc/apt/preferences.d/99-cpanel-exclude-packages');
-        unlink('/etc/apt/preferences.d/99-cpanel-exclude-packages');
-    }
+    #
+    #       The apt upgrade below (or cPanel package machinery) may regenerate
+    #       this file and re-pin base-files. That is harmless here since we only
+    #       need base-files current for the source release. It is removed again
+    #       immediately before do-release-upgrade so the cross-release upgrade
+    #       is not blocked (RE-1668).
+    Elevate::PkgMgr::remove_cpanel_exclude_packages_file() if Elevate::OS::is_apt_based();
 
     Elevate::PkgMgr::update();
 

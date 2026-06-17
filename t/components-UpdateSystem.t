@@ -26,8 +26,9 @@ use cPstrict;
 my $mock_cpanel_exclude_packages = Test::MockFile->file( '/etc/apt/preferences.d/99-cpanel-exclude-packages', '' );
 my $mock_check_cpanel_pkgs       = Test::MockFile->file('/usr/local/cpanel/scripts/check_cpanel_pkgs');
 
-my $mock_pkgmgr    = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
-my $mock_pkgr_comp = Test::MockModule->new('Elevate::Components::UpdateSystem');
+my $mock_pkgmgr        = Test::MockModule->new( ref Elevate::PkgMgr::instance() );
+my $mock_pkgmgr_module = Test::MockModule->new('Elevate::PkgMgr');
+my $mock_pkgr_comp     = Test::MockModule->new('Elevate::Components::UpdateSystem');
 
 my $comp = cpev->new->get_component('UpdateSystem');
 
@@ -36,9 +37,13 @@ my $comp = cpev->new->get_component('UpdateSystem');
 
     my $called_clean_all;
     my $called_update;
+    my @call_order;
     $mock_pkgmgr->redefine(
         clean_all => sub { $called_clean_all++; },
-        update    => sub { $called_update++; },
+        update    => sub { $called_update++; push @call_order, 'update'; },
+    );
+    $mock_pkgmgr_module->redefine(
+        remove_cpanel_exclude_packages_file => sub { push @call_order, 'remove_exclude_file'; },
     );
 
     my @ssystem_and_die_params;
@@ -60,9 +65,12 @@ my $comp = cpev->new->get_component('UpdateSystem');
         }
     );
 
-    foreach my $os ( 'cent', 'cloud', 'ubuntu' ) {
+    foreach my $os ( [ cent => 7 ], [ cloud => 7 ], [ ubuntu => 22 ] ) {
+        set_os_to( $os->@* );
+
         $called_clean_all = 0;
         $called_update    = 0;
+        @call_order       = ();
 
         is( $comp->pre_distro_upgrade(), undef, 'Returns undef' );
         is( $called_clean_all,           1,     'pre_distro_upgrade called clean all' );
@@ -74,6 +82,26 @@ my $comp = cpev->new->get_component('UpdateSystem');
             ],
             'Expected script was called'
         );
+
+        if ( Elevate::OS::is_apt_based() ) {
+
+            # The exclude file must be removed *before* the apt upgrade so the
+            # upgrade can bring base-files (and anything else pinned) fully up
+            # to date for the source release. The cross-release pin is cleared
+            # again just before do-release-upgrade (RE-1668).
+            is(
+                \@call_order,
+                [ 'remove_exclude_file', 'update' ],
+                'apt exclude file is removed before PkgMgr::update'
+            );
+        }
+        else {
+            is(
+                \@call_order,
+                ['update'],
+                'exclude file removal is skipped on non-apt systems'
+            );
+        }
     }
 }
 
