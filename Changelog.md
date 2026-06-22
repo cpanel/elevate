@@ -1,5 +1,13 @@
 ## ELevate Change Log
 
+##### **2026-06-22** - version 83
+
+* Fixed case RE-1667: Fix --check crash on AlmaLinux 9 with NetworkManager keyfiles
+* Fixed case RE-1668: Fix Ubuntu upgrade failure caused by a cPanel apt package pin
+* Fixed case RE-1664: Restore user PHP Selector versions and alt-php PHP-FPM service states after OS upgrade.
+* Fixed case RE-1663: Recover EasyApache 4 packages when an EasyApache profile restore fails during an upgrade.
+* Fixed case RE-1666: Remove experimental status for AlmaLinux 9 -> 10 upgrades
+
 ##### **2026-05-26** - version 82
 
 * Fixed case CPANEL-53422:  Make vetted repo check for cloudlinux-ea4 case insensistive
