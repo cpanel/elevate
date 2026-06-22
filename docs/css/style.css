@@ -1,0 +1,53 @@
+.bg-light {
+    background-color: #293A4A !important;
+}
+
+footer {
+    background-color: #293A4A;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, .8);
+}
+
+/* https://styleguide.cpanel.net/#/color-swatches */
+
+body {
+    background-color: #D7EDF9;
+}
+
+.side-nav {
+    background-color: #EAEAEA;
+}
+
+.navbar .navbar-brand img {
+    height: 6.75rem
+}
+
+/* copy button */
+pre {
+    position:relative;
+    overflow: auto;
+    margin:5px 0;
+    padding:1.75rem 0 1.75rem 1rem;
+    border-radius:10px;
+  }
+
+  button{
+    position:absolute;
+    top:5px;
+    right:5px;
+
+    font-size:.9rem;
+    padding:.15rem;
+    background-color:#828282;
+    color:1e1e1e;
+    border:ridge 1px #7b7b7c;
+    border-radius:5px;
+    text-shadow:#c4c4c4 0 0 2px;
+  }
+
+  button:hover{
+    cursor:pointer;
+     background-color:#bcbabb;
+  }
