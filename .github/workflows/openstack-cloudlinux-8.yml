@@ -206,6 +206,8 @@ jobs:
             cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
             cp -pv /opt/${REPODIR}/.github/workflows/openstack/reboot_watch /scripts/reboot_watch
             chmod -v +x /scripts/elevate-cpanel
+            chmod -v +x /opt/${REPODIR}/.github/workflows/openstack/normalize_grub_blscfg
+            /opt/${REPODIR}/.github/workflows/openstack/normalize_grub_blscfg
             shutdown -r +0 "Restarting system after updates before we Elevate." &
             exit 0
 

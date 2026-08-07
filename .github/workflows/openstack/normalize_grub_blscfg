@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#                                      Copyright 2025 WebPros International, LLC
+#                                                           All rights reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited.
+
+# Normalize GRUB_ENABLE_BLSCFG in /etc/default/grub before we elevate.
+#
+# Some cPanel base images ship /etc/default/grub with GRUB_ENABLE_BLSCFG=false.
+# ELevate's _blocker_blscfg (lib/Elevate/Components/Grub2ChecksWorkarounds.pm)
+# correctly refuses to elevate such a system, so the workflow never gets far
+# enough to exercise an actual upgrade.  These integration runs exist to test
+# elevation, not to re-test the blocker, so normalize the setting here the same
+# way ELevate's own _autofix_etc_default_grub would
+# (lib/Elevate/Components/Grub2ControlTest.pm) if it were reachable before the
+# blockers run.
+#
+# This is a no-op when the variable is absent or already true, so it is safe to
+# call unconditionally on any leapp-based target.
+
+set -u
+
+GRUB_DEFAULTS='/etc/default/grub'
+GRUB_CFG='/boot/grub2/grub.cfg'
+GRUB2_MKCONFIG='/usr/sbin/grub2-mkconfig'
+
+BLSCFG_SET='^[[:space:]]*GRUB_ENABLE_BLSCFG[[:space:]]*='
+BLSCFG_TRUE='^[[:space:]]*GRUB_ENABLE_BLSCFG[[:space:]]*=[[:space:]]*"?true"?[[:space:]]*$'
+
+if [ ! -f "$GRUB_DEFAULTS" ]; then
+    echo "## [INFO][blscfg]: $GRUB_DEFAULTS does not exist.  Nothing to do."
+    exit 0
+fi
+
+if ! grep -Eq "$BLSCFG_SET" "$GRUB_DEFAULTS"; then
+    echo "## [INFO][blscfg]: GRUB_ENABLE_BLSCFG is not set in $GRUB_DEFAULTS.  Nothing to do."
+    exit 0
+fi
+
+if grep -Eq "$BLSCFG_TRUE" "$GRUB_DEFAULTS"; then
+    echo "## [INFO][blscfg]: GRUB_ENABLE_BLSCFG is already true in $GRUB_DEFAULTS.  Nothing to do."
+    exit 0
+fi
+
+echo "## [INFO][blscfg]: Found a non-true GRUB_ENABLE_BLSCFG in $GRUB_DEFAULTS:"
+grep -En "$BLSCFG_SET" "$GRUB_DEFAULTS"
+
+# Keep the backup outside of /etc/default so that nothing which globs that
+# directory (leapp included) picks it up as a second config file.
+cp -pv "$GRUB_DEFAULTS" /root/grub.pre-elevate || exit 1
+sed -i -E 's/^[[:space:]]*GRUB_ENABLE_BLSCFG[[:space:]]*=.*$/GRUB_ENABLE_BLSCFG=true/' "$GRUB_DEFAULTS" || exit 1
+
+echo "## [INFO][blscfg]: $GRUB_DEFAULTS now contains:"
+grep -En "$BLSCFG_SET" "$GRUB_DEFAULTS"
+
+echo "## [INFO][blscfg]: Regenerating $GRUB_CFG via $GRUB2_MKCONFIG"
+"$GRUB2_MKCONFIG" -o "$GRUB_CFG" || exit 1
+
+exit 0
