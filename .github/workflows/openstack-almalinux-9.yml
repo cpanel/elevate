@@ -181,6 +181,20 @@ jobs:
             chmod -v +x /scripts/elevate-cpanel
             until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
 
+      - name: Normalize GRUB_ENABLE_BLSCFG Before ELevate
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.VM_IP }}
+          username: "root"
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: "22"
+          timeout: 10m
+          command_timeout: 10m
+          envs: REPODIR
+          script: |
+            chmod -v +x /opt/$REPODIR/.github/workflows/openstack/normalize_grub_blscfg
+            /opt/$REPODIR/.github/workflows/openstack/normalize_grub_blscfg
+
   start_elevate:
     runs-on:
       group: org/cpanel-arc-elevate
