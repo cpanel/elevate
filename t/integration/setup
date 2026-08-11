@@ -86,6 +86,12 @@ run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 # trip an elevate blocker. We must also remove the alt-phpXX-mysql-meta packages
 # that require them: otherwise the later "yum reinstall" of cloudlinux-x86_64-server
 # packages in the workflow reinstalls mysql-meta, which drags percona5.7 back in.
+#
+# alt-php84-mysql5.5 is the same story one PHP version further along: CloudLinux 8
+# ships no mysql5.5 variant of alt-php84, so ea_current_to_profile reports it as a
+# dropped package and EA4's _blocker_ea4_profile stops the elevation (CPANEL-54373).
+# Take alt-php84-mysql-meta along with it for the reason above, so that the
+# "yum -y update" later in the workflow cannot pull mysql5.5 back in.
 if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) {
     print "Removing dropped packages for CloudLinux 7 systems so we can upgrade\n";
 
@@ -134,13 +140,16 @@ if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 7 ) {
       alt-php81-pecl-brotli
       alt-php82-pecl-brotli
       alt-php83-pecl-brotli
+
+      alt-php84-mysql5.5
+      alt-php84-mysql-meta
     };
 
     run_or_die( '/usr/bin/yum', '-y', 'remove', @dropped_pkgs );
 }
 
 if ( Cpanel::OS::distro() eq 'cloudlinux' && Cpanel::OS::major() == 8 ) {
-    print "Removing dropped packages for CloudLinux 7 systems so we can upgrade\n";
+    print "Removing dropped packages for CloudLinux 8 systems so we can upgrade\n";
 
     my @dropped_pkgs = qw{
       alt-php74-leveldb
