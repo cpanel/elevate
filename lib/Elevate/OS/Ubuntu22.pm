@@ -16,6 +16,13 @@ use parent 'Elevate::OS::Ubuntu';
 # The value represents the contents that the file should contain after the
 # upgrade has completed
 use constant vetted_apt_lists => {
+    'alt-common-els-rollout.list' => q{deb [arch=amd64] https://rollout.alt.tuxcare.com/alt-common/slot-1/deb/ubuntu/24.04 noble main
+deb [arch=amd64] https://rollout.alt.tuxcare.com/alt-common/slot-2/deb/ubuntu/24.04 noble main
+deb [arch=amd64] https://rollout.alt.tuxcare.com/alt-common/slot-3/deb/ubuntu/24.04 noble main
+deb [arch=amd64] https://rollout.alt.tuxcare.com/alt-common/slot-4/deb/ubuntu/24.04 noble main
+deb [arch=amd64] https://rollout.alt.tuxcare.com/alt-common/slot-5/deb/ubuntu/24.04 noble main
+deb [arch=amd64] https://rollout.alt.tuxcare.com/alt-common/slot-6/deb/ubuntu/24.04 noble main},
+
     'alt-common-els.list' => q{deb [arch=amd64] https://repo.alt.tuxcare.com/alt-common/deb/ubuntu/24.04/stable noble main},
 
     'cpanel-plugins.list' => q{deb mirror://httpupdate.cpanel.net/cpanel-plugins-u24-mirrorlist ./},
