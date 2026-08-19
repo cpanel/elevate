@@ -181,8 +181,23 @@ jobs:
             echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
             echo "## [INFO]: Now running /usr/bin/cldetect --check-license" && /usr/bin/cldetect --check-license
             until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
+            echo "[cloudlinux-base]" > /etc/yum.repos.d/cloudlinux-base.repo
+            echo "name=CloudLinux-\$releasever - Base" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "baseurl=https://clmirror.cpanel.net/\$releasever/os/\$basearch/" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "enabled=0" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "gpgcheck=1" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CloudLinux" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "[cloudlinux-updates]" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "name=CloudLinux-\$releasever - Updates" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "baseurl=https://clmirror.cpanel.net/\$releasever/updates/\$basearch/" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "enabled=0" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "gpgcheck=1" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CloudLinux" >> /etc/yum.repos.d/cloudlinux-base.repo
+            echo "" >> /etc/yum.repos.d/cloudlinux-base.repo
             /usr/bin/yum erase -y awscli git-lfs
-            echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo=cloudlinux-x86_64-server --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
+            echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo='cloudlinux-x86_64-server*' --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
+            rm -fv /etc/yum.repos.d/cloudlinux.repo
             mv -v /etc/yum.repos.d/clmirror.repo /root/
             yum-config-manager --enable cloudlinux-base
             yum-config-manager --enable cloudlinux-updates
