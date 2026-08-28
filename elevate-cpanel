@@ -2770,7 +2770,8 @@ EOS
     use Elevate::OS     ();
     use Elevate::PkgMgr ();
 
-    use Cpanel::Pkgr ();
+    use Cpanel::Pkgr  ();
+    use File::Slurper ();
 
     # use Log::Log4perl qw(:easy);
     INIT { Log::Log4perl->import(qw{:easy}); }
@@ -2780,6 +2781,11 @@ EOS
     BEGIN { push @ISA, qw(Elevate::Components::Base); }
 
     use constant ELS_PACKAGE => 'els-define';
+
+    use constant ALT_COMMON_REPO_FILES => qw{
+      /etc/yum.repos.d/alt-common-els.repo
+      /etc/yum.repos.d/alt-common-els-rollout.repo
+    };
 
     sub pre_distro_upgrade ($self) {
 
@@ -2797,6 +2803,48 @@ EOS
         }
 
         Elevate::PkgMgr::remove(ELS_PACKAGE) if Cpanel::Pkgr::is_installed(ELS_PACKAGE);
+
+        return;
+    }
+
+    sub post_distro_upgrade ($self) {
+
+        return unless Elevate::OS::remove_els();
+
+        $self->_update_alt_common_repos();
+
+        return;
+    }
+
+    sub _update_alt_common_repos ($self) {
+
+        my $from = Elevate::OS::original_os_major();
+        my $to   = Elevate::OS::expected_post_upgrade_major();
+
+        foreach my $file (ALT_COMMON_REPO_FILES) {
+            next unless -e $file;
+
+            my $contents = eval { File::Slurper::read_text($file) };
+            if ( !defined $contents ) {
+                WARN("Could not read $file: $@");
+                next;
+            }
+
+            my $updated = $contents;
+            $updated =~ s{^([ \t]*baseurl[ \t]*=[ \t]*\S*/el/)\Q$from\E(/)}{$1$to$2}gmi;
+
+            if ( $updated eq $contents ) {
+                DEBUG("No el$from baseurl found in $file; leaving it unchanged.");
+                next;
+            }
+
+            eval { File::Slurper::write_text( $file, $updated ); 1 } or do {
+                WARN("Could not update $file: $@");
+                next;
+            };
+
+            INFO("Updated $file to use the el$to repos.");
+        }
 
         return;
     }
@@ -12935,6 +12983,7 @@ sub run_stage_4 ($self) {
 
     $self->run_component_once( 'Systemd'   => 'post_distro_upgrade' );
     $self->run_component_once( 'Ufw'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'ELS'       => 'post_distro_upgrade' );
     $self->run_component_once( 'Lists'     => 'post_distro_upgrade' );
     $self->run_component_once( 'WPToolkit' => 'post_distro_upgrade' );
     $self->run_component_once( 'RpmDB'     => 'post_distro_upgrade' );

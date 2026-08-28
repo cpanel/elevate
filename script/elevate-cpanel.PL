@@ -1189,6 +1189,7 @@ sub run_stage_4 ($self) {
 
     $self->run_component_once( 'Systemd'   => 'post_distro_upgrade' );
     $self->run_component_once( 'Ufw'       => 'post_distro_upgrade' );
+    $self->run_component_once( 'ELS'       => 'post_distro_upgrade' );
     $self->run_component_once( 'Lists'     => 'post_distro_upgrade' );
     $self->run_component_once( 'WPToolkit' => 'post_distro_upgrade' );
     $self->run_component_once( 'RpmDB'     => 'post_distro_upgrade' );
