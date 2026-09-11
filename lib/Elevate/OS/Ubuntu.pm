@@ -69,6 +69,7 @@ use constant supports_jetbackup               => 1;
 use constant supports_kernelcare              => 0;
 use constant supports_named_tiers             => 0;
 use constant supports_postgresql              => 0;
+use constant update_alt_common_repos          => 0;
 use constant upgrade_to_pretty_name           => undef;
 use constant vetted_apt_lists                 => undef;
 use constant vetted_mysql_yum_repo_ids        => undef;

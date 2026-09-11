@@ -234,6 +234,108 @@ is $yum->_check_yum_repos(), { $duplicate => 1, }, q[Duplicate IDs found when a 
 
 is $yum->{_duplicate_repoids}, { 'MariaDB102' => '/etc/yum.repos.d/MariaDB106.repo', 'base' => '/etc/yum.repos.d/MariaDB106.repo' }, q[Expected duplicate IDs found] or diag explain $yum->{_duplicate_repoids};
 
+{
+    note "Testing the stock cloudlinux.repo that every commercial CloudLinux install ships";
+
+    $mock_vetted_repo->unlink;
+    $mock_base_repo->unlink;
+    $mock_duplicate_repo->unlink;
+
+    # Trimmed from the cloudlinux.repo that cloudlinux-release owns.  Each
+    # release ships its own, and the two differ, so drive both rather than one
+    # under a label for the other.  In each the
+    # [cloudlinux-$basearch-server-$releasever] stanza is the only enabled one,
+    # _check_yum_repos() sees the section header before yum expands it, and the
+    # -source and -debuginfo siblings are spelled out with the arch and release
+    # already substituted.
+    my %stock_cloudlinux_repo = (
+        7 => <<'EOS',
+[cloudlinux-$basearch-server-$releasever]
+name=CloudLinux $releasever - Updates
+mirrorlist=https://repo.cloudlinux.com/cloudlinux/mirrorlists/cl-mirrors/cloudlinux-$basearch-server-$releasever
+enabled=1
+gpgcheck=1
+
+[cloudlinux-base]
+name=CloudLinux-$releasever - Base
+baseurl=http://repo.cloudlinux.com/cloudlinux/$releasever/os/$basearch/
+enabled=0
+gpgcheck=1
+
+[cloudlinux-x86_64-server-7-source]
+name=CloudLinux-$releasever - source
+baseurl=http://repo.cloudlinux.com/cloudlinux/$releasever/os/Sources/
+enabled=0
+gpgcheck=1
+
+[cloudlinux-x86_64-server-7-debuginfo]
+name=CloudLinux-$releasever - debuginfo
+baseurl=http://repo.cloudlinux.com/cloudlinux/7/debug/$basearch/
+enabled=0
+gpgcheck=1
+EOS
+        8 => <<'EOS',
+[cloudlinux-$basearch-server-$releasever]
+name=CloudLinux $releasever - Updates
+mirrorlist=https://repo.cloudlinux.com/cloudlinux/mirrorlists/cl-mirrors/cloudlinux-$basearch-server-$releasever
+enabled=1
+gpgcheck=1
+
+[cloudlinux-updates-testing]
+name=CloudLinux $releasever - Updates Testing
+baseurl=https://repo.cloudlinux.com/cloudlinux/$releasever/updates-testing/$basearch/
+enabled=0
+gpgcheck=1
+
+[cloudlinux-x86_64-server-8-source]
+name=CloudLinux $cloudlinux_releasever - Source
+baseurl=https://repo.cloudlinux.com/cloudlinux/$cloudlinux_releasever/cloudlinux-x86_64-server-8/Source/
+enabled=0
+gpgcheck=1
+
+[cloudlinux-x86_64-server-8-debuginfo]
+name=CloudLinux $cloudlinux_releasever - debuginfo
+baseurl=https://repo.cloudlinux.com/cloudlinux/$cloudlinux_releasever/cloudlinux-x86_64-server-8/debug/$basearch/
+enabled=0
+gpgcheck=1
+EOS
+    );
+
+    my $mock_cloudlinux_repo = Test::MockFile->file( "$path_yum_repos_d/cloudlinux.repo" => $stock_cloudlinux_repo{7} );
+
+    foreach my $version ( 7, 8 ) {
+        set_os_to( 'cloud', $version );
+        $mock_cloudlinux_repo->contents( $stock_cloudlinux_repo{$version} );
+        is $yum->_check_yum_repos(), {}, "CloudLinux $version: the stock cloudlinux.repo raises no blockers";
+        is $yum->{_yum_repos_to_disable}, [], "CloudLinux $version: the stock cloudlinux.repo is left enabled";
+    }
+
+    # CPANEL-54373: clmirror.repo and the CLN tooling write the expanded id,
+    # and the OS packages really are installed from it.
+    $mock_cloudlinux_repo->contents(<<'EOS');
+[cloudlinux-x86_64-server-7]
+name=CloudLinux 7 - Updates
+baseurl=https://clmirror.cpanel.net/cloudlinux-x86_64-server-7/
+enabled=1
+gpgcheck=1
+EOS
+
+    $mock_pkgmgr->redefine(
+        get_installed_pkgs_in_repo => sub { return qw{dnf pciutils}; },
+    );
+
+    set_os_to( 'cloud', 7 );
+    is $yum->_check_yum_repos(), {}, "CloudLinux 7: the expanded cloudlinux-x86_64-server-7 id is vetted with packages installed from it";
+
+    $mock_pkgmgr->redefine(
+        get_installed_pkgs_in_repo => sub { return (); },
+    );
+
+    # _yum_is_stable below picks its transaction directory from the package
+    # manager, and only mocks the dnf one, so hand it back a dnf based OS.
+    set_os_to( 'cloud', 8 );
+}
+
 # Now we've tested the caller, let's test the code.
 {
     note "Testing _yum_is_stable";

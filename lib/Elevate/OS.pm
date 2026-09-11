@@ -138,6 +138,7 @@ BEGIN {
         'supports_kernelcare',                  # This is used to determine if kernelcare is currently supported for this upgrade
         'supports_named_tiers',                 # This is used to determine if the OS is eligible to upgrade on any named tier (RELEASE, STABLE, etc)
         'supports_postgresql',                  # This is used to determine if postgresql is supported for this upgrade
+        'update_alt_common_repos',              # This is used to determine if the TuxCare alt-common ELS repos need to be repointed at the upgraded distro
         'upgrade_to_pretty_name',               # Returns the pretty name of the OS we are upgrading to (i.e. 'Ubuntu 22')
         'vetted_apt_lists',                     # This is a list of known apt lists that we do not block on
         'vetted_mysql_yum_repo_ids',            # This is a list of known mysql yum repo ids

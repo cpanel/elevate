@@ -62,14 +62,56 @@ my $expected_rollout_el8 = $pinned_rollout_el7;
 $expected_rollout_el8 =~ s{/el/7/}{/el/8/}g;
 
 {
-    note 'post_distro_upgrade is a noop when the OS does not use ELS';
+    note 'post_distro_upgrade repoints the alt-common repos on CloudLinux 7 too';
 
     set_os_to( 'cloud', 7 );
 
-    my $mock_alt = Test::MockFile->file( $ALT_COMMON, $pinned_el7 );
+    my $mock_alt     = Test::MockFile->file( $ALT_COMMON,         $pinned_el7 );
+    my $mock_rollout = Test::MockFile->file( $ALT_COMMON_ROLLOUT, $pinned_rollout_el7 );
 
-    is( $comp->post_distro_upgrade(), undef,       'returns early' );
-    is( $mock_alt->contents(),        $pinned_el7, 'alt-common repo file is left untouched' );
+    is( $comp->post_distro_upgrade(), undef, 'post_distro_upgrade succeeds' );
+
+    is( $mock_alt->contents(),     $expected_el8,         'alt-common-els.repo now points at el8' );
+    is( $mock_rollout->contents(), $expected_rollout_el8, 'every rollout slot now points at el8' );
+
+    message_seen( 'INFO', "Updated $ALT_COMMON to use the el8 repos." );
+    message_seen( 'INFO', "Updated $ALT_COMMON_ROLLOUT to use the el8 repos." );
+    no_messages_seen();
+}
+
+{
+    note 'post_distro_upgrade repoints from whatever major the OS started on';
+
+    set_os_to( 'alma', 8 );
+
+    my $pinned_el8 = $pinned_el7;
+    $pinned_el8 =~ s{/el/7/}{/el/8/}g;
+
+    my $expected_el9 = $pinned_el7;
+    $expected_el9 =~ s{/el/7/}{/el/9/}g;
+
+    my $mock_alt     = Test::MockFile->file( $ALT_COMMON, $pinned_el8 );
+    my $mock_rollout = Test::MockFile->file($ALT_COMMON_ROLLOUT);          # does not exist
+
+    is( $comp->post_distro_upgrade(), undef, 'post_distro_upgrade succeeds' );
+
+    is( $mock_alt->contents(), $expected_el9, 'alt-common-els.repo now points at el9' );
+
+    message_seen( 'INFO', "Updated $ALT_COMMON to use the el9 repos." );
+    no_messages_seen();
+}
+
+{
+    note 'post_distro_upgrade is a noop on Ubuntu, which repoints via vetted_apt_lists';
+
+    set_os_to( 'ubuntu', 20 );
+
+    my $mock_alt     = Test::MockFile->file( $ALT_COMMON,         $pinned_el7 );
+    my $mock_rollout = Test::MockFile->file( $ALT_COMMON_ROLLOUT, $pinned_rollout_el7 );
+
+    is( $comp->post_distro_upgrade(), undef,               'returns early' );
+    is( $mock_alt->contents(),        $pinned_el7,         'alt-common repo file is left untouched' );
+    is( $mock_rollout->contents(),    $pinned_rollout_el7, 'alt-common rollout repo file is left untouched' );
 
     no_messages_seen();
 }

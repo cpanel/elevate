@@ -84,8 +84,8 @@ run_or_die(qw{/usr/local/cpanel/bin/servers_queue run});
 #
 # The alt-phpXX-percona5.7 packages are not compatible with CloudLinux 8 and
 # trip an elevate blocker. We must also remove the alt-phpXX-mysql-meta packages
-# that require them: otherwise the later "yum reinstall" of cloudlinux-x86_64-server
-# packages in the workflow reinstalls mysql-meta, which drags percona5.7 back in.
+# that require them: otherwise the "yum -y update" later in the workflow
+# reinstalls mysql-meta, which drags percona5.7 back in.
 #
 # alt-php84-mysql5.5 is the same story one PHP version further along: CloudLinux 8
 # ships no mysql5.5 variant of alt-php84, so ea_current_to_profile reports it as a
