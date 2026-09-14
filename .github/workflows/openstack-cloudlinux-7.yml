@@ -172,8 +172,8 @@ jobs:
           username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: "22"
-          timeout: 30m
-          command_timeout: 30m
+          timeout: 90m
+          command_timeout: 90m
           envs: REPODIR,CLOUDLINUX_LICENSE_KEY
           script: |
             echo "## [INFO]: Removing /etc/yum/pluginconf.d/rhnplugin.conf" && rm -fv /etc/yum/pluginconf.d/rhnplugin.conf
@@ -181,29 +181,57 @@ jobs:
             echo "## [INFO]: Now running /usr/bin/cldetect --update-license" && /usr/bin/cldetect --update-license
             echo "## [INFO]: Now running /usr/bin/cldetect --check-license" && /usr/bin/cldetect --check-license
             until /usr/local/cpanel/cpkeyclt; do echo "Retrying /usr/local/cpanel/cpkeyct until it passes..."; sleep 5; done
-            echo "[cloudlinux-base]" > /etc/yum.repos.d/cloudlinux-base.repo
-            echo "name=CloudLinux-\$releasever - Base" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "baseurl=https://clmirror.cpanel.net/\$releasever/os/\$basearch/" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "enabled=0" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "gpgcheck=1" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CloudLinux" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "[cloudlinux-updates]" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "name=CloudLinux-\$releasever - Updates" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "baseurl=https://clmirror.cpanel.net/\$releasever/updates/\$basearch/" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "enabled=0" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "gpgcheck=1" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CloudLinux" >> /etc/yum.repos.d/cloudlinux-base.repo
-            echo "" >> /etc/yum.repos.d/cloudlinux-base.repo
             /usr/bin/yum erase -y awscli git-lfs
-            echo "yum reinstall -y `yum list installed | awk '$3~/cloudlinux-x86_64-server/{printf "%s ", $1}'` --disablerepo='cloudlinux-x86_64-server*' --enablerepo=cloudlinux-base --enablerepo=cloudlinux-updates" | sh
-            rm -fv /etc/yum.repos.d/cloudlinux.repo
-            mv -v /etc/yum.repos.d/clmirror.repo /root/
-            yum-config-manager --enable cloudlinux-base
-            yum-config-manager --enable cloudlinux-updates
+            # Give the VM the repo layout a commercial CloudLinux 7 server has.
+            # The image ships without the /etc/yum.repos.d/cloudlinux.repo that
+            # cloudlinux-release owns and points at cPanel's internal clmirror
+            # instead, so reinstall the package to restore the stock file and
+            # then retire clmirror.repo.  Both name the same repo id, so the
+            # packages already installed stay associated with it.
+            #
+            # Restoring the stock file rather than hand writing a replacement is
+            # what keeps the CloudLinux 8 side clean.  cloudlinux-release owns
+            # that path, so cloudlinux-release-8 replaces the file during the
+            # upgrade and the sole enabled stanza,
+            # [cloudlinux-$basearch-server-$releasever], follows $releasever onto
+            # the CloudLinux 8 CLN mirrorlist.  A file no RPM owns cannot be
+            # replaced, and survives into the target still pinned to the
+            # CloudLinux 7 paths, which 404 and abort the stage 4 update.
+            /usr/bin/yum reinstall -y cloudlinux-release
+            # The file has to come back pristine, not merely exist.  It is
+            # %config(noreplace), so had the image left a *modified* copy behind
+            # rather than deleting it, rpm would keep that copy and drop the
+            # stock one alongside as .rpmnew -- and cloudlinux-release-8 would
+            # do the same during the upgrade, stranding CloudLinux 7 baseurls on
+            # the target.  Check the path rpm actually reports on, so a bare
+            # existence test cannot wave that through.
+            test -f /etc/yum.repos.d/cloudlinux.repo || { echo "## [ERROR]: reinstalling cloudlinux-release did not restore /etc/yum.repos.d/cloudlinux.repo"; exit 1; }
+            test ! -e /etc/yum.repos.d/cloudlinux.repo.rpmnew || { echo "## [ERROR]: rpm wrote cloudlinux.repo.rpmnew, so the installed cloudlinux.repo is modified"; exit 1; }
+            rpm -V cloudlinux-release | grep -q ' /etc/yum.repos.d/cloudlinux.repo$' && { echo "## [ERROR]: /etc/yum.repos.d/cloudlinux.repo differs from the one cloudlinux-release ships"; rpm -V cloudlinux-release; exit 1; }
+            # Nothing below may leave a CloudLinux 7 pinned repo behind, so fail
+            # if clmirror cannot be retired.
+            mv -v /etc/yum.repos.d/clmirror.repo /root/ || { echo "## [ERROR]: could not retire /etc/yum.repos.d/clmirror.repo"; exit 1; }
             /usr/bin/yum clean all
             /usr/bin/yum makecache
+            # CPANEL-54373: leapp could not resolve pciutils and dnf, because
+            # the repos left on the box were stub metadata carrying neither.
+            # The restored stock repo is the only thing that can supply them
+            # now, so prove it does before elevating rather than finding out an
+            # hour later in the leapp install.  dnf is not installed on
+            # CloudLinux 7, so it has to come from a repo; pciutils may already
+            # be present, and an installed copy is just as good to leapp.
+            /usr/bin/yum -q list available dnf >/dev/null 2>&1 || { echo "## [ERROR]: dnf is not available from the restored CloudLinux 7 repos"; /usr/bin/yum repolist all; exit 1; }
+            /usr/bin/yum -q list available pciutils >/dev/null 2>&1 || /usr/bin/yum -q list installed pciutils >/dev/null 2>&1 || { echo "## [ERROR]: pciutils is neither available nor installed"; /usr/bin/yum repolist all; exit 1; }
             /usr/bin/yum -y update
+            # Elevate resets the update tier to RELEASE only for the exact
+            # value cPanel's EOL autofixer writes; a full pin is the admin's
+            # own choice and is left alone.  This image ships the full build,
+            # so stage the autofixer's value or the integration test's tier
+            # assertion fails on a server elevate treated correctly.  sed
+            # exits 0 even when it matches nothing, so check the result here
+            # rather than an hour later in that assertion.
+            sed -i -e 's/^CPANEL=.*/CPANEL=11.110/' /etc/cpupdate.conf
+            grep -qx 'CPANEL=11.110' /etc/cpupdate.conf || { echo "## [ERROR]: could not pin the cPanel update tier to 11.110"; exit 1; }
             REPODIR=$(echo ${{ github.repository }} | cut -d / -f2)
             cp -pv /opt/${REPODIR}/elevate-cpanel /scripts/elevate-cpanel
             cp -pv /opt/${REPODIR}/.github/workflows/openstack/status_marker /scripts/status_marker
@@ -255,6 +283,10 @@ jobs:
           debug: true
           script: |
             /scripts/status_marker 1
+            # Start with an empty log: reboot_watch scans the whole file before
+            # it tails, so leftover lines can falsely signal failure or success.
+            # Recreate it so reboot_watch's open() and the tail -F have a file.
+            rm -fv /var/log/elevate-cpanel.log && touch /var/log/elevate-cpanel.log
             nohup /scripts/elevate-cpanel --manual-reboots --non-interactive --skip-cpanel-version-check --start </dev/null >/dev/null 2>&1 &
             exit 0
 
@@ -437,8 +469,8 @@ jobs:
           username: "root"
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: "22"
-          timeout: 45m
-          command_timeout: 35m
+          timeout: 90m
+          command_timeout: 90m
           script: |
             /scripts/status_marker 4
             tail -n40 -F /var/log/elevate-cpanel.log &

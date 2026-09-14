@@ -6,6 +6,10 @@ use constant ELEVATE_PID      => '/var/run/elevate-cpanel.pid';
 use JSON::PP;
 use POSIX;
 
+# The idle heartbeat below is the only print not followed by an exit to flush
+# it, and STDOUT is a pipe here, so without this it never reaches the CI log.
+$| = 1;
+
 _exit_with_haste(1) if !length( $ENV{REBOOT_STRING} );
 
 open( my $elevate_log_fh, '<', ELEVATE_LOG_PATH ) or die "## [ERROR][reboot_watch]: Unable to open ELEVATE_LOG_PATH: $!\n";
@@ -17,9 +21,9 @@ while ( my $line = readline $elevate_log_fh ) {
     _exit_with_haste(1) if $line =~ /Please fix the detected issues before performing the elevation process/ && !_script_is_running();
 
     if ( index( $line, $ENV{REBOOT_STRING} ) >= 0 ) {
-        close $elevate_log;
+        close $elevate_log_fh;
         _pre_success_message();
-        _exit_with_haste_(0);
+        _exit_with_haste(0);
     }
 }
 
@@ -45,8 +49,15 @@ sub _check_elevate_log_for_REBOOT_STRING {
     # the only failure signal is appleboy/ssh-action's command_timeout
     # firing 30-60 minutes later, which surfaces as a generic
     # "Run Command Timeout" instead of a script failure.
-    my $no_activity_timeout = 15 * 60;
+    #
+    # Silence is not proof of being stuck: elevate only logs a child's output
+    # as fast as that child flushes it, and some package steps block buffer
+    # for a quarter hour.  A caller watching a stage known to sit quiet longer
+    # than the default raises NO_ACTIVITY_TIMEOUT, and must keep the step's
+    # command_timeout above it or the ssh action reaps us first.
+    my $no_activity_timeout = 30 * 60;
     my $last_activity       = time();
+    my $last_heartbeat      = 0;
     $SIG{ALRM} = sub {
         my $idle = time() - $last_activity;
         if ( $idle >= $no_activity_timeout ) {
@@ -54,6 +65,16 @@ sub _check_elevate_log_for_REBOOT_STRING {
             print "## [$t] [ERROR]: No /var/log/elevate-cpanel.log activity for ${idle}s; treating elevate-cpanel as hung.\n";
             _exit_with_haste(1);
         }
+
+        # Report every 5 minutes so a long quiet stretch reads as a wait
+        # rather than a dead job.
+        $last_heartbeat = 0 if $idle < 300;    # the log moved again; re-arm
+        if ( $idle >= 300 && $idle - $last_heartbeat >= 300 ) {
+            $last_heartbeat = $idle;
+            my $t = POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime );
+            print "## [$t] [INFO]: Still waiting; no log activity for ${idle}s of ${no_activity_timeout}s allowed.\n";
+        }
+
         alarm 60;
     };
     alarm 60;

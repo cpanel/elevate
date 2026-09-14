@@ -1092,6 +1092,25 @@ yath -v t/Elevate-OS_detect_changes.t
 ---
 
 
+## update_alt_common_repos
+
+---
+```
++-------------------------+------------+-------+-------------------------+
+| key                     | distro     | major | update_alt_common_repos |
++-------------------------+------------+-------+-------------------------+
+| update_alt_common_repos | AlmaLinux  | 8     | 1                       |
+| update_alt_common_repos | AlmaLinux  | 9     | 1                       |
+| update_alt_common_repos | CentOS     | 7     | 1                       |
+| update_alt_common_repos | CloudLinux | 7     | 1                       |
+| update_alt_common_repos | CloudLinux | 8     | 1                       |
+| update_alt_common_repos | Ubuntu     | 20    | 0                       |
+| update_alt_common_repos | Ubuntu     | 22    | 0                       |
++-------------------------+------------+-------+-------------------------+
+```
+---
+
+
 ## upgrade_to_pretty_name
 
 ---
@@ -1246,307 +1265,311 @@ yath -v t/Elevate-OS_detect_changes.t
 
 ---
 ```
-+-----------------+------------+-------+------------------------------------------------------------------------------------+
-| key             | distro     | major | vetted_yum_repo                                                                    |
-+-----------------+------------+-------+------------------------------------------------------------------------------------+
-| vetted_yum_repo | AlmaLinux  | 8     | do {\n                                                                             |
-|                 |            |       |   my $a = [\n                                                                      |
-|                 |            |       |     qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                           |
-|                 |            |       |     qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                          |
-|                 |            |       |     qr/(?^u:^MariaDB[0-9]+$)/,\n                                                   |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                 |
-|                 |            |       |     qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                          |
-|                 |            |       |     qr/(?^u:^elevate(?:-source)?$)/,\n                                             |
-|                 |            |       |     qr/(?^u:^epel(?:-testing)?$)/,\n                                               |
-|                 |            |       |     qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                         |
-|                 |            |       |     qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                       |
-|                 |            |       |     qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                    |
-|                 |            |       |     qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n              |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n     |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n            |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                 |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                 |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n               |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^panopta(?:\.repo)?$)/,\n                                              |
-|                 |            |       |     qr/(?^u:^ul($|_))/,\n                                                          |
-|                 |            |       |     qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                              |
-|                 |            |       |     "alt-common",\n                                                                |
-|                 |            |       |     "appstream",\n                                                                 |
-|                 |            |       |     "base",\n                                                                      |
-|                 |            |       |     "c7-media",\n                                                                  |
-|                 |            |       |     "centosplus",\n                                                                |
-|                 |            |       |     "cp-dev-tools",\n                                                              |
-|                 |            |       |     "cpanel-addons-production-feed",\n                                             |
-|                 |            |       |     "cpanel-plugins",\n                                                            |
-|                 |            |       |     "cr",\n                                                                        |
-|                 |            |       |     "ct-preset",\n                                                                 |
-|                 |            |       |     "digitalocean-agent",\n                                                        |
-|                 |            |       |     "droplet-agent",\n                                                             |
-|                 |            |       |     "extras",\n                                                                    |
-|                 |            |       |     "fasttrack",\n                                                                 |
-|                 |            |       |     "hgdedi",\n                                                                    |
-|                 |            |       |     "imunify360",\n                                                                |
-|                 |            |       |     "imunify360-ea-php-hardened",\n                                                |
-|                 |            |       |     "influxdata",\n                                                                |
-|                 |            |       |     "influxdb",\n                                                                  |
-|                 |            |       |     "jetapps",\n                                                                   |
-|                 |            |       |     "kernelcare",\n                                                                |
-|                 |            |       |     "platform360-cpanel",\n                                                        |
-|                 |            |       |     "powertools",\n                                                                |
-|                 |            |       |     "r1soft",\n                                                                    |
-|                 |            |       |     "updates",\n                                                                   |
-|                 |            |       |   ];\n                                                                             |
-|                 |            |       |   $a->[3] = $a->[2];\n                                                             |
-|                 |            |       |   $a->[12] = $a->[11];\n                                                           |
-|                 |            |       |   $a->[14] = $a->[13];\n                                                           |
-|                 |            |       |   $a->[16] = $a->[15];\n                                                           |
-|                 |            |       |   $a->[18] = $a->[17];\n                                                           |
-|                 |            |       |   $a->[20] = $a->[19];\n                                                           |
-|                 |            |       |   $a->[22] = $a->[21];\n                                                           |
-|                 |            |       |   $a->[24] = $a->[23];\n                                                           |
-|                 |            |       |   $a;\n                                                                            |
-|                 |            |       | }                                                                                  |
-|                 |            |       |                                                                                    |
-| vetted_yum_repo | AlmaLinux  | 9     | do {\n                                                                             |
-|                 |            |       |   my $a = [\n                                                                      |
-|                 |            |       |     qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                           |
-|                 |            |       |     qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                          |
-|                 |            |       |     qr/(?^u:^MariaDB[0-9]+$)/,\n                                                   |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                 |
-|                 |            |       |     qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                          |
-|                 |            |       |     qr/(?^u:^elevate(?:-source)?$)/,\n                                             |
-|                 |            |       |     qr/(?^u:^epel(?:-testing)?$)/,\n                                               |
-|                 |            |       |     qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                         |
-|                 |            |       |     qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                       |
-|                 |            |       |     qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                    |
-|                 |            |       |     qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n              |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n     |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n            |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                 |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                 |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n               |
-|                 |            |       |     'fix',\n                                                                       |
-|                 |            |       |     qr/(?^u:^panopta(?:\.repo)?$)/,\n                                              |
-|                 |            |       |     qr/(?^u:^ul($|_))/,\n                                                          |
-|                 |            |       |     qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                              |
-|                 |            |       |     "alt-common",\n                                                                |
-|                 |            |       |     "appstream",\n                                                                 |
-|                 |            |       |     "base",\n                                                                      |
-|                 |            |       |     "c7-media",\n                                                                  |
-|                 |            |       |     "centosplus",\n                                                                |
-|                 |            |       |     "cp-dev-tools",\n                                                              |
-|                 |            |       |     "cpanel-plugins",\n                                                            |
-|                 |            |       |     "cr",\n                                                                        |
-|                 |            |       |     "ct-preset",\n                                                                 |
-|                 |            |       |     "digitalocean-agent",\n                                                        |
-|                 |            |       |     "droplet-agent",\n                                                             |
-|                 |            |       |     "extras",\n                                                                    |
-|                 |            |       |     "fasttrack",\n                                                                 |
-|                 |            |       |     "hgdedi",\n                                                                    |
-|                 |            |       |     "imunify360",\n                                                                |
-|                 |            |       |     "imunify360-ea-php-hardened",\n                                                |
-|                 |            |       |     "influxdata",\n                                                                |
-|                 |            |       |     "influxdb",\n                                                                  |
-|                 |            |       |     "jetapps",\n                                                                   |
-|                 |            |       |     "kernelcare",\n                                                                |
-|                 |            |       |     "platform360-cpanel",\n                                                        |
-|                 |            |       |     "r1soft",\n                                                                    |
-|                 |            |       |     "updates",\n                                                                   |
-|                 |            |       |   ];\n                                                                             |
-|                 |            |       |   $a->[3] = $a->[2];\n                                                             |
-|                 |            |       |   $a->[12] = $a->[11];\n                                                           |
-|                 |            |       |   $a->[14] = $a->[13];\n                                                           |
-|                 |            |       |   $a->[16] = $a->[15];\n                                                           |
-|                 |            |       |   $a->[18] = $a->[17];\n                                                           |
-|                 |            |       |   $a->[20] = $a->[19];\n                                                           |
-|                 |            |       |   $a->[22] = $a->[21];\n                                                           |
-|                 |            |       |   $a->[24] = $a->[23];\n                                                           |
-|                 |            |       |   $a;\n                                                                            |
-|                 |            |       | }                                                                                  |
-|                 |            |       |                                                                                    |
-| vetted_yum_repo | CentOS     | 7     | [\n                                                                                |
-|                 |            |       |   qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                             |
-|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                            |
-|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                     |
-|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
-|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
-|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
-|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                 |
-|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
-|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
-|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
-|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                |
-|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                  |
-|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
-|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
-|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
-|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
-|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
-|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
-|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
-|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
-|                 |            |       |   qr/(?^u:centos7[-]*els(-rollout-[0-9]+|))/,\n                                    |
-|                 |            |       |   "alt-common",\n                                                                  |
-|                 |            |       |   "base",\n                                                                        |
-|                 |            |       |   "c7-media",\n                                                                    |
-|                 |            |       |   "centosplus",\n                                                                  |
-|                 |            |       |   "cp-dev-tools",\n                                                                |
-|                 |            |       |   "cpanel-addons-production-feed",\n                                               |
-|                 |            |       |   "cpanel-plugins",\n                                                              |
-|                 |            |       |   "cr",\n                                                                          |
-|                 |            |       |   "ct-preset",\n                                                                   |
-|                 |            |       |   "digitalocean-agent",\n                                                          |
-|                 |            |       |   "droplet-agent",\n                                                               |
-|                 |            |       |   "extras",\n                                                                      |
-|                 |            |       |   "fasttrack",\n                                                                   |
-|                 |            |       |   "hgdedi",\n                                                                      |
-|                 |            |       |   "imunify360",\n                                                                  |
-|                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
-|                 |            |       |   "influxdata",\n                                                                  |
-|                 |            |       |   "influxdb",\n                                                                    |
-|                 |            |       |   "jetapps",\n                                                                     |
-|                 |            |       |   "kernelcare",\n                                                                  |
-|                 |            |       |   "platform360-cpanel",\n                                                          |
-|                 |            |       |   "r1soft",\n                                                                      |
-|                 |            |       |   "updates",\n                                                                     |
-|                 |            |       | ]                                                                                  |
-|                 |            |       |                                                                                    |
-| vetted_yum_repo | CloudLinux | 7     | [\n                                                                                |
-|                 |            |       |   qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                             |
-|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                            |
-|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                     |
-|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
-|                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                 |
-|                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n |
-|                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                    |
-|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
-|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
-|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                 |
-|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
-|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
-|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
-|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                |
-|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                  |
-|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
-|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
-|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
-|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
-|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
-|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
-|                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
-|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
-|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
-|                 |            |       |   qr/(?^ui:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                       |
-|                 |            |       |   qr/(?^ui:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                               |
-|                 |            |       |   "alt-common",\n                                                                  |
-|                 |            |       |   "base",\n                                                                        |
-|                 |            |       |   "c7-media",\n                                                                    |
-|                 |            |       |   "centosplus",\n                                                                  |
-|                 |            |       |   "cl-ea4",\n                                                                      |
-|                 |            |       |   "cl7h",\n                                                                        |
-|                 |            |       |   "cp-dev-tools",\n                                                                |
-|                 |            |       |   "cpanel-addons-production-feed",\n                                               |
-|                 |            |       |   "cpanel-plugins",\n                                                              |
-|                 |            |       |   "cr",\n                                                                          |
-|                 |            |       |   "ct-preset",\n                                                                   |
-|                 |            |       |   "digitalocean-agent",\n                                                          |
-|                 |            |       |   "droplet-agent",\n                                                               |
-|                 |            |       |   "extras",\n                                                                      |
-|                 |            |       |   "fasttrack",\n                                                                   |
-|                 |            |       |   "hgdedi",\n                                                                      |
-|                 |            |       |   "imunify360",\n                                                                  |
-|                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
-|                 |            |       |   "influxdata",\n                                                                  |
-|                 |            |       |   "influxdb",\n                                                                    |
-|                 |            |       |   "jetapps",\n                                                                     |
-|                 |            |       |   "kernelcare",\n                                                                  |
-|                 |            |       |   "mysqclient",\n                                                                  |
-|                 |            |       |   "mysql-debuginfo",\n                                                             |
-|                 |            |       |   "platform360-cpanel",\n                                                          |
-|                 |            |       |   "r1soft",\n                                                                      |
-|                 |            |       |   "updates",\n                                                                     |
-|                 |            |       | ]                                                                                  |
-|                 |            |       |                                                                                    |
-| vetted_yum_repo | CloudLinux | 8     | [\n                                                                                |
-|                 |            |       |   qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                             |
-|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                            |
-|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                     |
-|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                   |
-|                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                 |
-|                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n |
-|                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                    |
-|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                            |
-|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                               |
-|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                 |
-|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                           |
-|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                         |
-|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                      |
-|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                |
-|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                |
-|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                  |
-|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                  |
-|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n       |
-|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n              |
-|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                   |
-|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                   |
-|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                 |
-|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                |
-|                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                             |
-|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                            |
-|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                |
-|                 |            |       |   qr/(?^ui:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                       |
-|                 |            |       |   qr/(?^ui:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                               |
-|                 |            |       |   "alt-common",\n                                                                  |
-|                 |            |       |   "appstream",\n                                                                   |
-|                 |            |       |   "base",\n                                                                        |
-|                 |            |       |   "c7-media",\n                                                                    |
-|                 |            |       |   "centosplus",\n                                                                  |
-|                 |            |       |   "cl-ea4",\n                                                                      |
-|                 |            |       |   "cl7h",\n                                                                        |
-|                 |            |       |   "cp-dev-tools",\n                                                                |
-|                 |            |       |   "cpanel-addons-production-feed",\n                                               |
-|                 |            |       |   "cpanel-plugins",\n                                                              |
-|                 |            |       |   "cr",\n                                                                          |
-|                 |            |       |   "ct-preset",\n                                                                   |
-|                 |            |       |   "digitalocean-agent",\n                                                          |
-|                 |            |       |   "droplet-agent",\n                                                               |
-|                 |            |       |   "extras",\n                                                                      |
-|                 |            |       |   "fasttrack",\n                                                                   |
-|                 |            |       |   "hgdedi",\n                                                                      |
-|                 |            |       |   "imunify360",\n                                                                  |
-|                 |            |       |   "imunify360-ea-php-hardened",\n                                                  |
-|                 |            |       |   "influxdata",\n                                                                  |
-|                 |            |       |   "influxdb",\n                                                                    |
-|                 |            |       |   "jetapps",\n                                                                     |
-|                 |            |       |   "kernelcare",\n                                                                  |
-|                 |            |       |   "mysqclient",\n                                                                  |
-|                 |            |       |   "mysql-debuginfo",\n                                                             |
-|                 |            |       |   "platform360-cpanel",\n                                                          |
-|                 |            |       |   "powertools",\n                                                                  |
-|                 |            |       |   "r1soft",\n                                                                      |
-|                 |            |       |   "updates",\n                                                                     |
-|                 |            |       | ]                                                                                  |
-|                 |            |       |                                                                                    |
-| vetted_yum_repo | Ubuntu     | 20    | undef                                                                              |
-| vetted_yum_repo | Ubuntu     | 22    | undef                                                                              |
-+-----------------+------------+-------+------------------------------------------------------------------------------------+
++-----------------+------------+-------+---------------------------------------------------------------------------------------------+
+| key             | distro     | major | vetted_yum_repo                                                                             |
++-----------------+------------+-------+---------------------------------------------------------------------------------------------+
+| vetted_yum_repo | AlmaLinux  | 8     | do {\n                                                                                      |
+|                 |            |       |   my $a = [\n                                                                               |
+|                 |            |       |     qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                                    |
+|                 |            |       |     qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                                   |
+|                 |            |       |     qr/(?^u:^MariaDB[0-9]+$)/,\n                                                            |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                          |
+|                 |            |       |     qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                                   |
+|                 |            |       |     qr/(?^u:^elevate(?:-source)?$)/,\n                                                      |
+|                 |            |       |     qr/(?^u:^epel(?:-testing)?$)/,\n                                                        |
+|                 |            |       |     qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                                  |
+|                 |            |       |     qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                                |
+|                 |            |       |     qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                             |
+|                 |            |       |     qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                       |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                         |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n              |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n                     |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                          |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                          |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                        |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                       |
+|                 |            |       |     qr/(?^u:^ul($|_))/,\n                                                                   |
+|                 |            |       |     qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                       |
+|                 |            |       |     "alt-common",\n                                                                         |
+|                 |            |       |     "appstream",\n                                                                          |
+|                 |            |       |     "base",\n                                                                               |
+|                 |            |       |     "c7-media",\n                                                                           |
+|                 |            |       |     "centosplus",\n                                                                         |
+|                 |            |       |     "cp-dev-tools",\n                                                                       |
+|                 |            |       |     "cpanel-addons-production-feed",\n                                                      |
+|                 |            |       |     "cpanel-plugins",\n                                                                     |
+|                 |            |       |     "cr",\n                                                                                 |
+|                 |            |       |     "ct-preset",\n                                                                          |
+|                 |            |       |     "digitalocean-agent",\n                                                                 |
+|                 |            |       |     "droplet-agent",\n                                                                      |
+|                 |            |       |     "extras",\n                                                                             |
+|                 |            |       |     "fasttrack",\n                                                                          |
+|                 |            |       |     "hgdedi",\n                                                                             |
+|                 |            |       |     "imunify360",\n                                                                         |
+|                 |            |       |     "imunify360-ea-php-hardened",\n                                                         |
+|                 |            |       |     "influxdata",\n                                                                         |
+|                 |            |       |     "influxdb",\n                                                                           |
+|                 |            |       |     "jetapps",\n                                                                            |
+|                 |            |       |     "kernelcare",\n                                                                         |
+|                 |            |       |     "platform360-cpanel",\n                                                                 |
+|                 |            |       |     "powertools",\n                                                                         |
+|                 |            |       |     "r1soft",\n                                                                             |
+|                 |            |       |     "updates",\n                                                                            |
+|                 |            |       |   ];\n                                                                                      |
+|                 |            |       |   $a->[3] = $a->[2];\n                                                                      |
+|                 |            |       |   $a->[12] = $a->[11];\n                                                                    |
+|                 |            |       |   $a->[14] = $a->[13];\n                                                                    |
+|                 |            |       |   $a->[16] = $a->[15];\n                                                                    |
+|                 |            |       |   $a->[18] = $a->[17];\n                                                                    |
+|                 |            |       |   $a->[20] = $a->[19];\n                                                                    |
+|                 |            |       |   $a->[22] = $a->[21];\n                                                                    |
+|                 |            |       |   $a->[24] = $a->[23];\n                                                                    |
+|                 |            |       |   $a;\n                                                                                     |
+|                 |            |       | }                                                                                           |
+|                 |            |       |                                                                                             |
+| vetted_yum_repo | AlmaLinux  | 9     | do {\n                                                                                      |
+|                 |            |       |   my $a = [\n                                                                               |
+|                 |            |       |     qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                                    |
+|                 |            |       |     qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                                   |
+|                 |            |       |     qr/(?^u:^MariaDB[0-9]+$)/,\n                                                            |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                          |
+|                 |            |       |     qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                                   |
+|                 |            |       |     qr/(?^u:^elevate(?:-source)?$)/,\n                                                      |
+|                 |            |       |     qr/(?^u:^epel(?:-testing)?$)/,\n                                                        |
+|                 |            |       |     qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                                  |
+|                 |            |       |     qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                                |
+|                 |            |       |     qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                             |
+|                 |            |       |     qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                       |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                         |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n              |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n                     |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                          |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                          |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                        |
+|                 |            |       |     'fix',\n                                                                                |
+|                 |            |       |     qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                       |
+|                 |            |       |     qr/(?^u:^ul($|_))/,\n                                                                   |
+|                 |            |       |     qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                       |
+|                 |            |       |     "alt-common",\n                                                                         |
+|                 |            |       |     "appstream",\n                                                                          |
+|                 |            |       |     "base",\n                                                                               |
+|                 |            |       |     "c7-media",\n                                                                           |
+|                 |            |       |     "centosplus",\n                                                                         |
+|                 |            |       |     "cp-dev-tools",\n                                                                       |
+|                 |            |       |     "cpanel-plugins",\n                                                                     |
+|                 |            |       |     "cr",\n                                                                                 |
+|                 |            |       |     "ct-preset",\n                                                                          |
+|                 |            |       |     "digitalocean-agent",\n                                                                 |
+|                 |            |       |     "droplet-agent",\n                                                                      |
+|                 |            |       |     "extras",\n                                                                             |
+|                 |            |       |     "fasttrack",\n                                                                          |
+|                 |            |       |     "hgdedi",\n                                                                             |
+|                 |            |       |     "imunify360",\n                                                                         |
+|                 |            |       |     "imunify360-ea-php-hardened",\n                                                         |
+|                 |            |       |     "influxdata",\n                                                                         |
+|                 |            |       |     "influxdb",\n                                                                           |
+|                 |            |       |     "jetapps",\n                                                                            |
+|                 |            |       |     "kernelcare",\n                                                                         |
+|                 |            |       |     "platform360-cpanel",\n                                                                 |
+|                 |            |       |     "r1soft",\n                                                                             |
+|                 |            |       |     "updates",\n                                                                            |
+|                 |            |       |   ];\n                                                                                      |
+|                 |            |       |   $a->[3] = $a->[2];\n                                                                      |
+|                 |            |       |   $a->[12] = $a->[11];\n                                                                    |
+|                 |            |       |   $a->[14] = $a->[13];\n                                                                    |
+|                 |            |       |   $a->[16] = $a->[15];\n                                                                    |
+|                 |            |       |   $a->[18] = $a->[17];\n                                                                    |
+|                 |            |       |   $a->[20] = $a->[19];\n                                                                    |
+|                 |            |       |   $a->[22] = $a->[21];\n                                                                    |
+|                 |            |       |   $a->[24] = $a->[23];\n                                                                    |
+|                 |            |       |   $a;\n                                                                                     |
+|                 |            |       | }                                                                                           |
+|                 |            |       |                                                                                             |
+| vetted_yum_repo | CentOS     | 7     | [\n                                                                                         |
+|                 |            |       |   qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                              |
+|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                                        |
+|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                          |
+|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                                    |
+|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                                  |
+|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                               |
+|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                         |
+|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n                |
+|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n                       |
+|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                            |
+|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                          |
+|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                         |
+|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                                     |
+|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                         |
+|                 |            |       |   qr/(?^u:centos7[-]*els(-rollout-[0-9]+|))/,\n                                             |
+|                 |            |       |   "alt-common",\n                                                                           |
+|                 |            |       |   "base",\n                                                                                 |
+|                 |            |       |   "c7-media",\n                                                                             |
+|                 |            |       |   "centosplus",\n                                                                           |
+|                 |            |       |   "cp-dev-tools",\n                                                                         |
+|                 |            |       |   "cpanel-addons-production-feed",\n                                                        |
+|                 |            |       |   "cpanel-plugins",\n                                                                       |
+|                 |            |       |   "cr",\n                                                                                   |
+|                 |            |       |   "ct-preset",\n                                                                            |
+|                 |            |       |   "digitalocean-agent",\n                                                                   |
+|                 |            |       |   "droplet-agent",\n                                                                        |
+|                 |            |       |   "extras",\n                                                                               |
+|                 |            |       |   "fasttrack",\n                                                                            |
+|                 |            |       |   "hgdedi",\n                                                                               |
+|                 |            |       |   "imunify360",\n                                                                           |
+|                 |            |       |   "imunify360-ea-php-hardened",\n                                                           |
+|                 |            |       |   "influxdata",\n                                                                           |
+|                 |            |       |   "influxdb",\n                                                                             |
+|                 |            |       |   "jetapps",\n                                                                              |
+|                 |            |       |   "kernelcare",\n                                                                           |
+|                 |            |       |   "platform360-cpanel",\n                                                                   |
+|                 |            |       |   "r1soft",\n                                                                               |
+|                 |            |       |   "updates",\n                                                                              |
+|                 |            |       | ]                                                                                           |
+|                 |            |       |                                                                                             |
+| vetted_yum_repo | CloudLinux | 7     | [\n                                                                                         |
+|                 |            |       |   qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                              |
+|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                          |
+|                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n          |
+|                 |            |       |   qr/(?^u:^cloudlinux-(?:x86_64|aarch64|i386)-server-[0-9]+(?:-(?:source|debuginfo))?$)/,\n |
+|                 |            |       |   qr/(?^u:^cloudlinux-\$basearch-server-\$releasever$)/,\n                                  |
+|                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                             |
+|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                                        |
+|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                          |
+|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                                    |
+|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                                  |
+|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                               |
+|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                         |
+|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n                |
+|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n                       |
+|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                            |
+|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                          |
+|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                         |
+|                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                                      |
+|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                                     |
+|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                         |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                                |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                                        |
+|                 |            |       |   "alt-common",\n                                                                           |
+|                 |            |       |   "base",\n                                                                                 |
+|                 |            |       |   "c7-media",\n                                                                             |
+|                 |            |       |   "centosplus",\n                                                                           |
+|                 |            |       |   "cl-ea4",\n                                                                               |
+|                 |            |       |   "cl7h",\n                                                                                 |
+|                 |            |       |   "cp-dev-tools",\n                                                                         |
+|                 |            |       |   "cpanel-addons-production-feed",\n                                                        |
+|                 |            |       |   "cpanel-plugins",\n                                                                       |
+|                 |            |       |   "cr",\n                                                                                   |
+|                 |            |       |   "ct-preset",\n                                                                            |
+|                 |            |       |   "digitalocean-agent",\n                                                                   |
+|                 |            |       |   "droplet-agent",\n                                                                        |
+|                 |            |       |   "extras",\n                                                                               |
+|                 |            |       |   "fasttrack",\n                                                                            |
+|                 |            |       |   "hgdedi",\n                                                                               |
+|                 |            |       |   "imunify360",\n                                                                           |
+|                 |            |       |   "imunify360-ea-php-hardened",\n                                                           |
+|                 |            |       |   "influxdata",\n                                                                           |
+|                 |            |       |   "influxdb",\n                                                                             |
+|                 |            |       |   "jetapps",\n                                                                              |
+|                 |            |       |   "kernelcare",\n                                                                           |
+|                 |            |       |   "mysqclient",\n                                                                           |
+|                 |            |       |   "mysql-debuginfo",\n                                                                      |
+|                 |            |       |   "platform360-cpanel",\n                                                                   |
+|                 |            |       |   "r1soft",\n                                                                               |
+|                 |            |       |   "updates",\n                                                                              |
+|                 |            |       | ]                                                                                           |
+|                 |            |       |                                                                                             |
+| vetted_yum_repo | CloudLinux | 8     | [\n                                                                                         |
+|                 |            |       |   qr/(?^u:^EA4(?:-\$os_name_prefix\$releasever)?$)/,\n                                      |
+|                 |            |       |   qr/(?^u:^EA4(?:-c\$releasever)?$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^MariaDB[0-9]+$)/,\n                                                              |
+|                 |            |       |   qr/(?^u:^centos-kernel(?:-experimental)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^cl-mysql(?:-meta)?)/,\n                                                          |
+|                 |            |       |   qr/(?^u:^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$)/,\n          |
+|                 |            |       |   qr/(?^u:^cloudlinux-(?:x86_64|aarch64|i386)-server-[0-9]+(?:-(?:source|debuginfo))?$)/,\n |
+|                 |            |       |   qr/(?^u:^cloudlinux-\$basearch-server-\$releasever$)/,\n                                  |
+|                 |            |       |   qr/(?^u:^cloudlinux-rollout(?:-[0-9]+)?$)/,\n                                             |
+|                 |            |       |   qr/(?^u:^elasticsearch(?:7\.x)?$)/,\n                                                     |
+|                 |            |       |   qr/(?^u:^elevate(?:-source)?$)/,\n                                                        |
+|                 |            |       |   qr/(?^u:^epel(?:-testing)?$)/,\n                                                          |
+|                 |            |       |   qr/(?^u:^fortimonitor(?:\.repo)?$)/,\n                                                    |
+|                 |            |       |   qr/(?^u:^imunify360-rollout-[0-9]+$)/,\n                                                  |
+|                 |            |       |   qr/(?^u:^jetapps-(?:stable|beta|edge)$)/,\n                                               |
+|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                         |
+|                 |            |       |   qr/(?^u:^mysql-(?:tools|cluster)-[0-9]\.[0-9]-lts-community$)/,\n                         |
+|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^mysql-[0-9]\.[0-9]-lts-community$)/,\n                                           |
+|                 |            |       |   qr/(?^u:^mysql-cluster-[0-9.]{3}-community(?:-(?:source|debuginfo))?$)/,\n                |
+|                 |            |       |   qr/(?^u:^mysql-connectors-community(?:-(?:source|debuginfo))?$)/,\n                       |
+|                 |            |       |   qr/(?^u:^mysql-tools-community(?:-(?:source|debuginfo))?$)/,\n                            |
+|                 |            |       |   qr/(?^u:^mysql-tools-preview(?:-source)?$)/,\n                                            |
+|                 |            |       |   qr/(?^u:^mysql[0-9]{2}-community(?:-(?:source|debuginfo))?$)/,\n                          |
+|                 |            |       |   qr/(?^u:^panopta(?:\.repo)?$)/,\n                                                         |
+|                 |            |       |   qr/(?^u:^repo\.cloudlinux\.com_)/,\n                                                      |
+|                 |            |       |   qr/(?^u:^ul($|_))/,\n                                                                     |
+|                 |            |       |   qr/(?^u:^wp-toolkit-(?:cpanel|thirdparties)$)/,\n                                         |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4(?:-[0-9]+)?$)/,\n                                                |
+|                 |            |       |   qr/(?^ui:^cloudlinux-ea4-rollout(?:-[0-9]+)?$)/,\n                                        |
+|                 |            |       |   "alt-common",\n                                                                           |
+|                 |            |       |   "appstream",\n                                                                            |
+|                 |            |       |   "base",\n                                                                                 |
+|                 |            |       |   "c7-media",\n                                                                             |
+|                 |            |       |   "centosplus",\n                                                                           |
+|                 |            |       |   "cl-ea4",\n                                                                               |
+|                 |            |       |   "cl7h",\n                                                                                 |
+|                 |            |       |   "cp-dev-tools",\n                                                                         |
+|                 |            |       |   "cpanel-addons-production-feed",\n                                                        |
+|                 |            |       |   "cpanel-plugins",\n                                                                       |
+|                 |            |       |   "cr",\n                                                                                   |
+|                 |            |       |   "ct-preset",\n                                                                            |
+|                 |            |       |   "digitalocean-agent",\n                                                                   |
+|                 |            |       |   "droplet-agent",\n                                                                        |
+|                 |            |       |   "extras",\n                                                                               |
+|                 |            |       |   "fasttrack",\n                                                                            |
+|                 |            |       |   "hgdedi",\n                                                                               |
+|                 |            |       |   "imunify360",\n                                                                           |
+|                 |            |       |   "imunify360-ea-php-hardened",\n                                                           |
+|                 |            |       |   "influxdata",\n                                                                           |
+|                 |            |       |   "influxdb",\n                                                                             |
+|                 |            |       |   "jetapps",\n                                                                              |
+|                 |            |       |   "kernelcare",\n                                                                           |
+|                 |            |       |   "mysqclient",\n                                                                           |
+|                 |            |       |   "mysql-debuginfo",\n                                                                      |
+|                 |            |       |   "platform360-cpanel",\n                                                                   |
+|                 |            |       |   "powertools",\n                                                                           |
+|                 |            |       |   "r1soft",\n                                                                               |
+|                 |            |       |   "updates",\n                                                                              |
+|                 |            |       | ]                                                                                           |
+|                 |            |       |                                                                                             |
+| vetted_yum_repo | Ubuntu     | 20    | undef                                                                                       |
+| vetted_yum_repo | Ubuntu     | 22    | undef                                                                                       |
++-----------------+------------+-------+---------------------------------------------------------------------------------------------+
 ```
 ---
 

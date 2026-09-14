@@ -61,9 +61,13 @@ sub pre_distro_upgrade ($self) {
     return;
 }
 
+# Deliberately not gated on remove_els(): that flag is about tearing down the
+# CentOS 7 ELS repos and els-define, which is CentOS specific.  Every RPM distro
+# we upgrade can be enrolled in alt-common ELS, and the pinned baseurl breaks the
+# package update the same way on each of them.
 sub post_distro_upgrade ($self) {
 
-    return unless Elevate::OS::remove_els();
+    return unless Elevate::OS::update_alt_common_repos();
 
     $self->_update_alt_common_repos();
 

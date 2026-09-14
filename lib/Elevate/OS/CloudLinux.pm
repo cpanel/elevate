@@ -27,6 +27,20 @@ use constant should_check_cloudlinux_license => 1;
 sub vetted_yum_repo ($self) {
     my @vetted_cloudlinux_yum_repo = (
         qr/^cloudlinux(?:-(?:base|updates|extras|compat|imunify360|elevate))?$/,
+
+        # The primary repo on every commercial CloudLinux install: the stock
+        # cloudlinux.repo that cloudlinux-release owns ships
+        # [cloudlinux-$basearch-server-$releasever] as its only enabled stanza,
+        # on both CloudLinux 7 and 8.  _check_yum_repos() matches the raw
+        # section header, so the unexpanded form has to be vetted alongside the
+        # expanded one that clmirror.repo and the CLN tooling write out.  The
+        # stock file spells the -source and -debuginfo siblings out in full, so
+        # only the expanded form takes those suffixes.  Keep the arch spelled
+        # out rather than a wildcard: this is the blocker whose job is to
+        # notice repos we do not recognise.
+        qr/^cloudlinux-\$basearch-server-\$releasever$/,
+        qr/^cloudlinux-(?:x86_64|aarch64|i386)-server-[0-9]+(?:-(?:source|debuginfo))?$/,
+
         qr/^cloudlinux-rollout(?:-[0-9]+)?$/,
         qr/^cloudlinux-ea4(?:-[0-9]+)?$/i,
         qr/^cloudlinux-ea4-rollout(?:-[0-9]+)?$/i,

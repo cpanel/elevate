@@ -7,7 +7,8 @@
 
 use lib '/usr/local/cpanel/';
 
-use Cpanel::OS ();
+use Cpanel::LoadFile ();
+use Cpanel::OS       ();
 
 use Test::More;
 
