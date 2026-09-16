@@ -1,5 +1,11 @@
 ## ELevate Change Log
 
+##### **2026-09-16** - version 84
+
+* Fixed case RE-1683: Fixed cases where ELevate disabled or blocked on the primary CloudLinux repository, and a failure during the package update on CloudLinux systems using the TuxCare ELS alt-common repositories.
+* Fixed case RE-1682: Fixed a failure during the final package update when upgrading CentOS 7 systems that use the TuxCare ELS alt-common repositories.
+* Fixed case RE-1680: Fixed a case where the TuxCare alt-common-els-rollout.list file blocked Ubuntu upgrades.
+
 ##### **2026-06-22** - version 83
 
 * Fixed case RE-1667: Fix --check crash on AlmaLinux 9 with NetworkManager keyfiles
