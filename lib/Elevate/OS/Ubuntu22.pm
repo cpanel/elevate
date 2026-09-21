@@ -45,6 +45,13 @@ deb [arch=amd64] https://download.imunify360.com/ubuntu/24.04/slot-8/ noble main
     'mariadb.list' => q{deb [arch=amd64,arm64] https://dlm.mariadb.com/repo/mariadb-server/10.11/repo/ubuntu noble main
 deb [arch=amd64,arm64] https://dlm.mariadb.com/repo/mariadb-server/10.11/repo/ubuntu noble main/debug},
 
+    'mysql.list' => q{# Use command 'dpkg-reconfigure mysql-apt-config' as root for modifications.
+deb https://repo.mysql.com/apt/ubuntu/ noble mysql-apt-config
+deb https://repo.mysql.com/apt/ubuntu/ noble mysql-8.0
+deb https://repo.mysql.com/apt/ubuntu/ noble mysql-tools
+#deb https://repo.mysql.com/apt/ubuntu/ noble mysql-tools-preview
+deb-src https://repo.mysql.com/apt/ubuntu/ noble mysql-8.0},
+
     'wp-toolkit-cpanel.list' => q{# WP Toolkit
 deb [signed-by=/etc/apt/keyrings/wp-toolkit-cpanel.gpg] https://wp-toolkit.plesk.com/cPanel/Ubuntu-24.04-x86_64/latest/wp-toolkit/ ./
 

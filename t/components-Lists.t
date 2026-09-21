@@ -176,4 +176,46 @@ my %os_hash = (
     }
 }
 
+{
+    note 'mysql.list is vetted for u22 -> u24 upgrades';
+
+    set_os_to( 'ubuntu', 22 );
+    clear_messages_seen();
+
+    my $mysql_list      = '/etc/apt/sources.list.d/mysql.list';
+    my $mock_mysql_list = Test::MockFile->file( $mysql_list, <<~'EOS' );
+    # Use command 'dpkg-reconfigure mysql-apt-config' as root for modifications.
+    deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-apt-config
+    deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0
+    deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-tools
+    #deb https://repo.mysql.com/apt/ubuntu/ jammy mysql-tools-preview
+    deb-src https://repo.mysql.com/apt/ubuntu/ jammy mysql-8.0
+    EOS
+
+    is( $comp->_blocker_invalid_apt_lists(), undef, 'mysql.list does not block an Ubuntu 22 elevation' );
+
+    $mock_comp->unmock_all();
+
+    is( $comp->_update_list_file('mysql.list'), undef, 'Returns undef' );
+
+    # The enabled stanzas are asserted individually rather than against the whole
+    # file: maint/perlpkg.static drops any line starting with '#' at column 0,
+    # even inside a q{} string, so the packed script and lib/ disagree on the
+    # commented out mysql-tools-preview line.
+    my $contents = $mock_mysql_list->contents();
+
+    foreach my $stanza (
+        q{deb https://repo.mysql.com/apt/ubuntu/ noble mysql-apt-config},
+        q{deb https://repo.mysql.com/apt/ubuntu/ noble mysql-8.0},
+        q{deb https://repo.mysql.com/apt/ubuntu/ noble mysql-tools},
+        q{deb-src https://repo.mysql.com/apt/ubuntu/ noble mysql-8.0},
+    ) {
+        like( $contents, qr/^\Q$stanza\E$/m, "mysql.list enables '$stanza'" );
+    }
+
+    unlike( $contents, qr/jammy/, 'mysql.list no longer points at the Ubuntu 22 (jammy) MySQL repo' );
+
+    no_messages_seen();
+}
+
 done_testing();
