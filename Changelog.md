@@ -1,5 +1,9 @@
 ## ELevate Change Log
 
+##### **2026-09-22** - version 85
+
+* Fixed case RE-1688: Fixed a case where ELevate blocked Ubuntu 22.04 to 24.04 upgrades on servers using a cPanel managed MySQL server.
+
 ##### **2026-09-16** - version 84
 
 * Fixed case RE-1683: Fixed cases where ELevate disabled or blocked on the primary CloudLinux repository, and a failure during the package update on CloudLinux systems using the TuxCare ELS alt-common repositories.
