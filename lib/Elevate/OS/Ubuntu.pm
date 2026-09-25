@@ -46,6 +46,7 @@ use constant needs_do_release_upgrade         => 1;
 use constant needs_epel                       => 0;
 use constant needs_grub_enable_blscfg         => 0;
 use constant needs_leapp                      => 0;
+use constant needs_leftover_kmod_lve_removal  => 0;
 use constant needs_network_manager            => 0;
 use constant needs_powertools                 => 0;
 use constant needs_sha1_enabled               => 0;

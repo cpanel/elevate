@@ -636,6 +636,25 @@ yath -v t/Elevate-OS_detect_changes.t
 ---
 
 
+## needs_leftover_kmod_lve_removal
+
+---
+```
++---------------------------------+------------+-------+---------------------------------+
+| key                             | distro     | major | needs_leftover_kmod_lve_removal |
++---------------------------------+------------+-------+---------------------------------+
+| needs_leftover_kmod_lve_removal | AlmaLinux  | 8     | 0                               |
+| needs_leftover_kmod_lve_removal | AlmaLinux  | 9     | 0                               |
+| needs_leftover_kmod_lve_removal | CentOS     | 7     | 0                               |
+| needs_leftover_kmod_lve_removal | CloudLinux | 7     | 0                               |
+| needs_leftover_kmod_lve_removal | CloudLinux | 8     | 1                               |
+| needs_leftover_kmod_lve_removal | Ubuntu     | 20    | 0                               |
+| needs_leftover_kmod_lve_removal | Ubuntu     | 22    | 0                               |
++---------------------------------+------------+-------+---------------------------------+
+```
+---
+
+
 ## needs_network_manager
 
 ---

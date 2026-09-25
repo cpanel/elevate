@@ -41,18 +41,26 @@ my $comp = cpev->new->get_component('Leapp');
             set_os_to( $distro, $version );
 
             $mock_elevate_comp->redefine(
-                num_blockers_found => sub { "do not call\n"; },
+                num_blockers_found => sub { die "Do not call\n"; },
+            );
+
+            $mock_leapp->redefine(
+                install                  => sub { die "Do not call\n"; },
+                remove_leftover_kmod_lve => sub { die "Do not call\n"; },
+                preupgrade               => sub { die "Do not call\n"; },
             );
 
             $mock_comp->redefine(
                 is_check_mode => 1,
             );
 
-            is( $comp->check(), undef, 'Returns early if in check mode' );
+            is( $comp->check(), undef, 'Returns early if in check mode without installing leapp or removing packages' );
 
             $mock_comp->redefine(
                 is_check_mode => 0,
             );
+
+            $mock_leapp->unmock(qw{ install remove_leftover_kmod_lve preupgrade });
         }
     }
 
@@ -110,10 +118,81 @@ my $comp = cpev->new->get_component('Leapp');
             is( $comp->check(), undef, 'Returns undef' );
             message_seen( INFO => qr/Leapp found issues which would prevent the upgrade/ );
             no_messages_seen();
+
+            # The inhibitor check above counted a blocker
+            $num_blockers_found = 0;
+
+            my @calls;
+            $mock_leapp->redefine(
+                remove_leftover_kmod_lve => sub { push @calls, 'remove_leftover_kmod_lve'; return; },
+                preupgrade               => sub { push @calls, 'preupgrade';               return { status => 0 }; },
+            );
+
+            is( $comp->check(), undef,                                       'Returns undef' );
+            is( \@calls,        [qw{ remove_leftover_kmod_lve preupgrade }], 'Leftover kmod-lve packages are removed before leapp preupgrade' );
+
+            @calls = ();
+            $mock_leapp->redefine(
+                remove_leftover_kmod_lve => sub { push @calls, 'remove_leftover_kmod_lve'; die "rpm exploded\n"; },
+            );
+
+            my @blockers;
+            $mock_comp->redefine(
+                has_blocker => sub ( $, $msg, %others ) { push @blockers, $msg; is( $others{info}, { name => 'kmod-lve' }, 'The blocker includes analytics info' ); return; },
+            );
+
+            is( $comp->check(),   undef,                        'Returns undef when leftover kmod-lve packages cannot be removed' );
+            is( \@calls,          ['remove_leftover_kmod_lve'], 'leapp preupgrade is not run when leftover kmod-lve packages cannot be removed' );
+            is( scalar @blockers, 1,                            'A blocker is raised' );
+            like( $blockers[0], qr/unable to remove the superseded kmod-lve packages.*\n\nrpm exploded\n/s, 'The blocker includes the error' );
+            no_messages_seen();
+
+            like( $blockers[0], qr{-printf '%p -> %l\\n'}, 'The blocker shows the weak-updates command verbatim' );
+
+            $mock_comp->unmock('has_blocker');
+            $mock_leapp->unmock('remove_leftover_kmod_lve');
+            $mock_leapp->redefine( preupgrade => sub { return $preupgrade_out; } );
         }
     }
 
     $mock_comp->unmock('_remove_excludes');
+}
+
+{
+    note 'Testing pre_distro_upgrade';
+
+    my @calls;
+    $mock_comp->redefine(
+        run_once => sub ( $, $sub ) { push @calls, $sub; return; },
+    );
+    $mock_leapp->redefine(
+        remove_leftover_kmod_lve => sub { push @calls, 'remove_leftover_kmod_lve'; return; },
+    );
+
+    is( $comp->pre_distro_upgrade(), undef,                                             'Returns undef' );
+    is( \@calls,                     [qw{ _remove_excludes remove_leftover_kmod_lve }], 'Removes the excludes and leftover kmod-lve packages' );
+
+    @calls = ();
+    my $mock_cpev = Test::MockModule->new('cpev');
+    $mock_cpev->redefine( upgrade_distro_manually => 1 );
+    $mock_leapp->redefine( warn_leftover_kmod_lve => sub { push @calls, 'warn_leftover_kmod_lve'; return; } );
+    is( $comp->pre_distro_upgrade(), undef,                                           'Returns undef when the distro is upgraded manually' );
+    is( \@calls,                     [qw{ _remove_excludes warn_leftover_kmod_lve }], 'Leftover kmod-lve packages are only warned about when the distro is upgraded manually' );
+    $mock_cpev->unmock('upgrade_distro_manually');
+    $mock_leapp->unmock('warn_leftover_kmod_lve');
+
+    $mock_leapp->redefine(
+        remove_leftover_kmod_lve => sub { die "rpm exploded\n"; },
+    );
+
+    like(
+        dies { $comp->pre_distro_upgrade() },
+        qr/unable to remove the superseded kmod-lve packages.*\n\nrpm exploded\n.*-printf '%p -> %l\\n'/s,
+        'Dies with the error and the remediation steps when leftover kmod-lve packages cannot be removed',
+    );
+
+    $mock_comp->unmock('run_once');
+    $mock_leapp->unmock('remove_leftover_kmod_lve');
 }
 
 {
