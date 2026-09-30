@@ -8,13 +8,18 @@ Elevate::Components::Leapp
 
 =head2 check
 
-Execute 'leapp preupgrade' and block if there are any inhibitors
+Remove leftover kmod-lve packages that leapp cannot handle, then execute
+'leapp preupgrade' and block if there are any inhibitors
 
 =head2 pre_distro_upgrade
 
 NOTE: This is here because this is being done specifically for leapp
 
 1. Remove excludes line from '/etc/yum.conf'
+
+2. Remove leftover kmod-lve packages that leapp cannot handle, and die with
+remediation instructions if they cannot be removed.  When the distro is being
+upgraded manually, only warn about them instead.
 
 =head2 post_distro_upgrade
 
@@ -25,6 +30,7 @@ noop
 use cPstrict;
 
 use Elevate::Constants ();
+use Elevate::Leapp     ();
 use Elevate::OS        ();
 
 use parent qw{Elevate::Components::Base};
@@ -48,6 +54,8 @@ sub check ($self) {
     return if ( $self->components->num_blockers_found() > 0 );    # skip if any blockers have already been found
 
     $self->cpev->leapp->install();
+
+    return unless $self->_remove_leftover_kmod_lve();
 
     # Remove the excludes line from yum.conf before executing leapp preupgrade
     File::Copy::cp( YUM_CONF(), YUM_CONF_BAK() );
@@ -75,7 +83,34 @@ sub check ($self) {
 
 sub pre_distro_upgrade ($self) {
     $self->run_once("_remove_excludes");
+
+    # The leftover packages are only removed for the upgrade ELevate runs itself,
+    # matching check(), which does not look for them when upgrading manually
+    if ( $self->upgrade_distro_manually ) {
+        $self->cpev->leapp->warn_leftover_kmod_lve();
+        return;
+    }
+
+    eval { $self->cpev->leapp->remove_leftover_kmod_lve(); 1 } or die _kmod_lve_removal_failure($@);
     return;
+}
+
+sub _remove_leftover_kmod_lve ($self) {
+    return 1 if eval { $self->cpev->leapp->remove_leftover_kmod_lve(); 1 };
+
+    $self->has_blocker( _kmod_lve_removal_failure($@), info => { name => 'kmod-lve' } );
+    return 0;
+}
+
+sub _kmod_lve_removal_failure ($error) {
+    my $steps = Elevate::Leapp::kmod_lve_removal_steps();
+    return <<~"EOS";
+    ELevate was unable to remove the superseded kmod-lve packages that would
+    cause the upgrade to fail:
+
+    $error
+    $steps
+    EOS
 }
 
 sub _check_for_inhibitors ($self) {

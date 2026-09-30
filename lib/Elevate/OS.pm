@@ -114,6 +114,7 @@ BEGIN {
         'needs_epel',                           # This is used to determine if the OS requires the epel repo
         'needs_grub_enable_blscfg',             # This is a necessary config in /etc/dfault/grub in AlmaLinux 8 to ensure that it is fully managed by grub2
         'needs_leapp',                          # This is used to determine if the OS requires the leapp utility to upgrade
+        'needs_leftover_kmod_lve_removal',      # CL8->9 fails in leapp unless superseded kmod-lve builds are removed first
         'needs_network_manager',                # This is used to determine if the NetworkManager servoce needs to be enabled prior to running leapp
         'needs_powertools',                     # This is used to determine if the OS requires the powertools repo
         'needs_sha1_enabled',                   # This distro needs to be specially configured to support packages with SHA-1 signatures
