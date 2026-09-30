@@ -27,6 +27,12 @@ env:
   TF_VAR_github_run_id: ${{ github.run_id }}
   tf_working_directory: "${{ github.workspace }}/.github/workflows/openstack"
 
+permissions:
+  contents: read
+  # Needed to pull the job container from ghcr.io. Naming any permission here
+  # drops every default one, so this cannot be omitted.
+  packages: read
+
 jobs:
   terraform_openstack_create:
     runs-on:
@@ -40,7 +46,7 @@ jobs:
       VM_IP: ${{ steps.get_vm_ip.outputs.VM_IP }}
       REPODIR: ${{ steps.expose_repodir.outputs.REPODIR }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Packages Needed by GitHub Network Check
         run: |
@@ -71,7 +77,7 @@ jobs:
           terraform output -json > ${{ github.run_id }}-tf.out.json
           mv -v .terraform.lock.hcl terraform.lock.hcl
       - name: Upload Terraform Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ github.run_id }}-ubuntu22-terraform.tfstate
           path: ${{ env.tf_working_directory }}/terraform*
@@ -98,7 +104,7 @@ jobs:
       REPODIR: ${{ env.REPODIR }}
     steps:
       - name: Checkout Repo
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -151,7 +157,7 @@ jobs:
           sudo apt install -y netcat-openbsd
 
       - name: Setup for Integration Checks Prior to Running Elevate
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -165,7 +171,7 @@ jobs:
             /opt/${{ env.REPODIR }}/t/integration/setup
 
       - name: Update License And Setup Server For ELevate
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -196,7 +202,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -218,7 +224,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Monitor Elevate for Reboot from Stage 1 into Stage 2
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -242,7 +248,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Monitor Elevate for Initial Reboot into Stage 2
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -273,7 +279,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -295,7 +301,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Monitor Elevate for Stage 3 Reboot
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -327,7 +333,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -349,7 +355,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Monitor Elevate for Stage 4 Reboot
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -380,7 +386,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -402,7 +408,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Monitor Elevate for Stage 5 Reboot
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -433,7 +439,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -455,7 +461,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Monitor Elevate for Final Reboot
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -486,7 +492,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Packages Needed by Scripts.
         run: |
@@ -508,7 +514,7 @@ jobs:
       VM_IP: ${{ env.VM_IP }}
     steps:
       - name: Verify End Result Integration Tests
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.VM_IP }}
           username: "root"
@@ -529,10 +535,10 @@ jobs:
     needs: verify_upgraded_os
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Download Terraform State
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ github.run_id }}-ubuntu22-terraform.tfstate
           path: ${{ env.tf_working_directory }}

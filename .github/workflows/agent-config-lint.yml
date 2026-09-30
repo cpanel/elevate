@@ -1,0 +1,19 @@
+name: agent-config-lint
+on: [pull_request]
+
+# Re-checks the agent config on every PR. core.hooksPath is per-clone (it lives in
+# .git/config and can't be committed), so we set it here before the lint's hook-wiring
+# check — otherwise a fresh checkout fails that check. We also chmod the hook + scripts
+# because a checkout may not preserve the executable bit.
+# (SHA-pinned actions, least-privilege token, no untrusted-input interpolation — no injection vector.)
+permissions:
+  contents: read
+
+jobs:
+  agent-config-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: chmod +x .githooks/commit-msg .claude/hooks/*.sh .github/workflows/scripts/*.sh
+      - run: git config core.hooksPath .githooks
+      - run: bash .github/workflows/scripts/lint-agent-config.sh

@@ -1,0 +1,22 @@
+name: commitlint
+on: [pull_request]
+
+# Authoritative backstop: re-checks every commit on the PR, so a local
+# `--no-verify` bypass of the commit-msg hook still can't reach main.
+# (SHA-pinned actions, least-privilege token, no untrusted-input interpolation — no injection vector.)
+permissions:
+  contents: read
+  pull-requests: read # wagoid/commitlint-github-action lists the PR's commits via the API
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
+        with:
+          # The action defaults to ./commitlint.config.mjs; when that file is absent it silently
+          # falls back to Conventional Commits and fails every cPanel-flavour commit.
+          configFile: .github/commitlint.config.cjs

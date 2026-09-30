@@ -6,6 +6,12 @@ on:
       # Run once per day at 11 PM CDT
     - cron: "0 4 * * *"
   workflow_dispatch:
+permissions:
+  contents: read
+  # Needed to pull the job container from ghcr.io. Naming any permission here
+  # drops every default one, so this cannot be omitted.
+  packages: read
+
 jobs:
   run-pruner:
     if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
@@ -23,6 +29,6 @@ jobs:
     container:
       image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-elevate-cpanel
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run Openstack Pruner
         run: ./.github/workflows/openstack/prune_openstack

@@ -3,12 +3,16 @@ on:
   pull_request:
     types: [opened]
 
+# close-pull comments on and closes the pull request.
+permissions:
+  pull-requests: write
+
 jobs:
   close_pr:
     if: github.event.pull_request.head.repo.full_name == 'cpanel/elevate'
     runs-on: ubuntu-latest
     steps:
       - name: Close the PR
-        uses: peter-evans/close-pull@v2
+        uses: peter-evans/close-pull@a192af8d70f2d49c49643134605c3b73d4f80fae # v3.0.1
         with:
           comment: "This repository does not accept pull requests from cpanel/elevate."
