@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# commit-msg — cPanel/WHM flavour. A RATCHET, not a wall.
+#
+# Unlike the other two flavours, no regex for the cPanel format existed anywhere before this file.
+# The rules are prose in engineering-commit/references/cpanel.md, and a gate written straight from
+# that prose rejects about a third of what the team actually commits.
+#
+# Measured against app-elevate-cpanel's last 200 non-merge commits at 64f1fa6, 2026-09-30 (re-measured
+# here, as the header below requires — the hub's own numbers do not transfer):
+#
+#   rule                            compliance    gating it hard would
+#   ------------------------------  -----------   -------------------------------
+#   no case number in line 1         99.5%        reject 1/200
+#   `Case XXX-N:` in the body        49.5%        reject 101/200 (48 of them are the release
+#                                                  and version-bump commits `make release` writes)
+#   subject <= 50 characters           79%         reject 42/200
+#
+# Rule 1 clears HARDEN_AT (95); the team keeps it at warn until it chooses to promote it. The other
+# two stay warn.
+#
+# ⚠️ THE LEVELS BELOW ARE THE TEAM'S DECISION, NOT THIS FILE'S.
+# Re-measure on the repository you are installing into — do not trust the numbers above for a
+# different repo — then set each level from what you find. A rule left at "warn" with no trigger is
+# a rule nobody will ever harden, so the trigger is measured rather than diarised: see HARDEN_AT.
+#
+# Enable once per clone (this cannot be committed):
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+# ── Ratchet levels ───────────────────────────────────────────────────────────
+# hard = reject the commit   warn = print and allow   off = do not check
+#
+# The percentages above are from REPLAYING THIS FILE's rules over this repository's last 200
+# non-merge commits, 2026-09-30 — not from reading the prose that describes the format. Re-measure this repo again before changing any level below.
+#
+# A rule hardens when it MEASURES clean, not on a date somebody picked. Re-run the replay; when a
+# rule holds at HARDEN_AT or better over the trailing window, promote it and record that you did.
+HARDEN_AT=95                      # percent, over the trailing 200 non-merge commits
+LEVEL_NO_CASE_IN_SUBJECT="warn"   # measured 99.5% (199/200) — clears HARDEN_AT; promotion is the team's call
+LEVEL_BODY_CASE_LINE="warn"       # measured 49.5% (99/200) — required for PR-bound work, skippable for
+                                   # a direct-to-main fixup; warn reminds without blocking either
+LEVEL_SUBJECT_LENGTH="warn"       # measured 79% (158/200)
+SUBJECT_MAX=50
+
+# Documented in cpanel.md but deliberately NOT checked: "line 2 must be blank". It was never
+# measured, and a gap is recorded rather than invented. Measure it before adding it.
+
+msg_file="$1"
+# Braced with `|| true` so `head`/`tail` closing the pipe early on a long body does not SIGPIPE
+# `grep` and abort the script under `pipefail` (found replaying this repo's own history — a large
+# multi-paragraph body exits 141, not a real rejection). The checks below read here-strings for the
+# same reason: `printf | grep -q` quits at the first match and SIGPIPEs the printf.
+header=$( { grep -vE '^\s*(#|$)' "$msg_file" || true; } | head -n 1)
+body=$( { grep -vE '^\s*#' "$msg_file" || true; } | tail -n +2)
+
+case "$header" in
+  "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
+esac
+
+fail=0
+warned=0
+
+report() { # $1=level  $2=message  $3=hint
+  case "$1" in
+    hard) echo "commit-msg: $2" >&2; echo "  $3" >&2; fail=1 ;;
+    warn) echo "commit-msg [warning]: $2" >&2; echo "  $3" >&2; warned=1 ;;
+  esac
+}
+
+# 1 — the case number belongs in the body, never in the summary line.
+if [ "$LEVEL_NO_CASE_IN_SUBJECT" != "off" ]; then
+  if grep -qE '[A-Z][A-Z0-9_]+-[0-9]+' <<<"$header"; then
+    report "$LEVEL_NO_CASE_IN_SUBJECT" \
+      "the summary line carries a case number." \
+      "Move it to the body, on its own line: Case CPANEL-1234: <what and why>"
+  fi
+fi
+
+# 2 — the body carries the case reference.
+if [ "$LEVEL_BODY_CASE_LINE" != "off" ]; then
+  if ! grep -qE '^Case [A-Z][A-Z0-9_]+-[0-9]+:' <<<"$body"; then
+    report "$LEVEL_BODY_CASE_LINE" \
+      "no 'Case XXX-1234:' line in the body." \
+      "Third line of the message: Case CPANEL-1234: <what changed, why, what was rejected>"
+  fi
+fi
+
+# 3 — a short summary. Many git commands show only this line.
+if [ "$LEVEL_SUBJECT_LENGTH" != "off" ]; then
+  len=${#header}
+  if [ "$len" -gt "$SUBJECT_MAX" ]; then
+    report "$LEVEL_SUBJECT_LENGTH" \
+      "the summary is $len characters; the convention is $SUBJECT_MAX or fewer." \
+      "Use the imperative mood and put the detail in the body: 'Fix X', not 'Fixed X because Y'."
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "" >&2
+  echo "  got: $header" >&2
+  exit 1
+fi
+
+# A warning never blocks. That is the point of a ratchet: the gate reports the gap today and is
+# hardened on a date the team agreed, rather than rejecting a third of their work on day one.
+if [ "$warned" -ne 0 ]; then
+  echo "commit-msg: committed anyway — the rules above are warnings in this repository." >&2
+fi
+exit 0

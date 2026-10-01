@@ -33,8 +33,14 @@ env:
   TF_VAR_github_repository: ${{ github.repository }}
   TF_VAR_github_run_id: ${{ github.run_id }}
 
+permissions:
+  contents: read
+  # Needed to pull the job container from ghcr.io. Naming any permission here
+  # drops every default one, so this cannot be omitted.
+  packages: read
+
 jobs:
-  testsuite:
+  unit-tests:
     if: github.repository == 'webpros-cpanel/app-elevate-cpanel'
     env:
       PERL_USE_UNSAFE_INC: 1
@@ -68,7 +74,7 @@ jobs:
           $CPANEL_PERL -MConfig -E 'say $Config{vendorbin}' >> $GITHUB_PATH
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - run: perl -V
 
@@ -83,8 +89,51 @@ jobs:
       - name: Run tests
         run: prove -lv -It/lib t/*.t
 
+  cplint:
+    # Runs cplint's commit-message check and its static set on every pull request, as
+    # cpanel-autofixers and cpanel-installer do; `cplint` and `unit-tests` are the required checks
+    # on main (org ruleset 24010787, "EndGame branch-main"). Case CP2-23.
+    if: github.repository == 'webpros-cpanel/app-elevate-cpanel' && github.event_name == 'pull_request'
+    timeout-minutes: 15
+    runs-on:
+      group: org/webpros-cpanel-arc-runners
+    container:
+      image: ghcr.io/webpros-cpanel/misc-ci-containers:ci-cplint
+      options: --user root
+    env:
+      # 1.7.7-1 is the first Ubuntu build that reads a case key whose project carries a digit
+      # (CP2-14); the 1.7.6-4 .deb shipped a binary without that change.
+      CPLINT_VERSION: 1.7.7-1.cp132
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install cPLint
+        run: |
+          # cplint is not published to an apt repository; fetch the pinned package directly.
+          pkg="cpanel-cplint_${CPLINT_VERSION}~u24_amd64.deb"
+          curl -fsSL -o "/tmp/$pkg" "https://branch-build.dev.cpanel.net/ubuntu/pool/cpanel-cplint/$pkg"
+          dpkg -i "/tmp/$pkg"
+
+      - name: Commit messages
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          # cplint reads the repository slug from origin and needs the URL's .git suffix, which
+          # actions/checkout leaves off.
+          git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          /opt/cplint/bin/cplint --branched-from "origin/${GITHUB_BASE_REF}" --only CommitMessages
+
+      - name: Static checks
+        if: always()
+        run: |
+          export PATH="/usr/local/cpanel/3rdparty/node/22/bin:$PATH"
+          # Default (info) verbosity: log every check that ran, passes included.
+          /opt/cplint/bin/cplint --branched-from "origin/${GITHUB_BASE_REF}" --skip CommitMessages --ignore all
+
   CentOS-7:
-    needs: testsuite
+    needs: unit-tests
     uses: ./.github/workflows/openstack-centos-7.yml
     secrets: inherit
     if: >
@@ -92,7 +141,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   CloudLinux-7:
-    needs: testsuite
+    needs: unit-tests
     uses: ./.github/workflows/openstack-cloudlinux-7.yml
     secrets: inherit
     if: >
@@ -100,7 +149,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   CloudLinux-8:
-    needs: testsuite
+    needs: unit-tests
     uses: ./.github/workflows/openstack-cloudlinux-8.yml
     secrets: inherit
     if: >
@@ -108,7 +157,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   AlmaLinux-8:
-    needs: testsuite
+    needs: unit-tests
     uses: ./.github/workflows/openstack-almalinux-8.yml
     secrets: inherit
     if: >
@@ -116,7 +165,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   AlmaLinux-9:
-    needs: testsuite
+    needs: unit-tests
     uses: ./.github/workflows/openstack-almalinux-9.yml
     secrets: inherit
     if: >
@@ -124,7 +173,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   Ubuntu-20:
-    needs: testsuite
+    needs: unit-tests
     uses: ./.github/workflows/openstack-ubuntu-20.yml
     secrets: inherit
     if: >
@@ -132,7 +181,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
   Ubuntu-22:
-    needs: testsuite
+    needs: unit-tests
     uses: ./.github/workflows/openstack-ubuntu-22.yml
     secrets: inherit
     if: >

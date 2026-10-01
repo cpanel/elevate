@@ -1,0 +1,12 @@
+# Automated dependency updates. ELevate has no package manifest the Dependabot ecosystems read (its
+# Perl modules come from cPanel's own Perl and the fat-packed elevate-cpanel), so the one ecosystem
+# is the SHA-pinned GitHub Actions: Dependabot bumps both the SHA and the trailing `# vN` comment.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        update-types: [minor, patch]

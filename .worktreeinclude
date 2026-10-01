@@ -1,0 +1,8 @@
+# Gitignored files Claude Code copies into each new git worktree.
+# This is a deliberate allowlist — NEVER list live secrets here.
+
+# Safe to copy: local, non-secret dev config
+.env.local.example
+.tool-versions
+
+# DO NOT add: .env, .env.production, or anything with live credentials.

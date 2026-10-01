@@ -5,6 +5,9 @@ on:
       - cron: '0 11 * * 5'
   workflow_dispatch:
 
+# The job grants itself actions: write to dispatch the test workflows.
+permissions: {}
+
 jobs:
   trigger_elevate_testsuite:
     runs-on: ubuntu-latest

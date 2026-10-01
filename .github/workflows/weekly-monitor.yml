@@ -26,6 +26,10 @@ on:
         default: '24'
         type: string
 
+# The job grants itself actions: read to list the runs it reports.
+permissions:
+  contents: read
+
 jobs:
   monitor-weekly-results:
     name: Check weekly Elevate CI results
