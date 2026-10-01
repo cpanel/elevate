@@ -81,7 +81,9 @@ Commits follow the cPanel/WHM convention:
   --description "$(cat body.md)"`; the `unit-tests` and `cplint` checks are required on `main`
   (the org's `EndGame branch-main` ruleset).
 - Harness files live under `.github/` (CI scripts in `.github/workflows/scripts/`), never at the
-  root; enable the commit gate once per clone with `git config core.hooksPath .githooks`.
+  root. The commit gate needs `git config core.hooksPath .githooks` once per clone; a Claude Code
+  session sets it on start (`.claude/hooks/enable-githooks.sh`), so only a clone no session opens
+  needs it by hand.
 
 ## Constraints
 
@@ -121,7 +123,7 @@ scope of the `cpanel-whm-dc-hub` knowledge hub.
 - **cplint** — runs on every pull request (the `cplint` job) and through `merge_request`.
 - **Pull requests** — `/usr/local/cpanel/build-tools/merge_request --agent --to=main
   --description …` (runs cplint, pushes, opens the pull request, links the Jira case).
-- **MCP servers** — none wired; do not call one.
+- **MCP servers** — none wired (`.mcp.json` declares an empty set); do not call one.
 
 ## Reading list
 
