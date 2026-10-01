@@ -7,7 +7,9 @@
 # jq parses the hook's JSON stdin. If it's missing we fail OPEN (allow) rather than block every Bash
 # call — the matcher is "Bash", so failing closed would brick the agent.
 command -v jq >/dev/null 2>&1 || { echo "block-commit-bypass: jq not found; skipping check (CI still gates commits)" >&2; exit 0; }
-cmd=$(jq -r '.tool_input.command // empty' </dev/stdin)
+# jq reads the hook's stdin itself: Claude Code passes it on a socket, and a socket cannot be
+# reopened through /dev/stdin (ENXIO), which left cmd empty and the hook allowing everything.
+cmd=$(jq -r '.tool_input.command // empty')
 # A heredoc body is data, not flags. `-m "$(cat <<'EOF' ... EOF)"` carries whatever the message
 # says, and a message is free to contain `grep -rn`, or the literal name of the flag this hook
 # blocks. Quote-stripping below cannot see those: heredoc bodies are not quoted spans. So cut the
