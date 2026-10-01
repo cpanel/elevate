@@ -10,7 +10,7 @@ permissions:
 jobs:
   close_pr:
     if: github.event.pull_request.head.repo.full_name == 'cpanel/elevate'
-    runs-on: ubuntu-latest
+    runs-on: { group: org/webpros-cpanel-arc-runners }
     steps:
       - name: Close the PR
         uses: peter-evans/close-pull@a192af8d70f2d49c49643134605c3b73d4f80fae # v3.0.1

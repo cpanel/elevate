@@ -11,9 +11,12 @@ permissions:
 
 jobs:
   agent-config-lint:
-    runs-on: ubuntu-latest
+    runs-on: { group: org/webpros-cpanel-arc-runners }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: chmod +x .githooks/commit-msg .claude/hooks/*.sh .github/workflows/scripts/*.sh
       - run: git config core.hooksPath .githooks
       - run: bash .github/workflows/scripts/lint-agent-config.sh
+      # Every external action SHA-pinned and listed in .github/approved-actions.yaml, and every job
+      # on a self-hosted runner (GitHub-hosted minutes are paid).
+      - run: bash .github/workflows/scripts/lint-workflows.sh
