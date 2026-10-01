@@ -47,7 +47,8 @@ jobs:
       CPANEL_BIN_PATH: /usr/local/cpanel/3rdparty/bin
       CPANEL_PERL: /usr/local/cpanel/3rdparty/perl/536/bin/perl
 
-    runs-on: ubuntu-latest
+    runs-on:
+      group: org/webpros-cpanel-arc-runners
 
     # Note: the container is not a CentOS 7 distro
     #       this is ok if we use it for unit test purpose

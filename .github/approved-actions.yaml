@@ -1,0 +1,75 @@
+# Approved GitHub Actions — the only `uses:` a spoke (and this hub) may reference.
+# Enforced by .github/workflows/scripts/lint-workflows.sh: an action that is not listed here fails CI.
+# Every `uses:` must also be SHA-pinned, so an entry approves the action, not a moving tag. The
+# webpros-cpanel org's own actions and reusable workflows need no entry and may pin by tag (CP2-14).
+#
+# status:
+#   webpros-owned     maintained inside WebPros (e.g. webpros-security)
+#   first-party       published by GitHub (actions/*)
+#   approved          third-party, approved by Security
+#   pending-security  third-party, in use, waiting for Security review (lint warns)
+#
+# Changes to this file need a Security review. Thread:
+# https://webpros.slack.com/archives/C0C1JQXAN7M/p1790586137989199
+actions:
+  # ── WebPros-owned ──────────────────────────────────────────────────────────
+  - uses: webpros-security/shared-actions/actions/gitleaks
+    status: webpros-owned
+    why: Committed-secret scan (secret-scan.yml). Security's choice since 2022.
+
+  # ── GitHub first-party ─────────────────────────────────────────────────────
+  - uses: actions/checkout
+    status: first-party
+    why: Check out the repository.
+  - uses: actions/setup-node
+    status: first-party
+    why: Install Node (TypeScript spokes). Self-hosted runners have no Node.
+  - uses: actions/setup-python
+    status: first-party
+    why: Install Python for the hub's validators. Self-hosted runners have no Python.
+  - uses: actions/github-script
+    status: first-party
+    why: Hub only — request the WPSolver review on a PR.
+  - uses: actions/attest-build-provenance
+    status: first-party
+    why: SLSA build-provenance attestation of the release image.
+  - uses: actions/upload-artifact
+    status: first-party
+    why: This spoke only — hand the OpenStack VM state between jobs (openstack-*.yml).
+  - uses: actions/download-artifact
+    status: first-party
+    why: This spoke only — read the OpenStack VM state back (openstack-*.yml).
+
+  # ── Third-party, waiting for Security ──────────────────────────────────────
+  - uses: step-security/harden-runner
+    status: pending-security
+    why: CI egress audit. Audit mode only (blocks nothing); proposed for removal.
+  - uses: astral-sh/setup-uv
+    status: pending-security
+    why: Install uv (Python spokes, semgrep).
+  - uses: wagoid/commitlint-github-action
+    status: pending-security
+    why: Conventional Commits check on every PR commit.
+  - uses: docker/setup-buildx-action
+    status: pending-security
+    why: Release image build (BuildKit).
+  - uses: docker/login-action
+    status: pending-security
+    why: Release image push to GHCR.
+  - uses: docker/build-push-action
+    status: pending-security
+    why: Release image build and push, with BuildKit provenance and SBOM.
+  - uses: sigstore/cosign-installer
+    status: pending-security
+    why: Keyless signing of the release image.
+
+  # ── This spoke's own, waiting for Security ─────────────────────────────────
+  - uses: appleboy/ssh-action
+    status: pending-security
+    why: Run the elevate steps on the OpenStack test VM over SSH (openstack-*.yml).
+  - uses: peter-evans/close-pull
+    status: pending-security
+    why: Close pull requests opened from cpanel/elevate (close_prs.yml).
+  - uses: peaceiris/actions-hugo
+    status: pending-security
+    why: Install Hugo to build the docs website (website.yml; runs only in cpanel/elevate).

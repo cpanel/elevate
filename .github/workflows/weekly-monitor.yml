@@ -33,7 +33,7 @@ permissions:
 jobs:
   monitor-weekly-results:
     name: Check weekly Elevate CI results
-    runs-on: ubuntu-latest
+    runs-on: { group: org/webpros-cpanel-arc-runners }
     permissions:
       actions: read
       contents: read

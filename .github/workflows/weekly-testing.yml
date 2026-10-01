@@ -10,7 +10,7 @@ permissions: {}
 
 jobs:
   trigger_elevate_testsuite:
-    runs-on: ubuntu-latest
+    runs-on: { group: org/webpros-cpanel-arc-runners }
     permissions:
       actions: write
     steps:
