@@ -101,6 +101,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                         |            |       |   "MariaDB105.repo",\n      |
 |                         |            |       |   "MariaDB106.repo",\n      |
 |                         |            |       |   "MariaDB114.repo",\n      |
+|                         |            |       |   "MariaDB118.repo",\n      |
 |                         |            |       |   "Mysql57.repo",\n         |
 |                         |            |       |   "Mysql80.repo",\n         |
 |                         |            |       |   "mysql-community.repo",\n |
@@ -113,6 +114,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                         |            |       |   "MariaDB105.repo",\n      |
 |                         |            |       |   "MariaDB106.repo",\n      |
 |                         |            |       |   "MariaDB114.repo",\n      |
+|                         |            |       |   "MariaDB118.repo",\n      |
 |                         |            |       |   "Mysql57.repo",\n         |
 |                         |            |       |   "Mysql80.repo",\n         |
 |                         |            |       |   "mysql-community.repo",\n |
@@ -125,6 +127,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                         |            |       |   "MariaDB105.repo",\n      |
 |                         |            |       |   "MariaDB106.repo",\n      |
 |                         |            |       |   "MariaDB114.repo",\n      |
+|                         |            |       |   "MariaDB118.repo",\n      |
 |                         |            |       |   "Mysql57.repo",\n         |
 |                         |            |       |   "Mysql80.repo",\n         |
 |                         |            |       |   "mysql-community.repo",\n |
@@ -137,6 +140,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                         |            |       |   "MariaDB105.repo",\n      |
 |                         |            |       |   "MariaDB106.repo",\n      |
 |                         |            |       |   "MariaDB114.repo",\n      |
+|                         |            |       |   "MariaDB118.repo",\n      |
 |                         |            |       |   "Mysql57.repo",\n         |
 |                         |            |       |   "Mysql80.repo",\n         |
 |                         |            |       |   "mysql-community.repo",\n |
@@ -149,6 +153,7 @@ yath -v t/Elevate-OS_detect_changes.t
 |                         |            |       |   "MariaDB105.repo",\n      |
 |                         |            |       |   "MariaDB106.repo",\n      |
 |                         |            |       |   "MariaDB114.repo",\n      |
+|                         |            |       |   "MariaDB118.repo",\n      |
 |                         |            |       |   "Mysql57.repo",\n         |
 |                         |            |       |   "Mysql80.repo",\n         |
 |                         |            |       |   "mysql-community.repo",\n |
@@ -985,13 +990,13 @@ yath -v t/Elevate-OS_detect_changes.t
 +---------------------------------+------------+-------+----------------------------------------------+
 | key                             | distro     | major | supported_cpanel_mysql_versions              |
 +---------------------------------+------------+-------+----------------------------------------------+
-| supported_cpanel_mysql_versions | AlmaLinux  | 8     | [10.11, 10.5, 10.6, 11.4, "8.0", 8.4]        |
-| supported_cpanel_mysql_versions | AlmaLinux  | 9     | [10.11, 11.4, 8.4]                           |
+| supported_cpanel_mysql_versions | AlmaLinux  | 8     | [10.11, 10.5, 10.6, 11.4, 11.8, "8.0", 8.4]  |
+| supported_cpanel_mysql_versions | AlmaLinux  | 9     | [10.11, 11.4, 11.8, 8.4]                     |
 | supported_cpanel_mysql_versions | CentOS     | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
 | supported_cpanel_mysql_versions | CloudLinux | 7     | [10.11, 10.3, 10.4, 10.5, 10.6, 11.4, "8.0"] |
-| supported_cpanel_mysql_versions | CloudLinux | 8     | [10.11, 10.5, 10.6, 11.4, "8.0", 8.4]        |
+| supported_cpanel_mysql_versions | CloudLinux | 8     | [10.11, 10.5, 10.6, 11.4, 11.8, "8.0", 8.4]  |
 | supported_cpanel_mysql_versions | Ubuntu     | 20    | [10.11, 10.6, "8.0"]                         |
-| supported_cpanel_mysql_versions | Ubuntu     | 22    | [10.11, 11.4, "8.0", 8.4]                    |
+| supported_cpanel_mysql_versions | Ubuntu     | 22    | [10.11, 11.4, 11.8, "8.0", 8.4]              |
 +---------------------------------+------------+-------+----------------------------------------------+
 ```
 ---
