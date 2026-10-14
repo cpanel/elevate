@@ -1,11 +1,20 @@
-# Approved GitHub Actions — the only `uses:` a spoke (and this hub) may reference.
-# Enforced by .github/workflows/scripts/lint-workflows.sh: an action that is not listed here fails CI.
-# Every `uses:` must also be SHA-pinned, so an entry approves the action, not a moving tag. The
-# webpros-cpanel org's own actions and reusable workflows need no entry and may pin by tag (CP2-14).
+# Approved GitHub Actions — the SHARED list, shipped by engineering-kit-workflow-lint to every hub
+# (kits/workflow-lint/approved-actions.yaml) and, through the hub's spoke template, to every spoke.
+# Enforced by lint-workflows.sh beside it: an action that is not listed fails CI. A `uses:` must also
+# be pinned to a 40-hex commit SHA, with two exceptions for trusted owners (KIT.md § Which refs pass):
+#   - a `first-party` action may use a version tag (vN, vN.M, vN.M.P);
+#   - a `webpros-owned` action may too, once its entry here has `tags: protected` — set it only after
+#     Security confirms the owning repo blocks moving, deleting and branch-shadowing its v* tags.
+# A branch (@main, @latest) never passes, and a reusable workflow is SHA-pinned whatever its owner.
+# The lint checks each status against the owner: first-party is actions/* or github/* only, and
+# webpros-owned only an org in WEBPROS_ORGS (lint-workflows.sh).
+#
+# Do not edit the copy in a hub: the next kit install proposes the upstream file beside it. A repo's
+# own webpros-owned and first-party actions go in .github/approved-actions.local.yaml instead.
 #
 # status:
 #   webpros-owned     maintained inside WebPros (e.g. webpros-security)
-#   first-party       published by GitHub (actions/*)
+#   first-party       published by GitHub (actions/*, github/*)
 #   approved          third-party, approved by Security
 #   pending-security  third-party, in use, waiting for Security review (lint warns)
 #
@@ -16,6 +25,9 @@ actions:
   - uses: webpros-security/shared-actions/actions/gitleaks
     status: webpros-owned
     why: Committed-secret scan (secret-scan.yml). Security's choice since 2022.
+  - uses: webpros-sandbox/jira-cli/setup
+    status: webpros-owned
+    why: Install jira-cli in CI (the jira-integration kit's jira-sync.yml) by building it from the pinned commit; shared with the enterprise, so no cross-org token.
 
   # ── GitHub first-party ─────────────────────────────────────────────────────
   - uses: actions/checkout
@@ -35,10 +47,13 @@ actions:
     why: SLSA build-provenance attestation of the release image.
   - uses: actions/upload-artifact
     status: first-party
-    why: This spoke only — hand the OpenStack VM state between jobs (openstack-*.yml).
+    why: Hub status page — hand the built page to the publish job (hub-status.yml).
   - uses: actions/download-artifact
     status: first-party
-    why: This spoke only — read the OpenStack VM state back (openstack-*.yml).
+    why: Hub status page — fetch the built page in the publish job (hub-status.yml).
+  - uses: actions/create-github-app-token
+    status: first-party
+    why: Mint a GitHub App token for a write-back to a protected branch (the jira-integration kit's pull, jira-sync.yml).
 
   # ── Third-party, waiting for Security ──────────────────────────────────────
   - uses: step-security/harden-runner
@@ -46,7 +61,7 @@ actions:
     why: CI egress audit. Audit mode only (blocks nothing); proposed for removal.
   - uses: astral-sh/setup-uv
     status: pending-security
-    why: Install uv (Python spokes, semgrep).
+    why: Install uv (Python spokes, semgrep, hub validators).
   - uses: wagoid/commitlint-github-action
     status: pending-security
     why: Conventional Commits check on every PR commit.
@@ -59,17 +74,27 @@ actions:
   - uses: docker/build-push-action
     status: pending-security
     why: Release image build and push, with BuildKit provenance and SBOM.
+  - uses: docker/metadata-action
+    status: pending-security
+    why: Image tags and labels for a container build (koan-bot docker-publish.yml).
+  - uses: googleapis/release-please-action
+    status: pending-security
+    why: Per-package release PRs and tags (webpros-marketplace release-please.yml).
   - uses: sigstore/cosign-installer
     status: pending-security
     why: Keyless signing of the release image.
-
-  # ── This spoke's own, waiting for Security ─────────────────────────────────
+  - uses: goreleaser/goreleaser-action
+    status: pending-security
+    why: Cuts the release a Go spoke publishes, on a tag push (jira-cli release.yml).
+  - uses: slackapi/slack-github-action
+    status: pending-security
+    why: Post a failed CI run to the owning team's Slack channel (misc-ci-containers build-containers.yml, misc-ci-playwright test.yml).
   - uses: appleboy/ssh-action
     status: pending-security
-    why: Run the elevate steps on the OpenStack test VM over SSH (openstack-*.yml).
+    why: Run the elevate test steps on the OpenStack test VM over SSH (app-elevate-cpanel openstack-*.yml).
   - uses: peter-evans/close-pull
     status: pending-security
-    why: Close pull requests opened from cpanel/elevate (close_prs.yml).
+    why: Close pull requests opened against the public mirror (app-elevate-cpanel close_prs.yml).
   - uses: peaceiris/actions-hugo
     status: pending-security
-    why: Install Hugo to build the docs website (website.yml; runs only in cpanel/elevate).
+    why: Install Hugo to build the docs website (app-elevate-cpanel website.yml).
