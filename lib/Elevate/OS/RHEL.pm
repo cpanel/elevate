@@ -22,6 +22,7 @@ use constant disable_mysql_yum_repos => qw{
   MariaDB106.repo
   MariaDB1011.repo
   MariaDB114.repo
+  MariaDB118.repo
 
   mysql-community.repo
 };

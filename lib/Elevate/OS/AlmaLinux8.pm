@@ -19,6 +19,7 @@ use constant supported_cpanel_mysql_versions => qw{
   10.6
   10.11
   11.4
+  11.8
 };
 
 use constant archive_dir                  => 'CentOS7-to-AlmaLinux8';

@@ -229,8 +229,44 @@ $mock_stagefile->redefine(
     }
 
     set_os_to( 'alma', 8 );
-    @should_pass = qw(8.0 10.5 10.6 10.11 11.4);
+    @should_pass = qw(8.0 8.4 10.5 10.6 10.11 11.4 11.8);
     @should_fail = qw(5.7 10.3 10.4);
+
+    foreach my $pass_version (@should_pass) {
+        ok( Elevate::Database::is_database_version_supported($pass_version), "$pass_version is supported" );
+    }
+
+    foreach my $fail_version (@should_fail) {
+        ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
+    }
+
+    set_os_to( 'cloud', 8 );
+    @should_pass = qw(8.0 8.4 10.5 10.6 10.11 11.4 11.8);
+    @should_fail = qw(5.7 10.3 10.4);
+
+    foreach my $pass_version (@should_pass) {
+        ok( Elevate::Database::is_database_version_supported($pass_version), "$pass_version is supported" );
+    }
+
+    foreach my $fail_version (@should_fail) {
+        ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
+    }
+
+    set_os_to( 'alma', 9 );
+    @should_pass = qw(8.4 10.11 11.4 11.8);
+    @should_fail = qw(8.0 10.5 10.6);
+
+    foreach my $pass_version (@should_pass) {
+        ok( Elevate::Database::is_database_version_supported($pass_version), "$pass_version is supported" );
+    }
+
+    foreach my $fail_version (@should_fail) {
+        ok( !Elevate::Database::is_database_version_supported($fail_version), "$fail_version is NOT supported" );
+    }
+
+    set_os_to( 'ubuntu', 22 );
+    @should_pass = qw(8.0 8.4 10.11 11.4 11.8);
+    @should_fail = qw(10.5 10.6);
 
     foreach my $pass_version (@should_pass) {
         ok( Elevate::Database::is_database_version_supported($pass_version), "$pass_version is supported" );
