@@ -66,6 +66,7 @@ use constant supported_cpanel_mysql_versions => qw{
   8.4
   10.11
   11.4
+  11.8
 };
 
 use constant archive_dir                      => 'Ubuntu20-to-Ubuntu22';
