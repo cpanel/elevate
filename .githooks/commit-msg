@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# harness-template: commit-msg/cpanel v2 — written by repo-files-lock.mjs; spoke-upgrade and harness-lint read it. Keep it when you tune this gate.
 # commit-msg — cPanel/WHM flavour. A RATCHET, not a wall.
 #
 # Unlike the other two flavours, no regex for the cPanel format existed anywhere before this file.
@@ -42,16 +43,22 @@ LEVEL_BODY_CASE_LINE="warn"       # measured 49.5% (99/200) — required for PR-
 LEVEL_SUBJECT_LENGTH="warn"       # measured 79% (158/200)
 SUBJECT_MAX=50
 
+# Identifiers shaped like a case key that never are one. Replaying 3000 cpanel-whm subjects
+# (140, 2026-10-14) through the old `[A-Z]{2,}-[0-9]+` match rejected 8 with no case in them:
+# CVE-2026-3381, CWE-78, PTT-2025-021, UTF-8, Net-CIDR-0.27, Whostmgr-API-1. A key now has to be
+# a whole word, which clears the CVE, CIDR, API and PTT ones; this list clears the rest. ADR is the
+# hubs' decision record (ADR-002). Add a prefix here when your replay finds one.
+NOT_A_CASE="ADR|CVE|CWE|UTF"
+
 # Documented in cpanel.md but deliberately NOT checked: "line 2 must be blank". It was never
 # measured, and a gap is recorded rather than invented. Measure it before adding it.
 
 msg_file="$1"
-# Braced with `|| true` so `head`/`tail` closing the pipe early on a long body does not SIGPIPE
-# `grep` and abort the script under `pipefail` (found replaying this repo's own history — a large
-# multi-paragraph body exits 141, not a real rejection). The checks below read here-strings for the
-# same reason: `printf | grep -q` quits at the first match and SIGPIPEs the printf.
-header=$( { grep -vE '^\s*(#|$)' "$msg_file" || true; } | head -n 1)
-body=$( { grep -vE '^\s*#' "$msg_file" || true; } | tail -n +2)
+# The first line that is neither blank nor a comment. awk reads the file itself and stops there:
+# `grep | head -n 1` under pipefail exits 141 on a long message (head quits, grep gets SIGPIPE),
+# and set -e then aborts the hook (T66).
+header=$(awk '!/^[[:space:]]*(#|$)/ { print; exit }' "$msg_file")
+body=$(grep -vE '^\s*#' "$msg_file" | tail -n +2)
 
 case "$header" in
   "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
@@ -69,15 +76,21 @@ report() { # $1=level  $2=message  $3=hint
 
 # 1 — the case number belongs in the body, never in the summary line.
 if [ "$LEVEL_NO_CASE_IN_SUBJECT" != "off" ]; then
-  if grep -qE '[A-Z][A-Z0-9_]+-[0-9]+' <<<"$header"; then
+  # One word per line (a hyphen stays inside its word), then whole-word keys only. Jira project
+  # keys may carry a digit (CP2-58). No `grep -q` in the pipe: every stage reads to the end (T66).
+  case_keys=$(tr -cs 'A-Za-z0-9_-' '\n' <<<"$header" \
+    | grep -xE '[A-Z][A-Z0-9_]+-[0-9]+' | grep -vxE "($NOT_A_CASE)-[0-9]+" || true)
+  if [ -n "$case_keys" ]; then
     report "$LEVEL_NO_CASE_IN_SUBJECT" \
-      "the summary line carries a case number." \
+      "the summary line carries a case number ($(tr '\n' ' ' <<<"$case_keys" | sed 's/ $//'))." \
       "Move it to the body, on its own line: Case CPANEL-1234: <what and why>"
   fi
 fi
 
 # 2 — the body carries the case reference.
 if [ "$LEVEL_BODY_CASE_LINE" != "off" ]; then
+  # A here-string, not `printf | grep -q`: grep -q quits at the first match, printf gets SIGPIPE, and
+  # under pipefail a long body with an early Case line read as "no Case line" (T66).
   if ! grep -qE '^Case [A-Z][A-Z0-9_]+-[0-9]+:' <<<"$body"; then
     report "$LEVEL_BODY_CASE_LINE" \
       "no 'Case XXX-1234:' line in the body." \

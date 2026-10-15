@@ -1,0 +1,5 @@
+{
+  "minLength": 50,
+  "requiredSections": [],
+  "exempt": ["dependabot[bot]", "dependabot-preview[bot]"]
+}

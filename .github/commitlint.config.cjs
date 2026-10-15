@@ -11,7 +11,13 @@
 // Case number pattern shared by both cpanel rules below, kept in one place so the two can't drift
 // apart from each other the way the old bash/JS pair once could. A Jira project key starts with a
 // letter and may carry digits (CP2-14), so the key is [A-Z][A-Z0-9_]+, never [A-Z]+.
-const CASE_RE = /[A-Z][A-Z0-9_]+-[0-9]+/;
+// In the summary a key is a whole word (a hyphen stays inside its word, so Net-CIDR-0.27 and the
+// year in CVE-2026-3381 are not keys), and NOT_A_CASE_RE drops the key-shaped words that never
+// are one — the same split and list as the cpanel v2 gate in .githooks/commit-msg (NOT_A_CASE).
+const CASE_WORD_RE = /^[A-Z][A-Z0-9_]+-[0-9]+$/;
+const NOT_A_CASE_RE = /^(ADR|CVE|CWE|UTF)-[0-9]+$/;
+const caseKeys = (header) =>
+  header.split(/[^A-Za-z0-9_-]+/).filter((w) => CASE_WORD_RE.test(w) && !NOT_A_CASE_RE.test(w));
 const CASE_BODY_LINE_RE = /^Case [A-Z][A-Z0-9_]+-[0-9]+:/m;
 
 module.exports = {
@@ -21,7 +27,8 @@ module.exports = {
         // Mirrors .githooks/commit-msg LEVEL_NO_CASE_IN_SUBJECT.
         "cpanel-no-case-in-subject": (parsed) => {
           const header = parsed.header || "";
-          return [!CASE_RE.test(header), "the summary line must not carry a case number — move it to the body: Case CPANEL-1234: <what and why>"];
+          const keys = caseKeys(header);
+          return [keys.length === 0, `the summary line must not carry a case number (${keys.join(" ")}) — move it to the body: Case CPANEL-1234: <what and why>`];
         },
         // Mirrors .githooks/commit-msg LEVEL_BODY_CASE_LINE. Required for PR-bound work,
         // skippable for a quick direct-to-main fixup — this rule can't tell which a given commit
@@ -34,6 +41,8 @@ module.exports = {
     },
   ],
   rules: {
+    // Footer trailers (Changelog:, Co-Authored-By:) run long.
+    "footer-max-line-length": [2, "always", 200],
     "cpanel-no-case-in-subject": [1, "always"],
     "cpanel-case-in-body": [1, "always"],
     // Mirrors .githooks/commit-msg LEVEL_SUBJECT_LENGTH / SUBJECT_MAX.

@@ -1,0 +1,55 @@
+name: pr-body-lint
+on:
+  pull_request:
+    # `edited` is what makes fixing the description re-run the check without a push. It is not a
+    # default type. `synchronize` is what puts a result on every new head commit; a required check
+    # with no result on the head blocks the merge, pending for ever.
+    types: [opened, edited, synchronize, reopened]
+
+# Layer 4 of the WebPros harness: a pull request must say what it changes. Copied from
+# engineering-harness 1.16.1 (templates/pr-body/), with its actions SHA-pinned and harden-runner
+# added like every other template workflow. The rule and its numbers live in
+# .github/pr-body-lint.json, which the repo owns; this file and the checker beside it are the plugin's.
+# A harness-spokes-upgrade run puts the plugin's tag pins back — re-pin before merging that PR.
+#
+# REQUIRED CONTEXT. The status check this job reports is named after the job: `pr-body-lint`. That
+# is the string to put in the branch ruleset. Copy it from here; never retype it.
+#
+# BASE, NOT HEAD. The checker and its config are read from the base commit, so a pull request
+# cannot lower the bar it is judged by. A change to either takes effect once it merges. The one
+# exception is the pull request that installs them, where the base has neither.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-body-lint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-body-lint:
+    runs-on: { group: org/webpros-cpanel-arc-runners }
+    timeout-minutes: 5
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Bootstrap — the base has no checker yet, so use the head's
+        if: hashFiles('.github/pr-body-lint/pr-body-lint.mjs') == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Check the PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node .github/pr-body-lint/pr-body-lint.mjs check --format github
