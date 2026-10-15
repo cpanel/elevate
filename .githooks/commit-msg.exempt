@@ -1,0 +1,24 @@
+# commit-msg.exempt — subjects the Conventional Commits gate lets through, one regex per line.
+#
+# Why this file exists: some release tooling authors its own commits and no convention can be
+# threaded into them (`mvn release:prepare`, `npm version`, semantic-release, a vendor bot). The
+# gate itself stays ecosystem-neutral; each adopting repo declares the exact subjects its own
+# toolchain emits, here.
+#
+# Rules — both readers enforce them, and `lint-agent-config.sh` fails the build on a violation:
+#   * One POSIX ERE per line. Blank lines and lines starting with `#` are ignored.
+#   * Every pattern is anchored `^...$`. An unanchored pattern matches a substring, which turns
+#     this file from an exemption list into an open gate.
+#   * `^.*$` and `^.+$` are rejected outright for the same reason.
+#   * The pattern is read by bash grep -E AND by JavaScript RegExp (.github/commitlint.config.cjs), so
+#     stay in the common subset: character classes, `+ * ? | ( )`, escaped literals. No `\d`,
+#     no `\w`, no lookahead, no backreferences.
+#   * Matched against the subject line only, never the body.
+#
+# This file is part of the commit gate. Review a change to it the way you review the gate.
+#
+# Ships empty: nothing is exempt until a repo adds a line. Examples, for copying:
+#
+#   ^\[maven-release-plugin\] (prepare release [A-Za-z0-9._-]+|prepare for next development iteration)$
+#   ^chore\(release\): [0-9]+\.[0-9]+\.[0-9]+$
+#   ^v[0-9]+\.[0-9]+\.[0-9]+$
