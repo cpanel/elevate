@@ -102,7 +102,7 @@ Commits follow the cPanel/WHM convention:
   `--continue` able to resume it.
 - **Tests never touch the live system** — no real package manager, reboot or network in `t/`; mock
   with `Test::MockFile` and `Test::MockModule`.
-- **Never bypass the commit gate** (`git commit --no-verify`); `.claude/hooks/block-commit-bypass.sh`
+- **Never bypass the commit gate** (`git commit --no-verify`); the engineering-harness plugin's guard
   denies it, and `.githooks/commit-msg` reports the cPanel format.
 - **Never run `make release` or `make bump_version`** without the maintainer asking: both push
   to the public and internal remotes and move the `release` tag every server updates from.
