@@ -59,17 +59,20 @@ else
   warn "not a git repo — skipping commit-hook wiring check"
 fi
 
-# 3) PreToolUse bypass hook present and wired.
-[ -x .claude/hooks/block-commit-bypass.sh ] || err ".claude/hooks/block-commit-bypass.sh missing or not executable"
+# 3) The agent guards come from the engineering-harness plugin, not from a copied hook. The plugin
+#    ships block-commit-bypass and block-unapproved-merge as PreToolUse hooks; a bash copy beside it
+#    runs the same check twice and drifts.
 if [ ! -f .claude/settings.json ]; then
   err ".claude/settings.json missing (restore it from the spoke scaffold variant: platform/spoke-template/<python|typescript>/.claude/settings.json)"
-elif ! grep -qF "block-commit-bypass.sh" .claude/settings.json; then
-  err ".claude/settings.json does not wire block-commit-bypass.sh"
+elif ! grep -qE '"engineering-harness@webpros"[[:space:]]*:[[:space:]]*true' .claude/settings.json; then
+  err ".claude/settings.json does not enable engineering-harness@webpros, which ships the agent guards"
+elif grep -qF "block-commit-bypass.sh" .claude/settings.json || [ -e .claude/hooks/block-commit-bypass.sh ]; then
+  err "the bash block-commit-bypass.sh is still here — the plugin ships the guard; delete the file and its wiring"
 else
-  ok "PreToolUse bypass hook wired"
+  ok "agent guards: engineering-harness plugin enabled"
 fi
 
 # 4) Contract artifact pinned, not forked.
 [ -e contracts/system/architecture/contract.yaml ] || warn "contracts/system/architecture/contract.yaml not found — pin the hub-published contracts/ ref"
 
-[ "$fail" -eq 0 ] && echo "agent-config lint: PASS" || { echo "agent-config lint: FAIL"; exit 1; }
+if [ "$fail" -eq 0 ]; then echo "agent-config lint: PASS"; else echo "agent-config lint: FAIL"; exit 1; fi
