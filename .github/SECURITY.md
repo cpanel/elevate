@@ -22,5 +22,5 @@ of `cpanel/elevate`. The cPanel & WHM product being upgraded, and the upgrade to
 
 Only the latest release is supported: `elevate-cpanel` checks that it is the release on the
 `release` tag before it starts (`--update` fetches that copy), so security fixes land on `main`
-and ship with the next `make release`. Committed secrets are caught by `secret-scan`, and GitHub
+and ship with the next `make release`. Committed secrets are caught by `Secret Scan`, and GitHub
 Actions versions are kept current by `.github/dependabot.yml`.

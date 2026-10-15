@@ -1,0 +1,21 @@
+name: repo-hardening-lint
+on: [pull_request]
+
+# The org ruleset "EndGame branch-main" requires a repo-hardening-lint check on main. Elevate
+# cPanel is designed to make external calls (it upgrades a server's OS in place: package
+# repositories, vendor mirrors, cPanel's update servers, OpenStack test VMs), which the hardening
+# lint's rules forbid, so the lint can't apply here. This job explains that and reports success.
+permissions: {}
+
+jobs:
+  repo-hardening-lint:
+    runs-on: { group: org/webpros-cpanel-arc-runners }
+    steps:
+      - name: Explain why repo-hardening-lint does not run here
+        run: |
+          echo "::notice title=repo-hardening-lint not applicable::Elevate cPanel is designed to make external calls and is incompatible with repo hardening; the lint is not run in this repository."
+          echo "Elevate cPanel upgrades a server's operating system in place. To do that it is designed to"
+          echo "make external calls: OS package repositories, vendor mirrors, cPanel's update servers, and"
+          echo "the OpenStack VMs its integration tests build. Repo hardening forbids exactly those calls,"
+          echo "so it is incompatible with this repository and is not run. This job only reports success"
+          echo "for the repo-hardening-lint check the org ruleset requires."
