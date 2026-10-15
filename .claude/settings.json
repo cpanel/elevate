@@ -1,55 +1,66 @@
 {
-    "$schema": "https://json.schemastore.org/claude-code-settings.json",
-    "permissions": {
-        "allow": [
-            "Bash(make sanity)",
-            "Bash(make test)",
-            "Bash(make build)",
-            "Bash(/usr/local/cpanel/3rdparty/perl/536/bin/prove *)",
-            "Bash(/usr/local/cpanel/3rdparty/perl/536/bin/yath *)",
-            "Bash(/usr/local/cpanel/3rdparty/perl/536/bin/perl -cw *)",
-            "Bash(prove *)",
-            "Edit(./lib/**)",
-            "Edit(./script/**)",
-            "Edit(./t/**)",
-            "Read(./**)"
-        ],
-        "deny": [
-            "Read(./.env)",
-            "Read(./.env.*)",
-            "Read(./secrets/**)",
-            "Edit(./elevate-cpanel)"
-        ],
-        "ask": [
-            "Bash(git push *)",
-            "Bash(make release)",
-            "Bash(make bump_version)",
-            "Bash(/usr/local/cpanel/build-tools/merge_request *)"
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make sanity)",
+      "Bash(make test)",
+      "Bash(make build)",
+      "Bash(/usr/local/cpanel/3rdparty/perl/536/bin/prove *)",
+      "Bash(/usr/local/cpanel/3rdparty/perl/536/bin/yath *)",
+      "Bash(/usr/local/cpanel/3rdparty/perl/536/bin/perl -cw *)",
+      "Bash(prove *)",
+      "Edit(./lib/**)",
+      "Edit(./script/**)",
+      "Edit(./t/**)",
+      "Read(./**)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Edit(./elevate-cpanel)",
+      "Edit(./.git/**)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(make release)",
+      "Bash(make bump_version)",
+      "Bash(/usr/local/cpanel/build-tools/merge_request *)",
+      "Bash(gh pr merge*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/enable-githooks.sh",
+            "timeout": 5
+          }
         ]
-    },
-    "hooks": {
-        "SessionStart": [
-            {
-                "matcher": "startup|resume",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/enable-githooks.sh",
-                        "timeout": 5
-                    }
-                ]
-            }
-        ],
-        "PreToolUse": [
-            {
-                "matcher": "Bash",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/block-commit-bypass.sh"
-                    }
-                ]
-            }
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/block-commit-bypass.sh"
+          }
         ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "webpros": {
+      "source": {
+        "source": "github",
+        "repo": "webpros-sandbox/webpros-marketplace"
+      },
+      "autoUpdate": true
     }
+  }
 }

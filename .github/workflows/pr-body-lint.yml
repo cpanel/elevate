@@ -6,18 +6,25 @@ on:
     # with no result on the head blocks the merge, pending for ever.
     types: [opened, edited, synchronize, reopened]
 
-# Layer 4 of the WebPros harness: a pull request must say what it changes. Copied from
-# engineering-harness 1.16.1 (templates/pr-body/), with its actions SHA-pinned and harden-runner
-# added like every other template workflow. The rule and its numbers live in
-# .github/pr-body-lint.json, which the repo owns; this file and the checker beside it are the plugin's.
-# A harness-spokes-upgrade run puts the plugin's tag pins back — re-pin before merging that PR.
+# Layer 4 of the WebPros harness: a pull request must say what it changes. Installed by
+# harness-setup (Artefact 4). The rule and its numbers live in .github/pr-body-lint.json, which the
+# repo owns; this file and the checker beside it are the plugin's.
 #
 # REQUIRED CONTEXT. The status check this job reports is named after the job: `pr-body-lint`. That
 # is the string to put in the branch ruleset. Copy it from here; never retype it.
 #
-# BASE, NOT HEAD. The checker and its config are read from the base commit, so a pull request
+# BASE, NOT HEAD. The checker and its config are read from the base branch, so a pull request
 # cannot lower the bar it is judged by. A change to either takes effect once it merges. The one
 # exception is the pull request that installs them, where the base has neither.
+#
+# base.ref, NOT base.sha. The event payload's `base.sha` is the base branch tip from the moment the
+# pull request was opened, not today's. A branch opened before the checker landed therefore names a
+# commit that has no checker: the bootstrap step below fires, the head has no checker either, and
+# the job dies with MODULE_NOT_FOUND having never read the body. The branch name resolves to the
+# current tip, which is still base and still beyond the pull request's reach.
+#
+# RUNNER. `runs-on` is set at install time to the org's self-hosted runner group. Never a
+# GitHub-hosted runner: those burn paid minutes.
 
 permissions:
   contents: read
@@ -31,12 +38,9 @@ jobs:
     runs-on: { group: org/webpros-cpanel-arc-runners }
     timeout-minutes: 5
     steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Bootstrap — the base has no checker yet, so use the head's
         if: hashFiles('.github/pr-body-lint/pr-body-lint.mjs') == ''

@@ -15,7 +15,8 @@
 //   pr-body-lint.mjs check  [--config F] [--format text|github]   body from $PR_BODY, author from $PR_AUTHOR
 //   pr-body-lint.mjs replay <prs.json> [--config F]               gh pr list --json number,author,body
 //
-// Exit codes: 0 pass, 1 the body fails the rule, 2 the config is missing or invalid.
+// Exit codes: 0 pass, 1 the body fails the rule (replay: at least one PR would fail), 2 the config
+// is missing or invalid, or a PR template cannot be read.
 // No network, no shell, no writes except $GITHUB_STEP_SUMMARY. The body arrives through the
 // environment, never interpolated into a script.
 
@@ -42,11 +43,18 @@ function normalise(line) {
   return line.trim().replace(/\s+/g, " ").replace(/^([-*+]) \[[ xX]\]/, "$1 [ ]");
 }
 
-/** Every normalised non-blank line of the repo's PR templates. GitHub matches the names case-insensitively. */
+/**
+ * Every normalised non-blank line of the repo's PR templates. GitHub matches the names case-insensitively.
+ * A template directory that does not exist is the normal case; any other read failure throws, so a
+ * template the checker cannot open fails the run instead of dropping out of the comparison.
+ */
 export function templateLines(repoDir) {
   const files = [];
   const lower = (dir) => {
-    try { return readdirSync(join(repoDir, dir)); } catch { return []; }
+    try { return readdirSync(join(repoDir, dir)); } catch (e) {
+      if (e.code === "ENOENT" || e.code === "ENOTDIR") return [];
+      throw e;
+    }
   };
   for (const rel of TEMPLATE_PATHS) {
     const slash = rel.lastIndexOf("/");
@@ -154,7 +162,11 @@ function main(argv) {
     console.error(`pr-body-lint: ${e.message}`);
     return 2;
   }
-  const template = templateLines(repo);
+  let template;
+  try { template = templateLines(repo); } catch (e) {
+    console.error(`pr-body-lint: cannot read the PR template: ${e.message}`);
+    return 2;
+  }
 
   if (cmd === "check") {
     const github = arg(argv, "--format", "text") === "github";
@@ -191,7 +203,7 @@ function main(argv) {
     }
     console.log(`pr-body-lint replay: ${failed.length} of ${prs.length} PRs would fail.`);
     for (const f of failed) console.log(`  ${f}`);
-    return 0;
+    return failed.length ? 1 : 0;
   }
 
   console.error("usage: pr-body-lint.mjs check [--config F] [--format text|github] | replay <prs.json> [--config F]");

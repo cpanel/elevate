@@ -1,0 +1,10 @@
+{
+  "harness": {
+    "plugin": "engineering-harness",
+    "version": "1.32.0",
+    "resolved": "1.32.0",
+    "repoVersion": 13,
+    "recordedAt": "2026-10-15T03:00:50.269Z"
+  },
+  "target": "repo"
+}
