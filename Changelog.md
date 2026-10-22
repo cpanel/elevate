@@ -1,5 +1,11 @@
 ## ELevate Change Log
 
+##### **2026-10-22** - version 86
+
+* Fixed case CPANEL-57849: Keep the generated local database password out of process arguments Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+* Fixed case RE-1690: ELevate no longer reports MariaDB 11.8 as unsupported when upgrading AlmaLinux 8, AlmaLinux 9, CloudLinux 8 or Ubuntu 22.
+* Fixed case CPANEL-54372: Automatically remove superseded kmod-lve packages that prevent CloudLinux 8 to 9 upgrades, without removing packages a kernel still loads LVE from, and warn about them when the distro is upgraded manually
+
 ##### **2026-09-22** - version 85
 
 * Fixed case RE-1688: Fixed a case where ELevate blocked Ubuntu 22.04 to 24.04 upgrades on servers using a cPanel managed MySQL server.
