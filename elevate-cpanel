@@ -1635,9 +1635,7 @@ EOF
     use Cpanel::MysqlUtils::MyCnf::Basic                ();
     use Cpanel::MysqlUtils::RemoteMySQL::ProfileManager ();
     use Cpanel::PasswdStrength::Generate                ();
-    use Cpanel::JSON                                    ();
-    use Cpanel::SafeRun::Simple                         ();
-    use Cpanel::Encoder::URI                            ();
+    use Whostmgr::API::1::LocalMySQL                    ();
 
     use constant MYSQL_PROFILE_FILE => '/var/cpanel/elevate-mysql-profile';
 
@@ -1749,14 +1747,12 @@ EOF
     sub _set_local_mysql_root_password ( $self, $password ) {
         INFO("Resetting password for local root database user...");
 
-        my $encoded_password = Cpanel::Encoder::URI::uri_encode_str($password);
+        my $metadata = {};
+        Whostmgr::API::1::LocalMySQL::set_local_mysql_root_password( { password => $password }, $metadata );
 
-        my $output = Cpanel::SafeRun::Simple::saferunnoerror( q{/bin/sh}, q{-c}, qq{/usr/local/cpanel/bin/whmapi1 --output=json set_local_mysql_root_password password='$encoded_password'} );
-        my $result = eval { Cpanel::JSON::Load($output); } // {};
+        unless ( $metadata->{result} ) {
 
-        unless ( $result->{metadata}{result} ) {
-
-            my $errors = join qq{\n\n}, @{ $result->{'metadata'}{'errors'} };
+            my $errors = join qq{\n\n}, @{ $metadata->{errors} };
 
             die <<~"EOS";
         Unable to set root password for the localhost database server.

@@ -180,28 +180,28 @@ my $db_upgrade = bless {}, 'Elevate::Components::DatabaseUpgrade';
 {
     note('Checking _set_local_mysql_root_password');
 
-    my @cmds;
-    my $stdout       = '{"metadata":{"reason":"OK","version":1,"result":1,"command":"set_local_mysql_root_password"},"data":{"configs_updated":1,"profile_updated":1,"password_reset":1}}';
-    my $mock_saferun = Test::MockModule->new('Cpanel::SafeRun::Simple');
-    $mock_saferun->redefine( 'saferunnoerror', sub { push @cmds, \@_; return $stdout } );
+    my @calls;
+    my $result   = 1;
+    my $mock_api = Test::MockModule->new('Whostmgr::API::1::LocalMySQL');
+    $mock_api->redefine(
+        'set_local_mysql_root_password' => sub ( $args, $metadata ) {
+            push @calls, $args;
+            $metadata->{result} = $result;
+            $metadata->{errors} = ['(XID kv75bw) The given password is too weak.'] if !$result;
+            return {};
+        },
+    );
 
     ok lives { $db_upgrade->_set_local_mysql_root_password('F00b4r!@#%$%') }, '_set_local_mysql_root_password with successful api call lives';
     message_seen( 'INFO', qr/Resetting password for local root database user/ );
 
-    is \@cmds, [
-        [
-            '/bin/sh',
-            '-c',
-            '/usr/local/cpanel/bin/whmapi1 --output=json set_local_mysql_root_password password=\'F00b4r%21%40%23%25%24%25\''
-        ]
-      ],
-      'Exected saferun command was run';
+    is \@calls, [ { password => 'F00b4r!@#%$%' } ], 'The API was called in-process with the password';
 
-    $stdout = '{"metadata":{"version":1,"reason":"Failed to perform “set_root_mysql_password” action. 1 error occurred.","command":"set_local_mysql_root_password","error_count":1,"errors":["(XID kv75bw) The given password is too weak. Please enter a password with a strength rating of 65 or higher."],"result":0}}';
+    $result = 0;
     like(
         dies { $db_upgrade->_set_local_mysql_root_password('F00b4') },
-        qr/The following errors occurred/,
-        'Handles errors from JSON API result correctly',
+        qr/The following errors occurred.+too weak/s,
+        'Handles errors from the API result correctly',
     );
 
     clear_messages_seen();
